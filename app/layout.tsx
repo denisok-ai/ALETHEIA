@@ -20,7 +20,10 @@ const outfit = Outfit({
   display: 'swap',
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_URL || 'https://aletheia.vercel.app';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: 'ALETHEIA — Школа подсознания и мышечного тестирования',
   description:
     'Курсы кинезиологии, консультации и тренинги. Татьяна Стрельцова. Более 20 лет практики, 15 000+ человек. Москва и онлайн.',
@@ -29,7 +32,11 @@ export const metadata: Metadata = {
     title: 'ALETHEIA — Школа подсознания и мышечного тестирования',
     description: 'Путь к внутренней гармонии. Консультации, курсы, тренинги.',
     type: 'website',
+    url: siteUrl,
+    locale: 'ru_RU',
+    siteName: 'ALETHEIA',
   },
+  robots: { index: true, follow: true },
 };
 
 export default function RootLayout({
