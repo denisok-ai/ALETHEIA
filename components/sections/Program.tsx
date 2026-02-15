@@ -22,7 +22,7 @@ export function Program() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section id="formats" ref={ref} className="relative py-24 px-4">
+    <section id="formats" ref={ref} className="relative py-28 px-5 md:py-32 md:px-6">
       <div className="absolute inset-0 bg-gradient-to-b from-bg via-lavender-light/30 to-bg" />
       <motion.div
         style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
@@ -32,7 +32,7 @@ export function Program() {
         className="relative mx-auto max-w-5xl"
       >
         {/* Контент секции без декоративной плашки — сразу заголовок и содержание */}
-        <div className="rounded-2xl bg-white/95 px-6 py-8 shadow-lg shadow-black/5 backdrop-blur-md sm:px-8 sm:py-10">
+        <div className="rounded-2xl bg-white/95 px-6 py-10 shadow-[var(--shadow-soft)] backdrop-blur-md sm:px-10 sm:py-12">
           <motion.span
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
@@ -53,7 +53,7 @@ export function Program() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.1 }}
-          className="mt-8 flex flex-wrap gap-6 rounded-2xl border border-border/60 bg-bg-cream/80 p-6"
+          className="mt-10 flex flex-wrap gap-8 rounded-2xl border border-border/60 bg-bg-cream/80 p-7 sm:p-8"
         >
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-accent/20 p-3">
@@ -92,7 +92,7 @@ export function Program() {
           </div>
         </motion.div>
 
-        <div className="mt-10 space-y-2">
+        <div className="mt-12 space-y-3">
           {modules.map((mod, i) => (
             <motion.div
               key={mod.title}
@@ -140,9 +140,9 @@ export function Program() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.6 }}
-          className="mt-10 text-center"
+          className="mt-14 text-center"
         >
-          <Link href="#pricing">
+          <Link href="#contact">
             <Button variant="primary" size="lg">
               Записаться на курс
             </Button>

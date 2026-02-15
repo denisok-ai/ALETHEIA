@@ -35,7 +35,7 @@ export function Testimonials() {
   }, [isInView]);
 
   return (
-    <section id="reviews" ref={ref} className="relative py-24 px-4 overflow-hidden bg-gradient-to-b from-bg via-lavender-light/25 to-bg">
+    <section id="reviews" ref={ref} className="relative py-28 px-5 overflow-hidden bg-gradient-to-b from-bg via-lavender-light/25 to-bg md:py-32 md:px-6">
       <motion.div
         style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
         initial={{ opacity: 0, rotateX: 18 }}
@@ -75,7 +75,7 @@ export function Testimonials() {
           <span className="ml-2 text-sm text-text-muted">5.0 · на основе отзывов</span>
         </motion.div>
 
-        <div className="relative mt-10 min-h-[220px]">
+        <div className="relative mt-12 min-h-[240px]">
           {reviews.map((review, i) => (
             <motion.blockquote
               key={review.author}
@@ -89,7 +89,7 @@ export function Testimonials() {
               transition={{ duration: 0.4 }}
               className={`absolute inset-0 ${i === index ? 'pointer-events-auto' : 'pointer-events-none'}`}
             >
-              <TiltCard maxTilt={5} className="h-full rounded-2xl border border-lavender-soft/50 bg-lavender-light/40 bg-white/95 p-8 shadow-lg shadow-black/5 backdrop-blur-xl">
+              <TiltCard maxTilt={5} className="h-full rounded-2xl border border-lavender-soft/50 bg-lavender-light/40 bg-white/95 p-8 shadow-[var(--shadow-soft)] backdrop-blur-xl md:p-10">
                 <Quote className="mb-4 h-10 w-10 text-accent/60" />
                 <p className="text-lg italic leading-relaxed text-dark">{review.text}</p>
                 <div className="mt-6 flex items-center justify-between">

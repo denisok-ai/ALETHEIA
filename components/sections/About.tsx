@@ -34,7 +34,7 @@ export function About() {
   const isInView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section id="why" ref={ref} className="relative py-24 px-4 overflow-hidden">
+    <section id="why" ref={ref} className="relative py-28 px-5 overflow-hidden md:py-32 md:px-6">
       <div className="absolute inset-0 bg-gradient-to-b from-lavender-light/40 via-bg to-lavender/30" />
       <motion.div
         style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
@@ -43,7 +43,7 @@ export function About() {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="relative mx-auto max-w-6xl"
       >
-        <div className="grid gap-10 lg:grid-cols-5 lg:gap-12">
+        <div className="grid gap-12 lg:grid-cols-5 lg:gap-16">
           <motion.div
             initial={{ opacity: 0, x: -24 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
@@ -82,14 +82,14 @@ export function About() {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.1 }}
-              className="mt-4 max-w-2xl text-text-muted"
+              className="mt-5 max-w-2xl leading-relaxed text-text-muted"
             >
               Более 15 000 человек прошли наши программы. Кинезиология и работа с подсознанием — в формате, который подходит именно вам.
             </motion.p>
           </div>
         </div>
 
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {cards.map((card, i) => (
             <motion.div
               key={card.title}
@@ -98,7 +98,7 @@ export function About() {
               transition={{ delay: 0.15 + i * 0.08, type: 'spring', stiffness: 80 }}
             >
               <TiltCard maxTilt={8} className="h-full">
-                <div className="rounded-2xl border border-lavender-soft/50 bg-white/90 p-6 backdrop-blur-xl transition-all hover:border-accent/40 hover:bg-lavender-light/30 h-full flex flex-col">
+                <div className="rounded-2xl border border-lavender-soft/50 bg-white/90 p-7 backdrop-blur-xl transition-all hover:border-accent/40 hover:bg-lavender-light/30 h-full flex flex-col md:p-8">
                   <card.icon className="h-8 w-8 text-accent mb-4" />
                   <h3 className="font-heading text-lg font-semibold text-dark">
                     {card.title}

@@ -32,12 +32,12 @@ export async function POST(request: NextRequest) {
     if (supabase) {
       try {
         await supabase.from('orders').insert({
-        order_number: orderNumber,
-        tariff_id: tariffId,
-        amount: tariff.price,
-        client_email: email,
-        client_phone: phone ?? null,
-        status: 'pending',
+          order_number: orderNumber,
+          tariff_id: tariffId,
+          amount: tariff.price,
+          client_email: email,
+          client_phone: phone ?? null,
+          status: 'pending',
         });
       } catch (dbErr) {
         console.error('DB insert order:', dbErr);

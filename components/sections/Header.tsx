@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
@@ -18,13 +18,28 @@ const navLinks = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-bg/95 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
+    <header
+      className={cn(
+        'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
+        scrolled ? 'bg-white/95 shadow-sm backdrop-blur-md' : 'bg-transparent'
+      )}
+    >
+      <div className="mx-auto flex min-h-[4.25rem] max-w-6xl items-center justify-between px-5 py-4 md:min-h-[5rem] md:px-6">
         <Link
           href="#hero"
-          className="font-heading text-xl font-semibold tracking-wide text-dark hover:text-accent transition-colors"
+          className={cn(
+            'font-heading text-xl font-bold tracking-tight transition-colors',
+            scrolled ? 'text-gray-900 hover:text-gray-700' : 'text-gray-900 hover:opacity-90'
+          )}
         >
           ALETHEIA
         </Link>
@@ -34,21 +49,29 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-sm font-medium text-text-muted hover:text-accent transition-colors"
+              className={cn(
+                'text-sm font-medium transition-colors',
+                scrolled
+                  ? 'text-gray-600 hover:text-gray-900'
+                  : 'text-gray-900 hover:text-violet-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]'
+              )}
             >
               {link.label}
             </Link>
           ))}
           <Link href="#contact">
-            <Button variant="primary" size="sm">
-              Записаться
+            <Button
+              size="sm"
+              className="rounded-xl bg-amber-700/90 text-white hover:bg-amber-800 shadow-md border-0"
+            >
+              Запишись
             </Button>
           </Link>
         </nav>
 
         <button
           type="button"
-          className="md:hidden p-2 text-dark"
+          className={cn('md:hidden p-2 transition-colors', scrolled ? 'text-gray-900' : 'text-gray-900')}
           aria-label="Меню"
           aria-expanded={open}
           onClick={() => setOpen(!open)}
@@ -63,24 +86,25 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-border bg-bg-soft"
+            className="md:hidden border-t border-white/20 bg-violet-900/95 backdrop-blur-md"
           >
             <nav className="flex flex-col gap-2 p-4">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={cn(
-                    'py-3 text-dark hover:text-accent font-medium'
-                  )}
+                  className={cn('py-3 text-white font-medium hover:text-white/90')}
                   onClick={() => setOpen(false)}
                 >
                   {link.label}
                 </Link>
               ))}
               <Link href="#contact" onClick={() => setOpen(false)}>
-                <Button variant="primary" className="w-full mt-2">
-                  Записаться
+                <Button
+                  size="sm"
+                  className="mt-2 w-full rounded-xl bg-amber-700/90 text-white hover:bg-amber-800 border-0"
+                >
+                  Запишись
                 </Button>
               </Link>
             </nav>

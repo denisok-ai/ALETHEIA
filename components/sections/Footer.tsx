@@ -4,9 +4,9 @@ import { Mail, MapPin, Phone } from 'lucide-react';
 
 export function Footer() {
   return (
-    <footer className="border-t border-border bg-bg-soft py-12">
-      <div className="mx-auto max-w-6xl px-4">
-        <div className="grid gap-8 md:grid-cols-3 text-center md:text-left">
+    <footer className="border-t border-border/80 bg-bg-soft py-16 md:py-20">
+      <div className="mx-auto max-w-6xl px-5 md:px-6">
+        <div className="grid gap-12 md:grid-cols-3 text-center md:text-left">
           <div>
             <Link
               href="#hero"
@@ -46,7 +46,7 @@ export function Footer() {
             </div>
           </div>
         </div>
-        <p className="mt-8 pt-6 border-t border-border text-center text-xs text-text-soft">
+        <p className="mt-12 pt-8 border-t border-border/80 text-center text-xs text-text-soft">
           © ALETHEIA. ИП Стрельцова Т. (ОГРН и реквизиты уточняются)
         </p>
       </div>

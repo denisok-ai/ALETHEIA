@@ -54,7 +54,7 @@ export function Pricing() {
 
   return (
     <>
-      <section id="pricing" ref={ref} className="relative py-24 px-4 bg-lavender-light/30">
+      <section id="pricing" ref={ref} className="relative py-28 px-5 bg-lavender-light/30 md:py-32 md:px-6">
         <motion.div
           style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
           initial={{ opacity: 0, rotateX: 18 }}
@@ -78,7 +78,7 @@ export function Pricing() {
             Купить курс или записаться на консультацию
           </motion.h2>
 
-          <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
             {tariffs.map((tariff, i) => (
               <motion.div
                 key={tariff.id}
@@ -89,7 +89,7 @@ export function Pricing() {
               >
                 <TiltCard maxTilt={6} className="h-full">
                   <div
-                    className={`relative h-full rounded-2xl border p-6 transition-shadow ${
+                    className={`relative h-full rounded-2xl border p-7 transition-shadow md:p-8 ${
                       tariff.popular
                         ? 'border-accent/50 bg-gradient-to-b from-accent/10 to-bg-cream shadow-xl shadow-accent/20'
                         : 'border-border bg-white hover:border-accent/40 hover:shadow-xl hover:shadow-black/10'

@@ -28,7 +28,7 @@ export function StickyCTA() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="fixed bottom-6 left-1/2 z-40 -translate-x-1/2 md:bottom-8"
+          className="fixed bottom-8 left-1/2 z-40 -translate-x-1/2 md:bottom-10"
         >
           <Link href="#pricing">
             <Button

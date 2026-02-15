@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
+import dynamic from 'next/dynamic';
 import { Literata, Outfit } from 'next/font/google';
 import './globals.css';
 import { Header } from '@/components/sections/Header';
 import { Footer } from '@/components/sections/Footer';
-import { StickyCTA } from '@/components/sections/StickyCTA';
+
+const StickyCTA = dynamic(() => import('@/components/sections/StickyCTA').then((m) => m.StickyCTA), { ssr: false });
+const ChatBot = dynamic(() => import('@/components/ChatBot').then((m) => m.ChatBot), { ssr: false });
 
 const literata = Literata({
   subsets: ['latin', 'cyrillic'],
@@ -40,6 +43,7 @@ export default function RootLayout({
         <Header />
         <main>{children}</main>
         <StickyCTA />
+        <ChatBot />
         <Footer />
       </body>
     </html>

@@ -171,7 +171,12 @@ function SoftOrb({ position, scale = 1 }: { position: [number, number, number]; 
   );
 }
 
-export function ParticleBackground() {
+interface ParticleBackgroundProps {
+  /** Прозрачный фон — для наложения на градиент (например, в Hero) */
+  transparentBackground?: boolean;
+}
+
+export function ParticleBackground({ transparentBackground }: ParticleBackgroundProps = {}) {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -190,20 +195,22 @@ export function ParticleBackground() {
 
   return (
     <div ref={containerRef} className="absolute inset-0 z-0">
-      <div
-        className="absolute inset-0 z-[1] pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse 85% 75% at 50% 50%, transparent 45%, rgba(245,242,236,0.2) 100%)',
-        }}
-        aria-hidden
-      />
+      {!transparentBackground && (
+        <div
+          className="absolute inset-0 z-[1] pointer-events-none"
+          style={{
+            background: 'radial-gradient(ellipse 85% 75% at 50% 50%, transparent 45%, rgba(245,242,236,0.2) 100%)',
+          }}
+          aria-hidden
+        />
+      )}
       <Canvas
         camera={{ position: [0, 0, 8], fov: 50 }}
         dpr={[1, 2]}
         gl={{ alpha: true, antialias: true }}
         style={{ minHeight: '100%' }}
       >
-        <color attach="background" args={['#f5f2ec']} />
+        {!transparentBackground && <color attach="background" args={['#f5f2ec']} />}
         <ambientLight intensity={0.6} />
         <pointLight position={[2, 2, 5]} intensity={0.4} color="#e8dcc8" />
 

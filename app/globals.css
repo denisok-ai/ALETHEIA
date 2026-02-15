@@ -17,6 +17,13 @@
   --accent-hover: #8b7349;
   --border: #e8e4de;
   --cream: #f5f0e8;
+  /* Воздух: единый вертикальный ритм секций */
+  --section-padding-y: 7rem;
+  --section-padding-y-lg: 8rem;
+  --content-gap: 1.5rem;
+  --card-radius: 1.25rem;
+  --shadow-soft: 0 4px 24px -4px rgba(44, 42, 40, 0.06), 0 8px 32px -8px rgba(44, 42, 40, 0.04);
+  --shadow-card: 0 8px 32px -8px rgba(44, 42, 40, 0.08), 0 16px 48px -16px rgba(166, 139, 91, 0.08);
 }
 
 html {
@@ -27,6 +34,7 @@ body {
   @apply antialiased;
   background-color: var(--bg);
   color: var(--text);
+  letter-spacing: 0.01em;
 }
 
 @layer utilities {

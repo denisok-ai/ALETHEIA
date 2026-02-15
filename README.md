@@ -101,40 +101,20 @@ git push -u origin main
 
 При первом `git push` WSL может запросить логин/пароль GitHub; можно использовать [Personal Access Token](https://github.com/settings/tokens) вместо пароля.
 
-### Обновить сборку: перенести в GitHub и на сервер
+### Обновить сборку на сервере после изменений
 
-**Часть 1 — у себя:** закоммитить и отправить в GitHub.
-
-В терминале **WSL** (Ubuntu):
-
-```bash
-cd /home/denisok/projects/ALETHEIA
-git add .
-git status
-git commit -m "Update: описание изменений"
-git push origin main
-```
-
-Или из **PowerShell** одной строкой:
-
-```powershell
-wsl -e bash -c "cd /home/denisok/projects/ALETHEIA && git add . && git commit -m 'Update' && git push origin main"
-```
-
-**Часть 2 — на сервере по SSH:** подтянуть код и пересобрать:
+1. Локально: правки закоммичены и запушены в GitHub (`git add .`, `git commit -m "..."`, `git push`).
+2. На сервере по SSH:
 
 ```bash
-ssh root@95.181.224.70
 cd /var/www/ALETHEIA
 sudo git pull origin main
 sudo npm install
-sudo npm run build:server
+sudo npm run build
 sudo pm2 restart aletheia
 ```
 
-Готово. Проверить: http://95.181.224.70/
-
-(Если на сервере мало RAM и `build:server` падает — добавьте swap или используйте `NODE_OPTIONS='--max-old-space-size=1536' npm run build`. См. docs/Server-Setup.md.)
+Подробнее — **docs/Deploy.md** (раздел «Как обновить сборку на сервере»).
 
 ## Документация
 

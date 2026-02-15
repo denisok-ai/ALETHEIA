@@ -15,7 +15,7 @@ export function Author() {
   const isInView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section id="master" ref={ref} className="relative py-24 px-4 overflow-hidden">
+    <section id="master" ref={ref} className="relative py-28 px-5 overflow-hidden md:py-32 md:px-6">
       <div className="absolute inset-0 bg-gradient-to-b from-bg via-bg-soft to-bg" />
       <div className="absolute inset-0 opacity-30">
         <Image src="/images/author/author-bg.png" alt="" fill className="object-cover" sizes="100vw" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
@@ -27,7 +27,7 @@ export function Author() {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="relative mx-auto max-w-6xl"
       >
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-center">
+        <div className="grid gap-14 lg:grid-cols-2 lg:items-center lg:gap-20">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
@@ -71,7 +71,7 @@ export function Author() {
               Татьяна Стрельцова
             </h2>
             <p className="mt-2 text-text-muted">22 года практики · более 15 000 консультаций</p>
-            <p className="mt-6 text-text-muted leading-relaxed">
+            <p className="mt-7 text-text-muted leading-relaxed">
               С 2004 года я практикую кинезиологию и мышечный тест, помогая людям обрести внутренний баланс и силу жизни. ALETHEIA — это уникальная методика, которая получила признание среди коллег и экспертов.
             </p>
             {isInView && (

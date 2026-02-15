@@ -40,7 +40,7 @@ export function FAQ() {
   );
 
   return (
-    <section id="faq" ref={ref} className="relative py-24 px-4">
+    <section id="faq" ref={ref} className="relative py-28 px-5 md:py-32 md:px-6">
       <div className="absolute inset-0 bg-gradient-to-b from-bg via-lavender-light/20 to-bg" />
       <motion.div
         style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
@@ -69,7 +69,7 @@ export function FAQ() {
           initial={{ opacity: 0, y: 15 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.1 }}
-          className="relative mt-8"
+          className="relative mt-10"
         >
           <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-soft" />
           <input
@@ -77,11 +77,11 @@ export function FAQ() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Поиск по вопросам..."
-            className="w-full rounded-xl border border-border bg-white py-3 pl-12 pr-4 text-dark placeholder:text-text-soft focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="w-full rounded-xl border border-border bg-white py-3.5 pl-12 pr-4 text-dark placeholder:text-text-soft focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
           />
         </motion.div>
 
-        <div className="mt-6 space-y-2">
+        <div className="mt-8 space-y-3">
           {filtered.length === 0 ? (
             <p className="rounded-xl border border-border bg-bg-soft p-6 text-center text-text-muted">
               Ничего не найдено. Попробуйте другой запрос.
@@ -122,7 +122,7 @@ export function FAQ() {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                       >
-                        <p className="border-t border-border p-4 pl-12 text-text-muted">
+                        <p className="border-t border-border p-4 pl-12 leading-relaxed text-text-muted">
                           {item.a}
                         </p>
                       </motion.div>
