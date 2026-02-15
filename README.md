@@ -1,35 +1,121 @@
 # ALETHEIA — Школа подсознания и мышечного тестирования
 
-Одностраничный лендинг школы. Прототип: [aletheia--6eat7ck.gamma.site](https://aletheia--6eat7ck.gamma.site/).
+Современный лендинг на Next.js 14 с 3D-эффектами, анимациями и интеграцией PayKeeper.  
+Прототип: [aletheia--6eat7ck.gamma.site](https://aletheia--6eat7ck.gamma.site/).
+
+## Стек
+
+- **Next.js 14** (App Router), TypeScript
+- **Tailwind CSS**, Framer Motion, React Three Fiber (3D-частицы в Hero)
+- **PayKeeper** — приём платежей
+- **Supabase** — заказы и заявки (опционально)
+- Деплой: **Vercel** или статический экспорт
 
 ## Как запустить
 
-Нужен [Node.js](https://nodejs.org/) (LTS).
+Требуется [Node.js](https://nodejs.org/) 18+.
+
+### Проект в WSL (Ubuntu) — терминал в Cursor/Windows
+
+В PowerShell **npm не сработает** (Node стоит в Linux). Запускайте команды **внутри WSL** одной строкой:
+
+```powershell
+wsl -e bash -c "cd /home/denisok/projects/ALETHEIA && npm install && npm run dev"
+```
+
+Либо откройте **терминал WSL** (в Cursor: выберите в выпадающем списке терминала «Ubuntu» / «WSL» или команду **Terminal: Create New Terminal** и выберите WSL), затем:
 
 ```bash
-cd ALETHEIA
+cd /home/denisok/projects/ALETHEIA
 npm install
 npm run dev
 ```
 
-Откроется локальный сервер (обычно http://localhost:5173). Откройте этот адрес в браузере.
+### Обычный запуск (если уже в bash/WSL)
+
+```bash
+cd /home/denisok/projects/ALETHEIA
+npm install
+npm run dev
+```
+
+Откройте в браузере: **http://localhost:3000**.
 
 ## Сборка для продакшена
 
 ```bash
 npm run build
+npm run start
 ```
 
-Готовый сайт будет в папке `dist/`. Её можно загрузить на любой статический хостинг (Vercel, Netlify, nginx и т.д.).
+Или загрузите проект на Vercel — сборка настроена автоматически.
 
-## Структура
+## Переменные окружения
 
-- `index.html` — все секции страницы (Hero, история, услуги, мастер, партнёры, отзывы, FAQ, контакты, футер).
-- `src/style.css` — стили (цвета и типографика по docs/Media.md).
-- `src/main.js` — мобильное меню, поведение формы.
-- `public/images/` — изображения (фото Татьяны Стрельцовой положить в `public/images/tatiana/` по инструкции в docs/Media.md).
-- `docs/` — описание проекта, контент, задачи: Project.md, Content.md, Media.md, Tasktracker.md, Diary.md, qa.md.
+Скопируйте `.env.example` в `.env.local` и заполните:
 
-## Форма заявки
+- **PayKeeper:** `PAYKEEPER_SERVER`, `PAYKEEPER_LOGIN`, `PAYKEEPER_PASSWORD`, `PAYKEEPER_SECRET` — для приёма оплаты.
+- **Supabase:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — для хранения заказов и заявок (таблицы `orders`, `leads`). Без Supabase форма заявки и кнопка «Купить» всё равно работают; данные просто не сохраняются в БД.
+- **App:** `NEXT_PUBLIC_URL` — полный URL сайта (для писем и ссылок).
 
-Сейчас форма в блоке «Контакты» только имитирует отправку. Чтобы заявки реально приходили, нужно подключить сервис (например [Formspree](https://formspree.io/)) или свой backend — см. этап 3 в docs/Tasktracker.md.
+## Структура проекта
+
+- `app/` — страницы (layout, главная, success, oferta, privacy) и API (payment, webhook, contact).
+- `components/sections/` — Hero, About, Program, Author, Testimonials, Pricing, FAQ, Contact, Header, Footer.
+- `components/ui/` — кнопки, поля ввода, диалоги.
+- `components/3d/` — 3D-фон с частицами в Hero.
+- `lib/` — paykeeper, supabase, utils.
+- `public/images/` — изображения: `tatiana/`, `thematic/`, `hero/`, `author/`, `icons/`, `pricing/`, `decor/`, `success/`. Промпты для генерации (Midjourney/DALL·E/SD) — **docs/ImagePrompts.md**; см. также docs/Media.md.
+- `docs/` — Project.md, Content.md, Media.md, **ImagePrompts.md**, Tasktracker.md, Diary.md, qa.md.
+
+## Платежи (PayKeeper)
+
+1. Настройте учётную запись PayKeeper и получите доступ к API.
+2. В личном кабинете PayKeeper укажите URL webhook: `https://ваш-домен/api/webhook/paykeeper`.
+3. После оплаты пользователь может быть перенаправлен на `/success` (настраивается в PayKeeper).
+
+## GitHub и обновление на сервере
+
+### Выложить проект на GitHub
+
+**Важно:** в PowerShell команда `git` не найдена — Git стоит в WSL. Выполняйте команды **внутри WSL**.
+
+1. Создайте репозиторий на [github.com](https://github.com/new) (имя например `ALETHEIA`), без README и .gitignore.
+2. **Из PowerShell** одной строкой (подставьте свой логин вместо `denisok-ai`):
+
+```powershell
+wsl -e bash -c "cd /home/denisok/projects/ALETHEIA && git init && git add . && git commit -m 'Initial commit: ALETHEIA landing' && git branch -M main && git remote add origin https://github.com/denisok-ai/ALETHEIA.git && git push -u origin main"
+```
+
+3. **Либо откройте терминал WSL** (в Cursor: выберите в списке терминалов «Ubuntu» / «WSL») и выполните по шагам:
+
+```bash
+cd /home/denisok/projects/ALETHEIA
+git init
+git add .
+git commit -m "Initial commit: ALETHEIA landing"
+git branch -M main
+git remote add origin https://github.com/denisok-ai/ALETHEIA.git
+git push -u origin main
+```
+
+При первом `git push` WSL может запросить логин/пароль GitHub; можно использовать [Personal Access Token](https://github.com/settings/tokens) вместо пароля.
+
+### Обновить сборку на сервере после изменений
+
+1. Локально: правки закоммичены и запушены в GitHub (`git add .`, `git commit -m "..."`, `git push`).
+2. На сервере по SSH:
+
+```bash
+cd /var/www/ALETHEIA
+sudo git pull origin main
+sudo npm install
+sudo npm run build
+sudo pm2 restart aletheia
+```
+
+Подробнее — **docs/Deploy.md** (раздел «Как обновить сборку на сервере»).
+
+## Документация
+
+Подробнее об архитектуре, этапах и контенте — в папке `docs/` (Project.md, Content.md, Media.md, **Deploy.md**).

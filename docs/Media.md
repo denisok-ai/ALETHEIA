@@ -42,15 +42,18 @@
 ## 3. Структура папок под медиа (рекомендация)
 
 ```
-public/
-  images/
-    tatiana/          # Фото Татьяны Стрельцовой с прототипа
-    partners/         # Логотипы партнёров
-    sections/         # Фоны и иллюстрации секций (hero, история и т.д.)
-    icons/            # Иконки (если не используем шрифт-иконки)
+public/images/
+  tatiana/            # Фото Татьяны Стрельцовой
+  thematic/           # hero-banner, about-path, program-energy (мистический стиль)
+  hero/               # hero-bg — фон Hero (см. ImagePrompts.md)
+  author/             # author-bg — фон блока «Автор»
+  icons/              # Иконки модулей: self-discovery, meditation, transformation, wisdom
+  pricing/            # Фоны карточек тарифов: basic, standard, premium
+  decor/              # Декор: testimonials, hero-floating, faq-icon
+  success/            # Иллюстрация страницы «Успешная оплата»
 ```
 
-Либо аналог в `src/assets/` при использовании сборки с импортом статики.
+**Генерация изображений:** готовые промпты для Midjourney / DALL·E 3 / Stable Diffusion (Hero, иконки, тарифы, декор, success, FAQ) — **docs/ImagePrompts.md**. Палитра: #2D1B4E, #0A0E27, #D4AF37.
 
 ---
 

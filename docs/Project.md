@@ -89,32 +89,31 @@ graph TB
 
 *Конкретный выбор зафиксировать после ответов на вопросы в `qa.md`.*
 
-### 3.3 Структура проекта (текущая)
+### 3.3 Структура проекта (текущая, v3.0)
 
-**Стек:** Vite + HTML + CSS + JS (одностраничный лендинг).
+**Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, Supabase (опционально).
 
 ```
 ALETHEIA/
-├── docs/                 # Документация
-│   ├── Project.md
-│   ├── Content.md
-│   ├── Media.md
-│   ├── Tasktracker.md
-│   ├── Diary.md
-│   └── qa.md
-├── src/
-│   ├── style.css         # Стили лендинга
-│   └── main.js          # Меню, форма, поведение
-├── public/
-│   └── images/           # Медиа (см. docs/Media.md)
-│       ├── tatiana/      # Фото Татьяны с прототипа
-│       ├── partners/
-│       └── sections/
-├── index.html            # Разметка всех секций
-├── package.json
-├── vite.config.js
-├── .cursorrules
-├── .gitignore
+├── app/
+│   ├── layout.tsx, page.tsx, globals.css
+│   ├── success/, oferta/, privacy/   # Страницы
+│   └── api/
+│       ├── payment/create/route.ts   # Создание счёта PayKeeper
+│       ├── webhook/paykeeper/route.ts
+│       └── contact/route.ts          # Заявки (leads)
+├── components/
+│   ├── sections/   # Hero, About, Program, Author, Testimonials, Pricing, FAQ, Contact, Header, Footer
+│   ├── ui/         # button, input, label, dialog
+│   ├── 3d/         # ParticleBackground (Hero)
+│   └── PaymentModal.tsx
+├── lib/
+│   ├── utils.ts, paykeeper.ts
+│   └── supabase/client.ts, server.ts
+├── public/images/   # tatiana/, partners/, sections/ (см. docs/Media.md)
+├── docs/            # Project.md, Content.md, Media.md, Tasktracker.md, Diary.md, qa.md
+├── package.json, next.config.mjs, tailwind.config.ts, tsconfig.json
+├── .cursorrules, .env.example
 └── README.md
 ```
 
@@ -136,11 +135,12 @@ ALETHEIA/
 ## 5. Технологии и стандарты
 
 ### 5.1 Текущий стек
-- **Фронтенд:** HTML5, CSS3, JavaScript (vanilla)
-- **Стили:** один файл src/style.css, BEM-подобные классы, CSS-переменные
-- **Сборка:** Vite (dev-сервер и production build)
-- **Формы:** разметка готова; отправка — TODO (Formspree или свой endpoint)
-- **Хостинг:** статический (dist/ после `npm run build`)
+- **Фреймворк:** Next.js 14 (App Router), TypeScript
+- **Стили:** Tailwind CSS, шрифты Literata + Outfit
+- **Анимации:** Framer Motion (reveal, модалки), React Three Fiber (3D-частицы в Hero)
+- **Платежи:** PayKeeper API (lib/paykeeper.ts, API routes)
+- **Данные:** Supabase (опционально; orders, leads)
+- **Деплой:** Vercel или статический экспорт
 
 ### 5.2 Стандарты кода и процесса
 - **Консистентность:** единый стиль именования (файлы, классы, переменные)
