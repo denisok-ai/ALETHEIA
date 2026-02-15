@@ -6,16 +6,15 @@ import { motion, useInView } from 'framer-motion';
 type Section3DProps = {
   children: React.ReactNode;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
   id?: string;
 };
 
-export function Section3D({ children, className = '', as: Tag = 'section', id }: Section3DProps) {
-  const ref = useRef<HTMLElement>(null);
+export function Section3D({ children, className = '', id }: Section3DProps) {
+  const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-100px', amount: 0.2 });
 
   return (
-    <Tag ref={ref as React.RefObject<HTMLElement>} id={id} className={className}>
+    <div ref={ref} id={id} className={className}>
       <motion.div
         style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
         initial={{ opacity: 0, rotateX: 18, transformPerspective: 1200 }}
@@ -28,6 +27,6 @@ export function Section3D({ children, className = '', as: Tag = 'section', id }:
       >
         {children}
       </motion.div>
-    </Tag>
+    </div>
   );
 }
