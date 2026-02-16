@@ -17,7 +17,6 @@
   --accent-hover: #8b7349;
   --border: #e8e4de;
   --cream: #f5f0e8;
-  /* Воздух: единый вертикальный ритм секций */
   --section-padding-y: 7rem;
   --section-padding-y-lg: 8rem;
   --content-gap: 1.5rem;
@@ -31,22 +30,18 @@ html {
 }
 
 body {
-  @apply antialiased;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-color: var(--bg);
   color: var(--text);
   letter-spacing: 0.01em;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
-}
-
-/* Reduced motion */
 @media (prefers-reduced-motion: reduce) {
-  html { scroll-behavior: auto; }
-  *, *::before, *::after {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

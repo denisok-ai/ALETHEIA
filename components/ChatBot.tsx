@@ -64,16 +64,16 @@ export function ChatBot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="fixed bottom-20 right-4 z-50 w-[calc(100vw-2rem)] max-w-md rounded-2xl border border-border/80 bg-surface shadow-[var(--shadow-card)] md:bottom-24 md:right-6"
+            className="fixed bottom-20 right-4 z-50 w-[calc(100vw-2rem)] max-w-md rounded-t-[1.75rem] rounded-b-xl border border-border/80 bg-white/95 shadow-[var(--shadow-card)] backdrop-blur-md md:bottom-24 md:right-6"
           >
-            <div className="flex items-center justify-between border-b border-border/80 bg-[var(--lavender-light)] px-5 py-4 rounded-t-2xl">
-              <span className="font-semibold text-dark">
+            <div className="flex items-center justify-between border-b border-border/80 px-5 py-4 rounded-t-[1.75rem] bg-white">
+              <span className="font-bold text-dark text-base">
                 Консультант курса «Тело не врёт»
               </span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-lg p-1.5 text-text-muted hover:bg-white/60 hover:text-dark transition-colors"
+                className="rounded-full p-2 text-text-muted hover:bg-black/5 hover:text-dark transition-colors"
                 aria-label="Закрыть чат"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -83,10 +83,10 @@ export function ChatBot() {
             </div>
             <div
               ref={listRef}
-              className="h-80 overflow-y-auto p-5 space-y-4 bg-bg"
+              className="h-80 overflow-y-auto p-5 space-y-4 bg-white"
             >
               {messages.length === 0 && (
-                <p className="text-sm text-text-muted">
+                <p className="text-sm text-dark">
                   Задайте любой вопрос о курсе, здоровье, усталости, страхах, деньгах или отношениях. Я отвечу по базе знаний курса.
                 </p>
               )}
@@ -115,7 +115,7 @@ export function ChatBot() {
                 </div>
               )}
             </div>
-            <div className="border-t border-border/80 p-4 rounded-b-2xl bg-surface">
+            <div className="border-t border-border/80 p-4 rounded-b-xl bg-white">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -123,7 +123,7 @@ export function ChatBot() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
                   placeholder="Напишите вопрос..."
-                  className="flex-1 rounded-lg border border-border bg-bg px-3 py-2 text-sm placeholder:text-text-soft focus:outline-none focus:ring-2 focus:ring-accent/40"
+                  className="flex-1 rounded-xl border border-border bg-bg px-3 py-2.5 text-sm placeholder:text-text-soft focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent"
                   disabled={loading}
                 />
                 <Button
@@ -132,7 +132,7 @@ export function ChatBot() {
                   size="default"
                   onClick={send}
                   disabled={loading || !input.trim()}
-                  className="shrink-0"
+                  className="shrink-0 rounded-xl"
                 >
                   Отправить
                 </Button>
@@ -148,7 +148,7 @@ export function ChatBot() {
       <motion.button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-6 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-lg hover:bg-accent-hover hover:scale-105 focus:outline-none focus:ring-2 focus:ring-accent focus:ring-offset-2 md:bottom-8 md:right-6"
+        className="fixed bottom-6 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent/60 md:bottom-8 md:right-6 bg-[#b8a078] hover:bg-[#a08c64] focus:ring-accent"
         aria-label={open ? 'Закрыть чат' : 'Открыть чат с консультантом'}
       >
         {open ? (

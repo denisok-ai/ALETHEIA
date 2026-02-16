@@ -108,6 +108,8 @@ export function Hero() {
               width={340}
               height={420}
               className="h-auto w-full object-cover"
+              loading="lazy"
+              fetchPriority="low"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
                 target.style.display = 'none';

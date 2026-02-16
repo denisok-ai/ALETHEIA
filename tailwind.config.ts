@@ -45,8 +45,8 @@ const config: Config = {
         body: ['var(--font-outfit)', 'system-ui', 'sans-serif'],
       },
       animation: {
-        'float': 'float 6s ease-in-out infinite',
-        'glow': 'glow 2s ease-in-out infinite alternate',
+        float: 'float 6s ease-in-out infinite',
+        glow: 'glow 2s ease-in-out infinite alternate',
       },
       keyframes: {
         float: {

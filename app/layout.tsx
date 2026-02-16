@@ -6,7 +6,10 @@ import { Header } from '@/components/sections/Header';
 import { Footer } from '@/components/sections/Footer';
 
 const StickyCTA = dynamic(() => import('@/components/sections/StickyCTA').then((m) => m.StickyCTA), { ssr: false });
-const ChatBot = dynamic(() => import('@/components/ChatBot').then((m) => m.ChatBot), { ssr: false });
+const ChatBot = dynamic(
+  () => import('@/components/ChatBot').then((m) => ({ default: m.ChatBot })),
+  { ssr: false }
+);
 
 const literata = Literata({
   subsets: ['latin', 'cyrillic'],

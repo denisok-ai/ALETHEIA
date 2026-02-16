@@ -11,9 +11,14 @@ export function StickyCTA() {
   useEffect(() => {
     const onScroll = () => {
       const hero = document.getElementById('hero');
+      const footer = document.getElementById('footer');
       if (!hero) return;
-      const rect = hero.getBoundingClientRect();
-      setVisible(rect.bottom < 0);
+      const heroRect = hero.getBoundingClientRect();
+      const heroScrolledPast = heroRect.bottom < 0;
+      const footerInView = footer
+        ? footer.getBoundingClientRect().top < window.innerHeight - 120
+        : false;
+      setVisible(heroScrolledPast && !footerInView);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();

@@ -26,7 +26,7 @@ function useSoftPointTexture() {
   }, []);
 }
 
-const COUNT = 800;
+const COUNT = 420;
 
 function CosmicParticles({ mouse }: { mouse: { x: number; y: number } }) {
   const ref = useRef<THREE.Points>(null);
@@ -90,7 +90,7 @@ function CosmicParticles({ mouse }: { mouse: { x: number; y: number } }) {
   );
 }
 
-const SOFT_COUNT = 350;
+const SOFT_COUNT = 200;
 
 function StardustLayer() {
   const ref = useRef<THREE.Points>(null);
@@ -137,7 +137,7 @@ function NebulaGlow({ position, scale, color }: { position: [number, number, num
   });
   return (
     <mesh ref={ref} position={position} scale={scale}>
-      <sphereGeometry args={[1, 32, 32]} />
+      <sphereGeometry args={[1, 20, 20]} />
       <meshBasicMaterial
         color={color}
         transparent
@@ -159,7 +159,7 @@ function SoftOrb({ position, scale = 1 }: { position: [number, number, number]; 
   });
   return (
     <mesh ref={ref} position={position} scale={scale}>
-      <sphereGeometry args={[0.4, 24, 24]} />
+      <sphereGeometry args={[0.4, 16, 16]} />
       <meshBasicMaterial
         color="#f5eed8"
         transparent
@@ -178,7 +178,13 @@ interface ParticleBackgroundProps {
 
 export function ParticleBackground({ transparentBackground }: ParticleBackgroundProps = {}) {
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const t = window.setTimeout(() => setMounted(true), 180);
+    return () => window.clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -189,7 +195,7 @@ export function ParticleBackground({ transparentBackground }: ParticleBackground
       const y = -(e.clientY - rect.top) / rect.height + 0.5;
       setMouse({ x, y });
     };
-    el.addEventListener('mousemove', onMove);
+    el.addEventListener('mousemove', onMove, { passive: true });
     return () => el.removeEventListener('mousemove', onMove);
   }, []);
 
@@ -204,10 +210,11 @@ export function ParticleBackground({ transparentBackground }: ParticleBackground
           aria-hidden
         />
       )}
+      {mounted && (
       <Canvas
         camera={{ position: [0, 0, 8], fov: 50 }}
-        dpr={[1, 2]}
-        gl={{ alpha: true, antialias: true }}
+        dpr={[1, 1.5]}
+        gl={{ alpha: true, antialias: false }}
         style={{ minHeight: '100%' }}
       >
         {!transparentBackground && <color attach="background" args={['#f5f2ec']} />}
@@ -226,6 +233,7 @@ export function ParticleBackground({ transparentBackground }: ParticleBackground
         <SoftOrb position={[-1.8, -0.5, -1]} scale={0.9} />
         <SoftOrb position={[1, -1.2, -0.5]} scale={0.7} />
       </Canvas>
+      )}
     </div>
   );
 }
