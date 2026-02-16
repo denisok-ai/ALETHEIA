@@ -32,7 +32,7 @@ const tariffs: TariffItem[] = [
   },
   {
     id: 'course',
-    name: 'Курс ALETHEIA',
+    name: 'Курс AVATERRA',
     price: 25000,
     description: '10 занятий: основы кинезиологии и мышечного тестирования.',
     features: ['10 занятий', 'Полное погружение', 'Поддержка на пути'],

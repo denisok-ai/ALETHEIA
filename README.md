@@ -1,7 +1,7 @@
-# ALETHEIA — Школа подсознания и мышечного тестирования
+# AVATERRA — Phygital школа мышечного тестирования
 
 Современный лендинг на Next.js 14 с 3D-эффектами, анимациями и интеграцией PayKeeper.  
-Прототип: [aletheia--6eat7ck.gamma.site](https://aletheia--6eat7ck.gamma.site/).
+Домен: [avaterra.pro](https://avaterra.pro).
 
 ## Стек
 
@@ -20,13 +20,13 @@
 В PowerShell **npm не сработает** (Node стоит в Linux). Запускайте команды **внутри WSL** одной строкой:
 
 ```powershell
-wsl -e bash -c "cd /home/denisok/projects/ALETHEIA && npm install && npm run dev"
+wsl -e bash -c "cd /home/denisok/projects/AVATERRA && npm install && npm run dev"
 ```
 
 Либо откройте **терминал WSL** (в Cursor: выберите в выпадающем списке терминала «Ubuntu» / «WSL» или команду **Terminal: Create New Terminal** и выберите WSL), затем:
 
 ```bash
-cd /home/denisok/projects/ALETHEIA
+cd /home/denisok/projects/AVATERRA
 npm install
 npm run dev
 ```
@@ -34,7 +34,7 @@ npm run dev
 ### Обычный запуск (если уже в bash/WSL)
 
 ```bash
-cd /home/denisok/projects/ALETHEIA
+cd /home/denisok/projects/AVATERRA
 npm install
 npm run dev
 ```
@@ -80,22 +80,22 @@ npm run start
 
 **Важно:** в PowerShell команда `git` не найдена — Git стоит в WSL. Выполняйте команды **внутри WSL**.
 
-1. Создайте репозиторий на [github.com](https://github.com/new) (имя например `ALETHEIA`), без README и .gitignore.
+1. Создайте репозиторий на [github.com](https://github.com/new) (имя например `AVATERRA`), без README и .gitignore.
 2. **Из PowerShell** одной строкой (подставьте свой логин вместо `denisok-ai`):
 
 ```powershell
-wsl -e bash -c "cd /home/denisok/projects/ALETHEIA && git init && git add . && git commit -m 'Initial commit: ALETHEIA landing' && git branch -M main && git remote add origin https://github.com/denisok-ai/ALETHEIA.git && git push -u origin main"
+wsl -e bash -c "cd /home/denisok/projects/AVATERRA && git init && git add . && git commit -m 'Initial commit: AVATERRA landing' && git branch -M main && git remote add origin https://github.com/denisok-ai/AVATERRA.git && git push -u origin main"
 ```
 
 3. **Либо откройте терминал WSL** (в Cursor: выберите в списке терминалов «Ubuntu» / «WSL») и выполните по шагам:
 
 ```bash
-cd /home/denisok/projects/ALETHEIA
+cd /home/denisok/projects/AVATERRA
 git init
 git add .
-git commit -m "Initial commit: ALETHEIA landing"
+git commit -m "Initial commit: AVATERRA landing"
 git branch -M main
-git remote add origin https://github.com/denisok-ai/ALETHEIA.git
+git remote add origin https://github.com/denisok-ai/AVATERRA.git
 git push -u origin main
 ```
 
@@ -107,14 +107,18 @@ git push -u origin main
 2. На сервере по SSH:
 
 ```bash
-cd /var/www/ALETHEIA
+cd /var/www/AVATERRA
 sudo git pull origin main
 sudo npm install
 sudo npm run build
-sudo pm2 restart aletheia
+sudo pm2 restart avaterra
 ```
 
 Подробнее — **docs/Deploy.md** (раздел «Как обновить сборку на сервере»).
+
+## Ребрендинг Aletheia → AVATERRA
+
+Все упоминания бренда в коде и документации заменены на AVATERRA. Если нужно переименовать **корневую папку проекта** с `ALETHEIA` на `AVATERRA`, сделайте это вручную в файловом менеджере или в WSL: `mv /home/denisok/projects/ALETHEIA /home/denisok/projects/AVATERRA` (затем откройте проект из новой папки в Cursor).
 
 ## Документация
 

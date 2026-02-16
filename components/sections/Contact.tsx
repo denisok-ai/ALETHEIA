@@ -89,8 +89,8 @@ export function Contact() {
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:info@aletheia.ru" className="hover:text-accent transition-colors">
-                    info@aletheia.ru
+                  <a href="mailto:info@avaterra.pro" className="hover:text-accent transition-colors">
+                    info@avaterra.pro
                   </a>
                 </li>
                 <li>Москва, ул. Здоровья, д. 10</li>

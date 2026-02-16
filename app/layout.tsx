@@ -20,21 +20,21 @@ const outfit = Outfit({
   display: 'swap',
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_URL || 'https://aletheia.vercel.app';
+const siteUrl = process.env.NEXT_PUBLIC_URL || 'https://avaterra.pro';
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
-  title: 'ALETHEIA — Школа подсознания и мышечного тестирования',
+  title: 'AVATERRA.PRO — Phygital школа мышечного тестирования',
   description:
-    'Курсы кинезиологии, консультации и тренинги. Татьяна Стрельцова. Более 20 лет практики, 15 000+ человек. Москва и онлайн.',
-  keywords: 'кинезиология, мышечное тестирование, подсознание, ALETHEIA, Татьяна Стрельцова',
+    'AVATERRA — биохакинг через тело и AI. Курс «Тело не врет». Татьяна Стрельцова. Более 20 лет практики, 15 000+ человек.',
+  keywords: 'кинезиология, мышечное тестирование, AVATERRA, тело не врет, Татьяна Стрельцова',
   openGraph: {
-    title: 'ALETHEIA — Школа подсознания и мышечного тестирования',
-    description: 'Путь к внутренней гармонии. Консультации, курсы, тренинги.',
+    title: 'AVATERRA.PRO — Phygital школа мышечного тестирования',
+    description: 'Школа сомаватаров. Тело не врет. Консультации, курсы, тренинги.',
     type: 'website',
     url: siteUrl,
     locale: 'ru_RU',
-    siteName: 'ALETHEIA',
+    siteName: 'AVATERRA',
   },
   robots: { index: true, follow: true },
 };

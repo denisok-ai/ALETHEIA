@@ -41,7 +41,7 @@ export function Header() {
             scrolled ? 'text-gray-900 hover:text-gray-700' : 'text-gray-900 hover:opacity-90'
           )}
         >
-          ALETHEIA
+          AVATERRA
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">

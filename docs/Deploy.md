@@ -1,4 +1,4 @@
-# Развёртывание ALETHEIA
+# Развёртывание AVATERRA
 
 Два варианта: **Vercel** (проще всего, репозиторий уже на GitHub) или **свой VPS** (ниже).
 
@@ -6,13 +6,13 @@
 
 ## Вариант 1. Деплой на Vercel (рекомендуется для старта)
 
-Сайт уже в GitHub (`github.com/denisok-ai/ALETHEIA`). Чтобы выложить его в интернет за 5 минут:
+Сайт уже в GitHub (`github.com/denisok-ai/AVATERRA`). Чтобы выложить его в интернет за 5 минут:
 
 ### Шаги
 
 1. Зайди на **[vercel.com](https://vercel.com)** и войди через **GitHub** (Sign in with GitHub).
 2. Нажми **Add New…** → **Project**.
-3. Импортируй репозиторий **ALETHEIA** (если не виден — нажми **Configure** у GitHub и выдай Vercel доступ к нужным репозиториям).
+3. Импортируй репозиторий **AVATERRA** (если не виден — нажми **Configure** у GitHub и выдай Vercel доступ к нужным репозиториям).
 4. В настройках проекта:
    - **Framework Preset:** Next.js (определится сам).
    - **Root Directory:** оставь пустым.
@@ -21,11 +21,11 @@
 5. Переменные окружения (если нужны платежи и БД): в **Settings → Environment Variables** добавь переменные из `.env.example` (PayKeeper, Supabase, `NEXT_PUBLIC_URL`). Для первого теста можно не добавлять — сайт откроется без оплаты и БД.
 6. Нажми **Deploy**.
 
-Через 1–2 минуты появится ссылка вида `https://aletheia-xxx.vercel.app`. Её можно открыть в браузере и прислать клиенту.
+Через 1–2 минуты появится ссылка вида `https://avaterra-xxx.vercel.app`. Её можно открыть в браузере и прислать клиенту.
 
 ### Свой домен на Vercel (позже)
 
-В проекте Vercel: **Settings → Domains** → добавь домен (например `aletheia.ru`). Vercel подскажет, какие DNS-записи создать у регистратора.
+В проекте Vercel: **Settings → Domains** → добавь домен (например `avaterra.pro`). Vercel подскажет, какие DNS-записи создать у регистратора.
 
 ### Обновление сайта
 
@@ -53,13 +53,13 @@
 На компьютере только коммитим и пушим в GitHub. Сборка — на сервере:
 
 ```bash
-cd ~/projects/ALETHEIA
+cd ~/projects/AVATERRA
 npm install
 npm run build
 # Артефакт в .next/ — на сервер не копируем, собираем на сервере из Git
 ```
 
-На сервере после `git pull` делают `npm install && npm run build && pm2 restart aletheia` (см. ниже).
+На сервере после `git pull` делают `npm install && npm run build && pm2 restart avaterra` (см. ниже).
 
 ### Вариант B: Статический экспорт (если настроен)
 
@@ -74,12 +74,12 @@ npm run build
 Если используете `output: 'export'` в Next.js:
 
 ```bash
-cd ~/projects/ALETHEIA
+cd ~/projects/AVATERRA
 npm run build
-scp -r out/* root@IP_СЕРВЕРА:/var/www/aletheia/
+scp -r out/* root@IP_СЕРВЕРА:/var/www/avaterra/
 ```
 
-Папку `/var/www/aletheia/` на сервере создайте заранее (шаг 3).
+Папку `/var/www/avaterra/` на сервере создайте заранее (шаг 3).
 
 ### Вариант B: через Git (сборка на сервере)
 
@@ -90,8 +90,8 @@ ssh root@IP_СЕРВЕРА
 
 sudo mkdir -p /var/www
 cd /var/www
-sudo git clone https://github.com/ВАШ_ЛОГИН/ALETHEIA.git
-cd ALETHEIA
+sudo git clone https://github.com/ВАШ_ЛОГИН/AVATERRA.git
+cd AVATERRA
 sudo npm install
 sudo npm run build
 # Дальше — запуск через Node (pm2) или настройка Nginx на прокси к Next (шаг 3)
@@ -112,13 +112,13 @@ sudo apt install -y nginx
 
 ### 3.2 Папка с сайтом
 
-- Если переносили через **SCP** (статический экспорт): папка `/var/www/aletheia/` с содержимым `out/` (index.html, _next/, images/ и т.д.).
+- Если переносили через **SCP** (статический экспорт): папка `/var/www/avaterra/` с содержимым `out/` (index.html, _next/, images/ и т.д.).
 - Если через **Git** и Node: Nginx проксирует запросы на Next.js (порт 3000), см. ниже.
 
 Создайте папку (если используете SCP и ещё не создали):
 
 ```bash
-sudo mkdir -p /var/www/aletheia
+sudo mkdir -p /var/www/avaterra
 # После копирования с вашего ПК сюда должны лежать index.html, assets/, images/
 ```
 
@@ -127,7 +127,7 @@ sudo mkdir -p /var/www/aletheia
 Создайте конфиг:
 
 ```bash
-sudo nano /etc/nginx/sites-available/aletheia
+sudo nano /etc/nginx/sites-available/avaterra
 ```
 
 Вставьте (замените `ВАШ_IP` на реальный IP сервера или оставьте `_` — тогда будет слушать все адреса):
@@ -137,7 +137,7 @@ server {
     listen 80 default_server;
     listen [::]:80 default_server;
     server_name _;
-    root /var/www/ALETHEIA/dist;
+    root /var/www/AVATERRA/dist;
     index index.html;
     location / {
         try_files $uri $uri/ /index.html;
@@ -149,10 +149,10 @@ server {
 }
 ```
 
-Если сайт лежит в `/var/www/aletheia/` (без подпапки dist), замените строку `root` на:
+Если сайт лежит в `/var/www/avaterra/` (без подпапки dist), замените строку `root` на:
 
 ```nginx
-root /var/www/aletheia;
+root /var/www/avaterra;
 ```
 
 Сохраните файл (в nano: Ctrl+O, Enter, Ctrl+X).
@@ -160,7 +160,7 @@ root /var/www/aletheia;
 ### 3.4 Включить сайт и перезапустить Nginx
 
 ```bash
-sudo ln -sf /etc/nginx/sites-available/aletheia /etc/nginx/sites-enabled/
+sudo ln -sf /etc/nginx/sites-available/avaterra /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
@@ -198,17 +198,17 @@ http://185.100.50.25
 
 ## Удобный тестовый адрес с «именем» (опционально)
 
-Если хочется адрес вида `aletheia.185.100.50.25.sslip.io` (читается проще, чем голый IP), можно использовать бесплатный сервис **sslip.io** (или **nip.io**):
+Если хочется адрес вида `avaterra.185.100.50.25.sslip.io` (читается проще, чем голый IP), можно использовать бесплатный сервис **sslip.io** (или **nip.io**):
 
 - Подставьте свой IP вместо `IP`:
   - `http://IP.sslip.io` — открывает ваш сервер по IP.
-  - `http://aletheia.IP.sslip.io` — тоже ведёт на тот же IP (Nginx отдаёт тот же сайт, т.к. `server_name _`).
+  - `http://avaterra.IP.sslip.io` — тоже ведёт на тот же IP (Nginx отдаёт тот же сайт, т.к. `server_name _`).
 
 Пример для IP `185.100.50.25`:
 
 ```
 http://185.100.50.25.sslip.io
-http://aletheia.185.100.50.25.sslip.io
+http://avaterra.185.100.50.25.sslip.io
 ```
 
 Регистрация не нужна: sslip.io и nip.io по имени сразу отдают ваш IP.
@@ -219,7 +219,7 @@ http://aletheia.185.100.50.25.sslip.io
 
 1. На сервере: `curl -I http://127.0.0.1` — должен вернуться ответ с `200 OK` или `304`.
 2. С вашего компьютера или телефона откройте в браузере: `http://IP_СЕРВЕРА`.
-3. Должна открыться главная страница ALETHEIA; проверьте разделы и картинки.
+3. Должна открыться главная страница AVATERRA; проверьте разделы и картинки.
 
 ---
 
@@ -257,7 +257,7 @@ ssh root@IP_СЕРВЕРА
 ### 2. Перейти в папку проекта и подтянуть код
 
 ```bash
-cd /var/www/ALETHEIA
+cd /var/www/AVATERRA
 sudo git pull origin main
 ```
 
@@ -275,13 +275,13 @@ sudo npm run build
 - **Если Next.js запущен через PM2:**
 
   ```bash
-  sudo pm2 restart aletheia
+  sudo pm2 restart avaterra
   # или как назвали процесс: pm2 list
   ```
 
 - **Если отдаёте статику из папки `out/`:** после `npm run build` новые файлы уже в `out/`, Nginx отдаёт их автоматически — перезапуск не нужен.
 
 - **Если Next.js запущен через systemd:**  
-  `sudo systemctl restart aletheia` (или как назван ваш сервис).
+  `sudo systemctl restart avaterra` (или как назван ваш сервис).
 
 Готово. Проверьте сайт в браузере по IP или домену.

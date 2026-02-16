@@ -12,10 +12,10 @@ export function Footer() {
               href="#hero"
               className="font-heading text-xl font-semibold text-dark hover:text-accent transition-colors"
             >
-              ALETHEIA
+              AVATERRA
             </Link>
             <p className="mt-2 text-sm text-text-muted">
-              Школа подсознания и мышечного тестирования
+              Phygital школа мышечного тестирования
             </p>
           </div>
           <div>
@@ -27,8 +27,8 @@ export function Footer() {
                 </a>
               </li>
               <li>
-                <a href="mailto:info@aletheia.ru" className="flex items-center justify-center gap-2 md:justify-start hover:text-accent">
-                  <Mail className="h-4 w-4" /> info@aletheia.ru
+                <a href="mailto:info@avaterra.pro" className="flex items-center justify-center gap-2 md:justify-start hover:text-accent">
+                  <Mail className="h-4 w-4" /> info@avaterra.pro
                 </a>
               </li>
               <li className="flex items-center justify-center gap-2 md:justify-start">
@@ -47,7 +47,7 @@ export function Footer() {
           </div>
         </div>
         <p className="mt-12 pt-8 border-t border-border/80 text-center text-xs text-text-soft">
-          © ALETHEIA. ИП Стрельцова Т. (ОГРН и реквизиты уточняются)
+          © AVATERRA. ИП Стрельцова Т. (ОГРН и реквизиты уточняются)
         </p>
       </div>
     </footer>

@@ -1,4 +1,4 @@
-# Генерация изображений для ALETHEIA
+# Генерация изображений для AVATERRA
 
 Промпты для Midjourney / DALL-E 3 / Stable Diffusion.  
 Цветовая палитра: **#2D1B4E** (purple), **#0A0E27** (dark blue), **#D4AF37** (gold).

@@ -7,7 +7,7 @@ export default function OfertaPage() {
         Публичная оферта
       </h1>
       <p className="mt-6 text-white/80">
-        Раздел в разработке. Здесь будет размещён текст оферты на оказание услуг школы ALETHEIA.
+        Раздел в разработке. Здесь будет размещён текст оферты на оказание услуг школы AVATERRA.
       </p>
       <Link href="/" className="mt-8 inline-block text-[#D4AF37] hover:underline">
         ← На главную

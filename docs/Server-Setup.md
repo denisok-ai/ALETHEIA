@@ -1,6 +1,6 @@
-# Первая настройка ALETHEIA на сервере
+# Первая настройка AVATERRA на сервере
 
-Если папки `/var/www/ALETHEIA` ещё нет — выполните эти шаги **один раз** на сервере по SSH.
+Если папки `/var/www/AVATERRA` ещё нет — выполните эти шаги **один раз** на сервере по SSH.
 
 ---
 
@@ -22,15 +22,15 @@ npm -v
 ```bash
 sudo mkdir -p /var/www
 cd /var/www
-sudo git clone https://github.com/denisok-ai/ALETHEIA.git
-cd ALETHEIA
+sudo git clone https://github.com/denisok-ai/AVATERRA.git
+cd AVATERRA
 sudo npm install
 sudo npm run build:server
 ```
 
 Если при сборке появляется **JavaScript heap out of memory**, на сервере мало RAM. Используйте скрипт `build:server` (он увеличивает лимит памяти Node до 1.5 ГБ). Если памяти всё равно не хватает — добавьте swap (см. ниже) или соберите проект локально и залейте на сервер папку `.next`.
 
-После этого в `/var/www/ALETHEIA` будет проект, собранный в `.next/`.
+После этого в `/var/www/AVATERRA` будет проект, собранный в `.next/`.
 
 ---
 
@@ -40,8 +40,8 @@ Next.js нужно запускать как процесс (команда `npm
 
 ```bash
 sudo npm install -g pm2
-cd /var/www/ALETHEIA
-sudo pm2 start npm --name "aletheia" -- start
+cd /var/www/AVATERRA
+sudo pm2 start npm --name "avaterra" -- start
 sudo pm2 save
 sudo pm2 startup
 ```
@@ -64,7 +64,7 @@ sudo apt install -y nginx
 Создайте конфиг:
 
 ```bash
-sudo nano /etc/nginx/sites-available/aletheia
+sudo nano /etc/nginx/sites-available/avaterra
 ```
 
 Вставьте (Nginx будет проксировать запросы на Next.js):
@@ -93,7 +93,7 @@ server {
 Включите сайт и перезапустите Nginx:
 
 ```bash
-sudo ln -sf /etc/nginx/sites-available/aletheia /etc/nginx/sites-enabled/aletheia
+sudo ln -sf /etc/nginx/sites-available/avaterra /etc/nginx/sites-enabled/avaterra
 sudo rm -f /etc/nginx/sites-enabled/default
 sudo nginx -t
 sudo systemctl reload nginx
@@ -116,19 +116,19 @@ sudo ufw enable
 Nginx работает, но приложение на порту 3000 не запущено. Выполните на сервере:
 
 ```bash
-cd /var/www/ALETHEIA
+cd /var/www/AVATERRA
 sudo pm2 list
 ```
 
-Если процесса `aletheia` нет или статус не **online**:
+Если процесса `avaterra` нет или статус не **online**:
 
 ```bash
-cd /var/www/ALETHEIA
-sudo pm2 start npm --name "aletheia" -- start
+cd /var/www/AVATERRA
+sudo pm2 start npm --name "avaterra" -- start
 sudo pm2 save
 ```
 
-Проверьте логи при ошибках: `sudo pm2 logs aletheia`. Убедитесь, что сборка есть: `ls .next` (должна быть папка). Если нет — выполните `sudo npm run build`, затем снова `sudo pm2 restart aletheia`.
+Проверьте логи при ошибках: `sudo pm2 logs avaterra`. Убедитесь, что сборка есть: `ls .next` (должна быть папка). Если нет — выполните `sudo npm run build`, затем снова `sudo pm2 restart avaterra`.
 
 ---
 
@@ -145,7 +145,7 @@ sudo pm2 save
 **1. Сборка с увеличенным лимитом памяти (в проекте есть скрипт):**
 
 ```bash
-cd /var/www/ALETHEIA
+cd /var/www/AVATERRA
 sudo npm run build:server
 ```
 
@@ -160,13 +160,13 @@ sudo mkswap /swapfile
 sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 free -h
-cd /var/www/ALETHEIA
+cd /var/www/AVATERRA
 sudo npm run build:server
 ```
 
 **3. Собрать локально (на своём ПК) и залить на сервер только результат:**
 
-На своём компьютере: `npm run build`. Затем скопировать папку `.next` и `public` на сервер в `/var/www/ALETHEIA/`, после чего на сервере только `pm2 restart aletheia` (без `npm run build`).
+На своём компьютере: `npm run build`. Затем скопировать папку `.next` и `public` на сервер в `/var/www/AVATERRA/`, после чего на сервере только `pm2 restart avaterra` (без `npm run build`).
 
 ---
 
@@ -175,11 +175,11 @@ sudo npm run build:server
 Когда пушите новый код в GitHub, на сервере достаточно:
 
 ```bash
-cd /var/www/ALETHEIA
+cd /var/www/AVATERRA
 sudo git pull origin main
 sudo npm install
 sudo npm run build:server
-sudo pm2 restart aletheia
+sudo pm2 restart avaterra
 ```
 
 См. также **Deploy.md** (раздел «Как обновить сборку на сервере»).

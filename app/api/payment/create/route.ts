@@ -6,7 +6,7 @@ import { nanoid } from 'nanoid';
 const TARIFFS: Record<string, { name: string; price: number }> = {
   consult: { name: 'Индивидуальная консультация', price: 5000 },
   group: { name: 'Групповой тренинг', price: 3000 },
-  course: { name: 'Курс ALETHEIA', price: 25000 },
+  course: { name: 'Курс AVATERRA', price: 25000 },
   online: { name: 'Онлайн-консультация', price: 3500 },
 };
 
@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
         sum: tariff.price,
         orderid: orderNumber,
         clientid: email,
-        service_name: `ALETHEIA — ${tariff.name}`,
+        service_name: `AVATERRA — ${tariff.name}`,
         client_email: email,
         client_phone: phone || undefined,
       });

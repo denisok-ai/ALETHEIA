@@ -48,13 +48,13 @@ export function Hero() {
             className="relative z-10 w-full max-w-lg shrink-0 rounded-3xl bg-violet-900/60 px-6 py-8 shadow-2xl backdrop-blur-md md:px-8 md:py-9 lg:mr-[-2rem]"
           >
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-white/95">
-              Школа подсознания и мышечного тестирования
+              Phygital школа мышечного тестирования
             </p>
             <h1 className="mt-3 font-heading text-4xl font-bold leading-tight text-white sm:text-5xl min-h-[1.2em]">
-              <Typewriter text="ALETHEIA" speed={120} delay={400} cursor />
+              <Typewriter text="AVATERRA" speed={120} delay={400} cursor />
             </h1>
             <p className="mt-4 text-base leading-relaxed text-white/95 lg:text-lg">
-              Откройте для себя путь к внутренней гармонии и глубокому пониманию взаимосвязи тела и духа в нашей уникальной школе.
+              Школа сомаватаров. Тело не врет.
             </p>
             <div className="mt-8">
               <Link href="#pricing">
@@ -104,7 +104,7 @@ export function Hero() {
           <div className="relative overflow-hidden rounded-2xl border-2 border-white/30 bg-violet-900/30 shadow-2xl backdrop-blur-sm">
             <Image
               src="/images/tatiana/tatiana-hero.png"
-              alt="Татьяна Стрельцова — основательница школы ALETHEIA"
+              alt="Татьяна Стрельцова — основательница школы AVATERRA"
               width={340}
               height={420}
               className="h-auto w-full object-cover"
