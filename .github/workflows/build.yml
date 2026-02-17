@@ -32,5 +32,4 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          # Переменные для сборки (без секретов) — при необходимости добавь в Secrets
           NEXT_PUBLIC_URL: https://avaterra.pro
