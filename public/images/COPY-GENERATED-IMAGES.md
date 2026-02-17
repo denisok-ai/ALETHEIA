@@ -14,6 +14,7 @@ C:\Users\user\.cursor\projects\wsl-localhost-Ubuntu-24-04-home-denisok-projects-
 
 | Файл в assets | Скопировать в |
 |---------------|----------------|
+| `avaterra-logo-e1b50adb-....png` (логотип: круг, A, мандала, спираль, ладони) | `public/images/avaterra-logo.png` |
 | `hero-bg.png` (картинка с кристаллами/алмазами) | `public/images/hero/hero-bg.png` |
 | `hero-banner.png` | `public/images/thematic/hero-banner.png` |
 | `about-path.png` | `public/images/thematic/about-path.png` |

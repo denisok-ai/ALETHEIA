@@ -37,11 +37,18 @@ export function Header() {
         <Link
           href="#hero"
           className={cn(
-            'font-heading text-xl font-bold tracking-tight transition-colors',
+            'flex items-center gap-2.5 font-heading text-xl font-bold tracking-tight transition-colors',
             scrolled ? 'text-gray-900 hover:text-gray-700' : 'text-gray-900 hover:opacity-90'
           )}
         >
-          AVATERRA
+          <img
+            src="/images/avaterra-logo.png?v=1"
+            alt=""
+            width={71}
+            height={71}
+            className="h-[4.4375rem] w-[4.4375rem] shrink-0 object-contain"
+          />
+          <span>AVATERRA</span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-8">

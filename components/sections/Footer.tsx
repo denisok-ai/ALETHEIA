@@ -10,8 +10,15 @@ export function Footer() {
           <div>
             <Link
               href="#hero"
-              className="font-heading text-xl font-semibold text-dark hover:text-accent transition-colors"
+              className="inline-flex items-center gap-2 font-heading text-xl font-semibold text-dark hover:text-accent transition-colors"
             >
+              <img
+                src="/images/avaterra-logo.png?v=1"
+                alt=""
+                width={63}
+                height={63}
+                className="h-[3.9375rem] w-[3.9375rem] shrink-0 object-contain"
+              />
               AVATERRA
             </Link>
             <p className="mt-2 text-sm text-text-muted">
