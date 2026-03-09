@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { Resend } from 'resend';
 import { createClient } from '@/lib/supabase/server';
+
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+const notifyEmail = process.env.RESEND_NOTIFY_EMAIL || process.env.RESEND_FROM;
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,6 +41,24 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (resend && notifyEmail) {
+      try {
+        await resend.emails.send({
+          from: process.env.RESEND_FROM || 'onboarding@resend.dev',
+          to: notifyEmail,
+          subject: `AVATERRA: новая заявка от ${String(name).slice(0, 50)}`,
+          html: [
+            `<p><strong>Имя:</strong> ${escapeHtml(name)}</p>`,
+            `<p><strong>Телефон:</strong> ${escapeHtml(phone)}</p>`,
+            email ? `<p><strong>Email:</strong> ${escapeHtml(email)}</p>` : '',
+            message ? `<p><strong>Сообщение:</strong><br/>${escapeHtml(message)}</p>` : '',
+          ].join(''),
+        });
+      } catch (mailErr) {
+        console.error('Resend notify:', mailErr);
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Contact API error:', error);
@@ -45,4 +67,12 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+}
+
+function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }

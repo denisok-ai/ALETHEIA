@@ -17,7 +17,7 @@ export function Hero() {
   return (
     <section
       id="hero"
-      className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-violet-200/90 via-violet-300/80 to-indigo-900"
+      className="relative flex min-h-screen flex-col overflow-hidden bg-gradient-to-b from-primary/90 via-primary/80 to-dark"
     >
       {/* Фон: кристаллы/геометрия — лёгкий слой для глубины */}
       <div className="absolute inset-0 z-0 opacity-30">
@@ -45,7 +45,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="relative z-10 w-full max-w-lg shrink-0 rounded-3xl bg-violet-900/60 px-6 py-8 shadow-2xl backdrop-blur-md md:px-8 md:py-9 lg:mr-[-2rem]"
+            className="relative z-10 w-full max-w-lg shrink-0 rounded-3xl bg-primary/80 px-6 py-8 shadow-2xl backdrop-blur-md md:px-8 md:py-9 lg:mr-[-2rem]"
           >
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-white/95">
               Phygital школа мышечного тестирования
@@ -60,7 +60,7 @@ export function Hero() {
               <Link href="#pricing">
                 <Button
                   size="lg"
-                  className="min-w-[200px] rounded-xl bg-white font-semibold text-gray-900 shadow-lg hover:bg-white/95"
+                  className="min-w-[200px] rounded-xl bg-secondary font-semibold text-dark shadow-lg hover:bg-secondary/90"
                 >
                   Купить курс
                 </Button>

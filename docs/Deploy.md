@@ -18,7 +18,7 @@
    - **Root Directory:** оставь пустым.
    - **Build Command:** `npm run build` (по умолчанию).
    - **Output Directory:** не меняй.
-5. Переменные окружения (если нужны платежи и БД): в **Settings → Environment Variables** добавь переменные из `.env.example` (PayKeeper, Supabase, `NEXT_PUBLIC_URL`). Для первого теста можно не добавлять — сайт откроется без оплаты и БД.
+5. Переменные окружения: в **Settings → Environment Variables** добавь переменные из `.env.example` (Supabase, PayKeeper, Resend, `NEXT_PUBLIC_URL`). Для портала и БД обязательны Supabase-переменные. См. `docs/Supabase-Setup.md` для первой настройки БД и назначения админа.
 6. Нажми **Deploy**.
 
 Через 1–2 минуты появится ссылка вида `https://avaterra-xxx.vercel.app`. Её можно открыть в браузере и прислать клиенту.

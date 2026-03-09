@@ -13,8 +13,11 @@
   --text: #2c2a28;
   --text-muted: #5c5854;
   --text-soft: #8a8580;
-  --accent: #a68b5b;
-  --accent-hover: #8b7349;
+  --primary: #2D1B4E;
+  --secondary: #D4AF37;
+  --accent: #D4AF37;
+  --accent-hover: #b8942a;
+  --dark: #0A0E27;
   --border: #e8e4de;
   --cream: #f5f0e8;
   --section-padding-y: 7rem;

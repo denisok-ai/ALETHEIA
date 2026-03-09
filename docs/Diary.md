@@ -10,6 +10,51 @@
 
 ---
 
+## 2025-03-09 (v3.0: доработки портала)
+
+### Наблюдения
+- Реализованы дополнительные функции портала: автосертификат при 100% SCORM, интеграция чат-бота с llm_settings, webhook PayKeeper с enrollment, поддержка студента (тикеты), дашборд менеджера, экспорт CSV оплат, загрузка медиа, CRM (конвертация лидов, воронка), смена ролей пользователей, бейджи Шкалы Энергии, документация Supabase и Support.
+
+### Решения
+- **Автосертификат:** при completion_status=completed в POST /api/portal/scorm/progress создаётся запись в certificates и notification.
+- **Чат-бот:** /api/chat читает system_prompt, model, temperature, max_tokens из llm_settings (key=chatbot).
+- **Webhook PayKeeper:** при оплате — enrollment, notification, привязка user_id; маппинг tariff_id → course_id через services.
+- **Поддержка:** /portal/student/support, POST /api/portal/tickets.
+- **Admin:** экспорт CSV оплат, загрузка медиа (bucket media), смена роли/статуса пользователей (PATCH /api/portal/admin/users/[id]), график выручки (recharts).
+- **CRM:** конвертация лида в пользователя (auth.admin.createUser), смена статуса, воронка (CrmFunnelChart).
+- **Шкала Энергии:** бейджи по XP (Новичок, Практик, Уверенный, Мастер, Эксперт).
+- **Документация:** docs/Supabase-Setup.md (миграции, buckets, первый админ), docs/Support.md (структура, частые задачи).
+
+### Проблемы
+- Нет.
+
+---
+
+## 2025-03-09 (портал v3.0: роли, SCORM, сертификаты)
+
+### Наблюдения
+- Реализован план перехода лендинга к полноценному порталу: три роли (user, manager, admin), личные кабинеты, SCORM-плеер, сертификаты PDF, интеграции Resend и Telegram.
+- Supabase возвращает вложенные связи (courses) как массив в части запросов — типизация и разбор через Array.isArray().
+
+### Решения
+- **Версионирование:** CHANGELOG.md (Keep a Changelog + SemVer), package.json 2.0.0, git tag v2.0.0.
+- **Очистка:** удалены dist/ и src/ (артефакты Vite), в .gitignore добавлены *:Zone.Identifier; палитра Tailwind и globals приведены к primary #2D1B4E, secondary #D4AF37, dark #0A0E27.
+- **БД:** миграции 001 (схема портала), 002 (RLS), 003 (email в profiles); триггер создания profile при регистрации.
+- **Auth:** страницы login, register, reset-password; Supabase Auth; клиент через createBrowserClient (@supabase/ssr) для cookies; middleware с createServerClient и проверкой роли из profiles.
+- **Портал:** app/portal/layout.tsx (shell + PortalHeader), отдельные layout и сайдбары для student, admin, manager; страницы дашбордов, курсов, сертификатов, медиатеки, уведомлений, профиля (студент); заглушки админки и менеджера.
+- **SCORM:** API GET/POST /api/portal/scorm/progress; GET /api/portal/scorm/url (signed URL из Storage); страница play с iframe; загрузка ZIP через POST /api/portal/admin/courses/upload (jszip, bucket scorm).
+- **Сертификаты:** lib/certificates.tsx (@react-pdf/renderer), API GET /api/portal/certificates/[certId]/download; ссылка «Скачать PDF» в ЛК студента.
+- **Admin users:** таблица (TanStack Table), фильтр по статусу active/archived; данные из profiles (service role).
+- **Коммуникации:** Resend в /api/contact (уведомление о заявке); lib/email.ts, lib/telegram.ts; POST /api/portal/telegram/webhook (команды /start, /progress, /cert, /help); lib/audit.ts для журнала аудита.
+- **API от имени пользователя:** lib/supabase/request.ts — createClientFromRequest(request) для проверки роли в API (admin upload).
+- **PayKeeper:** замена require('crypto') на ESM import crypto в lib/paykeeper.ts.
+
+### Проблемы
+- В Supabase Storage нужно вручную создать bucket «scorm» (или через dashboard) для загрузки SCORM-пакетов.
+- Полноценный RTE SCORM (scorm-again) в iframe не подключён — контент грузится по URL; сохранение CMI через отдельный API при необходимости дорабатывается на клиенте контента.
+
+---
+
 ## 2025-02-15 (продолжение: формы, валидация, защита от спама)
 
 ### Наблюдения

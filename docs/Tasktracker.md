@@ -2,8 +2,43 @@
 
 Отслеживание прогресса разработки. Основа — этапы и требования из `docs/Project.md`.
 
+**Версия:** 3.0 (портал, роли, SCORM, сертификаты, коммуникации).  
 **Легенда статусов:** Не начата | В процессе | Завершена  
 **Приоритеты:** Критический | Высокий | Средний | Низкий
+
+---
+
+## Этап 3.0 — Портал (v3.0.0)
+
+| Задача | Приоритет | Статус | Описание |
+|--------|-----------|--------|----------|
+| Версионирование (CHANGELOG, SemVer) | Высокий | Завершена | CHANGELOG.md, v2.0.0 тег |
+| Очистка (dist/, src/, Zone.Identifier, палитра) | Средний | Завершена | Унификация цветов, .gitignore |
+| Схема БД (миграции Supabase) | Критический | Завершена | profiles, courses, enrollments, scorm_progress, certificates, media, notifications, tickets, audit_log, comms, llm_settings |
+| Auth (login, register, reset-password) | Критический | Завершена | Supabase Auth, app/(auth)/* |
+| Middleware RBAC | Критический | Завершена | Защита /portal/student, /portal/admin, /portal/manager |
+| Портальный shell и сайдбары | Высокий | Завершена | layout.tsx, PortalHeader, PortalSidebar по ролям |
+| ЛК студента (дашборд, курсы, сертификаты, медиатека, уведомления, профиль) | Высокий | Завершена | Страницы и API |
+| SCORM (плеер, API progress, URL) | Высокий | Завершена | iframe + /api/portal/scorm/* |
+| Сертификаты (PDF, выдача, скачивание) | Высокий | Завершена | lib/certificates.tsx, API download |
+| Admin: пользователи (таблица, фильтр) | Высокий | Завершена | UsersTable, TanStack Table |
+| Admin: загрузка SCORM (ZIP) | Высокий | Завершена | POST /api/portal/admin/courses/upload, jszip |
+| Telegram webhook, lib/telegram, lib/email, lib/audit | Средний | Завершена | Команды /start, /progress, /cert, /help |
+| Страницы-заглушки Admin/Manager (CRM, финансы, AI, аудит, тикеты, верификация) | Средний | Завершена | Наполнение — следующие итерации |
+| Автосертификат при 100% SCORM | Высокий | Завершена | POST progress → certificates + notification |
+| Чат-бот: llm_settings из БД | Средний | Завершена | /api/chat читает system_prompt, model, temperature |
+| Webhook PayKeeper: enrollment + notification | Высокий | Завершена | services.paykeeper_tariff_id → course_id, enrollment |
+| Студент: создание тикета | Средний | Завершена | /portal/student/support, POST /api/portal/tickets |
+| Дашборд менеджера с метриками | Низкий | Завершена | Открытые тикеты, на верификации, последние тикеты |
+| Экспорт CSV оплат | Средний | Завершена | GET /api/portal/admin/payments/export |
+| Admin Media: загрузка файлов | Средний | Завершена | POST /api/portal/admin/media/upload, bucket media |
+| CRM: конвертация лида в пользователя | Высокий | Завершена | POST /api/portal/admin/leads/convert, auth.admin.createUser |
+| CRM: смена статуса лида | Средний | Завершена | PATCH /api/portal/admin/leads/[id] |
+| Admin дашборд: recharts | Средний | Завершена | График выручки по дням (30 дней) |
+| Admin: смена роли/статуса пользователя | Высокий | Завершена | PATCH /api/portal/admin/users/[id], UsersTable |
+| CRM: воронка лидов | Средний | Завершена | CrmFunnelChart (recharts) |
+| Шкала Энергии: бейджи | Средний | Завершена | Новичок, Практик, Уверенный, Мастер, Эксперт по XP |
+| Документация Supabase и Support | Низкий | Завершена | docs/Supabase-Setup.md, docs/Support.md |
 
 ---
 
@@ -34,7 +69,7 @@
 |--------|-----------|--------|----------|
 | Форма обратной связи | Критический | Завершена | Форма в блоке «Контакты» отправляет данные в POST /api/contact |
 | Форма записи/заявки на курс | Критический | Завершена | Все кнопки «Записаться» ведут на #contact; одна общая форма заявок |
-| Обработка и хранение заявок | Критический | В процессе | API /api/contact; при наличии Supabase — запись в таблицу leads |
+| Обработка и хранение заявок | Критический | Завершена | API /api/contact; запись в leads, уведомление Resend |
 | Валидация и защита форм | Высокий | Завершена | Honeypot (поле website), проверка телефона (≥10 цифр), сообщения об ошибках |
 
 ---
@@ -43,8 +78,8 @@
 
 | Задача | Приоритет | Статус | Описание |
 |--------|-----------|--------|----------|
-| Подключение приёма платежей | Высокий | Не начата | При необходимости онлайн-оплаты курсов |
-| Уведомления (email/мессенджеры) | Средний | Не начата | Уведомление о новых заявках |
+| Подключение приёма платежей | Высокий | Завершена | PayKeeper (lib/paykeeper), /api/payment/create, webhook с enrollment |
+| Уведомления (email/мессенджеры) | Средний | Завершена | Resend в /api/contact; Telegram webhook; notifications в БД |
 
 ---
 
@@ -63,7 +98,7 @@
 | Задача | Приоритет | Статус | Описание |
 |--------|-----------|--------|----------|
 | Деплой на прод | Критический | В процессе | Рекомендация: Vercel + GitHub (см. инструкцию ниже) |
-| Документация для поддержки | Низкий | Не начата | Как вносить правки, где что лежит |
+| Документация для поддержки | Низкий | Завершена | docs/Support.md, docs/Supabase-Setup.md |
 
 ---
 

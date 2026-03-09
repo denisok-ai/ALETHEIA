@@ -11,15 +11,15 @@ const config: Config = {
     extend: {
       colors: {
         primary: {
-          DEFAULT: '#a68b5b',
+          DEFAULT: '#2D1B4E',
           foreground: '#fffefb',
         },
         secondary: {
-          DEFAULT: '#8b7349',
-          foreground: '#fffefb',
+          DEFAULT: '#D4AF37',
+          foreground: '#0A0E27',
         },
         dark: {
-          DEFAULT: '#2c2a28',
+          DEFAULT: '#0A0E27',
           foreground: '#f5f0e8',
         },
         cream: '#f5f0e8',
@@ -34,11 +34,12 @@ const config: Config = {
           soft: '#d4c4e0',
         },
         accent: {
-          DEFAULT: '#a68b5b',
-          hover: '#8b7349',
+          DEFAULT: '#D4AF37',
+          hover: '#b8942a',
         },
         'text-muted': '#5c5854',
         'text-soft': '#8a8580',
+        surface: '#ffffff',
       },
       fontFamily: {
         heading: ['var(--font-literata)', 'Georgia', 'serif'],

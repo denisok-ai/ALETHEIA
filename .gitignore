@@ -32,3 +32,7 @@ Thumbs.db
 .vscode/
 *.swp
 *.swo
+
+# Windows WSL metadata
+*:Zone.Identifier
+*.Zone.Identifier

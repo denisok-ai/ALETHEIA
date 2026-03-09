@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
+import { createClient } from '@/lib/supabase/server';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
-const MODEL = 'deepseek-chat';
+const DEFAULT_MODEL = 'deepseek-chat';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,6 +47,31 @@ export async function POST(request: NextRequest) {
 
     const systemContent = knowledgeBase.replace(/\{\{COURSE_URL\}\}/g, courseUrl);
 
+    let systemPrompt = 'Ты консультант курса «Тело не врёт». Отвечай ТОЛЬКО на основе приведённой ниже базы знаний. Строго следуй правилам из базы: медицинский дисклеймер при ответах про здоровье/психику; при отсутствии информации — не выдумывай, предложи уточнить у кураторов; своди к мышечному тесту и базовому курсу; в конце давай ссылку на курс.\n\n---\n\n';
+    let model = DEFAULT_MODEL;
+    let temperature = 0.5;
+    let maxTokens = 1024;
+
+    const supabase = createClient();
+    if (supabase) {
+      const { data: settings } = await supabase
+        .from('llm_settings')
+        .select('model, system_prompt, temperature, max_tokens')
+        .eq('key', 'chatbot')
+        .maybeSingle();
+      if (settings) {
+        model = (settings as { model?: string }).model ?? DEFAULT_MODEL;
+        temperature = Number((settings as { temperature?: number }).temperature) || 0.5;
+        maxTokens = Number((settings as { max_tokens?: number }).max_tokens) || 1024;
+        const customPrompt = (settings as { system_prompt?: string | null }).system_prompt;
+        if (customPrompt?.trim()) {
+          systemPrompt = customPrompt.trim() + '\n\n---\n\n';
+        }
+      }
+    }
+
+    const fullSystemContent = systemPrompt + systemContent;
+
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
       headers: {
@@ -53,18 +79,13 @@ export async function POST(request: NextRequest) {
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         messages: [
-          {
-            role: 'system',
-            content:
-              'Ты консультант курса «Тело не врёт». Отвечай ТОЛЬКО на основе приведённой ниже базы знаний. Строго следуй правилам из базы: медицинский дисклеймер при ответах про здоровье/психику; при отсутствии информации — не выдумывай, предложи уточнить у кураторов; своди к мышечному тесту и базовому курсу; в конце давай ссылку на курс.\n\n---\n\n' +
-              systemContent,
-          },
+          { role: 'system', content: fullSystemContent },
           { role: 'user', content: message },
         ],
-        max_tokens: 1024,
-        temperature: 0.5,
+        max_tokens: maxTokens,
+        temperature,
       }),
     });
 

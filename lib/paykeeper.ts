@@ -3,6 +3,8 @@
  * Документация: https://help.paykeeper.ru/
  */
 
+import crypto from 'crypto';
+
 export interface PayKeeperConfig {
   server: string;
   login: string;
@@ -89,7 +91,6 @@ export function validatePayKeeperWebhook(
   if (typeof id !== 'string' || typeof sum !== 'string' || typeof orderid !== 'string' || typeof key !== 'string') {
     return false;
   }
-  const crypto = require('crypto');
   const hash = crypto
     .createHash('md5')
     .update(`${id}|${sum}|${orderid}|${secret}`)

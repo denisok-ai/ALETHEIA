@@ -2,8 +2,8 @@
 
 **Проект:** Веб-сайт школы AVATERRA (Phygital школа мышечного тестирования, курс «Тело не врет»)  
 **Домен:** https://avaterra.pro  
-**Версия документа:** 2.0  
-**Дата:** 2025-02-14
+**Версия документа:** 3.0  
+**Дата:** 2025-03-09
 
 ---
 
@@ -91,29 +91,43 @@ graph TB
 
 ### 3.3 Структура проекта (текущая, v3.0)
 
-**Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, Supabase (опционально).
+**Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, Supabase (Auth, DB, Storage), Resend, Telegram Bot API. Версионирование: SemVer, CHANGELOG.md.
+
+**Роли:** user (студент), manager (поддержка), admin. RBAC в middleware для `/portal/*`.
 
 ```
-AVATERRA/
+ALETHEIA/
 ├── app/
 │   ├── layout.tsx, page.tsx, globals.css
-│   ├── success/, oferta/, privacy/   # Страницы
+│   ├── (auth)/login, register, reset-password
+│   ├── success/, oferta/, privacy/
+│   ├── portal/                    # Портал (требует авторизации)
+│   │   ├── layout.tsx             # Shell + PortalHeader
+│   │   ├── student/               # ЛК студента
+│   │   │   ├── dashboard, courses, certificates, media, notifications, profile
+│   │   │   └── courses/[id]/play  # SCORM-плеер
+│   │   ├── admin/                 # Консоль администратора
+│   │   │   └── dashboard, users, courses, certificates, media, payments, crm,
+│   │   │       communications, ai-settings, audit, settings
+│   │   └── manager/               # Кабинет менеджера
+│   │       └── dashboard, tickets, users, verifications
 │   └── api/
-│       ├── payment/create/route.ts   # Создание счёта PayKeeper
-│       ├── webhook/paykeeper/route.ts
-│       └── contact/route.ts          # Заявки (leads)
+│       ├── payment/create, webhook/paykeeper, contact, chat
+│       └── portal/                # scorm/progress, scorm/url, certificates/[id]/download
+│           ├── admin/courses/upload
+│           └── telegram/webhook
 ├── components/
 │   ├── sections/   # Hero, About, Program, Author, Testimonials, Pricing, FAQ, Contact, Header, Footer
-│   ├── ui/         # button, input, label, dialog
-│   ├── 3d/         # ParticleBackground (Hero)
-│   └── PaymentModal.tsx
+│   ├── portal/     # PortalHeader, PortalSidebar, UsersTable
+│   ├── ui/, 3d/, PaymentModal.tsx, ChatBot.tsx
 ├── lib/
-│   ├── utils.ts, paykeeper.ts
-│   └── supabase/client.ts, server.ts
-├── public/images/   # tatiana/, partners/, sections/ (см. docs/Media.md)
-├── docs/            # Project.md, Content.md, Media.md, Tasktracker.md, Diary.md, qa.md
-├── package.json, next.config.mjs, tailwind.config.ts, tsconfig.json
-├── .cursorrules, .env.example
+│   ├── utils.ts, paykeeper.ts, auth.ts, audit.ts, email.ts, telegram.ts
+│   ├── certificates.tsx           # PDF сертификаты (@react-pdf/renderer)
+│   └── supabase/client.ts, server.ts, request.ts
+├── supabase/migrations/           # 001_portal_schema, 002_rls_policies, 003_profiles_email
+├── middleware.ts                  # RBAC для /portal/*
+├── CHANGELOG.md
+├── docs/, .cursorrules, .env.example
 └── README.md
 ```
 
@@ -136,11 +150,12 @@ AVATERRA/
 
 ### 5.1 Текущий стек
 - **Фреймворк:** Next.js 14 (App Router), TypeScript
-- **Стили:** Tailwind CSS, шрифты Literata + Outfit
-- **Анимации:** Framer Motion (reveal, модалки), React Three Fiber (3D-частицы в Hero)
-- **Платежи:** PayKeeper API (lib/paykeeper.ts, API routes)
-- **Данные:** Supabase (опционально; orders, leads)
-- **Деплой:** Vercel или статический экспорт
+- **Стили:** Tailwind CSS (палитра: primary #2D1B4E, secondary #D4AF37, dark #0A0E27), шрифты Literata + Outfit
+- **Анимации:** Framer Motion, React Three Fiber (Hero)
+- **Платежи:** PayKeeper API (lib/paykeeper.ts)
+- **Данные:** Supabase (Auth, PostgreSQL, Storage). Таблицы: profiles, courses, enrollments, scorm_progress, certificates, media, notifications, tickets, audit_log, comms_templates, llm_settings, orders, leads.
+- **Портал:** Роли user/manager/admin, middleware RBAC, SCORM-плеер (iframe + API progress), сертификаты (PDF через @react-pdf/renderer), Resend для email, Telegram webhook для бота.
+- **Деплой:** Vercel или VPS (см. docs/Deploy.md)
 
 ### 5.2 Стандарты кода и процесса
 - **Консистентность:** единый стиль именования (файлы, классы, переменные)
