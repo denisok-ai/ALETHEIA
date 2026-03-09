@@ -3,18 +3,24 @@
 /**
  * Login page — Supabase Auth signInWithPassword.
  */
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export default function LoginPage() {
+function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const err = searchParams.get('error');
+    if (err) setError(err === 'missing_token' ? 'Недействительная или устаревшая ссылка' : err === 'config' ? 'Ошибка конфигурации' : decodeURIComponent(err));
+  }, [searchParams]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -88,5 +94,13 @@ export default function LoginPage() {
         </Link>
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="rounded-2xl border border-border bg-surface p-8 shadow-lg">Загрузка…</div>}>
+      <LoginForm />
+    </Suspense>
   );
 }

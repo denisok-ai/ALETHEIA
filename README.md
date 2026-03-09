@@ -8,8 +8,18 @@
 - **Next.js 14** (App Router), TypeScript
 - **Tailwind CSS**, Framer Motion, React Three Fiber (3D-частицы в Hero)
 - **PayKeeper** — приём платежей
-- **Supabase** — заказы и заявки (опционально)
-- Деплой: **Vercel** или статический экспорт
+- **Supabase** — Auth, БД, Storage (портал, курсы, заявки)
+- **Resend**, **Telegram** — уведомления
+- Деплой: **Vercel** или VPS (см. docs/Deploy.md, docs/Server-Setup.md)
+
+## Портал (v3.0)
+
+- **Роли:** user (студент), manager, admin
+- **ЛК студента:** дашборд, курсы (SCORM), сертификаты, медиатека, уведомления, поддержка
+- **Админка:** пользователи, курсы, CRM, оплаты, медиа, AI-настройки, аудит
+- **Менеджер:** тикеты, поиск пользователей, верификация заданий
+
+Вход: `/login`, регистрация: `/register`. Первый админ — через SQL (docs/Supabase-Setup.md).
 
 ## Как запустить
 
@@ -55,12 +65,12 @@ npm run start
 Скопируйте `.env.example` в `.env.local` и заполните:
 
 - **PayKeeper:** `PAYKEEPER_SERVER`, `PAYKEEPER_LOGIN`, `PAYKEEPER_PASSWORD`, `PAYKEEPER_SECRET` — для приёма оплаты.
-- **Supabase:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — для хранения заказов и заявок (таблицы `orders`, `leads`). Без Supabase форма заявки и кнопка «Купить» всё равно работают; данные просто не сохраняются в БД.
+- **Supabase:** `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — для портала, Auth, БД. Обязательны для портала. См. docs/Supabase-Setup.md.
 - **App:** `NEXT_PUBLIC_URL` — полный URL сайта (для писем и ссылок).
 
 ## Структура проекта
 
-- `app/` — страницы (layout, главная, success, oferta, privacy) и API (payment, webhook, contact).
+- `app/` — страницы (layout, главная, success, oferta, privacy), auth (login, register, reset-password), portal (student, admin, manager), API.
 - `components/sections/` — Hero, About, Program, Author, Testimonials, Pricing, FAQ, Contact, Header, Footer.
 - `components/ui/` — кнопки, поля ввода, диалоги.
 - `components/3d/` — 3D-фон с частицами в Hero.
@@ -122,4 +132,7 @@ sudo pm2 restart avaterra
 
 ## Документация
 
-Подробнее об архитектуре, этапах и контенте — в папке `docs/` (Project.md, Content.md, Media.md, **Deploy.md**).
+- **docs/Project.md** — цели, архитектура
+- **docs/Supabase-Setup.md** — миграции, первый админ, Redirect URLs
+- **docs/Support.md** — структура, частые задачи
+- **docs/Deploy.md** — Vercel, VPS

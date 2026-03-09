@@ -4,6 +4,37 @@
 
 ---
 
+## Релиз v3.0.0 (перед первым деплоем)
+
+```bash
+# 1. Убедиться, что сборка проходит
+npm run build
+
+# 2. Закоммитить все изменения (если есть)
+git status
+git add -A && git commit -m "chore: prepare v3.0.0 release"  # при необходимости
+
+# 3. Создать тег и отправить
+git tag v3.0.0
+git push origin main
+git push origin v3.0.0
+```
+
+---
+
+## Чек-лист перед деплоем
+
+- [ ] `npm run build` проходит без ошибок
+- [ ] Git тег v3.0.0 создан и запушен (см. раздел «Релиз v3.0.0»)
+- [ ] Supabase: проект создан, миграции применены (docs/Supabase-Setup.md)
+- [ ] Supabase: bucket `scorm` создан, bucket `media` (миграция 005)
+- [ ] Supabase: Redirect URLs — `https://yourdomain.com/auth/callback`
+- [ ] Переменные окружения: Supabase, PayKeeper, Resend, NEXT_PUBLIC_URL, DEEPSEEK_API_KEY
+- [ ] PayKeeper: webhook URL указан
+- [ ] Первый админ: `UPDATE profiles SET role='admin' WHERE email='...'`
+
+---
+
 ## Вариант 1. Деплой на Vercel (рекомендуется для старта)
 
 Сайт уже в GitHub (`github.com/denisok-ai/AVATERRA`). Чтобы выложить его в интернет за 5 минут:

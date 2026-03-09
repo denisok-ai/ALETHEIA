@@ -23,6 +23,10 @@
 
 ## Частые задачи
 
+### Оптимизация изображений
+
+Логотип и превью курсов используют `next/image` (автоматические webp/avif, lazy load). Внешние URL (Supabase Storage) — в `next.config.mjs` images.remotePatterns.
+
 ### Изменить тексты на главной
 
 - Секции: `components/sections/` (Hero, About, Pricing, Contact и т.д.)
@@ -39,6 +43,10 @@
 - Промпты: Admin → Настройки AI (`/portal/admin/ai-settings`)
 - База знаний: `content/knowledge-base-body-never-lies.md`
 - API: `app/api/chat/route.ts`
+
+### Сброс пароля
+
+Пользователь нажимает «Забыли пароль?» на /login → вводит email на /reset-password → получает письмо от Supabase → переходит по ссылке → /auth/callback обменивает token на сессию → редирект на /auth/update-password для ввода нового пароля. В Supabase Dashboard добавьте `https://yourdomain.com/auth/callback` в Redirect URLs.
 
 ### Добавить страницу в портал
 

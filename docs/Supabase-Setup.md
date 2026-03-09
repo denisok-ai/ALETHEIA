@@ -73,7 +73,19 @@ WHERE id = 'uuid-пользователя';
 
 ---
 
-## 5. Связать tariff_id с курсом (для webhook PayKeeper)
+## 5. Redirect URLs для Auth
+
+В **Supabase Dashboard → Authentication → URL Configuration** добавьте в **Redirect URLs**:
+
+- `http://localhost:3000/auth/callback` (для разработки)
+- `https://yourdomain.com/auth/callback` (для продакшена)
+- `https://*.vercel.app/auth/callback` (если деплой на Vercel — wildcard для preview и production)
+
+Иначе сброс пароля и подтверждение email не будут работать.
+
+---
+
+## 6. Связать tariff_id с курсом (для webhook PayKeeper)
 
 Чтобы при оплате автоматически создавался enrollment, в таблице `services` должна быть запись с `paykeeper_tariff_id = 'course'` и `course_id` — id курса.
 
@@ -96,7 +108,7 @@ ON CONFLICT (slug) DO UPDATE SET
 
 ---
 
-## 6. Переменные окружения
+## 7. Переменные окружения
 
 Добавьте в `.env` (и в Vercel/сервер):
 

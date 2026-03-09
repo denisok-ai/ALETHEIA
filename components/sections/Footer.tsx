@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Mail, MapPin, Phone } from 'lucide-react';
 
@@ -12,8 +13,8 @@ export function Footer() {
               href="#hero"
               className="inline-flex items-center gap-2 font-heading text-xl font-semibold text-dark hover:text-accent transition-colors"
             >
-              <img
-                src="/images/avaterra-logo.png?v=1"
+              <Image
+                src="/images/avaterra-logo.png"
                 alt=""
                 width={63}
                 height={63}

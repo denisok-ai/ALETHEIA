@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,12 +42,13 @@ export function Header() {
             scrolled ? 'text-gray-900 hover:text-gray-700' : 'text-gray-900 hover:opacity-90'
           )}
         >
-          <img
-            src="/images/avaterra-logo.png?v=1"
+          <Image
+            src="/images/avaterra-logo.png"
             alt=""
             width={71}
             height={71}
             className="h-[4.4375rem] w-[4.4375rem] shrink-0 object-contain"
+            priority
           />
           <span>AVATERRA</span>
         </Link>

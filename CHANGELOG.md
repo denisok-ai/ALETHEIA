@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **vercel.json:** заголовки безопасности (X-Content-Type-Options, X-Frame-Options, Referrer-Policy).
+- **docs/Spec.md:** ТЗ v3.0 — функциональные блоки, интеграции, референсы дизайна.
+- **Deploy.md:** чек-лист перед деплоем.
+- **qa.md:** таблица «Текущее состояние» — ответы на вопросы из реализованной архитектуры.
+- **Оптимизация изображений:** next/image для логотипа (Header, Footer), превью курсов; remotePatterns для Supabase Storage.
+- **Auth callback:** /auth/callback — обмен token_hash на сессию (verifyOtp), сохранение в cookies. Сброс пароля: redirectTo → callback → /auth/update-password.
+- **Страница смены пароля:** /auth/update-password — форма после перехода по ссылке восстановления.
+- **lib/supabase/server-cookies.ts** — createClientWithCookies для route handlers с cookie storage.
+
+### Changed
+- **docs/Supabase-Setup.md:** в Redirect URLs добавлен wildcard `https://*.vercel.app/auth/callback` для Vercel.
+- **docs/Deploy.md:** раздел «Релиз v3.0.0» с командами для тега и push; чек-лист дополнен.
+
 ### Planned
 - Дополнительные улучшения по мере необходимости
 

@@ -3,6 +3,7 @@
  */
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default async function StudentCoursesPage() {
   const supabase = createClient();
@@ -51,8 +52,14 @@ export default async function StudentCoursesPage() {
                   className="block rounded-xl border border-border bg-white p-4 shadow-sm transition hover:shadow-md"
                 >
                   {c.thumbnail_url && (
-                    <div className="aspect-video w-full overflow-hidden rounded-lg bg-bg-soft">
-                      <img src={c.thumbnail_url} alt="" className="h-full w-full object-cover" />
+                    <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-bg-soft">
+                      <Image
+                        src={c.thumbnail_url}
+                        alt=""
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      />
                     </div>
                   )}
                   <h2 className="mt-3 font-semibold text-dark">{c.title}</h2>
