@@ -2,14 +2,14 @@
  * Student: create support ticket.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 
 export async function POST(request: NextRequest) {
-  const supabase = createClient();
-  if (!supabase) return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as { id?: string })?.id;
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   let body: { subject?: string; message?: string };
   try {
@@ -26,16 +26,20 @@ export async function POST(request: NextRequest) {
 
   const messages = message ? [{ role: 'user' as const, content: message, at: new Date().toISOString() }] : [];
 
-  const { data: ticket, error } = await supabase
-    .from('tickets')
-    .insert({
-      user_id: user.id,
+  const ticket = await prisma.ticket.create({
+    data: {
+      userId,
       subject,
-      messages,
-    })
-    .select('id, subject, status, created_at')
-    .single();
+      messages: JSON.stringify(messages),
+    },
+  });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ ticket });
+  return NextResponse.json({
+    ticket: {
+      id: ticket.id,
+      subject: ticket.subject,
+      status: ticket.status,
+      created_at: ticket.createdAt.toISOString(),
+    },
+  });
 }

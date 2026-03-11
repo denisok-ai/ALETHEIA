@@ -1,14 +1,17 @@
 /**
  * Student dashboard: progress overview, recent activity, notifications preview.
  */
-import { createClient } from '@/lib/supabase/server';
+import { getServerSession } from 'next-auth';
 import Link from 'next/link';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
 
 export default async function StudentDashboardPage() {
-  const supabase = createClient();
-  const { data: { user } } = supabase ? await supabase.auth.getUser() : { data: { user: null } };
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as { id?: string })?.id;
 
-  if (!supabase || !user) {
+  if (!userId) {
     return (
       <div>
         <h1 className="font-heading text-2xl font-bold text-dark">Дашборд</h1>
@@ -17,17 +20,45 @@ export default async function StudentDashboardPage() {
     );
   }
 
-  const [enrollmentsRes, notificationsRes, energyRes] = await Promise.all([
-    supabase.from('enrollments').select('id, enrolled_at, courses(title, thumbnail_url)').eq('user_id', user.id).order('enrolled_at', { ascending: false }).limit(5),
-    supabase.from('notifications').select('id, type, content, is_read, created_at').eq('user_id', user.id).order('created_at', { ascending: false }).limit(5),
-    supabase.from('user_energy').select('xp, level, last_practice_at').eq('user_id', user.id).maybeSingle(),
+  const [enrollments, notifications, energy, progressByCourse] = await Promise.all([
+    prisma.enrollment.findMany({
+      where: { userId, course: { status: 'published' } },
+      include: { course: { select: { id: true, title: true, thumbnailUrl: true, scormManifest: true } } },
+      orderBy: { enrolledAt: 'desc' },
+      take: 5,
+    }),
+    prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+    }),
+    prisma.userEnergy.findUnique({ where: { userId } }),
+    prisma.scormProgress.groupBy({
+      by: ['courseId'],
+      where: { userId },
+      _count: { lessonId: true },
+      _sum: { timeSpent: true },
+    }),
   ]);
 
-  const enrollments = enrollmentsRes.data ?? [];
-  const notifications = notificationsRes.data ?? [];
-  const energy = energyRes.data ?? { xp: 0, level: 1, last_practice_at: null };
-  const xp = energy.xp ?? 0;
-  const level = energy.level ?? 1;
+  const completedByCourse = await prisma.scormProgress.groupBy({
+    by: ['courseId'],
+    where: { userId, completionStatus: 'completed' },
+    _count: { lessonId: true },
+  });
+
+  function totalLessons(manifest: string | null): number {
+    if (!manifest) return 1;
+    try {
+      const p = JSON.parse(manifest) as { items?: unknown[] };
+      return Array.isArray(p?.items) && p.items.length > 0 ? p.items.length : 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  const xp = energy?.xp ?? 0;
+  const level = energy?.level ?? 1;
   const xpForNextLevel = 100;
   const progressToNext = (xp % xpForNextLevel) / xpForNextLevel;
 
@@ -43,7 +74,8 @@ export default async function StudentDashboardPage() {
 
   return (
     <div>
-      <h1 className="font-heading text-2xl font-bold text-dark">Дашборд</h1>
+      <Breadcrumbs items={[{ label: 'Дашборд' }]} />
+      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Дашборд</h1>
       <p className="mt-1 text-text-muted">Обзор обучения и активность</p>
 
       <section className="mt-8">
@@ -98,15 +130,35 @@ export default async function StudentDashboardPage() {
         {enrollments.length === 0 ? (
           <p className="mt-2 text-text-muted">Пока нет записей на курсы. <Link href="/#pricing" className="text-primary hover:underline">Выбрать курс</Link></p>
         ) : (
-          <ul className="mt-3 space-y-2">
+          <ul className="mt-3 space-y-3">
             {enrollments.map((e) => {
-              const raw = e as { id: string; courses: { title: string } | { title: string }[] };
-              const title = Array.isArray(raw.courses) ? raw.courses[0]?.title : raw.courses?.title;
+              const c = e.course;
+              const total = c ? totalLessons(c.scormManifest) : 1;
+              const completed = c ? (completedByCourse.find((x) => x.courseId === c.id)?._count.lessonId ?? 0) : 0;
+              const timeSpent = c ? (progressByCourse.find((x) => x.courseId === c.id)?._sum.timeSpent ?? 0) : 0;
+              const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
               return (
-                <li key={raw.id}>
-                  <Link href="/portal/student/courses" className="text-primary hover:underline">
-                    {title ?? 'Курс'}
+                <li key={e.id} className="rounded-lg border border-border bg-white p-3">
+                  <Link href="/portal/student/courses" className="font-medium text-primary hover:underline">
+                    {c?.title ?? 'Курс'}
                   </Link>
+                  {total > 0 && (
+                    <div className="mt-2">
+                      <div className="flex justify-between text-xs text-text-muted">
+                        <span>Прогресс</span>
+                        <span>{completed}/{total} ({pct}%)</span>
+                      </div>
+                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-bg-soft">
+                        <div
+                          className="h-full rounded-full bg-primary transition-all"
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      {timeSpent > 0 && (
+                        <p className="mt-1 text-xs text-text-muted">Время: {Math.floor(timeSpent / 60)} мин</p>
+                      )}
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -120,11 +172,11 @@ export default async function StudentDashboardPage() {
           <p className="mt-2 text-text-muted">Нет новых уведомлений</p>
         ) : (
           <ul className="mt-3 space-y-2">
-            {notifications.map((n: { id: string; type: string; content: unknown; is_read: boolean; created_at: string }) => (
+            {notifications.map((n) => (
               <li key={n.id} className="rounded-lg border border-border bg-white p-3">
                 <span className="text-sm font-medium text-dark">{n.type}</span>
-                <p className="text-sm text-text-muted">{String((n.content as { text?: string })?.text ?? '')}</p>
-                <time className="text-xs text-text-soft">{new Date(n.created_at).toLocaleDateString('ru')}</time>
+                <p className="text-sm text-text-muted">{String(n.content ?? '')}</p>
+                <time className="text-xs text-text-soft">{new Date(n.createdAt).toLocaleDateString('ru')}</time>
               </li>
             ))}
           </ul>

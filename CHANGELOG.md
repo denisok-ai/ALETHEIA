@@ -8,21 +8,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
-- **vercel.json:** заголовки безопасности (X-Content-Type-Options, X-Frame-Options, Referrer-Policy).
-- **docs/Spec.md:** ТЗ v3.0 — функциональные блоки, интеграции, референсы дизайна.
-- **Deploy.md:** чек-лист перед деплоем.
-- **qa.md:** таблица «Текущее состояние» — ответы на вопросы из реализованной архитектуры.
-- **Оптимизация изображений:** next/image для логотипа (Header, Footer), превью курсов; remotePatterns для Supabase Storage.
-- **Auth callback:** /auth/callback — обмен token_hash на сессию (verifyOtp), сохранение в cookies. Сброс пароля: redirectTo → callback → /auth/update-password.
-- **Страница смены пароля:** /auth/update-password — форма после перехода по ссылке восстановления.
-- **lib/supabase/server-cookies.ts** — createClientWithCookies для route handlers с cookie storage.
+- **Переменные окружения в настройках (редактируемые, БД):** блок «Переменные окружения» на странице Настройки сделан редактируемым; значения (Resend API ключ, Telegram Bot Token, Cron secret, NEXTAUTH_URL) сохраняются в БД, секреты — в зашифрованном виде. Приложение использует их с приоритетом над .env (getEnvOverrides). Обновлены lib/email, contact, lib/telegram, telegram webhook, cron/mailings-send. Индикаторы «Состояние интеграций» учитывают и .env, и БД; добавлен CRON_SECRET. NEXTAUTH_SECRET и DATABASE_URL — только в .env.
+- **Оплата: редирект и письмо после оплаты:** при создании счёта в PayKeeper передаётся `user_result_callback` (URL из настроек site_url + `/success`) — после оплаты покупатель перенаправляется на страницу «Оплата прошла успешно». В webhook после успешной оплаты курса покупателю отправляется email (Resend): «Оплата получена — доступ к курсу открыт», ссылки на вход и страницу результата.
+- **Платежи (PayKeeper): тестовое подключение:** в Настройки → Платежи — чекбокс «Использовать тестовое подключение» и отдельные поля (сервер, логин, пароль, секрет для webhook). Конфиг из БД или env (PAYKEEPER_USE_TEST, PAYKEEPER_TEST_*).
+- **Магазин на главной:** блок «Купить курс» загружает товары из GET `/api/shop/products` (активные Service с опубликованным курсом). Оплата по `serviceSlug`; POST `/api/payment/create` принимает `serviceSlug` или `tariffId`. Админ: блок «Товары для продажи на главной» на странице Оплаты (CRUD услуг). Возврат: для оплаченных заказов — кнопка «Возврат» (статус refunded, отзыв доступа к курсу); возврат средств — в ЛК PayKeeper.
+- **Настройки AI: несколько моделей и API-ключей:** в блоке «Подключение LLM и параметры чат-бота» — раздел «Сохранённые API ключи» (добавление/удаление ключей с названием и провайдером); выбор сохранённого ключа или ввод своего для чат-бота и тьютора; выбор провайдера (DeepSeek, OpenAI, Anthropic, Другой) и модели из списка (или произвольная для «Другой»). Модель данных: LlmApiKey, LlmSetting.apiKeyId; API: GET/POST/DELETE `/api/portal/admin/llm-settings/api-keys`, POST с `api_key_id` в llm-settings.
+- **Страница группы:** `/portal/admin/groups/[id]` — просмотр группы (название, описание, родитель, тип), редактирование (GroupFormModal), состав: курсы/медиа/участники в зависимости от moduleType с добавлением (модалка выбора из всех курсов, медиа или пользователей) и удалением из группы. В дереве групп — ссылка на страницу группы (иконка при наведении). GET `/api/portal/admin/media` для списка медиа в пикерах.
+- **Рассылки и коммуникации: добавление и исключение по группам:** в рассылках (recipientConfig) и в отправке коммуникаций — тип получателей «По группам пользователей» (включить участников выбранных групп) и блок «Исключить группы» (убрать из списка получателей участников выбранных групп). Валидация: groupIds, excludeGroupIds в lib/validations; логика в lib/mailing-send.ts и app/api/portal/admin/comms/send/route.ts.
+- **Группы в Медиатеке и Пользователях:** сайдбар с деревом групп на страницах «Медиатека» и «Пользователи» (фильтрация по группе); в диалоге редактирования ресурса медиа — блок «Группы ресурса»; в карточке пользователя — вкладка «Группы» (роль участник/модератор). API: GET/POST/DELETE `/api/portal/admin/media/[id]/groups`, `/api/portal/admin/users/[id]/groups`. См. docs/Groups-Plan.md.
+- **Группы: редактирование и удаление из дерева:** в сайдбаре групп (Курсы, Медиатека, Пользователи) при наведении на группу отображаются кнопки «Редактировать» и «Удалить»; редактирование открывает модалку формы группы, удаление — диалог подтверждения (дочерние группы отвязываются, связи снимаются). Дерево обновляется после операций.
+- **Health check:** GET /api/health — возвращает 200 и `{ ok: true }` для мониторинга и балансировщиков (см. Deploy.md).
+- **Prisma + SQLite:** локальная БД (prisma/schema.prisma, lib/db.ts). Миграции, seed.
+- **NextAuth:** Credentials provider вместо Supabase Auth.
+- **docs/Local-Prisma.md:** инструкция локального запуска.
+- **Оферта и политика конфиденциальности:** полноценный контент на страницах /oferta и /privacy (разделы по предмету договора, оплате, ПД, правам пользователей).
+- **SEO:** метаданные (title, description, openGraph) для /oferta и /privacy; app/sitemap.ts и app/robots.ts (sitemap.xml, robots.txt с disallow для /portal/, /api/, /auth/).
+- **Редизайн админки (план docs/Admin-Redesign-Plan.md):** PageHeader и единая навигация; компонент Card, табы в карточке пользователя; колонка №, пагинация +5/+10/+50, поиск «Найти в списке», ConfirmDialog при конвертации лида; EmptyState во всех таблицах и табах, TableSkeleton при загрузке; каталог /portal/admin/notification-sets; форма «Добавить пользователя» (POST /api/portal/admin/users); aria-label для доступности; раздел «Админ-панель» в docs/Support.md.
 
 ### Changed
-- **docs/Supabase-Setup.md:** в Redirect URLs добавлен wildcard `https://*.vercel.app/auth/callback` для Vercel.
-- **docs/Deploy.md:** раздел «Релиз v3.0.0» с командами для тега и push; чек-лист дополнен.
+- **Архитектура:** Supabase удалён, переход на Prisma + SQLite. Хранилище — public/uploads/.
+- **Документация:** Project.md, README, Support, Deploy, Tasktracker — обновлены под Prisma.
 
-### Planned
-- Дополнительные улучшения по мере необходимости
+### Removed
+- **Группы публикаций (рубрики):** функционал удалён — модель PublicationGroup, API и страница «Группы публикаций», выбор рубрики в форме публикации, фильтр по группе в API. Публикации остаются без рубрик.
+- **Supabase:** lib/supabase/, пакеты @supabase/*, supabase; папка supabase/ (миграции, config).
+- **docs/Supabase-Setup.md, Local-NoCloud.md, LocalDB.md** — удалены как устаревшие.
 
 ---
 

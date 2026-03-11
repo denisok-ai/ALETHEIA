@@ -1,0 +1,71 @@
+'use client';
+
+import Link from 'next/link';
+import { format } from 'date-fns';
+import { ru } from 'date-fns/locale';
+
+export type EventItem =
+  | { type: 'payment'; id: number; orderNumber: string; amount: number; email: string; at: string }
+  | { type: 'lead'; id: number; name: string; phone: string; at: string }
+  | { type: 'user'; id: string; email: string; at: string };
+
+export function RecentEvents({ events }: { events: EventItem[] }) {
+  const sorted = [...events].sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()).slice(0, 10);
+
+  if (sorted.length === 0) {
+    return (
+      <div className="mt-8 rounded-xl border border-border bg-white p-6">
+        <h2 className="text-lg font-semibold text-dark">Последние события</h2>
+        <p className="mt-2 text-sm text-text-muted">Нет событий</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-8 rounded-xl border border-border bg-white p-6">
+      <h2 className="text-lg font-semibold text-dark">Последние события</h2>
+      <div className="mt-3 overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border text-left text-text-muted">
+              <th className="pb-2 pr-4 font-medium">Тип</th>
+              <th className="pb-2 pr-4 font-medium">Детали</th>
+              <th className="pb-2 font-medium">Дата</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((e) => (
+              <tr key={`${e.type}-${'id' in e ? e.id : ''}`} className="border-b border-border/50">
+                <td className="py-2 pr-4">
+                  {e.type === 'payment' && <span className="text-primary">Оплата</span>}
+                  {e.type === 'lead' && <span className="text-amber-700">Лид</span>}
+                  {e.type === 'user' && <span className="text-green-700">Регистрация</span>}
+                </td>
+                <td className="py-2 pr-4">
+                  {e.type === 'payment' && (
+                    <Link href="/portal/admin/payments" className="text-primary hover:underline">
+                      {e.orderNumber} — {e.amount.toLocaleString('ru')} ₽ · {e.email}
+                    </Link>
+                  )}
+                  {e.type === 'lead' && (
+                    <Link href="/portal/admin/crm" className="text-primary hover:underline">
+                      {e.name} · {e.phone}
+                    </Link>
+                  )}
+                  {e.type === 'user' && (
+                    <Link href={`/portal/admin/users/${e.id}`} className="text-primary hover:underline">
+                      {e.email}
+                    </Link>
+                  )}
+                </td>
+                <td className="py-2 text-text-muted">
+                  {format(new Date(e.at), 'dd.MM.yyyy HH:mm', { locale: ru })}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}

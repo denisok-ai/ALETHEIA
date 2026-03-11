@@ -1,39 +1,50 @@
 /**
  * Admin: user catalog (active/archived). TanStack Table + filter.
  */
-import { createClient } from '@/lib/supabase/server';
-import { UsersTable, type UserRow } from '@/components/portal/UsersTable';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { PageHeader } from '@/components/portal/PageHeader';
+import { type UserRow } from '@/components/portal/UsersTable';
+import { AddUserDialog } from './AddUserDialog';
+import { UsersPageWithGroups } from './UsersPageWithGroups';
 
 export default async function AdminUsersPage() {
-  const supabase = createClient();
-  if (!supabase) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
     return (
       <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Пользователи</h1>
-        <p className="mt-2 text-text-muted">База данных недоступна.</p>
+        <PageHeader items={[{ label: 'Пользователи' }]} title="Пользователи" description="Загрузка…" />
       </div>
     );
   }
 
-  const { data: profiles } = await supabase
-    .from('profiles')
-    .select('id, role, status, display_name, email, created_at')
-    .order('created_at', { ascending: false });
+  const profiles = await prisma.profile.findMany({
+    include: { user: { select: { email: true } } },
+    orderBy: { createdAt: 'desc' },
+  });
 
-  const rows: UserRow[] = (profiles ?? []).map((p) => ({
-    id: p.id,
-    email: p.email ?? null,
+  const rows: UserRow[] = profiles.map((p) => ({
+    id: p.userId,
+    email: p.email ?? p.user.email ?? null,
     role: p.role,
     status: p.status,
-    display_name: p.display_name ?? null,
-    created_at: p.created_at,
+    display_name: p.displayName ?? null,
+    created_at: p.createdAt.toISOString(),
   }));
 
   return (
-    <div>
-      <h1 className="font-heading text-2xl font-bold text-dark">Пользователи</h1>
-      <p className="mt-1 text-text-muted">Каталог пользователей, активные и архивные</p>
-      <UsersTable data={rows} />
+    <div className="space-y-6">
+      <PageHeader
+        items={[
+          { href: '/portal/admin/dashboard', label: 'Дашборд' },
+          { label: 'Пользователи' },
+        ]}
+        title="Пользователи"
+        description="Каталог пользователей портала: роли, статусы, редактирование"
+        actions={<AddUserDialog />}
+      />
+      <UsersPageWithGroups initialRows={rows} />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
@@ -9,6 +10,7 @@ import { cn } from '@/lib/utils';
 type Message = { role: 'user' | 'bot'; text: string };
 
 export function ChatBot() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -54,6 +56,10 @@ export function ChatBot() {
       setLoading(false);
     }
   };
+
+  if (pathname?.startsWith('/portal/admin')) {
+    return null;
+  }
 
   return (
     <>

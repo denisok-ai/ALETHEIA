@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -84,7 +85,9 @@ export function SupportTicketsClient({ initialTickets }: { initialTickets: Ticke
               key={t.id}
               className="rounded-lg border border-border bg-white p-4"
             >
-              <p className="font-medium text-dark">{t.subject}</p>
+              <Link href={`/portal/student/support/${t.id}`} className="font-medium text-dark text-primary hover:underline">
+                {t.subject}
+              </Link>
               <div className="mt-1 flex items-center gap-2 text-sm text-text-muted">
                 <span
                   className={`rounded px-2 py-0.5 text-xs ${

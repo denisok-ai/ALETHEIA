@@ -13,6 +13,7 @@ const buttonVariants = cva(
           'bg-accent text-white hover:bg-accent-hover hover:shadow-[0_0_24px_rgba(166,139,91,0.35)]',
         secondary:
           'border-2 border-accent text-accent hover:bg-accent/10',
+        danger: 'bg-red-600 text-white hover:bg-red-700',
         ghost: 'text-dark hover:bg-bg-soft',
       },
       size: {

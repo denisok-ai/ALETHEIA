@@ -1,57 +1,32 @@
 /**
- * Middleware: refresh Supabase session and RBAC for /portal/*.
- * - /portal/* requires auth; redirect to /login if no session.
- * - /portal/admin/* requires role admin.
- * - /portal/manager/* requires role manager or admin.
+ * Middleware: RBAC для /portal/*.
+ * NextAuth session — без Supabase.
  */
-import { createServerClient } from '@supabase/ssr';
+import { getToken } from 'next-auth/jwt';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const PORTAL_PREFIX = '/portal';
 const LOGIN_PATH = '/login';
 
 export async function middleware(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  const secret =
+    process.env.NODE_ENV === 'production'
+      ? process.env.NEXTAUTH_SECRET
+      : process.env.NEXTAUTH_SECRET ?? 'avaterra-dev-secret';
+  const token = await getToken({ req: request, secret });
+  const role = (token?.role as string) ?? 'user';
+  const path = request.nextUrl.pathname;
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet: { name: string; value: string; options?: Record<string, unknown> }[]) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options);
-          });
-        },
-      },
-    }
-  );
-
-  await supabase.auth.getSession();
-  const { data: { user } } = await supabase.auth.getUser();
-
-  if (!request.nextUrl.pathname.startsWith(PORTAL_PREFIX)) {
-    return response;
+  if (!path.startsWith(PORTAL_PREFIX)) {
+    return NextResponse.next();
   }
 
-  if (!user) {
+  if (!token) {
     const url = request.nextUrl.clone();
     url.pathname = LOGIN_PATH;
-    url.searchParams.set('redirect', request.nextUrl.pathname);
+    url.searchParams.set('redirect', path);
     return NextResponse.redirect(url);
   }
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single();
-
-  const role = (profile?.role as 'user' | 'manager' | 'admin') ?? 'user';
-  const path = request.nextUrl.pathname;
 
   if (path.startsWith(`${PORTAL_PREFIX}/admin`)) {
     if (role !== 'admin') {
@@ -69,7 +44,7 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {

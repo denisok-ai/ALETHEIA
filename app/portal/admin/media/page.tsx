@@ -1,31 +1,55 @@
 /**
  * Admin: mediatheque — list and upload.
  */
-import { createClient } from '@/lib/supabase/server';
-import { MediaAdminClient } from './MediaAdminClient';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { PageHeader } from '@/components/portal/PageHeader';
+import { MediaPageWithGroups } from './MediaPageWithGroups';
 
 export default async function AdminMediaPage() {
-  const supabase = createClient();
-  if (!supabase) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
     return (
       <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Медиатека</h1>
-        <p className="mt-2 text-text-muted">База данных недоступна.</p>
+        <PageHeader items={[{ label: 'Медиатека' }]} title="Медиатека" description="База данных недоступна." />
       </div>
     );
   }
 
-  const { data: items } = await supabase
-    .from('media')
-    .select('id, title, file_url, mime_type, category, created_at')
-    .order('sort_order')
-    .order('title');
+  const items = await prisma.media.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+    include: { course: { select: { id: true, title: true } } },
+  });
+
+  const initialItems = items.map((m) => ({
+    id: m.id,
+    title: m.title,
+    file_url: m.fileUrl,
+    mime_type: m.mimeType,
+    category: m.category,
+    description: m.description,
+    type: m.type,
+    views_count: m.viewsCount,
+    allow_download: m.allowDownload,
+    rating_sum: m.ratingSum,
+    rating_count: m.ratingCount,
+    created_at: m.createdAt.toISOString(),
+    course_id: m.courseId,
+    course_title: m.course?.title ?? null,
+  }));
 
   return (
-    <div>
-      <h1 className="font-heading text-2xl font-bold text-dark">Медиатека</h1>
-      <p className="mt-1 text-text-muted">Загрузка и управление медиафайлами</p>
-      <MediaAdminClient initialItems={items ?? []} />
+    <div className="space-y-6">
+      <PageHeader
+        items={[
+          { href: '/portal/admin/dashboard', label: 'Дашборд' },
+          { label: 'Медиатека' },
+        ]}
+        title="Медиатека"
+        description="Загрузка и управление медиафайлами"
+      />
+      <MediaPageWithGroups initialItems={initialItems} />
     </div>
   );
 }

@@ -1,22 +1,15 @@
 /**
- * Admin: convert lead to user — create auth user and link.
+ * Admin: convert lead to user — create User + Profile and link.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createClientFromRequest } from '@/lib/supabase/request';
+import { requireAdminSession } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
 
 export async function POST(request: NextRequest) {
-  const reqClient = createClientFromRequest(request);
-  if (!reqClient) return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
-  const { data: { user } } = await reqClient.auth.getUser();
-  const { data: profile } = user ? await reqClient.from('profiles').select('role').eq('id', user.id).single() : { data: null };
-  if (!user || (profile?.role as string) !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const supabase = createClient();
-  if (!supabase) return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
+  const auth = await requireAdminSession();
+  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   let body: { leadId?: number };
   try {
@@ -28,59 +21,62 @@ export async function POST(request: NextRequest) {
   const leadId = body.leadId;
   if (leadId == null) return NextResponse.json({ error: 'leadId required' }, { status: 400 });
 
-  const { data: lead, error: leadErr } = await supabase
-    .from('leads')
-    .select('id, name, email, phone, converted_to_user_id')
-    .eq('id', leadId)
-    .single();
+  const lead = await prisma.lead.findUnique({
+    where: { id: leadId },
+  });
 
-  if (leadErr || !lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
-
-  const l = lead as { converted_to_user_id?: string | null; email?: string | null }; 
-  if (l.converted_to_user_id) {
+  if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 });
+  if (lead.convertedToUserId) {
     return NextResponse.json({ error: 'Lead already converted' }, { status: 400 });
   }
 
-  const email = (lead as { email?: string | null }).email?.trim();
+  const email = lead.email?.trim();
   if (!email) {
     return NextResponse.json({ error: 'Lead has no email. Add email to convert.' }, { status: 400 });
   }
 
+  const existingUser = await prisma.user.findUnique({
+    where: { email },
+    select: { id: true },
+  });
+
+  if (existingUser) {
+    await prisma.lead.update({
+      where: { id: leadId },
+      data: { convertedToUserId: existingUser.id, status: 'converted' },
+    });
+    return NextResponse.json({ userId: existingUser.id, message: 'Linked to existing user' });
+  }
+
   const password = nanoid(16);
-  const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: {
-      full_name: (lead as { name: string }).name,
-      phone: (lead as { phone?: string }).phone,
+  const passwordHash = await hash(password, 10);
+
+  const user = await prisma.user.create({
+    data: {
+      email,
+      passwordHash,
+      displayName: lead.name,
     },
   });
 
-  if (createErr || !newUser.user) {
-    if (createErr?.message?.includes('already been registered')) {
-      const { data: existing } = await supabase.from('profiles').select('id').ilike('email', email).maybeSingle();
-      const existingId = (existing as { id?: string } | null)?.id;
-      if (existingId) {
-        await supabase.from('leads').update({
-          converted_to_user_id: existingId,
-          status: 'converted',
-          updated_at: new Date().toISOString(),
-        }).eq('id', leadId);
-        return NextResponse.json({ userId: existingId, message: 'Linked to existing user' });
-      }
-    }
-    return NextResponse.json({ error: createErr?.message ?? 'Failed to create user' }, { status: 500 });
-  }
+  await prisma.profile.create({
+    data: {
+      id: `p-${user.id}`,
+      userId: user.id,
+      role: 'user',
+      status: 'active',
+      email: user.email,
+      displayName: lead.name,
+    },
+  });
 
-  await supabase.from('leads').update({
-    converted_to_user_id: newUser.user.id,
-    status: 'converted',
-    updated_at: new Date().toISOString(),
-  }).eq('id', leadId);
+  await prisma.lead.update({
+    where: { id: leadId },
+    data: { convertedToUserId: user.id, status: 'converted' },
+  });
 
   return NextResponse.json({
-    userId: newUser.user.id,
+    userId: user.id,
     message: 'User created. Send password reset link to set password.',
   });
 }

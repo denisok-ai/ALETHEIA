@@ -1,7 +1,7 @@
 /**
  * Audit log: write entry for admin actions.
  */
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from './db';
 
 export async function writeAuditLog(params: {
   actorId: string | null;
@@ -10,13 +10,13 @@ export async function writeAuditLog(params: {
   entityId?: string | null;
   diff?: Record<string, unknown> | null;
 }): Promise<void> {
-  const supabase = createClient();
-  if (!supabase) return;
-  await supabase.from('audit_log').insert({
-    actor_id: params.actorId,
-    action: params.action,
-    entity: params.entity,
-    entity_id: params.entityId ?? null,
-    diff: params.diff ?? null,
+  await prisma.auditLog.create({
+    data: {
+      actorId: params.actorId,
+      action: params.action,
+      entity: params.entity,
+      entityId: params.entityId ?? null,
+      diff: params.diff ? JSON.stringify(params.diff) : null,
+    },
   });
 }

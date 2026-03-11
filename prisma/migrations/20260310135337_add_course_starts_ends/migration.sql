@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Course" ADD COLUMN "endsAt" DATETIME;
+ALTER TABLE "Course" ADD COLUMN "startsAt" DATETIME;

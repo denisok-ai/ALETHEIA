@@ -1,13 +1,15 @@
 /**
  * Telegram bot helpers: send message, broadcast.
- * Uses Grammy when BOT_TOKEN is set.
+ * Токен: из БД (настройки → Переменные окружения) или process.env.TELEGRAM_BOT_TOKEN.
  */
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+import { getEnvOverrides } from './settings';
 
 export async function sendTelegramMessage(chatId: string | number, text: string): Promise<boolean> {
-  if (!BOT_TOKEN) return false;
+  const overrides = await getEnvOverrides();
+  const token = overrides.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return false;
   try {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' }),

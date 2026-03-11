@@ -1,0 +1,116 @@
+/**
+ * Admin: certificate templates catalog — list and link to create/edit.
+ */
+import Link from 'next/link';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { PageHeader } from '@/components/portal/PageHeader';
+import { Card } from '@/components/portal/Card';
+import { EmptyState } from '@/components/ui/EmptyState';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { LayoutTemplate, Plus } from 'lucide-react';
+
+export default async function AdminCertificateTemplatesPage() {
+  const session = await getServerSession(authOptions);
+  const role = (session?.user as { role?: string })?.role;
+  if (!session?.user || role !== 'admin') {
+    return (
+      <div className="p-6">
+        <p className="text-text-muted">Доступ запрещён.</p>
+      </div>
+    );
+  }
+
+  const templates = await prisma.certificateTemplate.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      course: { select: { id: true, title: true } },
+      _count: { select: { certificates: true } },
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        items={[
+          { href: '/portal/admin/dashboard', label: 'Дашборд' },
+          { href: '/portal/admin/certificates', label: 'Сертификаты' },
+          { label: 'Шаблоны сертификатов' },
+        ]}
+        title="Шаблоны сертификатов"
+        description="Условия выдачи (minScore, requiredStatus), срок действия, нумерация, флаг «Электронная версия доступна пользователям»."
+        actions={
+          <Link
+            href="/portal/admin/certificate-templates/new"
+            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-dark hover:opacity-90"
+          >
+            <Plus className="h-4 w-4" />
+            Добавить шаблон
+          </Link>
+        }
+      />
+      <Card>
+        {templates.length === 0 ? (
+          <EmptyState
+            title="Нет шаблонов"
+            description="Создайте шаблон для привязки к курсу: подложка, координаты текста, условия выдачи, срок действия, доступность скачивания."
+            icon={<LayoutTemplate className="h-10 w-10" />}
+            action={
+              <Link href="/portal/admin/certificate-templates/new">
+                <Button>Добавить шаблон</Button>
+              </Link>
+            }
+          />
+        ) : (
+          <div className="overflow-x-auto rounded-lg border border-border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10">№</TableHead>
+                  <TableHead>Название</TableHead>
+                  <TableHead>Курс</TableHead>
+                  <TableHead>Подложка</TableHead>
+                  <TableHead className="text-center">minScore</TableHead>
+                  <TableHead className="text-center">Скачивание</TableHead>
+                  <TableHead className="text-center">Сертификатов</TableHead>
+                  <TableHead className="w-28"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {templates.map((t, idx) => (
+                  <TableRow key={t.id}>
+                    <TableCell className="text-text-muted">{idx + 1}</TableCell>
+                    <TableCell className="font-medium text-dark">
+                      <Link href={`/portal/admin/certificate-templates/${t.id}`} className="text-primary hover:underline">
+                        {t.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-text-muted text-sm">{t.course?.title ?? '—'}</TableCell>
+                    <TableCell className="text-text-muted text-sm">{t.backgroundImageUrl ? 'Да' : '—'}</TableCell>
+                    <TableCell className="text-center text-text-muted">{t.minScore ?? '—'}</TableCell>
+                    <TableCell className="text-center">{t.allowUserDownload ? 'Да' : 'Нет'}</TableCell>
+                    <TableCell className="text-center text-text-muted">{t._count.certificates}</TableCell>
+                    <TableCell>
+                      <Link href={`/portal/admin/certificate-templates/${t.id}`}>
+                        <Button variant="secondary" size="sm">Изменить</Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}

@@ -1,0 +1,543 @@
+// AVATERRA — локальная БД (SQLite, без Docker)
+// Финальный прод: PostgreSQL (сменить provider на postgresql)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  displayName  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  profile      Profile?
+  enrollments  Enrollment[]
+  certificates Certificate[]
+  notifications Notification[]
+  tickets      Ticket[]         @relation("UserTickets")
+  managedTickets Ticket[]       @relation("ManagerTickets")
+  scormProgress ScormProgress[]
+  userEnergy   UserEnergy?
+  phygitalVerifications PhygitalVerification[]
+  orders       Order[]
+  publicationComments PublicationComment[]
+  mailingsCreated Mailing[]
+  mailingLogs   MailingLog[]
+  notificationLogs NotificationLog[]
+  visitLogs       VisitLog[]
+  userGroups      UserGroup[]
+}
+
+// Иерархические группы для модулей Курсы, Медиатека, Пользователи
+model Group {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+  parentId         String?
+  parent           Group?   @relation("GroupHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children         Group[]  @relation("GroupHierarchy")
+  moduleType       String   // course | media | user
+  type             String   @default("static")  // static | dynamic
+  accessType       String   @default("common")  // common | personal
+  displayOrder     Int      @default(0)
+  // Специфичные для Медиатеки (используются при moduleType=media)
+  smallIcon        String?
+  largeIcon        String?
+  showSubgroupsMode String? // list | icons
+  sourceCourseId   String?  // если группа медиа создана автоматически по курсу
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  courseGroups  CourseGroup[]
+  mediaGroups   MediaGroup[]
+  userGroups    UserGroup[]
+
+  @@index([parentId])
+  @@index([moduleType])
+}
+
+model CourseGroup {
+  courseId   String
+  course     Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  groupId    String
+  group      Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, groupId])
+  @@index([groupId])
+}
+
+model MediaGroup {
+  mediaId    String
+  media      Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  groupId    String
+  group      Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sortOrder  Int    @default(0)
+
+  @@id([mediaId, groupId])
+  @@index([groupId])
+}
+
+model UserGroup {
+  userId     String
+  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId    String
+  group      Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  role       String @default("member") // member | moderator (для наследования прав на дочерние группы)
+  joinedAt   DateTime @default(now())
+
+  @@id([userId, groupId])
+  @@index([groupId])
+}
+
+model VisitLog {
+  id              String    @id @default(cuid())
+  userId          String
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loginAt         DateTime  @default(now())
+  lastActivityAt  DateTime  @default(now())
+  logoutAt        DateTime?
+  ipAddress       String?
+  userAgent       String?
+
+  @@index([userId])
+  @@index([loginAt])
+  @@index([lastActivityAt])
+}
+
+model Profile {
+  id          String   @id
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        String   @default("user") // user, manager, admin
+  status      String   @default("active") // active, archived
+  displayName String?
+  email       String?
+  avatarUrl   String?
+  telegramId  Int?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Course {
+  id              String    @id @default(cuid())
+  title           String
+  description     String?
+  startsAt        DateTime? // начало курса (мероприятия)
+  endsAt          DateTime? // окончание курса (мероприятия)
+  scormPath       String?
+  scormVersion    String?  // "1.2" | "2004"
+  scormManifest   String?  // JSON: organizations, items, resources (SCO list)
+  aiContext       String?  // JSON: extracted text per lesson for LLM
+  aiTutorEnabled  Boolean  @default(true) // включён ли AI-тьютор в плеере
+  thumbnailUrl    String?
+  status         String   @default("published") // draft=В разработке, published=Действительно, cancelled=Отменено, archived=В архиве
+  price          Int?
+  sortOrder      Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  enrollments  Enrollment[]
+  certificates Certificate[]
+  scormProgress ScormProgress[]
+  media        Media[]
+  phygitalVerifications PhygitalVerification[]
+  services     Service[]
+  courseNotificationSets CourseNotificationSet[]
+  certificateTemplates CertificateTemplate[]
+  courseGroups         CourseGroup[]
+}
+
+model Enrollment {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId     String
+  course       Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  enrolledAt   DateTime  @default(now())
+  expiresAt    DateTime?
+  accessClosed Boolean   @default(false)  // false = Открыт, true = Закрыт
+  completedAt  DateTime? // если задано — участие Завершено
+
+  @@unique([userId, courseId])
+}
+
+model ScormProgress {
+  id               String   @id @default(cuid())
+  userId           String
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId         String
+  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonId         String
+  cmiData          String?  @default("{}")
+  completionStatus String?
+  score            Float?
+  timeSpent        Int      @default(0)
+  lastUpdated      DateTime @updatedAt
+
+  @@unique([userId, courseId, lessonId])
+}
+
+model CertificateTemplate {
+  id                  String   @id @default(cuid())
+  name                String
+  backgroundImageUrl  String?  // подложка PDF/PNG/JPG — загрузка в форме шаблона
+  textMapping         String?  // JSON координат полей: name, date, courseTitle, certNumber
+  courseId            String?
+  course              Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  minScore            Int?
+  requiredStatus      String?
+  validityDays        Int?
+  numberingFormat     String?
+  allowUserDownload   Boolean  @default(true)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  certificates Certificate[]
+}
+
+model Certificate {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  templateId String?
+  template   CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  certNumber String    @unique
+  pdfUrl     String?
+  issuedAt   DateTime  @default(now())
+  revokedAt  DateTime?
+  expiryDate DateTime?
+
+  @@unique([userId, courseId])
+}
+
+model Media {
+  id            String   @id @default(cuid())
+  title         String
+  fileUrl       String   // для type=link — внешний URL
+  mimeType      String?
+  category      String?
+  description   String?
+  type          String   @default("file") // file | link
+  viewsCount    Int      @default(0)
+  allowDownload Boolean  @default(true)
+  ratingSum     Int      @default(0)
+  ratingCount   Int      @default(0)
+  ownerId       String?
+  courseId      String?
+  course        Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  sortOrder     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  mediaGroups   MediaGroup[]
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  content   String   @default("{}")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Ticket {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  managerId String?
+  manager   User?    @relation("ManagerTickets", fields: [managerId], references: [id], onDelete: SetNull)
+  subject   String
+  status    String   @default("open") // open, in_progress, resolved, closed
+  messages  String   @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PhygitalVerification {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId   String
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonId   String?
+  videoUrl   String
+  status     String   @default("pending") // pending, approved, rejected
+  reviewedBy String?
+  reviewedAt DateTime?
+  comment    String?
+  createdAt  DateTime @default(now())
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  actorId   String?
+  action    String
+  entity    String
+  entityId  String?
+  diff      String?
+  createdAt DateTime @default(now())
+}
+
+model NotificationTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  subject   String?
+  body      String   // тело с плейсхолдерами %recfirstname%, %reclastname%, %date%, %systemtitle%, %objectname%
+  type      String   @default("both") // "internal" | "email" | "both"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  notificationSets NotificationSet[]
+}
+
+model NotificationSet {
+  id          String   @id @default(cuid())
+  eventType   String   // enrollment, certificate_issued, enrollment_excluded, access_opened, access_closed, ...
+  name        String
+  templateId  String?
+  template    NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  isDefault   Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  courseLinks CourseNotificationSet[]
+}
+
+model NotificationLog {
+  id         String   @id @default(cuid())
+  userId     String?  // null если пользователь удалён
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  eventType  String
+  subject    String?
+  content    String   // итоговый текст (срез)
+  channel    String   // "internal" | "email"
+  createdAt  DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([userId])
+  @@index([eventType])
+}
+
+model CourseNotificationSet {
+  id               String   @id @default(cuid())
+  courseId         String
+  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  notificationSetId String
+  notificationSet NotificationSet @relation(fields: [notificationSetId], references: [id], onDelete: Cascade)
+  createdAt        DateTime @default(now())
+
+  @@unique([courseId, notificationSetId])
+}
+
+model CommsTemplate {
+  id        String   @id @default(cuid())
+  name      String
+  channel   String   // email, telegram
+  subject   String?
+  htmlBody  String?
+  variables String?  @default("[]")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model CommsSend {
+  id         String   @id @default(cuid())
+  templateId String?
+  channel    String
+  recipient  String
+  subject    String?
+  status     String   @default("sent")
+  sentAt     DateTime @default(now())
+  sentBy     String?
+}
+
+/// Сохранённые API-ключи для LLM (несколько ключей, выбор в настройках чат-бота/тьютора).
+model LlmApiKey {
+  id               String   @id @default(cuid())
+  name             String   // например "DeepSeek основной", "OpenAI запасной"
+  provider         String   // deepseek, openai, anthropic
+  apiKeyEncrypted  String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  llmSettings      LlmSetting[]
+}
+
+model LlmSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  provider  String
+  model     String
+  systemPrompt String?
+  temperature Float?  @default(0.7)
+  maxTokens  Int?    @default(2000)
+  apiKeyEncrypted String?
+  apiKeyId   String?  // если задан — использовать сохранённый ключ
+  apiKey    LlmApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([apiKeyId])
+}
+
+/// Шаблоны промптов для чат-бота: несколько вариантов, один активный, статистика использования.
+model PromptTemplate {
+  id          String    @id @default(cuid())
+  name        String
+  content     String    // текст system prompt
+  scope       String    @default("chatbot") // chatbot | course-tutor
+  isActive    Boolean   @default(false)
+  usageCount  Int       @default(0)
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model SystemSetting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String   @default("")
+  category  String?  // general, email, payments, branding
+  updatedAt DateTime @updatedAt
+}
+
+model Service {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  price       Int
+  paykeeperTariffId String?
+  courseId    String?
+  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model UserEnergy {
+  userId         String   @id
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  xp             Int      @default(0)
+  level          Int      @default(1)
+  lastPracticeAt DateTime?
+  updatedAt      DateTime @updatedAt
+}
+
+model Lead {
+  id                 Int      @id @default(autoincrement())
+  name               String
+  phone              String
+  email              String?
+  message            String?
+  notes              String?  // admin notes
+  status             String   @default("new")
+  source             String?  // form, landing, manual
+  convertedToUserId  String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Order {
+  id          Int      @id @default(autoincrement())
+  orderNumber String   @unique
+  tariffId    String
+  amount      Int
+  clientEmail String
+  clientPhone String?
+  status      String   @default("pending")
+  paidAt      DateTime?
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Mailing {
+  id            String    @id @default(cuid())
+  internalTitle String
+  emailSubject  String
+  emailBody     String
+  senderName    String?
+  senderEmail   String?
+  status        String    @default("planned")  // planned | processing | completed
+  scheduleMode  String    @default("manual")  // manual | scheduled
+  scheduledAt   DateTime?
+  recipientConfig String? // JSON: { type: 'all'|'role'|'list', role?: string, userIds?: string[] }
+  attachments   String?   // JSON: массив { name, pathOrKey, size }
+  createdById   String?
+  createdBy     User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  startedAt     DateTime?
+  completedAt   DateTime?
+
+  logs MailingLog[]
+}
+
+model MailingLog {
+  id              String   @id @default(cuid())
+  mailingId       String
+  mailing         Mailing  @relation(fields: [mailingId], references: [id], onDelete: Cascade)
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  recipientEmail  String
+  recipientName   String?
+  status          String   // "sent" | "failed"
+  errorMessage    String?
+  sentAt          DateTime?
+  createdAt       DateTime @default(now())
+
+  @@index([mailingId])
+}
+
+model MailingUnsubscribe {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model Publication {
+  id              String   @id @default(cuid())
+  title           String
+  type            String   // "news" | "announcement"
+  status          String   @default("active") // "active" | "closed"
+  publishAt       DateTime
+  teaser          String?
+  content         String
+  keywords        String?
+  viewsCount      Int      @default(0)
+  ratingSum       Int      @default(0)
+  ratingCount     Int      @default(0)
+  allowComments   Boolean  @default(true)
+  allowRating     Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  comments        PublicationComment[]
+}
+
+model PublicationComment {
+  id             String   @id @default(cuid())
+  publicationId  String
+  publication    Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName     String?
+  content        String
+  createdAt      DateTime @default(now())
+
+  @@index([publicationId])
+}

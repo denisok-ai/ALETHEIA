@@ -2,7 +2,7 @@
 
 **Проект:** Веб-сайт школы AVATERRA (Phygital школа мышечного тестирования, курс «Тело не врет»)  
 **Домен:** https://avaterra.pro  
-**Версия документа:** 3.0  
+**Версия документа:** 3.1  
 **Дата:** 2025-03-09
 
 ---
@@ -89,9 +89,11 @@ graph TB
 
 *Конкретный выбор зафиксировать после ответов на вопросы в `qa.md`.*
 
-### 3.3 Структура проекта (текущая, v3.0)
+### 3.3 Структура проекта (текущая, v3.1)
 
-**Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, Supabase (Auth, DB, Storage), Resend, Telegram Bot API. Версионирование: SemVer, CHANGELOG.md.
+**Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, **Prisma + SQLite** (локально), NextAuth, Resend, Telegram Bot API. Версионирование: SemVer, CHANGELOG.md.
+
+**Локальная разработка:** Prisma + SQLite, без Docker. См. `docs/Local-Prisma.md`.
 
 **Роли:** user (студент), manager (поддержка), admin. RBAC в middleware для `/portal/*`.
 
@@ -121,10 +123,12 @@ ALETHEIA/
 │   ├── portal/     # PortalHeader, PortalSidebar, UsersTable
 │   ├── ui/, 3d/, PaymentModal.tsx, ChatBot.tsx
 ├── lib/
-│   ├── utils.ts, paykeeper.ts, auth.ts, audit.ts, email.ts, telegram.ts
+│   ├── utils.ts, paykeeper.ts, auth.ts, audit.ts, db.ts
 │   ├── certificates.tsx           # PDF сертификаты (@react-pdf/renderer)
-│   └── supabase/client.ts, server.ts, request.ts
-├── supabase/migrations/           # 001_portal_schema, 002_rls_policies, 003_profiles_email
+├── prisma/
+│   ├── schema.prisma              # Схема БД
+│   ├── seed.ts                    # Тестовые данные
+├── public/uploads/                # SCORM, медиа (локальное хранилище)
 ├── middleware.ts                  # RBAC для /portal/*
 ├── CHANGELOG.md
 ├── docs/, .cursorrules, .env.example
@@ -153,8 +157,10 @@ ALETHEIA/
 - **Стили:** Tailwind CSS (палитра: primary #2D1B4E, secondary #D4AF37, dark #0A0E27), шрифты Literata + Outfit
 - **Анимации:** Framer Motion, React Three Fiber (Hero)
 - **Платежи:** PayKeeper API (lib/paykeeper.ts)
-- **Данные:** Supabase (Auth, PostgreSQL, Storage). Таблицы: profiles, courses, enrollments, scorm_progress, certificates, media, notifications, tickets, audit_log, comms_templates, llm_settings, orders, leads.
+- **Данные:** Prisma + SQLite (локально). Модели: User, Profile, Course, Enrollment, ScormProgress, Certificate, Media, Notification, Ticket, AuditLog, CommsTemplate, LlmSetting, Service, UserEnergy, Lead, Order.
+- **Аутентификация:** NextAuth (Credentials provider), bcryptjs.
 - **Портал:** Роли user/manager/admin, middleware RBAC, SCORM-плеер (iframe + API progress), сертификаты (PDF через @react-pdf/renderer), Resend для email, Telegram webhook для бота.
+- **Хранилище:** локальные файлы в `public/uploads/` (SCORM, медиа).
 - **Деплой:** Vercel или VPS (см. docs/Deploy.md)
 
 ### 5.2 Стандарты кода и процесса
@@ -177,6 +183,7 @@ ALETHEIA/
 | `docs/Project.md` | Этот файл — цели, архитектура, этапы, технологии |
 | `docs/Content.md` | Все тексты с прототипа для вёрстки и наполнения |
 | `docs/Media.md` | Изображения: Татьяна с прототипа, остальные — в едином стиле |
+| `docs/Local-Prisma.md` | Локальный запуск (Prisma + SQLite) |
 | `docs/Tasktracker.md` | Отслеживание задач и приоритетов |
 | `docs/Diary.md` | Дневник решений, наблюдений и проблем |
 | `docs/qa.md` | Вопросы по архитектуре и требованиям |

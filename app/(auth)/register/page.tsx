@@ -1,12 +1,11 @@
 'use client';
 
 /**
- * Register page — Supabase Auth signUp.
+ * Register — локальная БД (Prisma).
  */
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,7 +15,6 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -25,38 +23,23 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      const supabase = createClient();
-      const { error: err } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: name || undefined } },
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name: name || undefined }),
       });
-      if (err) {
-        setError(err.message);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? 'Ошибка регистрации');
         setLoading(false);
         return;
       }
-      setSuccess(true);
+      router.push('/login');
       router.refresh();
-      router.push('/portal/student/dashboard');
     } catch {
       setError('Ошибка регистрации');
     }
     setLoading(false);
-  }
-
-  if (success) {
-    return (
-      <div className="rounded-2xl border border-border bg-surface p-8 shadow-lg text-center">
-        <h1 className="font-heading text-2xl font-bold text-dark">Проверьте почту</h1>
-        <p className="mt-2 text-text-muted">
-          Ссылка для подтверждения отправлена на {email}
-        </p>
-        <Link href="/login" className="mt-4 inline-block text-primary font-medium hover:underline">
-          Перейти к входу
-        </Link>
-      </div>
-    );
   }
 
   return (
@@ -112,7 +95,7 @@ export default function RegisterPage() {
       </form>
       <p className="mt-4 text-center text-sm text-text-muted">
         Уже есть аккаунт?{' '}
-        <Link href="/login" className="text-primary font-medium hover:underline">
+        <Link href="/login" className="font-medium text-primary underline">
           Войти
         </Link>
       </p>

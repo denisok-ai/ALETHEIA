@@ -1,42 +1,60 @@
 /**
  * Admin: CRM — leads from leads table, funnel, convert to user.
  */
-import { createClient } from '@/lib/supabase/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { PageHeader } from '@/components/portal/PageHeader';
 import { CrmLeadsClient } from './CrmLeadsClient';
 import { CrmFunnelChart } from './CrmFunnelChart';
 
 export default async function AdminCrmPage() {
-  const supabase = createClient();
-  if (!supabase) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
     return (
       <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">CRM</h1>
-        <p className="mt-2 text-text-muted">База данных недоступна.</p>
+        <PageHeader items={[{ label: 'CRM' }]} title="CRM" description="База данных недоступна." />
       </div>
     );
   }
 
-  const { data: leads } = await supabase
-    .from('leads')
-    .select('id, name, phone, email, message, status, converted_to_user_id, created_at')
-    .order('created_at', { ascending: false });
+  const leads = await prisma.lead.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
 
-  const list = leads ?? [];
-  const byStatus = list.reduce(
+  const byStatus = leads.reduce(
     (acc, l) => {
-      const s = (l as { status?: string }).status ?? 'new';
-      acc[s] = (acc[s] ?? 0) + 1;
+      acc[l.status] = (acc[l.status] ?? 0) + 1;
       return acc;
     },
     {} as Record<string, number>
   );
 
-  return (
-    <div>
-      <h1 className="font-heading text-2xl font-bold text-dark">CRM</h1>
-      <p className="mt-1 text-text-muted">Лиды, воронка, конвертация в пользователей</p>
+  const list = leads.map((l) => ({
+    id: l.id,
+    name: l.name,
+    phone: l.phone,
+    email: l.email,
+    message: l.message,
+    notes: l.notes,
+    status: l.status,
+    source: l.source,
+    converted_to_user_id: l.convertedToUserId,
+    created_at: l.createdAt.toISOString(),
+  }));
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-4">
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        items={[
+          { href: '/portal/admin/dashboard', label: 'Дашборд' },
+          { label: 'CRM' },
+        ]}
+        title="CRM"
+        description="Лиды, воронка, конвертация в пользователей"
+      />
+
+      <div className="grid gap-4 sm:grid-cols-4">
         {Object.entries(byStatus).map(([status, count]) => (
           <div key={status} className="rounded-xl border border-border bg-white p-4">
             <p className="text-sm text-text-muted">{status}</p>
@@ -50,7 +68,7 @@ export default async function AdminCrmPage() {
         <CrmFunnelChart byStatus={byStatus} />
       </div>
 
-      <CrmLeadsClient initialLeads={list as { id: number; name: string; phone: string; email: string | null; message: string | null; status: string; converted_to_user_id: string | null; created_at: string }[]} />
+      <CrmLeadsClient initialLeads={list} />
     </div>
   );
 }

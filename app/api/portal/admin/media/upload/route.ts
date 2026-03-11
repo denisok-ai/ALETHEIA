@@ -1,27 +1,24 @@
 /**
- * Admin: upload media file to Storage and insert into media table.
+ * Admin: upload media file to public/uploads/media/ and insert into media table.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createClientFromRequest } from '@/lib/supabase/request';
+import { requireAdminSession } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import { nanoid } from 'nanoid';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
 export async function POST(request: NextRequest) {
-  const reqClient = createClientFromRequest(request);
-  if (!reqClient) return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
-  const { data: { user } } = await reqClient.auth.getUser();
-  const { data: profile } = user ? await reqClient.from('profiles').select('role').eq('id', user.id).single() : { data: null };
-  if (!user || (profile?.role as string) !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const supabase = createClient();
-  if (!supabase) return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
+  const auth = await requireAdminSession();
+  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const formData = await request.formData();
   const file = formData.get('file') as File | null;
   const title = (formData.get('title') as string)?.trim() || null;
   const category = (formData.get('category') as string)?.trim() || null;
+  const description = (formData.get('description') as string)?.trim() || null;
+  const allowDownloadRaw = formData.get('allowDownload');
+  const allowDownloadBool = allowDownloadRaw !== 'false';
 
   if (!file || file.size === 0) {
     return NextResponse.json({ error: 'Файл не выбран' }, { status: 400 });
@@ -29,38 +26,43 @@ export async function POST(request: NextRequest) {
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
   const safeName = `${nanoid(10)}.${ext}`;
-  const path = `uploads/${safeName}`;
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'media');
+  const fullPath = path.join(uploadDir, safeName);
 
+  await mkdir(uploadDir, { recursive: true });
   const buf = Buffer.from(await file.arrayBuffer());
-  const { error: uploadErr } = await supabase.storage
-    .from('media')
-    .upload(path, buf, {
-      contentType: file.type || 'application/octet-stream',
-      upsert: true,
-    });
+  await writeFile(fullPath, buf);
 
-  if (uploadErr) {
-    console.error('Storage upload:', uploadErr);
-    return NextResponse.json({ error: uploadErr.message }, { status: 500 });
-  }
-
-  const { data: urlData } = supabase.storage.from('media').getPublicUrl(path);
-  const fileUrl = urlData?.publicUrl ?? '';
-
+  const fileUrl = `/uploads/media/${safeName}`;
   const displayTitle = title || file.name;
 
-  const { data: media, error: insertErr } = await supabase
-    .from('media')
-    .insert({
+  const media = await prisma.media.create({
+    data: {
       title: displayTitle,
-      file_url: fileUrl,
-      mime_type: file.type || null,
+      fileUrl,
+      mimeType: file.type || null,
       category: category || null,
-      owner_id: user.id,
-    })
-    .select('id, title, file_url, mime_type, category, created_at')
-    .single();
+      description: description || null,
+      type: 'file',
+      allowDownload: allowDownloadBool,
+      ownerId: auth.userId ?? null,
+    },
+  });
 
-  if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 });
-  return NextResponse.json({ media });
+  return NextResponse.json({
+    media: {
+      id: media.id,
+      title: media.title,
+      file_url: media.fileUrl,
+      mime_type: media.mimeType,
+      category: media.category,
+      type: media.type,
+      description: media.description,
+      allow_download: media.allowDownload,
+      views_count: media.viewsCount,
+      rating_sum: media.ratingSum,
+      rating_count: media.ratingCount,
+      created_at: media.createdAt.toISOString(),
+    },
+  });
 }

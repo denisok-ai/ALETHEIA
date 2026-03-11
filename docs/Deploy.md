@@ -2,15 +2,19 @@
 
 Два варианта: **Vercel** (проще всего, репозиторий уже на GitHub) или **свой VPS** (ниже).
 
+**Подготовка сборки для Git и запуска на сервере (в т.ч. в режиме отладки):** см. **docs/Server-Debug.md** и скрипт `./scripts/prepare-for-server.sh`.
+
 ---
 
 ## Релиз v3.0.0 (перед первым деплоем)
 
-```bash
-# 1. Убедиться, что сборка проходит
-npm run build
+**Готовность:** редизайн админки завершён (PageHeader, Card, табы, EmptyState, пагинация, форма «Добавить пользователя», каталог наборов уведомлений). См. CHANGELOG [Unreleased].
 
-# 2. Закоммитить все изменения (если есть)
+```bash
+# 1. Проверить линт и сборку (одной командой)
+npm run predeploy
+
+# 2. Закоммитить изменения (если есть)
 git status
 git add -A && git commit -m "chore: prepare v3.0.0 release"  # при необходимости
 
@@ -24,14 +28,39 @@ git push origin v3.0.0
 
 ## Чек-лист перед деплоем
 
-- [ ] `npm run build` проходит без ошибок
-- [ ] Git тег v3.0.0 создан и запушен (см. раздел «Релиз v3.0.0»)
-- [ ] Supabase: проект создан, миграции применены (docs/Supabase-Setup.md)
-- [ ] Supabase: bucket `scorm` создан, bucket `media` (миграция 005)
-- [ ] Supabase: Redirect URLs — `https://yourdomain.com/auth/callback`
-- [ ] Переменные окружения: Supabase, PayKeeper, Resend, NEXT_PUBLIC_URL, DEEPSEEK_API_KEY
-- [ ] PayKeeper: webhook URL указан
-- [ ] Первый админ: `UPDATE profiles SET role='admin' WHERE email='...'`
+- [ ] `npm run predeploy` (или `npm run build`) проходит без ошибок
+- [ ] Git тег создан и запушен (см. раздел «Релиз v3.0.0»)
+- [ ] БД: Prisma миграции применены, для прода — PostgreSQL (сменить provider в schema.prisma)
+- [ ] Переменные окружения: DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, NEXT_PUBLIC_URL; PayKeeper (PAYKEEPER_*); Resend (RESEND_*); DEEPSEEK_API_KEY; TELEGRAM_BOT_TOKEN (опционально, для бота). См. .env.example.
+- [ ] PayKeeper: webhook URL указан в ЛК PayKeeper
+- [ ] Первый админ: через seed (admin@test.local) или создать вручную в БД
+- [ ] Sitemap и robots: генерируются автоматически (/sitemap.xml, /robots.txt); базовый URL из NEXT_PUBLIC_URL
+- [ ] Запланированные рассылки: задать CRON_SECRET в env; вызывать GET /api/cron/mailings-send по расписанию (Vercel Cron или внешний cron) с заголовком `Authorization: Bearer <CRON_SECRET>`
+- [ ] Проверка доступности: GET /api/health — возвращает 200 и `{ ok: true }` при поднятом приложении (для мониторинга и балансировщиков)
+
+---
+
+## БД для продакшена (PostgreSQL)
+
+Локально используется SQLite (`file:./dev.db`). На проде нужен PostgreSQL.
+
+1. В `prisma/schema.prisma` заменить:
+   ```prisma
+   datasource db {
+     provider = "postgresql"
+     url      = env("DATABASE_URL")
+   }
+   ```
+2. В переменных окружения задать `DATABASE_URL`, например:
+   `postgresql://USER:PASSWORD@HOST:5432/DATABASE?schema=public`
+3. На сервере выполнить:
+   ```bash
+   npx prisma migrate deploy
+   npx prisma generate
+   ```
+4. При первом запуске (опционально): `npx prisma db seed` — тестовые пользователи (см. docs/Local-Prisma.md).
+
+Подробнее про прод-сервер: `docs/Production-Server.md`.
 
 ---
 
@@ -49,10 +78,16 @@ git push origin v3.0.0
    - **Root Directory:** оставь пустым.
    - **Build Command:** `npm run build` (по умолчанию).
    - **Output Directory:** не меняй.
-5. Переменные окружения: в **Settings → Environment Variables** добавь переменные из `.env.example` (Supabase, PayKeeper, Resend, `NEXT_PUBLIC_URL`). Для портала и БД обязательны Supabase-переменные. См. `docs/Supabase-Setup.md` для первой настройки БД и назначения админа.
+5. Переменные окружения: в **Settings → Environment Variables** добавь переменные из `.env.example` (DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, PayKeeper, Resend, `NEXT_PUBLIC_URL`). Для продакшена укажи PostgreSQL в DATABASE_URL.
 6. Нажми **Deploy**.
 
 Через 1–2 минуты появится ссылка вида `https://avaterra-xxx.vercel.app`. Её можно открыть в браузере и прислать клиенту.
+
+### Проверка после деплоя
+
+- Открыть главную страницу, разделы «Оферта» и «Политика конфиденциальности».
+- Проверить вход в портал (логин/пароль).
+- Убедиться, что доступны `/sitemap.xml` и `/robots.txt` (генерируются автоматически).
 
 ### Свой домен на Vercel (позже)
 
@@ -90,7 +125,7 @@ npm run build
 # Артефакт в .next/ — на сервер не копируем, собираем на сервере из Git
 ```
 
-На сервере после `git pull` делают `npm install && npm run build && pm2 restart avaterra` (см. ниже).
+На сервере после `git pull` делают `npm install && npm run build && pm2 restart avaterra` (см. ниже). Для запуска с отладчиком: `npm run start:debug` (подключение по порту 9229, см. docs/Server-Debug.md).
 
 ### Вариант B: Статический экспорт (если настроен)
 

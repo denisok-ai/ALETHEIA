@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validatePayKeeperWebhook } from '@/lib/paykeeper';
-import { createClient } from '@/lib/supabase/server';
+import { validatePayKeeperWebhook, getPayKeeperConfigFromSettings } from '@/lib/paykeeper';
+import { prisma } from '@/lib/db';
+import { getSystemSettings } from '@/lib/settings';
+import { sendEmail } from '@/lib/email';
+import { triggerNotification } from '@/lib/notifications';
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,7 +13,8 @@ export async function POST(request: NextRequest) {
       params[key] = typeof value === 'string' ? value : value.toString();
     });
 
-    const secret = process.env.PAYKEEPER_SECRET;
+    const config = await getPayKeeperConfigFromSettings();
+    const secret = config?.secret ?? process.env.PAYKEEPER_SECRET;
     if (!secret) {
       return NextResponse.json({ error: 'Config error' }, { status: 500 });
     }
@@ -19,61 +23,78 @@ export async function POST(request: NextRequest) {
     }
 
     const { orderid } = params;
-    const supabase = createClient();
-    if (!supabase) {
-      return NextResponse.json({ error: 'Config error' }, { status: 500 });
-    }
-    const { data: order, error } = await supabase
-      .from('orders')
-      .update({
-        status: 'paid',
-        paid_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('order_number', orderid)
-      .select()
-      .single();
+    const order = await prisma.order.findUnique({
+      where: { orderNumber: orderid },
+    });
 
-    if (error || !order) {
-      console.error('Webhook update order:', error);
+    if (!order) {
+      console.error('Webhook: order not found', orderid);
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
 
-    const tariffId = (order as { tariff_id: string }).tariff_id;
-    const clientEmail = (order as { client_email: string }).client_email;
+    await prisma.order.update({
+      where: { orderNumber: orderid },
+      data: { status: 'paid', paidAt: new Date() },
+    });
 
-    const { data: service } = await supabase
-      .from('services')
-      .select('course_id')
-      .eq('paykeeper_tariff_id', tariffId)
-      .eq('is_active', true)
-      .maybeSingle();
+    const service = await prisma.service.findFirst({
+      where: {
+        paykeeperTariffId: order.tariffId,
+        isActive: true,
+      },
+      select: { courseId: true },
+    });
 
-    const courseId = (service as { course_id?: string } | null)?.course_id;
+    const courseId = service?.courseId;
 
     if (courseId) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('id')
-        .ilike('email', clientEmail)
-        .maybeSingle();
+      const [user, course] = await Promise.all([
+        prisma.user.findFirst({
+          where: { email: order.clientEmail },
+          select: { id: true },
+        }),
+        prisma.course.findUnique({
+          where: { id: courseId },
+          select: { title: true },
+        }),
+      ]);
 
-      const userId = (profile as { id?: string } | null)?.id;
+      const userId = user?.id;
       if (userId) {
-        await supabase.from('enrollments').upsert(
-          { user_id: userId, course_id: courseId },
-          { onConflict: 'user_id,course_id' }
-        );
-        await supabase.from('notifications').insert({
-          user_id: userId,
-          type: 'enrollment',
-          content: { course_id: courseId },
+        await prisma.enrollment.upsert({
+          where: {
+            userId_courseId: { userId, courseId },
+          },
+          create: { userId, courseId },
+          update: {},
         });
-        await supabase
-          .from('orders')
-          .update({ user_id: userId, updated_at: new Date().toISOString() })
-          .eq('order_number', orderid);
+        await triggerNotification({
+          eventType: 'enrollment',
+          userId,
+          metadata: { objectname: course?.title ?? '' },
+        });
+        await prisma.order.update({
+          where: { orderNumber: orderid },
+          data: { userId },
+        });
       }
+
+      // Письмо покупателю о successful оплате и доступе к курсу
+      const settings = await getSystemSettings();
+      const siteUrl = settings.site_url?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_URL?.replace(/\/$/, '') || '';
+      const courseTitle = course?.title ?? 'Курс';
+      const loginUrl = siteUrl ? `${siteUrl}/login` : '/login';
+      const successUrl = siteUrl ? `${siteUrl}/success` : '/success';
+      const html = `
+        <p>Здравствуйте!</p>
+        <p>Оплата по заказу ${orderid} получена. Доступ к курсу «${courseTitle}» открыт.</p>
+        <p>Войдите в личный кабинет с тем же email, что указали при оплате: <a href="${loginUrl}">${loginUrl}</a></p>
+        <p>После входа перейдите в раздел «Мои курсы».</p>
+        <p>Если у вас ещё нет аккаунта — зарегистрируйтесь с этим email, и курс будет доступен.</p>
+        <p><a href="${successUrl}">Подробнее на странице результата оплаты</a>.</p>
+        <p>— AVATERRA</p>
+      `;
+      await sendEmail(order.clientEmail, 'Оплата получена — доступ к курсу открыт', html);
     }
 
     return NextResponse.json({ success: true });

@@ -1,12 +1,17 @@
 /**
- * Student: profile and settings.
+ * Student: profile — view and edit displayName.
  */
-import { getUser } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
+import { ProfileEditForm } from './ProfileEditForm';
 
 export default async function StudentProfilePage() {
-  const { user, profile } = await getUser();
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as { id?: string })?.id;
 
-  if (!user) {
+  if (!userId) {
     return (
       <div>
         <h1 className="font-heading text-2xl font-bold text-dark">Профиль</h1>
@@ -15,21 +20,23 @@ export default async function StudentProfilePage() {
     );
   }
 
+  const profile = await prisma.profile.findUnique({
+    where: { userId },
+    select: { displayName: true, email: true },
+  });
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true },
+  });
+  const email = profile?.email ?? user?.email ?? null;
+  const displayName = profile?.displayName ?? null;
+
   return (
     <div>
-      <h1 className="font-heading text-2xl font-bold text-dark">Профиль</h1>
+      <Breadcrumbs items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Профиль' }]} />
+      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Профиль</h1>
       <p className="mt-1 text-text-muted">Ваши данные и настройки</p>
-
-      <div className="mt-6 max-w-md space-y-4 rounded-xl border border-border bg-white p-6">
-        <div>
-          <label className="text-sm font-medium text-text-muted">Email</label>
-          <p className="text-dark">{user.email ?? '—'}</p>
-        </div>
-        <div>
-          <label className="text-sm font-medium text-text-muted">Имя</label>
-          <p className="text-dark">{profile?.display_name ?? '—'}</p>
-        </div>
-      </div>
+      <ProfileEditForm initialDisplayName={displayName} email={email} />
     </div>
   );
 }

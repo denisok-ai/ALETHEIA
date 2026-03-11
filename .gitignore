@@ -11,6 +11,10 @@ out/
 dist/
 build/
 
+# Uploads (SCORM, media, mailings)
+public/uploads/
+uploads/
+
 # Env (секреты не коммитить)
 .env
 .env.local

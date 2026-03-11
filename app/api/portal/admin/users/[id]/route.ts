@@ -2,59 +2,49 @@
  * Admin: update user (role, status).
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createClientFromRequest } from '@/lib/supabase/request';
+import { requireAdminSession } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 
 const ALLOWED_ROLES = ['user', 'manager', 'admin'];
 const ALLOWED_STATUSES = ['active', 'archived'];
+const MAX_DISPLAY_NAME = 200;
+const MAX_EMAIL = 255;
 
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const reqClient = createClientFromRequest(request);
-  if (!reqClient) return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
-  const { data: { user } } = await reqClient.auth.getUser();
-  const { data: profile } = user ? await reqClient.from('profiles').select('role').eq('id', user.id).single() : { data: null };
-  if (!user || (profile?.role as string) !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const auth = await requireAdminSession();
+  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
-  let body: { role?: string; status?: string };
+  let body: { role?: string; status?: string; displayName?: string | null; email?: string | null };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const updates: { role?: string; status?: string; updated_at: string } = {
-    updated_at: new Date().toISOString(),
-  };
-
-  if (body.role && ALLOWED_ROLES.includes(body.role)) {
-    updates.role = body.role;
+  const profileUpdates: { role?: string; status?: string; displayName?: string | null; email?: string | null } = {};
+  if (body.role && ALLOWED_ROLES.includes(body.role)) profileUpdates.role = body.role;
+  if (body.status && ALLOWED_STATUSES.includes(body.status)) profileUpdates.status = body.status;
+  if (body.displayName !== undefined) {
+    const v = body.displayName === '' ? null : (body.displayName ?? '').trim().slice(0, MAX_DISPLAY_NAME) || null;
+    profileUpdates.displayName = v;
   }
-  if (body.status && ALLOWED_STATUSES.includes(body.status)) {
-    updates.status = body.status;
+  if (body.email !== undefined) {
+    profileUpdates.email = body.email === '' ? null : (body.email ?? '').trim().slice(0, MAX_EMAIL) || null;
   }
 
-  if (Object.keys(updates).length <= 1) {
+  if (Object.keys(profileUpdates).length === 0) {
     return NextResponse.json({ error: 'No valid updates' }, { status: 400 });
   }
 
-  const supabase = createClient();
-  if (!supabase) return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
-
-  const { data, error } = await supabase
-    .from('profiles')
-    .update(updates)
-    .eq('id', id)
-    .select()
-    .single();
-
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ profile: data });
+  const profile = await prisma.profile.update({
+    where: { userId: id },
+    data: profileUpdates,
+  });
+  return NextResponse.json({ profile });
 }

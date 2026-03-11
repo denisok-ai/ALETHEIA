@@ -1,12 +1,15 @@
 /**
  * Manager: Phygital homework verification queue — approve/reject.
  */
-import { createClient } from '@/lib/supabase/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
 import { VerificationsList } from './VerificationsList';
 
 export default async function ManagerVerificationsPage() {
-  const supabase = createClient();
-  if (!supabase) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
     return (
       <div>
         <h1 className="font-heading text-2xl font-bold text-dark">Верификация заданий</h1>
@@ -15,24 +18,37 @@ export default async function ManagerVerificationsPage() {
     );
   }
 
-  const { data: items } = await supabase
-    .from('phygital_verifications')
-    .select('id, user_id, course_id, lesson_id, video_url, status, created_at')
-    .eq('status', 'pending')
-    .order('created_at', { ascending: true });
+  const items = await prisma.phygitalVerification.findMany({
+    where: { status: 'pending' },
+    orderBy: { createdAt: 'asc' },
+  });
 
-  const list = items ?? [];
-  const userIds = Array.from(new Set(list.map((i) => i.user_id)));
-  const { data: profiles } = userIds.length > 0
-    ? await supabase.from('profiles').select('id, display_name, email').in('id', userIds)
-    : { data: [] };
-  const profileMap = new Map((profiles ?? []).map((p) => [p.id, p]));
+  const userIds = Array.from(new Set(items.map((i) => i.userId)));
+  const profiles = await prisma.profile.findMany({
+    where: { userId: { in: userIds } },
+    select: { userId: true, displayName: true, email: true },
+  });
+  const profileMap: Record<string, { display_name?: string; email?: string }> = {};
+  for (const p of profiles) {
+    profileMap[p.userId] = { display_name: p.displayName ?? undefined, email: p.email ?? undefined };
+  }
+
+  const list = items.map((i) => ({
+    id: i.id,
+    user_id: i.userId,
+    course_id: i.courseId,
+    lesson_id: i.lessonId,
+    video_url: i.videoUrl,
+    status: i.status,
+    created_at: i.createdAt.toISOString(),
+  }));
 
   return (
     <div>
-      <h1 className="font-heading text-2xl font-bold text-dark">Верификация заданий</h1>
+      <Breadcrumbs items={[{ href: '/portal/manager/dashboard', label: 'Дашборд' }, { label: 'Верификация заданий' }]} />
+      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Верификация заданий</h1>
       <p className="mt-1 text-text-muted">Очередь видео на проверку, одобрить / отклонить</p>
-      <VerificationsList items={list} profileMap={Object.fromEntries(profileMap)} />
+      <VerificationsList items={list} profileMap={profileMap} />
     </div>
   );
 }

@@ -1,12 +1,12 @@
 'use client';
 
 /**
- * Login page — Supabase Auth signInWithPassword.
+ * Login — NextAuth credentials.
  */
-import { useState, useEffect, Suspense } from 'react';
-import Link from 'next/link';
+import { useState, Suspense } from 'react';
+import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,28 +15,27 @@ function LoginForm() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const searchParams = useSearchParams();
-
-  useEffect(() => {
-    const err = searchParams.get('error');
-    if (err) setError(err === 'missing_token' ? 'Недействительная или устаревшая ссылка' : err === 'config' ? 'Ошибка конфигурации' : decodeURIComponent(err));
-  }, [searchParams]);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirect = searchParams.get('redirect') ?? '/portal/student/dashboard';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
     try {
-      const supabase = createClient();
-      const { error: err } = await supabase.auth.signInWithPassword({ email, password });
-      if (err) {
-        setError(err.message);
+      const res = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+      if (res?.error) {
+        setError(res.error === 'CredentialsSignin' ? 'Неверный email или пароль' : res.error);
         setLoading(false);
         return;
       }
-      router.push('/portal/student/dashboard');
+      router.push(redirect);
       router.refresh();
     } catch {
       setError('Ошибка входа');
@@ -84,13 +83,8 @@ function LoginForm() {
       </form>
       <p className="mt-4 text-center text-sm text-text-muted">
         Нет аккаунта?{' '}
-        <Link href="/register" className="text-primary font-medium hover:underline">
+        <Link href="/register" className="font-medium text-primary underline">
           Зарегистрироваться
-        </Link>
-      </p>
-      <p className="mt-2 text-center text-sm text-text-muted">
-        <Link href="/reset-password" className="text-primary hover:underline">
-          Забыли пароль?
         </Link>
       </p>
     </div>

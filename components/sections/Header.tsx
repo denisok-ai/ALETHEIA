@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -18,6 +19,7 @@ const navLinks = [
 ];
 
 export function Header() {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -26,6 +28,10 @@ export function Header() {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  if (pathname?.startsWith('/portal')) {
+    return null;
+  }
 
   return (
     <header
@@ -68,6 +74,17 @@ export function Header() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/login"
+            className={cn(
+              'text-sm font-medium transition-colors',
+              scrolled
+                ? 'text-gray-600 hover:text-gray-900'
+                : 'text-gray-900 hover:text-violet-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]'
+            )}
+          >
+            Вход
+          </Link>
           <Link href="#contact">
             <Button
               size="sm"
@@ -108,6 +125,13 @@ export function Header() {
                   {link.label}
                 </Link>
               ))}
+              <Link
+                href="/login"
+                className="py-3 text-white font-medium hover:text-white/90"
+                onClick={() => setOpen(false)}
+              >
+                Вход
+              </Link>
               <Link href="#contact" onClick={() => setOpen(false)}>
                 <Button
                   size="sm"

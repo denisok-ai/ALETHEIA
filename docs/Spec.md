@@ -29,7 +29,7 @@
 ### 2.2 Авторизация
 
 - Регистрация, вход, сброс пароля
-- Supabase Auth, сессия в cookies
+- NextAuth (Credentials), сессия в cookies
 - Роли: user, manager, admin
 
 ### 2.3 ЛК студента
@@ -62,7 +62,7 @@
 | Сервис | Назначение |
 |--------|------------|
 | PayKeeper | Платежи, webhook → enrollment |
-| Supabase | Auth, БД, Storage |
+| Prisma + SQLite | БД (локально). Хранилище — public/uploads/ |
 | Resend | Уведомления о заявках |
 | Telegram | Бот, команды /start, /progress, /cert |
 | DeepSeek | Чат-бот (настраивается через llm_settings) |

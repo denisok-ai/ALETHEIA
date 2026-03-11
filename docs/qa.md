@@ -15,7 +15,7 @@
 | 5 | Модель продаж | Онлайн-оплата PayKeeper + форма заявки. |
 | 6 | Обработка заявок | Leads в БД, Resend email, админка CRM. |
 | 7 | Персональные данные | Страница /privacy (политика конфиденциальности). |
-| 8 | Стек | Next.js 14, TypeScript, Tailwind, Supabase. |
+| 8 | Стек | Next.js 14, TypeScript, Tailwind, Prisma + SQLite, NextAuth. |
 | 9 | Редактирование контента | Админка: курсы, медиа, AI-настройки. Тексты — в коде. |
 | 10 | Хостинг | Vercel (Deploy.md), VPS (Server-Setup.md). |
 | 11 | Визуальный стиль | По прототипу. Цвета: primary #2D1B4E, secondary #D4AF37. |

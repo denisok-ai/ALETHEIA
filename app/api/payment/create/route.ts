@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPayKeeperInvoice } from '@/lib/paykeeper';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/db';
+import { getSystemSettings } from '@/lib/settings';
 import { nanoid } from 'nanoid';
 
 const TARIFFS: Record<string, { name: string; price: number }> = {
@@ -13,46 +14,74 @@ const TARIFFS: Record<string, { name: string; price: number }> = {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { tariffId, email, name, phone } = body;
-    if (!tariffId || !email || !name) {
+    const { tariffId, serviceSlug, email, name, phone } = body;
+    if ((!tariffId && !serviceSlug) || !email || !name) {
       return NextResponse.json(
-        { error: 'Не указаны tariffId, email или name' },
+        { error: 'Укажите serviceSlug (или tariffId), email и имя' },
         { status: 400 }
       );
     }
 
-    const tariff = TARIFFS[tariffId];
-    if (!tariff) {
-      return NextResponse.json({ error: 'Тариф не найден' }, { status: 404 });
+    let tariffIdToUse: string;
+    let amount: number;
+    let serviceName: string;
+
+    const slug = typeof serviceSlug === 'string' ? serviceSlug.trim() : '';
+    if (slug) {
+      const service = await prisma.service.findFirst({
+        where: { slug, isActive: true },
+        include: { course: { select: { title: true } } },
+      });
+      if (!service) {
+        return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
+      }
+      tariffIdToUse = service.paykeeperTariffId ?? service.slug;
+      amount = service.price;
+      serviceName = service.name;
+    } else {
+      const tid = typeof tariffId === 'string' ? tariffId : '';
+      const tariff = TARIFFS[tid];
+      if (!tariff) {
+        return NextResponse.json({ error: 'Тариф не найден' }, { status: 404 });
+      }
+      tariffIdToUse = tid;
+      amount = tariff.price;
+      serviceName = tariff.name;
     }
 
     const orderNumber = `ALT-${nanoid(10)}`;
 
-    const supabase = createClient();
-    if (supabase) {
-      try {
-        await supabase.from('orders').insert({
-          order_number: orderNumber,
-          tariff_id: tariffId,
-          amount: tariff.price,
-          client_email: email,
-          client_phone: phone ?? null,
+    try {
+      await prisma.order.create({
+        data: {
+          orderNumber,
+          tariffId: tariffIdToUse,
+          amount,
+          clientEmail: email.trim(),
+          clientPhone: typeof phone === 'string' ? phone.trim() || null : null,
           status: 'pending',
-        });
-      } catch (dbErr) {
-        console.error('DB insert order:', dbErr);
-      }
+        },
+      });
+    } catch (dbErr) {
+      console.error('DB insert order:', dbErr);
+      return NextResponse.json(
+        { error: 'Ошибка создания заказа', success: false },
+        { status: 500 }
+      );
     }
+
+    const baseUrl = (await getSystemSettings()).site_url?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_URL?.replace(/\/$/, '') || '';
 
     let paymentUrl: string;
     try {
       paymentUrl = await createPayKeeperInvoice({
-        sum: tariff.price,
+        sum: amount,
         orderid: orderNumber,
-        clientid: email,
-        service_name: `AVATERRA — ${tariff.name}`,
-        client_email: email,
-        client_phone: phone || undefined,
+        clientid: email.trim(),
+        service_name: `AVATERRA — ${serviceName}`,
+        client_email: email.trim(),
+        client_phone: typeof phone === 'string' ? phone.trim() || undefined : undefined,
+        successRedirectUrl: baseUrl ? `${baseUrl}/success` : undefined,
       });
     } catch (pkErr) {
       console.error('PayKeeper create invoice:', pkErr);

@@ -3,7 +3,14 @@ import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Mail, MapPin, Phone } from 'lucide-react';
 
-export function Footer() {
+interface FooterProps {
+  /** Из настроек портала (БД). Если не задан — показывается заглушка. */
+  contactPhone?: string | null;
+}
+
+export function Footer({ contactPhone }: FooterProps) {
+  const phone = contactPhone?.trim() || '+7 (495) 123-45-67';
+  const phoneHref = phone.replace(/\D/g, '').length >= 10 ? `tel:${phone.replace(/\D/g, '')}` : '#';
   return (
     <footer id="footer" className="border-t border-border/80 bg-bg-soft py-16 md:py-20">
       <div className="mx-auto max-w-6xl px-5 md:px-6">
@@ -30,8 +37,8 @@ export function Footer() {
             <p className="text-sm font-semibold text-dark mb-2">Контакты</p>
             <ul className="space-y-1 text-sm text-text-muted">
               <li>
-                <a href="tel:+74951234567" className="flex items-center justify-center gap-2 md:justify-start hover:text-accent">
-                  <Phone className="h-4 w-4" /> +7 (495) 123-45-67
+                <a href={phoneHref} className="flex items-center justify-center gap-2 md:justify-start hover:text-accent">
+                  <Phone className="h-4 w-4" /> {phone}
                 </a>
               </li>
               <li>

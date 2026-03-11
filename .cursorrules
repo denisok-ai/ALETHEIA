@@ -41,7 +41,7 @@
 - **Анимации:** Framer Motion (reveal, модалки), React Three Fiber для 3D (Hero).
 - **UI:** Компоненты в components/ui (button, input, label, dialog).
 - **Платежи:** PayKeeper API (lib/paykeeper.ts). Валидация webhook по секрету.
-- **БД:** Supabase (опционально). Клиент — lib/supabase/client.ts, сервер — lib/supabase/server.ts. Не экспонировать SUPABASE_SERVICE_ROLE_KEY на клиенте.
+- **БД:** Prisma + SQLite (локально). Схема — prisma/schema.prisma, клиент — lib/db.ts. Для прода — PostgreSQL (сменить provider в schema).
 - **Деплой:** Vercel. Переменные окружения — см. .env.example.
 
 ---

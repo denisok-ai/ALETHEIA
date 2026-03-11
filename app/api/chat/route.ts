@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readFile } from 'fs/promises';
-import path from 'path';
-import { createClient } from '@/lib/supabase/server';
+import { prisma } from '@/lib/db';
+import { getSystemSettings, getKnowledgeBase } from '@/lib/settings';
+import { getLlmApiKey } from '@/lib/llm';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEFAULT_MODEL = 'deepseek-chat';
 
 export async function POST(request: NextRequest) {
   try {
-    const apiKey = process.env.DEEPSEEK_API_KEY;
+    const apiKey = await getLlmApiKey('chatbot');
     if (!apiKey) {
       return NextResponse.json(
-        { error: 'Чат временно недоступен. Обратитесь к администратору.' },
+        { error: 'Чат временно недоступен. Настройте API-ключ в Настройки AI.' },
         { status: 503 }
       );
     }
@@ -25,22 +25,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const courseUrl =
-      process.env.NEXT_PUBLIC_URL?.replace(/\/$/, '') + '/#pricing' ||
-      '/#pricing';
+    const systemSettings = await getSystemSettings();
+    const baseUrl = systemSettings.site_url || process.env.NEXT_PUBLIC_URL || '';
+    const courseUrl = baseUrl ? baseUrl.replace(/\/$/, '') + '/#pricing' : '/#pricing';
 
-    let knowledgeBase: string;
-    try {
-      const filePath = path.join(
-        process.cwd(),
-        'content',
-        'knowledge-base-body-never-lies.md'
-      );
-      knowledgeBase = await readFile(filePath, 'utf-8');
-    } catch (e) {
-      console.error('Knowledge base read error:', e);
+    const knowledgeBase = await getKnowledgeBase();
+    if (!knowledgeBase.trim()) {
       return NextResponse.json(
-        { error: 'База знаний недоступна. Попробуйте позже.' },
+        { error: 'База знаний не настроена. Добавьте контент в Настройки AI.' },
         { status: 500 }
       );
     }
@@ -51,23 +43,26 @@ export async function POST(request: NextRequest) {
     let model = DEFAULT_MODEL;
     let temperature = 0.5;
     let maxTokens = 1024;
+    let activeTemplateId: string | null = null;
 
-    const supabase = createClient();
-    if (supabase) {
-      const { data: settings } = await supabase
-        .from('llm_settings')
-        .select('model, system_prompt, temperature, max_tokens')
-        .eq('key', 'chatbot')
-        .maybeSingle();
-      if (settings) {
-        model = (settings as { model?: string }).model ?? DEFAULT_MODEL;
-        temperature = Number((settings as { temperature?: number }).temperature) || 0.5;
-        maxTokens = Number((settings as { max_tokens?: number }).max_tokens) || 1024;
-        const customPrompt = (settings as { system_prompt?: string | null }).system_prompt;
-        if (customPrompt?.trim()) {
-          systemPrompt = customPrompt.trim() + '\n\n---\n\n';
-        }
+    const settings = await prisma.llmSetting.findUnique({
+      where: { key: 'chatbot' },
+    });
+    if (settings) {
+      model = settings.model ?? DEFAULT_MODEL;
+      temperature = Number(settings.temperature) || 0.5;
+      maxTokens = Number(settings.maxTokens) || 1024;
+      if (settings.systemPrompt?.trim()) {
+        systemPrompt = settings.systemPrompt.trim() + '\n\n---\n\n';
       }
+    }
+
+    const activeTemplate = await prisma.promptTemplate.findFirst({
+      where: { scope: 'chatbot', isActive: true },
+    });
+    if (activeTemplate?.content?.trim()) {
+      systemPrompt = activeTemplate.content.trim() + '\n\n---\n\n';
+      activeTemplateId = activeTemplate.id;
     }
 
     const fullSystemContent = systemPrompt + systemContent;
@@ -104,6 +99,16 @@ export async function POST(request: NextRequest) {
     const answer =
       data?.choices?.[0]?.message?.content?.trim() ||
       'Не удалось получить ответ. Попробуйте переформулировать вопрос.';
+
+    if (activeTemplateId) {
+      await prisma.promptTemplate.update({
+        where: { id: activeTemplateId },
+        data: {
+          usageCount: { increment: 1 },
+          lastUsedAt: new Date(),
+        },
+      }).catch(() => {});
+    }
 
     return NextResponse.json({ answer });
   } catch (error) {

@@ -32,13 +32,20 @@ export function PaymentModal({ isOpen, onClose, tariff }: PaymentModalProps) {
     if (!tariff) return;
     setLoading(true);
     try {
+      const body: Record<string, string> = {
+        email: formData.email,
+        name: formData.name,
+        phone: formData.phone,
+      };
+      if (tariff.slug) {
+        body.serviceSlug = tariff.slug;
+      } else {
+        body.tariffId = tariff.id;
+      }
       const res = await fetch('/api/payment/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tariffId: tariff.id,
-          ...formData,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (data.success && data.paymentUrl) {

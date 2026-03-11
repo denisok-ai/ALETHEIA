@@ -1,32 +1,51 @@
 /**
  * Admin: course catalog, create course, upload SCORM.
  */
-import { createClient } from '@/lib/supabase/server';
-import Link from 'next/link';
-import { CoursesAdminClient } from './CoursesAdminClient';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { PageHeader } from '@/components/portal/PageHeader';
+import { CoursesPageWithGroups } from './CoursesPageWithGroups';
 
 export default async function AdminCoursesPage() {
-  const supabase = createClient();
-  if (!supabase) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
     return (
       <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Курсы</h1>
-        <p className="mt-2 text-text-muted">База данных недоступна.</p>
+        <PageHeader items={[{ label: 'Курсы' }]} title="Курсы" description="База данных недоступна." />
       </div>
     );
   }
 
-  const { data: courses } = await supabase
-    .from('courses')
-    .select('id, title, description, scorm_path, thumbnail_url, status, price, created_at')
-    .order('sort_order')
-    .order('created_at', { ascending: false });
+  const courses = await prisma.course.findMany({
+    orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+  });
+
+  const initialCourses = courses.map((c) => ({
+    id: c.id,
+    title: c.title,
+    description: c.description,
+    starts_at: c.startsAt?.toISOString() ?? null,
+    ends_at: c.endsAt?.toISOString() ?? null,
+    scorm_path: c.scormPath,
+    thumbnail_url: c.thumbnailUrl,
+    status: c.status,
+    price: c.price,
+    sort_order: c.sortOrder,
+    created_at: c.createdAt.toISOString(),
+  }));
 
   return (
-    <div>
-      <h1 className="font-heading text-2xl font-bold text-dark">Курсы</h1>
-      <p className="mt-1 text-text-muted">Каталог курсов и мероприятий, загрузка SCORM</p>
-      <CoursesAdminClient initialCourses={courses ?? []} />
+    <div className="space-y-6">
+      <PageHeader
+        items={[
+          { href: '/portal/admin/dashboard', label: 'Дашборд' },
+          { label: 'Курсы' },
+        ]}
+        title="Курсы"
+        description="Каталог мероприятий: создание, редактирование, загрузка SCORM"
+      />
+      <CoursesPageWithGroups initialCourses={initialCourses} />
     </div>
   );
 }

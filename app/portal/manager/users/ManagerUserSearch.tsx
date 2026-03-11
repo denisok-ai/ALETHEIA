@@ -58,19 +58,19 @@ export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profil
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-border bg-bg-soft">
-              <th className="px-4 py-3 font-medium text-dark">Имя</th>
-              <th className="px-4 py-3 font-medium text-dark">Email</th>
-              <th className="px-4 py-3 font-medium text-dark">Статус</th>
-              <th className="px-4 py-3 font-medium text-dark">Дата</th>
+              <th className="px-4 py-2 font-medium text-dark">Имя</th>
+              <th className="px-4 py-2 font-medium text-dark">Email</th>
+              <th className="px-4 py-2 font-medium text-dark">Статус</th>
+              <th className="px-4 py-2 font-medium text-dark">Дата</th>
             </tr>
           </thead>
           <tbody>
             {profiles.map((p) => (
               <tr key={p.id} className="border-b border-border hover:bg-bg-cream">
-                <td className="px-4 py-3 font-medium text-dark">{p.display_name ?? '—'}</td>
-                <td className="px-4 py-3 text-text-muted">{p.email ?? '—'}</td>
-                <td className="px-4 py-3 text-text-muted">{p.status}</td>
-                <td className="px-4 py-3 text-text-muted">
+                <td className="px-4 py-2 font-medium text-dark">{p.display_name ?? '—'}</td>
+                <td className="px-4 py-2 text-text-muted">{p.email ?? '—'}</td>
+                <td className="px-4 py-2 text-text-muted">{p.status}</td>
+                <td className="px-4 py-2 text-text-muted">
                   {new Date(p.created_at).toLocaleDateString('ru')}
                 </td>
               </tr>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { TiltCard } from '@/components/ui/TiltCard';
@@ -8,6 +8,7 @@ import { PaymentModal } from '@/components/PaymentModal';
 
 export type TariffItem = {
   id: string;
+  slug?: string;
   name: string;
   price: number;
   description: string;
@@ -15,42 +16,40 @@ export type TariffItem = {
   popular?: boolean;
 };
 
-const tariffs: TariffItem[] = [
-  {
-    id: 'consult',
-    name: 'Индивидуальная консультация',
-    price: 5000,
-    description: 'Диагностика и коррекция через мышечное тестирование.',
-    features: ['1 сессия', 'Кинезиология один на один'],
-  },
-  {
-    id: 'group',
-    name: 'Групповой тренинг',
-    price: 3000,
-    description: 'Психосоматика и работа с подсознанием в группе.',
-    features: ['1 занятие', 'В группе'],
-  },
-  {
-    id: 'course',
-    name: 'Курс AVATERRA',
-    price: 25000,
-    description: '10 занятий: основы кинезиологии и мышечного тестирования.',
-    features: ['10 занятий', 'Полное погружение', 'Поддержка на пути'],
-    popular: true,
-  },
-  {
-    id: 'online',
-    name: 'Онлайн-консультация',
-    price: 3500,
-    description: 'Удалённая сессия с мастером школы.',
-    features: ['1 сессия', 'Из любой точки мира'],
-  },
+const FALLBACK_TARIFFS: TariffItem[] = [
+  { id: 'consult', name: 'Индивидуальная консультация', price: 5000, description: 'Диагностика и коррекция через мышечное тестирование.', features: ['1 сессия', 'Кинезиология один на один'] },
+  { id: 'group', name: 'Групповой тренинг', price: 3000, description: 'Психосоматика и работа с подсознанием в группе.', features: ['1 занятие', 'В группе'] },
+  { id: 'course', name: 'Курс AVATERRA', price: 25000, description: '10 занятий: основы кинезиологии и мышечного тестирования.', features: ['10 занятий', 'Полное погружение', 'Поддержка на пути'], popular: true },
+  { id: 'online', name: 'Онлайн-консультация', price: 3500, description: 'Удалённая сессия с мастером школы.', features: ['1 сессия', 'Из любой точки мира'] },
 ];
 
 export function Pricing() {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
+  const [products, setProducts] = useState<TariffItem[]>(FALLBACK_TARIFFS);
   const [modalTariff, setModalTariff] = useState<TariffItem | null>(null);
+
+  useEffect(() => {
+    fetch('/api/shop/products')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        const list = d?.products;
+        if (Array.isArray(list) && list.length > 0) {
+          setProducts(
+            list.map((p: { slug: string; name: string; price: number; description: string; features?: string[] }) => ({
+              id: p.slug,
+              slug: p.slug,
+              name: p.name,
+              price: p.price,
+              description: p.description || p.name,
+              features: Array.isArray(p.features) ? p.features : [p.description || p.name],
+              popular: list.indexOf(p) === 0,
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <>
@@ -79,7 +78,7 @@ export function Pricing() {
           </motion.h2>
 
           <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
-            {tariffs.map((tariff, i) => (
+            {products.map((tariff, i) => (
               <motion.div
                 key={tariff.id}
                 initial={{ opacity: 0, y: 40 }}

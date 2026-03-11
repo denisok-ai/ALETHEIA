@@ -9,20 +9,56 @@ interface DialogProps {
   children: React.ReactNode;
 }
 
+const FOCUSABLE =
+  'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
+  const contentRef = React.useRef<HTMLDivElement>(null);
+  const previousActiveRef = React.useRef<HTMLElement | null>(null);
+
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onOpenChange(false);
     };
     if (open) {
+      previousActiveRef.current = document.activeElement as HTMLElement | null;
       document.addEventListener('keydown', handler);
       document.body.style.overflow = 'hidden';
     }
     return () => {
       document.removeEventListener('keydown', handler);
       document.body.style.overflow = '';
+      if (previousActiveRef.current?.focus) {
+        previousActiveRef.current.focus();
+      }
     };
   }, [open, onOpenChange]);
+
+  React.useEffect(() => {
+    if (!open || !contentRef.current) return;
+    const el = contentRef.current;
+    const focusables = el.querySelectorAll<HTMLElement>(FOCUSABLE);
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    first?.focus();
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab') return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    };
+    el.addEventListener('keydown', onKeyDown);
+    return () => el.removeEventListener('keydown', onKeyDown);
+  }, [open]);
 
   if (!open) return null;
 
@@ -33,7 +69,9 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
         aria-hidden
         onClick={() => onOpenChange(false)}
       />
-      <div className="relative z-50">{children}</div>
+      <div ref={contentRef} className="relative z-50" role="presentation">
+        {children}
+      </div>
     </div>
   );
 };

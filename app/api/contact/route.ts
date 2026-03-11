@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
-import { createClient } from '@/lib/supabase/server';
-
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
-const notifyEmail = process.env.RESEND_NOTIFY_EMAIL || process.env.RESEND_FROM;
+import { prisma } from '@/lib/db';
+import { getSystemSettings, getEnvOverrides } from '@/lib/settings';
 
 export async function POST(request: NextRequest) {
   try {
+    const settings = await getSystemSettings();
+    const fromEmail = settings.resend_from || process.env.RESEND_FROM || 'onboarding@resend.dev';
+    const notifyEmail = settings.resend_notify_email || settings.resend_from || process.env.RESEND_NOTIFY_EMAIL || process.env.RESEND_FROM;
     const body = await request.json();
     const { name, phone, email, message, website } = body;
     // Защита от спама: honeypot-поле должно быть пустым
@@ -27,24 +28,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = createClient();
-    if (supabase) {
-      try {
-        await supabase.from('leads').insert({
+    try {
+      await prisma.lead.create({
+        data: {
           name: String(name).slice(0, 200),
           phone: String(phone).slice(0, 50),
           email: email ? String(email).slice(0, 200) : null,
           message: message ? String(message).slice(0, 2000) : null,
-        });
-      } catch (dbErr) {
-        console.error('Lead insert:', dbErr);
-      }
+        },
+      });
+    } catch (dbErr) {
+      console.error('Lead insert:', dbErr);
     }
 
-    if (resend && notifyEmail) {
+    const overrides = await getEnvOverrides();
+    const apiKey = overrides.resend_api_key || process.env.RESEND_API_KEY;
+    if (apiKey && notifyEmail) {
       try {
+        const resend = new Resend(apiKey);
         await resend.emails.send({
-          from: process.env.RESEND_FROM || 'onboarding@resend.dev',
+          from: fromEmail,
           to: notifyEmail,
           subject: `AVATERRA: новая заявка от ${String(name).slice(0, 50)}`,
           html: [

@@ -2,12 +2,13 @@
  * Telegram bot webhook: receive updates, reply to /progress, /cert, /help.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { getEnvOverrides } from '@/lib/settings';
 import { sendTelegramMessage } from '@/lib/telegram';
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-
 export async function POST(request: NextRequest) {
-  if (!BOT_TOKEN) return NextResponse.json({ ok: false }, { status: 503 });
+  const overrides = await getEnvOverrides();
+  const token = overrides.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) return NextResponse.json({ ok: false }, { status: 503 });
   try {
     const body = await request.json();
     const message = body?.message;

@@ -2,35 +2,32 @@
  * Admin: export orders as CSV.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createClientFromRequest } from '@/lib/supabase/request';
+import { requireAdminSession } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
-  const reqClient = createClientFromRequest(request);
-  if (!reqClient) return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
-  const { data: { user } } = await reqClient.auth.getUser();
-  const { data: profile } = user ? await reqClient.from('profiles').select('role').eq('id', user.id).single() : { data: null };
-  if (!user || (profile?.role as string) !== 'admin') {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const auth = await requireAdminSession();
+  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const supabase = createClient();
-  if (!supabase) return NextResponse.json({ error: 'Unavailable' }, { status: 503 });
+  const orders = await prisma.order.findMany({
+    orderBy: { createdAt: 'desc' },
+  });
 
-  const { data: orders } = await supabase
-    .from('orders')
-    .select('order_number, tariff_id, amount, client_email, client_phone, status, paid_at, created_at')
-    .order('created_at', { ascending: false });
+  const allCols = ['orderNumber', 'tariffId', 'amount', 'clientEmail', 'clientPhone', 'status', 'paidAt', 'createdAt'];
+  const requested = request.nextUrl.searchParams.get('fields')?.trim();
+  const cols = requested
+    ? requested.split(',').map((c) => c.trim()).filter((c) => allCols.includes(c))
+    : allCols;
+  const finalCols = cols.length > 0 ? cols : allCols;
 
-  const cols = ['order_number', 'tariff_id', 'amount', 'client_email', 'client_phone', 'status', 'paid_at', 'created_at'];
   const escape = (v: unknown) => {
     const s = String(v ?? '');
     return s.includes(',') || s.includes('"') || s.includes('\n') ? `"${s.replace(/"/g, '""')}"` : s;
   };
 
-  const header = cols.join(',');
-  const rows = (orders ?? []).map((o) =>
-    cols.map((c) => escape((o as Record<string, unknown>)[c])).join(',')
+  const header = finalCols.join(',');
+  const rows = orders.map((o) =>
+    finalCols.map((c) => escape((o as Record<string, unknown>)[c])).join(',')
   );
   const csv = [header, ...rows].join('\n');
   const bom = '\uFEFF';
