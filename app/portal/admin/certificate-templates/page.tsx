@@ -24,8 +24,8 @@ export default async function AdminCertificateTemplatesPage() {
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || role !== 'admin') {
     return (
-      <div className="p-6">
-        <p className="text-text-muted">Доступ запрещён.</p>
+      <div className="portal-card p-6 max-w-2xl">
+        <p className="text-[var(--portal-text-muted)]">Доступ запрещён.</p>
       </div>
     );
   }
@@ -39,7 +39,7 @@ export default async function AdminCertificateTemplatesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <PageHeader
         items={[
           { href: '/portal/admin/dashboard', label: 'Дашборд' },
@@ -51,7 +51,7 @@ export default async function AdminCertificateTemplatesPage() {
         actions={
           <Link
             href="/portal/admin/certificate-templates/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-dark hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#6366F1] px-3 py-2 text-sm font-medium text-white hover:bg-[#4F46E5] shadow-sm transition-colors"
           >
             <Plus className="h-4 w-4" />
             Добавить шаблон
@@ -71,7 +71,7 @@ export default async function AdminCertificateTemplatesPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -88,17 +88,17 @@ export default async function AdminCertificateTemplatesPage() {
               <TableBody>
                 {templates.map((t, idx) => (
                   <TableRow key={t.id}>
-                    <TableCell className="text-text-muted">{idx + 1}</TableCell>
-                    <TableCell className="font-medium text-dark">
-                      <Link href={`/portal/admin/certificate-templates/${t.id}`} className="text-primary hover:underline">
+                    <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                    <TableCell className="font-medium text-[var(--portal-text)]">
+                      <Link href={`/portal/admin/certificate-templates/${t.id}`} className="text-[#6366F1] hover:underline">
                         {t.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-text-muted text-sm">{t.course?.title ?? '—'}</TableCell>
-                    <TableCell className="text-text-muted text-sm">{t.backgroundImageUrl ? 'Да' : '—'}</TableCell>
-                    <TableCell className="text-center text-text-muted">{t.minScore ?? '—'}</TableCell>
-                    <TableCell className="text-center">{t.allowUserDownload ? 'Да' : 'Нет'}</TableCell>
-                    <TableCell className="text-center text-text-muted">{t._count.certificates}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)] text-sm">{t.course?.title ?? '—'}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)] text-sm">{t.backgroundImageUrl ? 'Да' : '—'}</TableCell>
+                    <TableCell className="text-center text-[var(--portal-text-muted)]">{t.minScore ?? '—'}</TableCell>
+                    <TableCell className="text-center text-[var(--portal-text)]">{t.allowUserDownload ? 'Да' : 'Нет'}</TableCell>
+                    <TableCell className="text-center text-[var(--portal-text-muted)]">{t._count.certificates}</TableCell>
                     <TableCell>
                       <Link href={`/portal/admin/certificate-templates/${t.id}`}>
                         <Button variant="secondary" size="sm">Изменить</Button>

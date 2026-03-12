@@ -22,7 +22,9 @@ import {
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Pencil, Trash2, ExternalLink, Image as ImageIcon, Search, FolderOpen, CheckSquare, Square, FolderPlus, FolderMinus } from 'lucide-react';
+import { Pencil, Trash2, ExternalLink, Image as ImageIcon, Search, FolderOpen, CheckSquare, Square, FolderPlus, FolderMinus, Upload } from 'lucide-react';
+import { TablePagination } from '@/components/ui/TablePagination';
+import { buildCsv, downloadCsv } from '@/lib/export-csv';
 import { MediaItemGroupsBlock } from './MediaItemGroupsBlock';
 import { GroupPickerModal } from '@/components/portal/GroupPickerModal';
 
@@ -89,6 +91,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [groupActionLoading, setGroupActionLoading] = useState(false);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles]);
@@ -145,6 +148,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
       setDescription('');
       setAllowDownload(true);
       setFiles([]);
+      setUploadModalOpen(false);
       toast.success(uploaded === 1 ? 'Файл загружен' : `Загружено файлов: ${uploaded}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка');
@@ -243,7 +247,20 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
   const currentPage = Math.min(page, totalPages - 1);
   const start = currentPage * pageSize;
   const pageItems = filteredItems.slice(start, start + pageSize);
-  const PAGE_SIZES = [5, 10, 50] as const;
+  const PAGE_SIZES = [5, 10, 50];
+
+  const handleExportExcel = () => {
+    const csv = buildCsv(filteredItems, [
+      { key: 'title', header: 'Название' },
+      { key: 'category', header: 'Категория' },
+      { key: 'type', header: 'Тип' },
+      { key: 'mime_type', header: 'MIME' },
+      { key: 'views_count', header: 'Просмотры' },
+      { key: 'course_title', header: 'Курс' },
+      { key: 'created_at', header: 'Создан' },
+    ]);
+    downloadCsv(csv, `media-${new Date().toISOString().slice(0, 10)}.csv`);
+  };
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -305,102 +322,121 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
     toast.success(ok === ids.length ? `Исключено из группы: ${ok} ресурсов` : `Исключено ${ok} из ${ids.length}`);
   }
 
+  const closeUploadModal = () => {
+    setUploadModalOpen(false);
+    setFiles([]);
+    setTitle('');
+    setCategory('');
+    setDescription('');
+    setError(null);
+  };
+
   return (
     <div className="mt-6 space-y-6">
-      <form onSubmit={handleUpload} className="rounded-xl border border-border bg-white p-6">
-        <h2 className="text-lg font-semibold text-dark">Загрузить файл</h2>
-        <div
-          {...getRootProps()}
-          className={`mt-4 rounded-lg border-2 border-dashed p-6 text-center transition-colors ${
-            isDragActive ? 'border-primary bg-primary/5' : 'border-border bg-bg-cream/50 hover:border-primary/50'
-          }`}
-        >
-          <input {...getInputProps()} />
-          <p className="text-sm text-text-muted">
-            {isDragActive ? 'Отпустите файлы…' : 'Перетащите файлы сюда или нажмите для выбора (несколько файлов)'}
-          </p>
-          {files.length > 0 && <p className="mt-2 text-sm font-medium text-primary">Выбрано: {files.length}</p>}
-        </div>
-        <div className="mt-4 space-y-4">
-          <div className="flex flex-wrap gap-4">
-            <div className="min-w-[200px] flex-1">
-              <Label htmlFor="media-title">Название</Label>
-              <Input
-                id="media-title"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Пусто — подставится имя файла"
-                className="mt-1"
-              />
-            </div>
-            <div className="min-w-[140px]">
-              <Label htmlFor="media-category">Категория</Label>
-              <select
-                id="media-category"
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
-              >
-                <option value="">—</option>
-                {CATEGORY_SUGGESTIONS.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="media-description">Описание (необязательно)</Label>
-            <textarea
-              id="media-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="mt-1 w-full max-w-xl rounded-lg border border-border px-3 py-2 text-sm"
-              placeholder="Краткое описание ресурса"
-            />
-          </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={allowDownload}
-                onChange={(e) => setAllowDownload(e.target.checked)}
-                className="rounded border-border"
-              />
-              Разрешить скачивание
-            </label>
-            <Button type="submit" disabled={uploading || files.length === 0}>
-              {uploading ? 'Загрузка…' : files.length > 0 ? `Загрузить (${files.length})` : 'Загрузить'}
-            </Button>
-          </div>
-        </div>
-        {files.length > 0 && <p className="mt-2 text-sm text-text-muted">Файлов: {files.length}</p>}
-        {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-      </form>
-
-      <div className="flex gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" onClick={() => setUploadModalOpen(true)}>
+          <Upload className="h-4 w-4 mr-2" />
+          Загрузить файл
+        </Button>
         <Button type="button" variant="secondary" size="sm" onClick={() => setAddLinkOpen(true)}>
           Добавить ссылку
         </Button>
       </div>
 
+      <Dialog open={uploadModalOpen} onOpenChange={(open) => !open && closeUploadModal()}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Загрузить файл</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleUpload} className="space-y-4 mt-2">
+            <div
+              {...getRootProps()}
+              className={`rounded-lg border-2 border-dashed p-6 text-center transition-colors cursor-pointer ${
+                isDragActive ? 'border-[#6366F1] bg-[#EEF2FF]' : 'border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#6366F1]/50'
+              }`}
+            >
+              <input {...getInputProps()} />
+              <p className="text-sm text-[var(--portal-text-muted)]">
+                {isDragActive ? 'Отпустите файлы…' : 'Перетащите файлы сюда или нажмите для выбора (несколько файлов)'}
+              </p>
+              {files.length > 0 && <p className="mt-2 text-sm font-medium text-[#6366F1]">Выбрано: {files.length}</p>}
+            </div>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="media-title">Название</Label>
+                  <Input
+                    id="media-title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Пусто — подставится имя файла"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="media-category">Категория</Label>
+                  <select
+                    id="media-category"
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
+                  >
+                    <option value="">—</option>
+                    {CATEGORY_SUGGESTIONS.map((c) => (
+                      <option key={c} value={c}>{c}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="media-description">Описание (необязательно)</Label>
+                <textarea
+                  id="media-description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={2}
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+                  placeholder="Краткое описание ресурса"
+                />
+              </div>
+              <div className="flex flex-wrap items-center gap-4">
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={allowDownload}
+                    onChange={(e) => setAllowDownload(e.target.checked)}
+                    className="rounded border-[#E2E8F0]"
+                  />
+                  Разрешить скачивание
+                </label>
+                <Button type="submit" disabled={uploading || files.length === 0}>
+                  {uploading ? 'Загрузка…' : files.length > 0 ? `Загрузить (${files.length})` : 'Загрузить'}
+                </Button>
+              </div>
+            </div>
+            {files.length > 0 && <p className="text-sm text-[var(--portal-text-muted)]">Файлов: {files.length}</p>}
+            {error && <p className="text-sm text-red-600">{error}</p>}
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <section>
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <label className="text-sm font-medium text-dark">Тип:</label>
+          <label className="text-sm font-medium text-[var(--portal-text)]">Тип:</label>
           <select
             value={resourceTypeFilter}
             onChange={(e) => { setResourceTypeFilter(e.target.value); setPage(0); }}
-            className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
           >
             {RESOURCE_TYPE_FILTERS.map((f) => (
               <option key={f.value} value={f.value}>{f.label}</option>
             ))}
           </select>
-          <label className="text-sm font-medium text-dark">Категория:</label>
+          <label className="text-sm font-medium text-[var(--portal-text)]">Категория:</label>
           <select
             value={categoryFilter}
             onChange={(e) => { setCategoryFilter(e.target.value); setPage(0); }}
-            className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
           >
             <option value="all">Все</option>
             {categories.map((c) => (
@@ -408,20 +444,20 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
             ))}
           </select>
           <div className="relative ml-auto">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
             <input
               type="search"
               placeholder="Найти в списке"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
-              className="w-48 rounded-lg border border-border bg-white py-2 pl-8 pr-3 text-sm text-dark placeholder:text-text-muted"
+              className="w-48 rounded-lg border border-[#E2E8F0] bg-white py-2 pl-8 pr-3 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-muted)]"
               aria-label="Найти в списке"
             />
           </div>
         </div>
         {selectedIds.size > 0 && (
-          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-            <span className="text-sm font-medium text-dark">Выбрано: {selectedIds.size}</span>
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+            <span className="text-sm font-medium text-[var(--portal-text)]">Выбрано: {selectedIds.size}</span>
             <Button size="sm" variant="secondary" disabled={groupActionLoading} onClick={() => setGroupPickerOpen(true)}>
               <FolderPlus className="h-3.5 w-3.5 mr-1" />
               Добавить в группу
@@ -437,7 +473,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
             </Button>
           </div>
         )}
-        <div className="overflow-x-auto rounded-xl border border-border bg-white">
+        <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
           <Table>
             <TableHeader>
               <TableRow>
@@ -449,9 +485,9 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                     title={pageItems.every((m) => selectedIds.has(m.id)) ? 'Снять выбор' : 'Выбрать страницу'}
                   >
                     {pageItems.length > 0 && pageItems.every((m) => selectedIds.has(m.id)) ? (
-                      <CheckSquare className="h-4 w-4 text-primary" />
+                      <CheckSquare className="h-4 w-4 text-[#6366F1]" />
                     ) : (
-                      <Square className="h-4 w-4 text-text-muted" />
+                      <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />
                     )}
                   </button>
                 </TableHead>
@@ -473,7 +509,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                   <TableCell colSpan={11} className="p-0">
                     <EmptyState
                       title="Нет файлов"
-                      description="Загрузите файлы через форму выше или измените фильтры"
+                      description="Нажмите «Загрузить файл» или измените фильтры"
                       icon={<FolderOpen className="h-10 w-10" />}
                     />
                   </TableCell>
@@ -488,20 +524,20 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                   <TableRow key={m.id}>
                     <TableCell className="w-10">
                       <button type="button" onClick={() => toggleSelect(m.id)} className="p-1">
-                        {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-text-muted" />}
+                        {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
                       </button>
                     </TableCell>
-                    <TableCell className="text-text-muted">{start + idx + 1}</TableCell>
-                    <TableCell className="font-medium text-dark">{m.title}</TableCell>
-                    <TableCell className="text-text-muted">{m.category ?? '—'}</TableCell>
-                    <TableCell className="text-text-muted">{resType === 'link' ? 'Ссылка' : 'Файл'}</TableCell>
-                    <TableCell className="text-text-muted text-xs max-w-[100px] truncate" title={m.mime_type ?? ''}>{m.mime_type ?? '—'}</TableCell>
-                    <TableCell className="text-text-muted">{m.views_count ?? 0}</TableCell>
-                    <TableCell className="text-text-muted">{rating}</TableCell>
-                    <TableCell className="text-text-muted">{(m.allow_download ?? true) ? 'Да' : 'Нет'}</TableCell>
-                    <TableCell className="text-text-muted text-sm">
+                    <TableCell className="text-[var(--portal-text-muted)]">{start + idx + 1}</TableCell>
+                    <TableCell className="font-medium text-[var(--portal-text)]">{m.title}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{m.category ?? '—'}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{resType === 'link' ? 'Ссылка' : 'Файл'}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)] text-xs max-w-[100px] truncate" title={m.mime_type ?? ''}>{m.mime_type ?? '—'}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{m.views_count ?? 0}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{rating}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{(m.allow_download ?? true) ? 'Да' : 'Нет'}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)] text-sm">
                       {m.course_title ? (
-                        <a href={`/portal/admin/courses/${m.course_id}`} className="text-primary hover:underline">{m.course_title}</a>
+                        <a href={`/portal/admin/courses/${m.course_id}`} className="text-[#6366F1] hover:underline">{m.course_title}</a>
                       ) : (
                         '—'
                       )}
@@ -521,7 +557,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                           href={m.file_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-primary"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
                           aria-label="Открыть"
                         >
                           <ExternalLink className="h-4 w-4" />
@@ -554,48 +590,17 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
           </Table>
         </div>
         {total > 0 && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              {PAGE_SIZES.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => { setPageSize(size); setPage(0); }}
-                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-primary/10 text-primary font-medium' : 'text-text-muted hover:bg-bg-cream'}`}
-                  aria-label={`Показать по ${size}`}
-                  aria-pressed={pageSize === size}
-                >
-                  +{size}
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-text-muted">
-                Записи {start + 1}–{Math.min(start + pageSize, total)} из {total}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={currentPage === 0}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Предыдущая страница"
-              >
-                ←
-              </button>
-              <span className="text-sm text-text-muted">
-                Страница {currentPage + 1} из {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={currentPage >= totalPages - 1}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Следующая страница"
-              >
-                →
-              </button>
-            </div>
-          </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            total={total}
+            pageSize={pageSize}
+            pageSizeOptions={PAGE_SIZES}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            onExportExcel={handleExportExcel}
+            exportLabel="Excel"
+          />
         )}
       </section>
 
@@ -665,7 +670,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                 id="link-category"
                 value={linkCategory}
                 onChange={(e) => setLinkCategory(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
               >
                 <option value="">—</option>
                 {CATEGORY_SUGGESTIONS.map((c) => (
@@ -680,7 +685,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                 value={linkDescription}
                 onChange={(e) => setLinkDescription(e.target.value)}
                 rows={2}
-                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
               />
             </div>
             <label className="flex items-center gap-2 text-sm">
@@ -688,7 +693,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                 type="checkbox"
                 checked={linkAllowDownload}
                 onChange={(e) => setLinkAllowDownload(e.target.checked)}
-                className="rounded border-border"
+                className="rounded border-[#E2E8F0]"
               />
               Разрешить скачивание / открытие в новой вкладке
             </label>
@@ -737,12 +742,12 @@ function PreviewDialog({ item, onClose }: { item: MediaItem; onClose: () => void
             </audio>
           )}
           {isPdf && !isVideo && !isAudio && (
-            <iframe title={item.title} src={src} className="w-full h-[70vh] rounded-lg border border-border" />
+            <iframe title={item.title} src={src} className="w-full h-[70vh] rounded-lg border border-[#E2E8F0]" />
           )}
           {!isImage && !isVideo && !isAudio && !isPdf && (
             <div className="space-y-2">
-              <p className="text-sm text-text-muted">Предпросмотр недоступен. Доступно только скачивание.</p>
-              <a href={src} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline inline-flex items-center gap-1">
+              <p className="text-sm text-[var(--portal-text-muted)]">Предпросмотр недоступен. Доступно только скачивание.</p>
+              <a href={src} target="_blank" rel="noopener noreferrer" className="text-[#6366F1] hover:underline inline-flex items-center gap-1">
                 <ExternalLink className="h-4 w-4" /> Открыть / Скачать
               </a>
             </div>
@@ -801,7 +806,7 @@ function EditMediaDialog({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
             />
           </div>
           <label className="flex items-center gap-2 text-sm">
@@ -809,7 +814,7 @@ function EditMediaDialog({
               type="checkbox"
               checked={allowDownload}
               onChange={(e) => setAllowDownload(e.target.checked)}
-              className="rounded border-border"
+              className="rounded border-[#E2E8F0]"
             />
             Разрешить скачивание
           </label>

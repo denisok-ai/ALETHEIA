@@ -12,7 +12,7 @@ export function CertificateDownload({ certId, allowDownload = true }: { certId: 
   const url = `/api/portal/certificates/${certId}/download${template !== 'default' ? `?template=${template}` : ''}`;
 
   if (!allowDownload) {
-    return <span className="text-sm text-text-muted">Электронная версия доступна только в реестре</span>;
+    return <span className="text-sm text-[var(--portal-text-muted)]">Электронная версия доступна только в реестре</span>;
   }
 
   return (
@@ -20,7 +20,7 @@ export function CertificateDownload({ certId, allowDownload = true }: { certId: 
       <select
         value={template}
         onChange={(e) => setTemplate(e.target.value as CertificateTemplateId)}
-        className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm text-dark"
+        className="rounded-lg border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)] hover:bg-[#F8FAFC]"
         aria-label="Шаблон сертификата"
       >
         {TEMPLATES.map((t) => (
@@ -28,7 +28,7 @@ export function CertificateDownload({ certId, allowDownload = true }: { certId: 
         ))}
       </select>
       <a href={url} target="_blank" rel="noopener noreferrer">
-        <Button size="sm" className="bg-primary text-white hover:bg-primary/90">
+        <Button size="sm" className="bg-[#6366F1] text-white hover:bg-[#4F46E5]">
           <Download className="mr-1.5 h-4 w-4" /> Скачать PDF
         </Button>
       </a>

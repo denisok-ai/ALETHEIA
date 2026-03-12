@@ -7,12 +7,23 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
+interface PaymentEmailSettings {
+  email_payment_course_subject: string;
+  email_payment_course_body: string;
+  email_payment_generic_subject: string;
+  email_payment_generic_body: string;
+}
+
 interface SettingsKeys {
   site_url: string;
   portal_title: string;
   resend_from: string;
   resend_notify_email: string;
   contact_phone: string;
+  email_payment_course_subject?: string;
+  email_payment_course_body?: string;
+  email_payment_generic_subject?: string;
+  email_payment_generic_body?: string;
   paykeeper_server: string;
   paykeeper_login: string;
   paykeeper_password: boolean;
@@ -33,9 +44,16 @@ export function SettingsForms() {
   const [loading, setLoading] = useState(true);
   const [savingGeneral, setSavingGeneral] = useState(false);
   const [savingEmail, setSavingEmail] = useState(false);
+  const [savingPaymentEmail, setSavingPaymentEmail] = useState(false);
 
   const [general, setGeneral] = useState({ site_url: '', portal_title: '', contact_phone: '' });
   const [email, setEmail] = useState({ resend_from: '', resend_notify_email: '' });
+  const [paymentEmail, setPaymentEmail] = useState<PaymentEmailSettings>({
+    email_payment_course_subject: '',
+    email_payment_course_body: '',
+    email_payment_generic_subject: '',
+    email_payment_generic_body: '',
+  });
   const [paykeeper, setPaykeeper] = useState({
     paykeeper_server: '',
     paykeeper_login: '',
@@ -76,6 +94,10 @@ export function SettingsForms() {
           resend_from: k.resend_from ?? '',
           resend_notify_email: k.resend_notify_email ?? '',
           contact_phone: k.contact_phone ?? '',
+          email_payment_course_subject: typeof k.email_payment_course_subject === 'string' ? k.email_payment_course_subject : '',
+          email_payment_course_body: typeof k.email_payment_course_body === 'string' ? k.email_payment_course_body : '',
+          email_payment_generic_subject: typeof k.email_payment_generic_subject === 'string' ? k.email_payment_generic_subject : '',
+          email_payment_generic_body: typeof k.email_payment_generic_body === 'string' ? k.email_payment_generic_body : '',
           paykeeper_server: typeof k.paykeeper_server === 'string' ? k.paykeeper_server : '',
           paykeeper_login: typeof k.paykeeper_login === 'string' ? k.paykeeper_login : '',
           paykeeper_password: k.paykeeper_password === true,
@@ -104,6 +126,13 @@ export function SettingsForms() {
         setEmail({
           resend_from: k.resend_from ?? '',
           resend_notify_email: k.resend_notify_email ?? '',
+        });
+        const pe = data.settings?.payment_email ?? {};
+        setPaymentEmail({
+          email_payment_course_subject: pe.email_payment_course_subject ?? '',
+          email_payment_course_body: pe.email_payment_course_body ?? '',
+          email_payment_generic_subject: pe.email_payment_generic_subject ?? '',
+          email_payment_generic_body: pe.email_payment_generic_body ?? '',
         });
         setPaykeeper({
           paykeeper_server: typeof k.paykeeper_server === 'string' ? k.paykeeper_server : '',
@@ -134,6 +163,13 @@ export function SettingsForms() {
       resend_from: keys.resend_from,
       resend_notify_email: keys.resend_notify_email,
     });
+    setPaymentEmail((p) => ({
+      ...p,
+      email_payment_course_subject: keys.email_payment_course_subject ?? '',
+      email_payment_course_body: keys.email_payment_course_body ?? '',
+      email_payment_generic_subject: keys.email_payment_generic_subject ?? '',
+      email_payment_generic_body: keys.email_payment_generic_body ?? '',
+    }));
     setPaykeeper((p) => ({
       ...p,
       paykeeper_server: keys.paykeeper_server ?? '',
@@ -203,19 +239,42 @@ export function SettingsForms() {
     setSavingEmail(false);
   }
 
+  async function savePaymentEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingPaymentEmail(true);
+    try {
+      const res = await fetch('/api/portal/admin/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email_payment_course_subject: paymentEmail.email_payment_course_subject,
+          email_payment_course_body: paymentEmail.email_payment_course_body,
+          email_payment_generic_subject: paymentEmail.email_payment_generic_subject,
+          email_payment_generic_body: paymentEmail.email_payment_generic_body,
+        }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setKeys((prev) => (prev ? { ...prev, ...paymentEmail } : null));
+      toast.success('Шаблоны писем об оплате сохранены');
+    } catch {
+      toast.error('Ошибка сохранения');
+    }
+    setSavingPaymentEmail(false);
+  }
+
   if (loading) {
     return (
-      <div className="mt-4 rounded-xl border border-border bg-white p-6">
-        <p className="text-sm text-text-muted">Загрузка настроек…</p>
+      <div className="mt-4 portal-card p-6">
+        <p className="text-sm text-[var(--portal-text-muted)]>Загрузка настроек…</p>
       </div>
     );
   }
 
   return (
     <div className="mt-4 space-y-4">
-      <div className="rounded-xl border border-border bg-white p-6">
-        <h2 className="text-lg font-semibold text-dark">Общие</h2>
-        <p className="mt-1 text-sm text-text-muted">URL сайта и название портала. Изменение URL повлияет на ссылки в письмах и сертификатах.</p>
+      <div className="portal-card p-6">
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Общие</h2>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">URL сайта и название портала. Изменение URL повлияет на ссылки в письмах и сертификатах.</p>
         <form onSubmit={saveGeneral} className="mt-4 space-y-4 max-w-xl">
           <div>
             <Label htmlFor="site_url">URL сайта</Label>
@@ -262,9 +321,9 @@ export function SettingsForms() {
         />
       </div>
 
-      <div className="rounded-xl border border-border bg-white p-6">
-        <h2 className="text-lg font-semibold text-dark">Почта (уведомления)</h2>
-        <p className="mt-1 text-sm text-text-muted">Email отправителя и получателя уведомлений. API-ключ Resend — в блоке «Переменные окружения» ниже или в .env (RESEND_API_KEY).</p>
+      <div className="portal-card p-6">
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Почта (уведомления)</h2>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]>Email отправителя и получателя уведомлений. API-ключ Resend — в блоке «Переменные окружения» ниже или в .env (RESEND_API_KEY).</p>
         <form onSubmit={saveEmail} className="mt-4 space-y-4 max-w-xl">
           <div>
             <Label htmlFor="resend_from">Email отправителя</Label>
@@ -294,9 +353,59 @@ export function SettingsForms() {
         </form>
       </div>
 
-      <div className="rounded-xl border border-border bg-white p-6">
-        <h2 className="text-lg font-semibold text-dark">Платежи (PayKeeper)</h2>
-        <p className="mt-1 text-sm text-text-muted">
+      <div className="portal-card p-6">
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Шаблоны писем об оплате</h2>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
+          Тема и тело писем после оплаты. Если пусто — используется текст по умолчанию. Плейсхолдеры: {'{{orderid}}'}, {'{{courseTitle}}'}, {'{{loginUrl}}'}, {'{{successUrl}}'}, {'{{portal_title}}'}.
+        </p>
+        <form onSubmit={savePaymentEmail} className="mt-4 space-y-4 max-w-2xl">
+          <div>
+            <Label>Письмо при оплате курса — тема</Label>
+            <Input
+              value={paymentEmail.email_payment_course_subject}
+              onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_course_subject: e.target.value }))}
+              placeholder="Оплата получена — доступ к курсу открыт"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label>Письмо при оплате курса — тело (HTML)</Label>
+            <textarea
+              value={paymentEmail.email_payment_course_body}
+              onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_course_body: e.target.value }))}
+              placeholder="<p>Здравствуйте!</p><p>Оплата по заказу {{orderid}} получена...</p>"
+              rows={6}
+              className="mt-1 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:border-[#6366F1] focus:outline-none focus:ring-1 focus:ring-[#6366F1]"
+            />
+          </div>
+          <div>
+            <Label>Письмо при оплате без курса (консультация и т.п.) — тема</Label>
+            <Input
+              value={paymentEmail.email_payment_generic_subject}
+              onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_generic_subject: e.target.value }))}
+              placeholder="Оплата получена"
+              className="mt-1"
+            />
+          </div>
+          <div>
+            <Label>Письмо при оплате без курса — тело (HTML)</Label>
+            <textarea
+              value={paymentEmail.email_payment_generic_body}
+              onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_generic_body: e.target.value }))}
+              placeholder="<p>Здравствуйте!</p><p>Оплата по заказу {{orderid}} получена...</p>"
+              rows={4}
+              className="mt-1 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:border-[#6366F1] focus:outline-none focus:ring-1 focus:ring-[#6366F1]"
+            />
+          </div>
+          <Button type="submit" disabled={savingPaymentEmail}>
+            {savingPaymentEmail ? 'Сохранение…' : 'Сохранить шаблоны'}
+          </Button>
+        </form>
+      </div>
+
+      <div className="portal-card p-6">
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Платежи (PayKeeper)</h2>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]>
           Параметры для создания счетов и приёма уведомлений. Секретные поля хранятся в зашифрованном виде. Пустые поля пароля и секрета — не менять текущее значение.
         </p>
         <form
@@ -357,7 +466,7 @@ export function SettingsForms() {
               id="paykeeper_use_test"
               checked={paykeeperTest.use_test}
               onChange={(e) => setPaykeeperTest((p) => ({ ...p, use_test: e.target.checked }))}
-              className="rounded border-border"
+              className="rounded border-[#E2E8F0]"
             />
             <Label htmlFor="paykeeper_use_test" className="font-normal cursor-pointer">
               Использовать тестовое подключение (отдельные сервер, логин, пароль и секрет для тестов)
@@ -462,12 +571,12 @@ export function SettingsForms() {
           </div>
           </>
           )}
-          <div className="rounded-lg border border-border bg-bg-soft p-3 text-sm text-text-muted space-y-2">
-            <p className="font-medium text-dark">URL для уведомлений в ЛК PayKeeper</p>
+          <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-sm text-[var(--portal-text-muted)] space-y-2">
+            <p className="font-medium text-[var(--portal-text)]">URL для уведомлений в ЛК PayKeeper</p>
             <p className="mt-1 break-all">
               {(keys?.site_url || general.site_url || '').replace(/\/$/, '') || 'https://ваш-домен'}/api/webhook/paykeeper
             </p>
-            <p className="font-medium text-dark pt-1">URL успешной оплаты (результат)</p>
+            <p className="font-medium text-[var(--portal-text)] pt-1">URL успешной оплаты (результат)</p>
             <p className="break-all">
               {(keys?.site_url || general.site_url || '').replace(/\/$/, '') || 'https://ваш-домен'}/success
             </p>
@@ -504,7 +613,7 @@ export function SettingsForms() {
               href="https://help.paykeeper.ru/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline"
+              className="text-sm text-[#6366F1] hover:underline"
             >
               Документация PayKeeper
             </a>
@@ -512,10 +621,10 @@ export function SettingsForms() {
         </form>
       </div>
 
-      <div className="mt-6 rounded-xl border border-border bg-white p-6">
-        <h2 className="text-lg font-semibold text-dark">Переменные окружения</h2>
-        <p className="mt-1 text-sm text-text-muted">
-          Значения сохраняются в БД и используются с приоритетом над <code className="rounded bg-bg-cream px-1">.env</code>. Секреты хранятся в зашифрованном виде. Пустые поля секретов — не менять текущее значение. NEXTAUTH_SECRET и DATABASE_URL задаются только в .env.
+      <div className="mt-6 portal-card p-6">
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Переменные окружения</h2>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]>
+          Значения сохраняются в БД и используются с приоритетом над <code className="rounded bg-[#F1F5F9] px-1.5">.env</code>. Секреты хранятся в зашифрованном виде. Пустые поля секретов — не менять текущее значение. NEXTAUTH_SECRET и DATABASE_URL задаются только в .env.
         </p>
         <form
           onSubmit={async (e) => {
@@ -654,7 +763,7 @@ export function SettingsForms() {
               {testingTelegram ? 'Проверка…' : 'Проверить Telegram'}
             </Button>
           </div>
-          <p className="text-xs text-text-muted">
+          <p className="text-xs text-[var(--portal-text-muted)]">
             Тестовое письмо уходит на адрес из блока «Почта». Telegram: проверка токена через getMe.
           </p>
         </form>

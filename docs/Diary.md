@@ -2,6 +2,118 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-03-10 — Документация и UX после аудита пути
+
+**Задача:** актуализировать справочники и улучшить переход из тикета к заказу.
+
+**Что сделано:**
+- **Support.md:** обновлён блок про оплату и поддержку: страница /success с ?order=, шаблоны писем об оплате в настройках, связь лид ↔ заказ, тикет «Нет доступа» с привязкой заказа.
+- **Оплаты:** страница /portal/admin/payments принимает query `?search=…`; начальное значение поиска передаётся в PaymentsTableClient (initialSearch), таблица открывается с уже отфильтрованным заказом.
+- **Тикет:** при наличии привязанного заказа (orderNumber) для роли admin номер заказа — ссылка на /portal/admin/payments?search=ORDER_NUMBER; для manager — только текст «Заказ: …» (canLinkOrderToPayments).
+- **CHANGELOG.md:** в [Unreleased] добавлена сводка по доработкам аудита пользовательского пути (claim, письма, set-password, welcome, тикеты, шаблоны оплаты, онбординг, Lead↔Order, авто-тикет, ссылки).
+
+**Файлы:** docs/Support.md, app/portal/admin/payments/page.tsx, PaymentsTableClient.tsx, components/portal/TicketThread.tsx, app/portal/manager/tickets/[id]/page.tsx, CHANGELOG.md.
+
+---
+
+## 2026-03-10 — Авто-тикет «Нет доступа после оплаты» (7.4)
+
+**Задача:** при обращении в поддержку — если есть оплаченный заказ без доступа по email пользователя, привязать заказ к тикету и предложить тему «Не приходит доступ».
+
+**Что сделано:**
+- В модель **Ticket** добавлено поле **orderNumber** (String?). Миграция 20260315100000_ticket_order_number.
+- В **POST /api/portal/tickets** при создании тикета: получаем email пользователя, вызываем **claimPaidOrdersForUser** (чтобы по возможности восстановить доступ), затем ищем оплаченный заказ с курсом, по которому у пользователя нет записи Enrollment. Если такой заказ найден — выставляем тикету subject «Не приходит доступ — …» (если пользователь уже написал «Не приходит доступ», не дублируем) и **orderNumber** = номер заказа.
+- В письме менеджеру о новом тикете добавлена строка «Привязан заказ (нет доступа): …» при наличии orderNumber.
+- В **TicketThread** (интерфейс менеджера) в шапке тикета выводится «Заказ: …» при наличии orderNumber.
+- Страница менеджера тикета передаёт ticket.orderNumber в TicketThread.
+
+**Файлы:** prisma/schema.prisma, prisma/migrations/20260315100000_ticket_order_number/migration.sql, app/api/portal/tickets/route.ts, components/portal/TicketThread.tsx, app/portal/manager/tickets/[id]/page.tsx, docs/Tasktracker.md.
+
+---
+
+## 2026-03-10 — Связь Lead ↔ Order (1.3)
+
+**Задача:** при создании/оплате заказа по email, совпадающему с лидом, проставлять в Lead ссылку на заказ для аналитики.
+
+**Что сделано:**
+- В модель **Lead** добавлено поле **lastOrderNumber** (String?, опционально). Миграция 20260314100000_lead_last_order_number.
+- В **webhook PayKeeper** после установки заказа в статус paid: поиск лидов с тем же email (нормализация trim+lowercase), обновление у них lastOrderNumber = orderid.
+- В **CRM**: в данных лида передаётся last_order_number; в карточке лида (диалог) выводится строка «Оплаченный заказ: …» при наличии; в экспорт CSV добавлена колонка last_order_number.
+
+**Файлы:** prisma/schema.prisma, prisma/migrations/20260314100000_lead_last_order_number/migration.sql, app/api/webhook/paykeeper/route.ts, app/portal/admin/crm/page.tsx, app/portal/admin/crm/CrmLeadsClient.tsx, docs/Tasktracker.md.
+
+---
+
+## 2026-03-10 — Query order на /success и шаблоны ответов (4.2, 7.3)
+
+**Задача:** поддержка ?order= на странице успешной оплаты; шаблоны быстрых ответов в тикете для менеджера.
+
+**Что сделано:**
+- **4.2 — /success?order=ORDER_NUMBER:** страница success принимает searchParams.order; для гостя по номеру заказа загружается Order (status=paid), показывается сообщение «Заказ № … оплачен» и маскированный email (первые 2 символа + *** + @домен). Редирект после оплаты формируется с order: в app/api/payment/create/route.ts successRedirectUrl задаётся как `/success?order=${orderNumber}`.
+- **7.3 — Шаблоны быстрых ответов:** в TicketThread при canChangeStatus или canAssign отображается выпадающий список «Шаблон ответа» с вариантами: «Доступ откроется в течение 24 часов», «Проверьте раздел „Мои курсы“», «Мы уточняем информацию», «Регистрация с email оплаты». Выбор подставляет текст в поле ответа (дополняя существующий).
+
+**Файлы:** app/success/page.tsx, app/api/payment/create/route.ts, components/portal/TicketThread.tsx, docs/Tasktracker.md.
+
+---
+
+## 2026-03-10 — Шаблоны писем об оплате и онбординг (2.2, 6.3)
+
+**Задача:** вынести тексты писем об оплате в настройки (User-Journey 2.2); добавить подсказку при первом визите в ЛК студента (6.3).
+
+**Что сделано:**
+- **Шаблоны писем об оплате (2.2):** в **lib/settings.ts** добавлены `getPaymentEmailTemplates()`, `renderPaymentEmailTemplate()`, кэш и ключи SystemSetting: `email_payment_course_subject`, `email_payment_course_body`, `email_payment_generic_subject`, `email_payment_generic_body`. Плейсхолдеры: `{{orderid}}`, `{{courseTitle}}`, `{{loginUrl}}`, `{{successUrl}}`, `{{portal_title}}`. Webhook PayKeeper использует шаблоны из БД; при пустых значениях — дефолтные тексты. В админке (Настройки) добавлена карточка «Шаблоны писем об оплате» с полями тема/тело для курса и для оплаты без курса. API GET/PATCH настроек расширен поддержкой этих ключей; после PATCH вызывается `clearPaymentEmailTemplatesCache()`.
+- **Онбординг (6.3):** компонент **StudentOnboardingHint** на дашборде студента: при первом визите (проверка localStorage `avaterra_student_onboarding_seen`) показывается подсказка с текстом про «Мои курсы» и «Поддержка», кнопки перехода и «Понятно». После закрытия (крестик или «Понятно») флаг записывается в localStorage, подсказка больше не показывается.
+
+**Файлы:** lib/settings.ts, app/api/webhook/paykeeper/route.ts, app/api/portal/admin/settings/route.ts, app/portal/admin/settings/SettingsForms.tsx, components/portal/StudentOnboardingHint.tsx, app/portal/student/dashboard/page.tsx, docs/Tasktracker.md.
+
+---
+
+## 2026-03-10 — Аудит пользовательского пути
+
+**Задача:** провести полный аудит от консультации/покупки до авторегистрации и автоподдержки, продумать сценарии и добавить в план недостающий функционал.
+
+**Что сделано:**
+- Реализованы блок 1.2 (экран после заявки) и сброс пароля (8.1): в **Contact.tsx** при status === 'sent' показывается блок «Спасибо, заявка принята» с кнопкой «Оплатить консультацию или курс» (#pricing) и ссылкой «Отправить ещё одну заявку». Сброс пароля по email: см. ниже.
+- Реализован сброс пароля по email (блок 8.1): страница **/reset-password** с формой email, **POST /api/auth/forgot-password** (поиск пользователя, создание PasswordToken, отправка письма со ссылкой на /set-password?token=…). Ответ всегда success, чтобы не раскрывать наличие email. На странице входа добавлена ссылка «Забыли пароль?». Используются те же механизм и страница установки пароля, что и при конвертации лида.
+- Реализованы блоки 4.1 и 3.2 (success и привязка при входе): вынесена логика привязки заказов в **lib/claim-orders.ts** (claimPaidOrdersForUser); в **app/portal/layout.tsx** при роли student вызывается claimPaidOrdersForUser при каждом входе в портал (страховка); **страница /success** для авторизованного пользователя показывает «Ваш курс / Ваши курсы уже в разделе „Мои курсы“» и название первого курса. Register использует claimPaidOrdersForUser из lib.
+- Реализованы блоки 6 и 7 (приветствие и поддержка): **welcome** — в lib/email-templates добавлен шаблон «Добро пожаловать» (eventType welcome); в POST /api/auth/register после claimPaidOrders вызывается triggerNotification('welcome'). **Тикеты:** при создании обращения (POST /api/portal/tickets) студенту отправляется письмо «Обращение в поддержку принято» (тема, номер тикета); на адрес resend_notify_email — письмо «Новое обращение в поддержку» (от кого, тема, текст, ссылка в портал менеджера). Tasktracker обновлён.
+- Реализованы блок 5 (конвертация лида + установка пароля): модель **PasswordToken** (одноразовый токен, 48 ч), **lib/password-token.ts** (createPasswordToken, getUserIdByPasswordToken, consumePasswordToken), **POST /api/auth/set-password** (установка пароля по токену, удаление токена), страница **/set-password?token=…** (форма пароль/подтверждение, редирект на /login). В **POST /api/portal/admin/leads/convert** после создания пользователя: генерация токена, отправка клиенту письма «Установите пароль» со ссылкой на /set-password?token=…. Миграция 20260313100000_add_password_token.
+- Реализованы задачи из плана User-Journey-Audit: **3.1** привязка оплаченных заказов при регистрации (`claimPaidOrdersForNewUser` в POST `/api/auth/register` — поиск оплаченных Order по email, создание Enrollment, triggerNotification, Order.userId); **2.1** письмо при оплате тарифа без курса (webhook PayKeeper — ветка `else` с письмом «Оплата получена, свяжемся с вами»); **1.1** письмо клиенту «Заявка принята» (POST `/api/contact` — при указании email отправка подтверждения клиенту). В Tasktracker статусы этих задач обновлены на «Завершена».
+- Добавлен документ **docs/User-Journey-Audit.md**: описание текущих потоков (заявка, оплата, webhook, регистрация, конвертация лида, поддержка, уведомления), полный перечень сценариев (A–H), выявленные пробелы и **план доработок** по 8 блокам (заявка, оплата/webhook, авторегистрация и привязка заказа, страница success, конвертация лида и установка пароля, приветствие/онбординг, поддержка, сброс пароля). Критический пункт: привязка оплаченных заказов при регистрации (чтобы купленный курс появлялся в ЛК после регистрации с тем же email). В Tasktracker добавлен раздел «Аудит пользовательского пути» с задачами из плана.
+
+---
+
+## 2026-03-10 — Прогресс SCORM: метрики и сохранение
+
+**Задача:** прогресс прохождения не фиксировал стандартные метрики SCORM; нужно вынести их на карточку курса и отладить передачу из пакета в БД и отображение.
+
+**Что сделано:**
+- **API progress (POST):** расширен парсинг CMI — учёт полей scorm-again `CommitObject` (completionStatus, successStatus, totalTimeSeconds, score.scaled), верхнего уровня body (lesson_status, success_status, total_time), вложенного CMI (core, completion_status, score, total_time, session_time). Статусы «passed» и «completed» считаются завершением урока; сертификат выставляется при любом из них.
+- **Единая проверка завершения:** функция `isLessonCompleted(status)` в API; во всех местах (страница курса, список курсов, дашборд, плеер, админка: энроллы, отчёты, AI-assist, генерация сертификатов) подсчёт завершённых уроков учитывает оба статуса.
+- **Метрики на интерфейсе:** на странице курса студента — блок «Прогресс прохождения (SCORM)» с процентом, «X из Y уроков», временем и средним баллом (%). На карточке курса в списке — опциональный балл (scorePct) и время; список курсов запрашивает _avg score по ScormProgress.
+- **Плеер:** обновление прогресса сразу после успешного коммита (вызов refreshProgress из xhrResponseHandler при json.success), без ожидания следующего интервала 15 сек; интервал 15 сек сохранён как резерв.
+
+**Файлы:** `app/api/portal/scorm/progress/route.ts`, `app/portal/student/courses/[courseId]/page.tsx`, `app/portal/student/courses/[courseId]/play/page.tsx`, `components/portal/CourseCard.tsx`, `app/portal/student/courses/page.tsx`, админские энроллы и отчёты.
+
+---
+
+## 2026-03-10 — Полный редизайн портала (LMS)
+
+**Задача:** переработать весь интерфейс кабинетов студента, менеджера, администратора в стиле лучших EdTech/LMS-продуктов (Mirapolis, Evolve, TalentLMS).
+
+**Что сделано:**
+- **Дизайн-система:** новые CSS-переменные `--portal-*` в `globals.css`: тёмный сайдбар, фон `#f4f4f8`, статус-цвета, тени, радиусы. Utility-классы: `portal-card`, `portal-metric`, `status-badge`, `progress-track`, `course-launch-btn`, `skeleton`, `portal-sidebar-link`.
+- **PortalSidebar** — переписан: тёмный фон `#1e1340`, золотой акцент активного пункта с левой полосой, лого-блок, collapse в одной строке с первым пунктом, адаптивный overlay.
+- **PortalHeader** — новый: аватар из инициалов, колокольчик уведомлений, роль пользователя, дропдаун с профилем/настройками/выходом.
+- **PortalAccountBlock** — под тёмный сайдбар (золотой аватар, кнопка logout).
+- **CourseCoverPlaceholder** — SVG-обложки 5 вариантов (тема мышечного тестирования), `MediaCoverPlaceholder` по типу файла (видео/PDF/аудио/изображение).
+- **CourseCard** — обложка 16:9, плавающая Play-кнопка, статус-бейдж, прогресс-бар (золото→зелёный), кнопка запуска в 1 клик.
+- **Дашборд студента** — welcome-баннер (тёмный градиент + XP-шкала), 4 статистических плитки, сетка CourseCard, уведомления.
+- **Страница «Мои курсы»** — сетка CourseCard, счётчики статусов.
+- **PageHeader / Card / Breadcrumbs** — обновлены под portal-токены.
+- **Дашборд админа** — акцентная плитка выручки, `portal-metric` для KPI.
+- Фон всех лейаутов: `var(--portal-bg)` = `#f4f4f8`.
+
 **Формат записи:**
 - **Дата**
 - **Наблюдения** — что заметили, какой контекст

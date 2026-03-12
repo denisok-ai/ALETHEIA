@@ -215,9 +215,9 @@ export function LlmAndChatbotBlock({
     >
       <div className="space-y-10">
         {/* Сохранённые API ключи */}
-        <section className="rounded-lg border border-border bg-bg-cream/50 p-4">
-          <h3 className="text-base font-semibold text-dark mb-3">Сохранённые API ключи</h3>
-          <p className="text-sm text-text-muted mb-4">
+        <section className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+          <h3 className="text-base font-semibold text-[var(--portal-text)] mb-3">Сохранённые API ключи</h3>
+          <p className="text-sm text-[var(--portal-text-muted)] mb-4">
             Добавьте ключи для разных провайдеров и выберите нужный в настройках чат-бота или тьютора.
           </p>
           {apiKeys.length > 0 && (
@@ -267,7 +267,7 @@ export function LlmAndChatbotBlock({
                 id="new-key-provider"
                 value={newKeyProvider}
                 onChange={(e) => setNewKeyProvider(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
               >
                 {PROVIDERS.filter((p) => p.id !== 'other').map((p) => (
                   <option key={p.id} value={p.id}>{p.label}</option>
@@ -291,15 +291,15 @@ export function LlmAndChatbotBlock({
         </section>
 
         {/* Чат-бот */}
-        <section className="rounded-lg border border-border bg-bg-cream/50 p-4">
-          <h3 className="text-base font-semibold text-dark mb-4">Чат-бот (Сомаватар)</h3>
+        <section className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+          <h3 className="text-base font-semibold text-[var(--portal-text)] mb-4">Чат-бот (Сомаватар)</h3>
           <form onSubmit={saveChatbot} className="space-y-4">
             <div>
               <Label>Использовать сохранённый ключ</Label>
               <select
                 value={chatbot.api_key_id ?? ''}
                 onChange={(e) => setChatbot((p) => ({ ...p, api_key_id: e.target.value || null }))}
-                className="mt-1 w-full max-w-md rounded-lg border border-border px-3 py-2 text-sm"
+                className="mt-1 w-full max-w-md rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
               >
                 <option value="">— Свой ключ ниже или не менять —</option>
                 {apiKeys.map((k) => (
@@ -335,7 +335,7 @@ export function LlmAndChatbotBlock({
                       model: (MODELS_BY_PROVIDER[p]?.[0] ?? prev.model),
                     }));
                   }}
-                  className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
                 >
                   {PROVIDERS.map((p) => (
                     <option key={p.id} value={p.id}>{p.label}</option>
@@ -357,7 +357,7 @@ export function LlmAndChatbotBlock({
                     id="cb-model"
                     value={chatbotModels.includes(chatbot.model) ? chatbot.model : ''}
                     onChange={(e) => setChatbot((p) => ({ ...p, model: e.target.value || p.model }))}
-                    className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
                   >
                     {chatbotModels.map((m) => (
                       <option key={m} value={m}>{m}</option>
@@ -376,7 +376,7 @@ export function LlmAndChatbotBlock({
                 value={chatbot.system_prompt ?? ''}
                 onChange={(e) => setChatbot((p) => ({ ...p, system_prompt: e.target.value || null }))}
                 rows={4}
-                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 font-mono text-sm"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 font-mono text-sm"
                 placeholder="Ты консультант курса..."
               />
             </div>
@@ -412,9 +412,9 @@ export function LlmAndChatbotBlock({
         </section>
 
         {/* Тьютор курсов */}
-        <section className="rounded-lg border border-border bg-bg-cream/50 p-4">
-          <h3 className="text-base font-semibold text-dark mb-4">Тьютор курсов (AI в плеере)</h3>
-          <p className="text-sm text-text-muted mb-4">
+        <section className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+          <h3 className="text-base font-semibold text-[var(--portal-text)] mb-4">Тьютор курсов (AI в плеере)</h3>
+          <p className="text-sm text-[var(--portal-text-muted)] mb-4">
             Если ключ не задан, используется ключ чат-бота. Включение тьютора по курсам — в карточке курса (блок «AI-тьютор в плеере»).
           </p>
           <form onSubmit={saveTutor} className="space-y-4">
@@ -423,7 +423,7 @@ export function LlmAndChatbotBlock({
               <select
                 value={tutor.api_key_id ?? ''}
                 onChange={(e) => setTutor((p) => ({ ...p, api_key_id: e.target.value || null }))}
-                className="mt-1 w-full max-w-md rounded-lg border border-border px-3 py-2 text-sm"
+                className="mt-1 w-full max-w-md rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
               >
                 <option value="">— Ключ чат-бота или свой ниже —</option>
                 {apiKeys.map((k) => (
@@ -459,7 +459,7 @@ export function LlmAndChatbotBlock({
                       model: (MODELS_BY_PROVIDER[p]?.[0] ?? prev.model),
                     }));
                   }}
-                  className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
                 >
                   {PROVIDERS.map((p) => (
                     <option key={p.id} value={p.id}>{p.label}</option>
@@ -481,7 +481,7 @@ export function LlmAndChatbotBlock({
                     id="ct-model"
                     value={tutorModels.includes(tutor.model) ? tutor.model : ''}
                     onChange={(e) => setTutor((p) => ({ ...p, model: e.target.value || p.model }))}
-                    className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
                   >
                     {tutorModels.map((m) => (
                       <option key={m} value={m}>{m}</option>

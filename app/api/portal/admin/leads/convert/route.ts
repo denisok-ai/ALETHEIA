@@ -1,11 +1,14 @@
 /**
- * Admin: convert lead to user — create User + Profile and link.
+ * Admin: convert lead to user — create User + Profile, link, отправка письма со ссылкой «Установить пароль».
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
+import { createPasswordToken } from '@/lib/password-token';
+import { sendEmail } from '@/lib/email';
+import { getSystemSettings } from '@/lib/settings';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminSession();
@@ -75,8 +78,29 @@ export async function POST(request: NextRequest) {
     data: { convertedToUserId: user.id, status: 'converted' },
   });
 
+  try {
+    const token = await createPasswordToken(user.id);
+    const settings = await getSystemSettings();
+    const siteUrl = settings.site_url?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_URL?.replace(/\/$/, '') || '';
+    const setPasswordUrl = siteUrl ? `${siteUrl}/set-password?token=${encodeURIComponent(token)}` : `/set-password?token=${encodeURIComponent(token)}`;
+    const html = `
+      <p>Здравствуйте, ${escapeHtml(lead.name)}!</p>
+      <p>Для вас создан аккаунт в личном кабинете AVATERRA. Установите пароль по ссылке (действует 48 часов):</p>
+      <p><a href="${setPasswordUrl}">Установить пароль</a></p>
+      <p>Если ссылка не открывается, скопируйте в браузер: ${setPasswordUrl}</p>
+      <p>— Школа AVATERRA</p>
+    `;
+    await sendEmail(email, 'AVATERRA: установите пароль для входа в личный кабинет', html);
+  } catch (mailErr) {
+    console.error('Lead convert: send set-password email', mailErr);
+  }
+
   return NextResponse.json({
     userId: user.id,
-    message: 'User created. Send password reset link to set password.',
+    message: 'User created. Set-password email sent to client.',
   });
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

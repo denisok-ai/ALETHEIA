@@ -92,7 +92,7 @@ export function CourseGroupsBlock({ courseId }: { courseId: string }) {
   if (loading) {
     return (
       <Card>
-        <p className="text-text-muted">Загрузка…</p>
+        <p className="text-[var(--portal-text-muted)]">Загрузка…</p>
       </Card>
     );
   }
@@ -102,11 +102,11 @@ export function CourseGroupsBlock({ courseId }: { courseId: string }) {
       <div className="space-y-4">
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-[200px]">
-            <label className="block text-sm font-medium text-dark mb-1">Добавить в группу</label>
+            <label className="block text-sm font-medium text-[var(--portal-text)] mb-1">Добавить в группу</label>
             <select
               value={selectedGroupId}
               onChange={(e) => setSelectedGroupId(e.target.value)}
-              className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
             >
               <option value="">— Выберите группу</option>
               {availableGroups.map((g) => (
@@ -126,10 +126,10 @@ export function CourseGroupsBlock({ courseId }: { courseId: string }) {
             icon={<Folder className="h-10 w-10" />}
           />
         ) : (
-          <ul className="divide-y divide-border rounded-lg border border-border">
+          <ul className="divide-y divide-[#E2E8F0] rounded-lg border border-[#E2E8F0]">
             {groups.map((g) => (
               <li key={g.id} className="flex items-center justify-between px-3 py-2">
-                <span className="font-medium text-dark">{g.name}</span>
+                <span className="font-medium text-[var(--portal-text)]">{g.name}</span>
                 <Button
                   type="button"
                   variant="ghost"

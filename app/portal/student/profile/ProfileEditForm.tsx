@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { User, Mail } from 'lucide-react';
 
 export function ProfileEditForm({
   initialDisplayName,
@@ -34,23 +35,32 @@ export function ProfileEditForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-6 max-w-md space-y-4 rounded-xl border border-border bg-white p-6">
-      <div>
-        <Label className="text-sm font-medium text-text-muted">Email</Label>
-        <p className="mt-1 text-dark">{email ?? '—'}</p>
-        <p className="mt-0.5 text-xs text-text-muted">Изменить email можно через администратора.</p>
+    <form onSubmit={handleSubmit} className="portal-card p-6 space-y-5">
+      <div className="flex items-center gap-3 pb-4 border-b border-[#E2E8F0]">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#4F46E5]">
+          <User className="h-5 w-5" />
+        </span>
+        <div>
+          <p className="text-xs font-medium text-[var(--portal-text-muted)]">Email</p>
+          <p className="text-sm font-medium text-[var(--portal-text)]">{email ?? '—'}</p>
+          <p className="text-xs text-[var(--portal-text-soft)] mt-0.5">Изменить можно через администратора.</p>
+        </div>
       </div>
+
       <div>
-        <Label htmlFor="displayName">Имя для отображения</Label>
+        <Label htmlFor="displayName" className="text-sm font-medium text-[var(--portal-text)]">
+          Имя для отображения
+        </Label>
         <Input
           id="displayName"
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
           placeholder="Как к вам обращаться"
-          className="mt-1"
+          className="mt-2 border-[#E2E8F0] focus:ring-[#6366F1] focus:border-[#6366F1]"
         />
       </div>
-      <Button type="submit" disabled={saving}>
+
+      <Button type="submit" variant="primary" disabled={saving}>
         {saving ? 'Сохранение…' : 'Сохранить'}
       </Button>
     </form>

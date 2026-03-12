@@ -84,7 +84,7 @@ export default async function AdminAiSettingsPage() {
         </Card>
 
         <Card title="Лог запросов к AI" description="Логирование запросов планируется в следующих версиях.">
-          <p className="text-sm text-text-muted">—</p>
+          <p className="text-sm text-[var(--portal-text-muted)]">—</p>
         </Card>
       </div>
     </div>

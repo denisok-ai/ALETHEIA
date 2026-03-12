@@ -91,7 +91,7 @@ export function FAQ() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.05 }}
-          className="mt-2 font-heading text-3xl font-semibold text-dark"
+          className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)]"
         >
           Частые вопросы
         </motion.h2>
@@ -102,19 +102,19 @@ export function FAQ() {
           transition={{ delay: 0.1 }}
           className="relative mt-10"
         >
-          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-soft" />
+          <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--portal-text-soft)]" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Поиск по вопросам..."
-            className="w-full rounded-xl border border-border bg-white py-3.5 pl-12 pr-4 text-dark placeholder:text-text-soft focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+            className="w-full rounded-xl border border-[#E2E8F0] bg-white py-3.5 pl-12 pr-4 text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:border-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
           />
         </motion.div>
 
         <div className="mt-8 space-y-3">
           {filtered.length === 0 ? (
-            <p className="rounded-xl border border-border bg-bg-soft p-6 text-center text-text-muted">
+            <p className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] p-6 text-center text-[var(--portal-text-muted)]">
               Ничего не найдено. Попробуйте другой запрос.
             </p>
           ) : (
@@ -126,11 +126,11 @@ export function FAQ() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={isInView ? { opacity: 1, y: 0 } : {}}
                   transition={{ delay: 0.15 + idx * 0.04 }}
-                  className="rounded-xl border border-border bg-white overflow-hidden backdrop-blur-sm"
+                  className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden backdrop-blur-sm"
                 >
                   <button
                     type="button"
-                    className="flex w-full items-center justify-between gap-4 p-4 text-left font-medium text-dark hover:bg-bg-soft transition-colors"
+                    className="flex w-full items-center justify-between gap-4 p-4 text-left font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] transition-colors"
                     onClick={() => setOpenIndex(openIndex === originalIndex ? null : originalIndex)}
                     aria-expanded={openIndex === originalIndex}
                   >
@@ -153,7 +153,7 @@ export function FAQ() {
                         transition={{ duration: 0.2 }}
                         className="overflow-hidden"
                       >
-                        <p className="border-t border-border p-4 pl-12 leading-relaxed text-text-muted">
+                        <p className="border-t border-[#E2E8F0] p-4 pl-12 leading-relaxed text-[var(--portal-text-muted)]">
                           {item.a}
                         </p>
                       </motion.div>
@@ -170,15 +170,15 @@ export function FAQ() {
           initial={{ opacity: 0, y: 15 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.35 }}
-          className="mt-14 rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8"
+          className="mt-14 rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-sm md:p-8"
         >
           <div className="flex items-center gap-3 text-accent">
             <MessageCircle className="h-6 w-6 shrink-0" />
-            <h3 className="font-heading text-xl font-semibold text-dark">
+            <h3 className="font-heading text-xl font-semibold text-[var(--portal-text)]">
               Задайте вопрос по курсу
             </h3>
           </div>
-          <p className="mt-2 text-sm text-text-muted">
+          <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
             Ответ по базе знаний курса «Тело не врёт» (нейросеть). Не заменяет консультацию специалиста.
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -191,7 +191,7 @@ export function FAQ() {
               }}
               onKeyDown={(e) => e.key === 'Enter' && !askLoading && handleAsk()}
               placeholder="Напишите вопрос..."
-              className="flex-1 rounded-xl border border-border bg-bg py-3.5 px-4 text-dark placeholder:text-text-soft focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+              className="flex-1 rounded-xl border border-[#E2E8F0] bg-white py-3.5 px-4 text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:border-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
               disabled={askLoading}
             />
             <Button
@@ -218,9 +218,9 @@ export function FAQ() {
             </p>
           )}
           {askAnswer !== null && (
-            <div className="mt-5 rounded-xl border border-border bg-[var(--lavender-light)] p-4">
+            <div className="mt-5 rounded-xl border border-[#E2E8F0] bg-[var(--lavender-light)] p-4">
               <p className="text-xs font-semibold uppercase tracking-wider text-accent mb-2">Ответ</p>
-              <div className="chat-markdown text-sm text-dark [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:font-semibold [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_a]:text-accent [&_a]:underline [&_a:hover]:opacity-80">
+              <div className="chat-markdown text-sm text-[var(--portal-text)] [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:font-semibold [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_a]:text-accent [&_a]:underline [&_a:hover]:opacity-80">
                 <ReactMarkdown>{askAnswer}</ReactMarkdown>
               </div>
             </div>

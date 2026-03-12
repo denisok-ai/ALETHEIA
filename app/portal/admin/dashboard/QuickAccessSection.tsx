@@ -82,24 +82,24 @@ export function QuickAccessSection() {
         {SECTIONS.map((block) => {
           const Icon = block.icon;
           return (
-            <Card key={block.title} className="flex flex-col transition hover:border-primary/40 hover:shadow-md">
+            <Card key={block.title} className="flex flex-col transition hover:border-[#6366F1]/40 hover:shadow-md">
               <Link
                 href={block.href}
-                className="flex flex-1 flex-col focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 rounded-lg -m-1 p-1"
+                className="flex flex-1 flex-col focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-2 rounded-lg -m-1 p-1"
               >
-                <div className="flex items-center gap-2 text-primary">
+                <div className="flex items-center gap-2 text-[#6366F1]">
                   <Icon className="h-5 w-5 shrink-0" aria-hidden />
-                  <span className="font-semibold text-dark">{block.title}</span>
-                  <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-text-muted" aria-hidden />
+                  <span className="font-semibold text-[var(--portal-text)]">{block.title}</span>
+                  <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-[var(--portal-text-muted)]" aria-hidden />
                 </div>
-                <p className="mt-1.5 text-sm text-text-muted line-clamp-2">{block.description}</p>
+                <p className="mt-1.5 text-sm text-[var(--portal-text-muted)] line-clamp-2">{block.description}</p>
               </Link>
-              <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-border pt-3 text-sm">
+              <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1 border-t border-[#E2E8F0] pt-3 text-sm">
                 {block.links.slice(0, 3).map((link) => (
                   <li key={link.href}>
                     <Link
                       href={link.href}
-                      className="text-primary hover:underline focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded"
+                      className="text-[#6366F1] hover:underline focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded"
                     >
                       {link.label}
                     </Link>
@@ -109,7 +109,7 @@ export function QuickAccessSection() {
                   <li>
                     <Link
                       href={block.href}
-                      className="text-text-muted hover:text-primary text-xs"
+                      className="text-[var(--portal-text-muted)] hover:text-[#6366F1] text-xs"
                     >
                       ещё…
                     </Link>

@@ -85,7 +85,7 @@ const DialogContent = React.forwardRef<
     role="dialog"
     aria-modal="true"
     className={cn(
-      'relative w-full max-w-md rounded-2xl border border-border bg-white p-6 shadow-2xl',
+      'relative w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-6 shadow-2xl',
       className
     )}
     {...props}
@@ -103,7 +103,7 @@ const DialogTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <h2
     ref={ref}
-    className={cn('text-xl font-heading font-semibold text-dark', className)}
+    className={cn('text-xl font-heading font-semibold text-[var(--portal-text)]', className)}
     {...props}
   />
 ));

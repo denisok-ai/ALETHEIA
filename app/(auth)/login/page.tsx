@@ -19,6 +19,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirect = searchParams.get('redirect') ?? '/portal/student/dashboard';
+  const justSetPassword = searchParams.get('set') === '1';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,9 +45,12 @@ function LoginForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-8 shadow-lg">
-      <h1 className="font-heading text-2xl font-bold text-dark">Вход</h1>
-      <p className="mt-1 text-sm text-text-muted">Войдите в личный кабинет</p>
+    <div className="rounded-2xl border border-[#E2E8F0] bg-surface p-8 shadow-lg">
+      <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Вход</h1>
+      <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Войдите в личный кабинет</p>
+      {justSetPassword && (
+        <p className="mt-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">Пароль успешно установлен. Войдите, используя email и новый пароль.</p>
+      )}
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
           <Label htmlFor="email">Email</Label>
@@ -61,7 +65,12 @@ function LoginForm() {
           />
         </div>
         <div>
-          <Label htmlFor="password">Пароль</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Пароль</Label>
+            <Link href="/reset-password" className="text-xs text-[#6366F1] hover:underline">
+              Забыли пароль?
+            </Link>
+          </div>
           <Input
             id="password"
             type="password"
@@ -81,9 +90,9 @@ function LoginForm() {
           {loading ? 'Вход…' : 'Войти'}
         </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-text-muted">
+      <p className="mt-4 text-center text-sm text-[var(--portal-text-muted)]">
         Нет аккаунта?{' '}
-        <Link href="/register" className="font-medium text-primary underline">
+        <Link href="/register" className="font-medium text-[#6366F1] underline">
           Зарегистрироваться
         </Link>
       </p>
@@ -93,7 +102,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="rounded-2xl border border-border bg-surface p-8 shadow-lg">Загрузка…</div>}>
+    <Suspense fallback={<div className="rounded-2xl border border-[#E2E8F0] bg-surface p-8 shadow-lg">Загрузка…</div>}>
       <LoginForm />
     </Suspense>
   );

@@ -30,7 +30,7 @@ export function UserRecentActions({ userId }: { userId: string }) {
       .finally(() => setLoading(false));
   }, [userId]);
 
-  if (loading) return <p className="text-sm text-text-muted">Загрузка…</p>;
+  if (loading) return <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>;
   if (logs.length === 0) return (
     <EmptyState
       className="py-8"
@@ -44,9 +44,9 @@ export function UserRecentActions({ userId }: { userId: string }) {
     <ul className="space-y-1 text-sm">
       {logs.map((l) => (
         <li key={l.id} className="flex flex-wrap items-center gap-2">
-          <span className="font-medium text-dark">{l.action}</span>
-          <span className="text-text-muted">{l.entity}</span>
-          <span className="text-text-muted">{format(new Date(l.createdAt), 'dd.MM.yyyy HH:mm', { locale: ru })}</span>
+          <span className="font-medium text-[var(--portal-text)]">{l.action}</span>
+          <span className="text-[var(--portal-text-muted)]">{l.entity}</span>
+          <span className="text-[var(--portal-text-muted)]">{format(new Date(l.createdAt), 'dd.MM.yyyy HH:mm', { locale: ru })}</span>
         </li>
       ))}
     </ul>

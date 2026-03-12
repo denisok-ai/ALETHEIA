@@ -32,11 +32,11 @@ function PingOnMount() {
 function MobileMenuBar() {
   const { setMobileMenuOpen } = usePortalUI();
   return (
-    <div className="flex h-10 shrink-0 items-center border-b border-border bg-white px-3 lg:hidden">
+    <div className="flex h-10 shrink-0 items-center border-b border-[#E2E8F0] bg-white px-3 lg:hidden">
       <button
         type="button"
         onClick={() => setMobileMenuOpen(true)}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-dark hover:bg-bg-soft"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--portal-text)] hover:bg-[#F8FAFC]"
         aria-label="Открыть меню"
       >
         <Menu className="h-5 w-5" />
@@ -59,7 +59,7 @@ export function PortalUIProvider({ user, profile, children }: PortalUIProviderPr
   return (
     <PortalUIContext.Provider value={value}>
       <PingOnMount />
-      <div className="flex h-screen flex-col overflow-hidden bg-bg-cream">
+      <div className="flex h-screen flex-col overflow-hidden bg-[var(--portal-bg)]">
         <MobileMenuBar />
         <div className="min-h-0 flex-1 flex flex-col overflow-hidden">{children}</div>
       </div>

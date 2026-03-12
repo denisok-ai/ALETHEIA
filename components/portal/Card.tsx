@@ -1,25 +1,32 @@
 /**
- * Единая карточка контента в портале: скруглённая рамка, белый фон, отступы.
- * Используется в админке для секций (метрики, таблицы, формы).
+ * Карточка портала — redesigned: portal-card класс, поддержка заголовка и описания.
  */
 export interface CardProps {
   children: React.ReactNode;
   title?: string;
   description?: string | null;
   className?: string;
+  padding?: 'sm' | 'md' | 'lg';
 }
 
-export function Card({ children, title, description, className = '' }: CardProps) {
-  const hasHeader = title != null || (description != null && description !== '');
+const paddingMap = { sm: 'p-4', md: 'p-5', lg: 'p-6' };
+
+export function Card({ children, title, description, className = '', padding = 'md' }: CardProps) {
+  const p = paddingMap[padding];
   return (
-    <div
-      className={`rounded-xl border border-border bg-white p-4 ${hasHeader ? 'space-y-3' : ''} ${className}`.trim()}
-    >
-      {title != null && title !== '' && (
-        <h2 className="text-lg font-semibold text-dark">{title}</h2>
+    <div className={`portal-card ${p} ${className}`.trim()}>
+      {title && (
+        <h2
+          className="text-base font-semibold mb-1"
+          style={{ color: 'var(--portal-text)' }}
+        >
+          {title}
+        </h2>
       )}
-      {description != null && description !== '' && (
-        <p className="text-sm text-text-muted">{description}</p>
+      {description && (
+        <p className="text-sm mb-3" style={{ color: 'var(--portal-text-muted)' }}>
+          {description}
+        </p>
       )}
       {children}
     </div>

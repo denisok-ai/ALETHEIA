@@ -61,7 +61,7 @@ export async function GET(
   });
   const completedByUser = await prisma.scormProgress.groupBy({
     by: ['userId'],
-    where: { courseId, userId: { in: userIds }, completionStatus: 'completed' },
+    where: { courseId, userId: { in: userIds }, completionStatus: { in: ['completed', 'passed'] } },
     _count: true,
   });
 

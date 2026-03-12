@@ -7,9 +7,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
-const DEFAULT_WIDTH = 256;
-const MIN_WIDTH = 200;
-const MAX_WIDTH = 480;
+const DEFAULT_WIDTH = 220;
+const MIN_WIDTH = 180;
+const MAX_WIDTH = 320;
 const STORAGE_PREFIX = 'portal-groups-sidebar-width-';
 
 export interface ResizableGroupsLayoutProps {
@@ -126,12 +126,12 @@ export function ResizableGroupsLayout({
         }}
         className={cn(
           'shrink-0 w-2 cursor-col-resize flex items-stretch justify-center select-none',
-          'hover:bg-border/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1',
-          dragging && 'bg-primary/20'
+          'hover:bg-[#E2E8F0]/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366F1] focus-visible:ring-offset-1',
+          dragging && 'bg-[#6366F1]/20'
         )}
       >
         <span
-          className="w-0.5 bg-border rounded-full min-h-[40px] self-center"
+          className="w-0.5 bg-[#E2E8F0] rounded-full min-h-[40px] self-center"
           aria-hidden
         />
       </div>

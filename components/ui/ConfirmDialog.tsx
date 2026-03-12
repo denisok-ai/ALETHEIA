@@ -55,7 +55,7 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {description && (
-          <p className="text-sm text-text-muted mt-1">{description}</p>
+          <p className="text-sm text-[var(--portal-text-muted)] mt-1">{description}</p>
         )}
         <div className="mt-6 flex justify-end gap-3">
           <Button

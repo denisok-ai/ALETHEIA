@@ -88,8 +88,8 @@ export function PublicationViewClient({
   const avgRating = currentRatingCount > 0 ? (currentRatingSum / currentRatingCount).toFixed(1) : null;
 
   return (
-    <div className="mt-8 space-y-6 border-t border-border pt-6">
-      <div className="flex flex-wrap items-center gap-4 text-sm text-text-muted">
+    <div className="mt-8 space-y-6 border-t border-[#E2E8F0] pt-6">
+      <div className="flex flex-wrap items-center gap-4 text-sm text-[var(--portal-text-muted)]">
         <span>Просмотров: {viewsCount}</span>
         {allowRating && (
           <span className="flex items-center gap-1">
@@ -112,7 +112,7 @@ export function PublicationViewClient({
 
       {allowComments && (
         <section>
-          <h2 className="flex items-center gap-2 text-lg font-semibold text-dark">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-[var(--portal-text)]">
             <MessageCircle className="h-5 w-5" /> Комментарии
           </h2>
           <form onSubmit={handleSubmitComment} className="mt-3 space-y-2">
@@ -121,7 +121,7 @@ export function PublicationViewClient({
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
               placeholder="Ваше имя (необязательно)"
-              className="w-full max-w-xs rounded-lg border border-border px-3 py-2 text-sm"
+              className="w-full max-w-xs rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
             />
             <textarea
               value={commentValue}
@@ -129,7 +129,7 @@ export function PublicationViewClient({
               placeholder="Текст комментария"
               rows={3}
               required
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
             />
             <Button type="submit" size="sm" disabled={submittingComment}>
               {submittingComment ? 'Отправка…' : 'Отправить'}
@@ -137,10 +137,10 @@ export function PublicationViewClient({
           </form>
           <ul className="mt-4 space-y-3">
             {comments.map((c) => (
-              <li key={c.id} className="rounded-lg border border-border bg-bg-soft/50 p-3 text-sm">
-                <p className="font-medium text-dark">{c.authorName}</p>
-                <p className="mt-0.5 text-text-muted">{c.content}</p>
-                <time className="text-xs text-text-soft">
+              <li key={c.id} className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-sm">
+                <p className="font-medium text-[var(--portal-text)]">{c.authorName}</p>
+                <p className="mt-0.5 text-[var(--portal-text-muted)]">{c.content}</p>
+                <time className="text-xs text-[var(--portal-text-soft)]">
                   {new Date(c.createdAt).toLocaleString('ru')}
                 </time>
               </li>

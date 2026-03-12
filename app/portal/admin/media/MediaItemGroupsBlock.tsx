@@ -78,17 +78,17 @@ export function MediaItemGroupsBlock({ mediaId }: { mediaId: string }) {
   const availableGroups = allGroups.filter((g) => !alreadyIds.has(g.id));
 
   if (loading) {
-    return <p className="text-sm text-text-muted">Загрузка групп…</p>;
+    return <p className="text-sm text-[var(--portal-text-muted)]">Загрузка групп…</p>;
   }
 
   return (
-    <div className="space-y-2 pt-2 border-t border-border">
-      <h4 className="text-sm font-medium text-dark">Группы ресурса</h4>
+    <div className="space-y-2 pt-2 border-t border-[#E2E8F0]">
+      <h4 className="text-sm font-medium text-[var(--portal-text)]">Группы ресурса</h4>
       <div className="flex flex-wrap items-end gap-2">
         <select
           value={selectedGroupId}
           onChange={(e) => setSelectedGroupId(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm min-w-[160px]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-w-[160px] focus:ring-2 focus:ring-[#6366F1]"
         >
           <option value="">— Выберите группу</option>
           {availableGroups.map((g) => (
@@ -100,7 +100,7 @@ export function MediaItemGroupsBlock({ mediaId }: { mediaId: string }) {
         </Button>
       </div>
       {groups.length === 0 ? (
-        <p className="text-xs text-text-muted flex items-center gap-1">
+        <p className="text-xs text-[var(--portal-text-muted)] flex items-center gap-1">
           <Folder className="h-3.5 w-3.5" /> Не входит ни в одну группу
         </p>
       ) : (

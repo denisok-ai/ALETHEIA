@@ -14,8 +14,8 @@ export default async function StudentSupportPage() {
   if (!userId) {
     return (
       <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Поддержка</h1>
-        <p className="mt-2 text-text-muted">Загрузка…</p>
+        <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Поддержка</h1>
+        <p className="mt-2 text-[var(--portal-text-muted)]">Загрузка…</p>
       </div>
     );
   }
@@ -35,8 +35,8 @@ export default async function StudentSupportPage() {
   return (
     <div>
       <Breadcrumbs items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Поддержка' }]} />
-      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Поддержка</h1>
-      <p className="mt-1 text-text-muted">Ваши обращения и заявки</p>
+      <h1 className="mt-2 font-heading text-2xl font-bold text-[var(--portal-text)]">Поддержка</h1>
+      <p className="mt-1 text-[var(--portal-text-muted)]">Ваши обращения и заявки</p>
       <SupportTicketsClient initialTickets={initialTickets} />
     </div>
   );

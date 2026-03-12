@@ -74,7 +74,7 @@ export function About() {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.05 }}
-              className="mt-2 font-heading text-3xl font-semibold text-dark sm:text-4xl"
+              className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl"
             >
               Более 20 лет мы помогаем обрести баланс
             </motion.h2>
@@ -82,7 +82,7 @@ export function About() {
               initial={{ opacity: 0, y: 20 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.1 }}
-              className="mt-5 max-w-2xl leading-relaxed text-text-muted"
+              className="mt-5 max-w-2xl leading-relaxed text-[var(--portal-text-muted)]"
             >
               Более 15 000 человек прошли наши программы. Кинезиология и работа с подсознанием — в формате, который подходит именно вам.
             </motion.p>
@@ -100,10 +100,10 @@ export function About() {
               <TiltCard maxTilt={8} className="h-full">
                 <div className="rounded-2xl border border-lavender-soft/50 bg-white/90 p-7 backdrop-blur-xl transition-all hover:border-accent/40 hover:bg-lavender-light/30 h-full flex flex-col md:p-8">
                   <card.icon className="h-8 w-8 text-accent mb-4" />
-                  <h3 className="font-heading text-lg font-semibold text-dark">
+                  <h3 className="font-heading text-lg font-semibold text-[var(--portal-text)]">
                     {card.title}
                   </h3>
-                  <p className="mt-2 text-sm text-text-muted flex-1">{card.text}</p>
+                  <p className="mt-2 text-sm text-[var(--portal-text-muted)] flex-1">{card.text}</p>
                 </div>
               </TiltCard>
             </motion.div>

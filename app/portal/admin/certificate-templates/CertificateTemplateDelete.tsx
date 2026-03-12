@@ -33,8 +33,8 @@ export function CertificateTemplateDelete({ templateId, templateName }: { templa
     <Card>
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="font-medium text-dark">Удалить шаблон</h3>
-          <p className="text-sm text-text-muted">Действие необратимо. Шаблон не должен использоваться в выданных сертификатах.</p>
+          <h3 className="font-medium text-[var(--portal-text)]">Удалить шаблон</h3>
+          <p className="text-sm text-[var(--portal-text-muted)]">Действие необратимо. Шаблон не должен использоваться в выданных сертификатах.</p>
         </div>
         <Button variant="danger" size="sm" onClick={() => setOpen(true)}>
           <Trash2 className="h-4 w-4 mr-1" /> Удалить

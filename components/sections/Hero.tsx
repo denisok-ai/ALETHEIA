@@ -45,7 +45,7 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="relative z-10 w-full max-w-lg shrink-0 rounded-3xl bg-primary/80 px-6 py-8 shadow-2xl backdrop-blur-md md:px-8 md:py-9 lg:mr-[-2rem]"
+            className="relative z-10 w-full max-w-lg shrink-0 rounded-3xl bg-[#6366F1]/80 px-6 py-8 shadow-2xl backdrop-blur-md md:px-8 md:py-9 lg:mr-[-2rem]"
           >
             <p className="text-sm font-medium uppercase tracking-[0.2em] text-white/95">
               Phygital школа мышечного тестирования
@@ -60,7 +60,7 @@ export function Hero() {
               <Link href="#pricing">
                 <Button
                   size="lg"
-                  className="min-w-[200px] rounded-xl bg-secondary font-semibold text-dark shadow-lg hover:bg-secondary/90"
+                  className="min-w-[200px] rounded-xl bg-secondary font-semibold text-[var(--portal-text)] shadow-lg hover:bg-secondary/90"
                 >
                   Купить курс
                 </Button>

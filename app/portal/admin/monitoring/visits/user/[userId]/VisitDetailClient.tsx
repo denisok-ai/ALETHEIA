@@ -70,8 +70,8 @@ export function VisitDetailClient({ userId }: { userId: string }) {
   return (
     <Card className="p-4">
       {data && (
-        <p className="mb-4 text-sm text-text-muted">
-          Пользователь: <span className="font-medium text-dark">{data.displayName || data.userId}</span>
+        <p className="mb-4 text-sm text-[var(--portal-text-muted)]">
+          Пользователь: <span className="font-medium text-[var(--portal-text)]">{data.displayName || data.userId}</span>
         </p>
       )}
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -81,7 +81,7 @@ export function VisitDetailClient({ userId }: { userId: string }) {
             type="date"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
-            className="rounded border border-border bg-white px-2 py-1.5 text-sm"
+            className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm"
           />
         </label>
         <label className="flex items-center gap-2 text-sm">
@@ -90,7 +90,7 @@ export function VisitDetailClient({ userId }: { userId: string }) {
             type="date"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
-            className="rounded border border-border bg-white px-2 py-1.5 text-sm"
+            className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm"
           />
         </label>
         <Button variant="secondary" size="sm" onClick={fetchData} disabled={loading}>
@@ -99,7 +99,7 @@ export function VisitDetailClient({ userId }: { userId: string }) {
         </Button>
       </div>
       {loading && !data?.items?.length ? (
-        <div className="py-8 text-center text-sm text-text-muted">Загрузка...</div>
+        <div className="py-8 text-center text-sm text-[var(--portal-text-muted)]">Загрузка...</div>
       ) : !data?.items?.length ? (
         <EmptyState title="Нет сессий за период" description="Выберите другой период." />
       ) : (
@@ -122,7 +122,7 @@ export function VisitDetailClient({ userId }: { userId: string }) {
                   {row.logoutAt ? format(new Date(row.logoutAt), 'dd.MM.yyyy HH:mm', { locale: ru }) : '—'}
                 </TableCell>
                 <TableCell className="font-mono text-xs">{row.ipAddress ?? '—'}</TableCell>
-                <TableCell className="max-w-[200px] truncate text-xs text-text-muted" title={row.userAgent ?? undefined}>
+                <TableCell className="max-w-[200px] truncate text-xs text-[var(--portal-text-muted)]" title={row.userAgent ?? undefined}>
                   {row.userAgent ?? '—'}
                 </TableCell>
               </TableRow>

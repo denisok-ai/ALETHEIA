@@ -144,7 +144,7 @@ export function NotificationTemplateForm({ templateId }: TemplateFormProps) {
             id="nt-type"
             value={type}
             onChange={(e) => setType(e.target.value as 'internal' | 'email' | 'both')}
-            className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+            className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[#6366F1]"
           >
             <option value="both">Лента и email</option>
             <option value="internal">Только в ленте</option>
@@ -159,7 +159,7 @@ export function NotificationTemplateForm({ templateId }: TemplateFormProps) {
             onChange={(e) => setBody(e.target.value)}
             rows={8}
             required
-            className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm font-mono"
+            className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[#6366F1] font-mono"
           />
         </div>
         <div className="flex flex-wrap items-center gap-3">

@@ -86,16 +86,16 @@ export function CourseCertificatesBlock({
   const downloadUrl = (certId: string) => `/api/portal/admin/certificates/${certId}/download`;
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
-      <h2 className="text-lg font-semibold text-dark">Сертификаты курса</h2>
-      <p className="mt-1 text-sm text-text-muted">
+    <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+      <h2 className="text-lg font-semibold text-[var(--portal-text)]">Сертификаты курса</h2>
+      <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
         Список выданных сертификатов по курсу «{courseTitle}». Скачивание PDF и аннулирование.
       </p>
 
       {loading ? (
         <TableSkeleton rows={4} cols={5} className="mt-4" />
       ) : certs.length === 0 ? (
-        <p className="mt-4 text-sm text-text-muted">По этому курсу сертификаты ещё не выданы.</p>
+        <p className="mt-4 text-sm text-[var(--portal-text-muted)]">По этому курсу сертификаты ещё не выданы.</p>
       ) : (
         <div className="mt-4 overflow-x-auto">
           <Table>
@@ -115,12 +115,12 @@ export function CourseCertificatesBlock({
                   <TableCell>
                     <Link
                       href={`/portal/admin/users/${c.userId}`}
-                      className="text-primary hover:underline"
+                      className="text-[#6366F1] hover:underline"
                     >
                       {c.displayName || c.userEmail || c.userId}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-text-muted">
+                  <TableCell className="text-[var(--portal-text-muted)]">
                     {format(new Date(c.issuedAt), 'dd.MM.yyyy HH:mm')}
                   </TableCell>
                   <TableCell>
@@ -136,7 +136,7 @@ export function CourseCertificatesBlock({
                         href={downloadUrl(c.id)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-bg-soft hover:text-primary"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--portal-text-muted)] hover:bg-[#F1F5F9] hover:text-[#6366F1]"
                         title="Скачать PDF"
                       >
                         <Download className="h-4 w-4" />

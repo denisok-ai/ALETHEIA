@@ -51,8 +51,8 @@ cd /opt/ALETHEIA   # или ваш путь к проекту
 # Обновить код
 git pull origin main
 
-# Зависимости (на проде лучше без dev)
-npm ci --omit=dev
+# Зависимости (для сборки нужны и devDependencies)
+npm ci
 # или: npm install
 
 # Prisma
@@ -140,3 +140,74 @@ ssh -L 9229:127.0.0.1:9229 user@IP_СЕРВЕРА
 | 5 | Для отладки: `npm run start:debug` и подключение по порту 9229 (лучше через SSH-туннель) |
 
 Подробнее про деплой и Nginx: **docs/Deploy.md**, про текущий прод-сервер: **docs/Production-Server.md**.
+
+---
+
+## Устранение неполадок на сервере
+
+### Ошибки: «Could not find Prisma Schema», «vite build», «aletheia@0.1.0»
+
+Если при выполнении шагов выше появляются:
+
+- `Could not find Prisma Schema` (нет `prisma/schema.prisma`);
+- `npm run build` запускает **vite build** вместо **next build**;
+- в `package.json` указано имя `aletheia` и скрипт `vite build`,
+
+значит в каталоге на сервере (например `/opt/ALETHEIA`) лежит **другой проект**, а не этот (Next.js + Prisma, имя `avaterra-course`, сборка `next build`).
+
+**Что сделать:**
+
+1. **Проверить содержимое на сервере:**
+   ```bash
+   cd /opt/ALETHEIA
+   cat package.json | grep -E '"name"|"build"'
+   ls -la prisma/
+   ```
+   Должно быть: `"name": "avaterra-course"`, в scripts — `"build": "next build"`, каталог `prisma/` с файлом `schema.prisma`.
+
+2. **Вариант А — переключить на правильный репозиторий и подтянуть код:**
+   ```bash
+   cd /opt/ALETHEIA
+   git remote -v
+   # Если remote ведёт не в ваш репозиторий с AVATERRA (Next.js + Prisma), поменять:
+   # git remote set-url origin https://github.com/ВАШ_ЛОГИН/AVATERRA.git
+   git fetch origin
+   git checkout main
+   git reset --hard origin/main
+   git pull origin main
+   ls prisma/schema.prisma   # должен существовать
+   ```
+
+3. **Вариант Б — развернуть проект заново в новую папку:**
+   ```bash
+   cd /opt
+   sudo mv ALETHEIA ALETHEIA.old
+   sudo git clone https://github.com/ВАШ_ЛОГИН/AVATERRA.git ALETHEIA
+   cd ALETHEIA
+   ```
+   Дальше выполнить шаги из раздела «На сервере» выше (переменные окружения скопировать из старой папки или создать заново).
+
+4. **Убедиться, что на GitHub есть папка `prisma/`.** Если на сервере после `git pull` нет `prisma/schema.prisma`, значит коммиты с Prisma не запушены. **На своей машине** (где есть полный проект):
+   ```bash
+   git status
+   git push origin main
+   ```
+   Затем на сервере снова: `git pull origin main`, проверить `ls prisma/schema.prisma`.
+
+5. **Создать на сервере файл `.env`** (без него `prisma migrate deploy` выдаст «Environment variable not found: DATABASE_URL»). Минимум:
+   ```bash
+   cd /opt/ALETHEIA
+   cp .env.example .env
+   nano .env   # задать DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, NEXT_PUBLIC_URL
+   ```
+   Для быстрого старта с SQLite: `DATABASE_URL="file:./dev.db"` (БД будет в `prisma/dev.db`). Для прода лучше PostgreSQL — см. docs/Deploy.md.
+
+6. **После того как в каталоге есть `prisma/schema.prisma` и `.env`:**
+   ```bash
+   npm ci
+   npx prisma generate
+   npx prisma migrate deploy
+   npm run build
+   npm run start
+   ```
+   Для сборки нужны все зависимости (в т.ч. dev), поэтому используется `npm ci` без `--omit=dev`.

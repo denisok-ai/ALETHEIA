@@ -29,6 +29,24 @@ export default function ScormPlayPage() {
   const [error, setError] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const apiInitialized = useRef<string | null>(null);
+  const refreshProgressRef = useRef<() => void>(() => {});
+
+  const refreshProgress = useCallback(async () => {
+    const res = await fetch(
+      `/api/portal/scorm/progress/all?courseId=${encodeURIComponent(courseId)}`
+    );
+    if (!res.ok) return;
+    const data = (await res.json()) as { progress: ProgressItem[] };
+    const byLesson: Record<string, ProgressItem> = {};
+    for (const p of data.progress) {
+      byLesson[p.lesson_id] = p;
+    }
+    setProgressByLesson(byLesson);
+  }, [courseId]);
+
+  useEffect(() => {
+    refreshProgressRef.current = refreshProgress;
+  }, [refreshProgress]);
 
   const initApiForLesson = useCallback(
     async (lessonId: string, url: string, scormVersion: string, cmiData: Record<string, unknown>) => {
@@ -41,33 +59,32 @@ export default function ScormPlayPage() {
       const xhrHandler = (xhr: XMLHttpRequest) => {
         try {
           const json = JSON.parse(xhr.responseText || '{}');
+          if (json.success) refreshProgressRef.current?.();
           return { result: !!json.success, errorCode: 0 };
         } catch {
           return { result: false, errorCode: 101 };
         }
       };
 
+      const commonOptions = {
+        lmsCommitUrl: commitUrl,
+        autocommit: true,
+        autocommitSeconds: 15,
+        requestHandler,
+        xhrResponseHandler: xhrHandler,
+        renderCommonCommitFields: true as const,
+        sendFullCommit: true as const,
+      };
+
       if (scormVersion === '2004') {
         const { Scorm2004API } = await import('scorm-again');
-        const api = new Scorm2004API({
-          lmsCommitUrl: commitUrl,
-          autocommit: true,
-          autocommitSeconds: 30,
-          requestHandler,
-          xhrResponseHandler: xhrHandler,
-        });
+        const api = new Scorm2004API(commonOptions);
         if (Object.keys(cmiData).length > 0) api.loadFromJSON(cmiData as Record<string, unknown>);
         (window as unknown as { API_1484_11?: unknown }).API_1484_11 = api;
         (window as unknown as { API?: unknown }).API = undefined;
       } else {
         const { Scorm12API } = await import('scorm-again');
-        const api = new Scorm12API({
-          lmsCommitUrl: commitUrl,
-          autocommit: true,
-          autocommitSeconds: 30,
-          requestHandler,
-          xhrResponseHandler: xhrHandler,
-        });
+        const api = new Scorm12API(commonOptions);
         if (Object.keys(cmiData).length > 0) api.loadFromJSON(cmiData as Record<string, unknown>);
         (window as unknown as { API?: unknown }).API = api;
         (window as unknown as { API_1484_11?: unknown }).API_1484_11 = undefined;
@@ -172,36 +189,26 @@ export default function ScormPlayPage() {
     [courseId, structure, currentLessonId, initApiForLesson]
   );
 
-  const refreshProgress = useCallback(async () => {
-    const res = await fetch(
-      `/api/portal/scorm/progress/all?courseId=${encodeURIComponent(courseId)}`
-    );
-    if (!res.ok) return;
-    const data = (await res.json()) as { progress: ProgressItem[] };
-    const byLesson: Record<string, ProgressItem> = {};
-    for (const p of data.progress) {
-      byLesson[p.lesson_id] = p;
-    }
-    setProgressByLesson(byLesson);
-  }, [courseId]);
-
   useEffect(() => {
     if (!structure || !scormUrl) return;
     const t = setInterval(refreshProgress, 15000);
     return () => clearInterval(t);
   }, [structure, scormUrl, refreshProgress]);
 
+  const isCompleted = (status: string | null | undefined) =>
+    status === 'completed' || status === 'passed';
+
   const navItems: ScoItem[] =
     structure?.items.map((it) => {
       const p = progressByLesson[it.identifier];
       let status: ScoStatus = 'not_started';
-      if (p?.completion_status === 'completed') status = 'completed';
+      if (p && isCompleted(p.completion_status)) status = 'completed';
       else if (it.identifier === currentLessonId || p) status = 'in_progress';
       return { ...it, status };
     }) ?? [];
 
-  const completedCount = Object.values(progressByLesson).filter(
-    (p) => p.completion_status === 'completed'
+  const completedCount = Object.values(progressByLesson).filter((p) =>
+    isCompleted(p.completion_status)
   ).length;
   const totalCount = structure?.items.length ?? 1;
 
@@ -209,18 +216,18 @@ export default function ScormPlayPage() {
     const isNoScorm = error.includes('нет загруженного SCORM');
     return (
       <div className="p-6">
-        <p className="text-text-muted">{error}</p>
+        <p className="text-[var(--portal-text-muted)]">{error}</p>
         <div className="mt-4 flex flex-wrap gap-4">
           <Link
             href={`/portal/student/courses/${courseId}`}
-            className="inline-block text-primary hover:underline"
+            className="inline-block text-[#6366F1] hover:underline"
           >
             ← Назад к курсу
           </Link>
           {isNoScorm && (
             <Link
               href={`/portal/admin/courses/${courseId}`}
-              className="inline-block text-primary hover:underline"
+              className="inline-block text-[#6366F1] hover:underline"
             >
               Админка → загрузить SCORM
             </Link>
@@ -233,18 +240,18 @@ export default function ScormPlayPage() {
   if (!structure || !scormUrl) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center">
-        <p className="text-text-muted">Загрузка плеера…</p>
+        <p className="text-[var(--portal-text-muted)]">Загрузка плеера…</p>
       </div>
     );
   }
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-white">
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-border bg-bg-cream px-4">
+      <header className="flex h-12 shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-[#F8FAFC] px-4">
         <div className="flex items-center gap-4">
           <Link
             href={`/portal/student/courses/${courseId}`}
-            className="text-sm font-medium text-primary hover:underline"
+            className="text-sm font-medium text-[#6366F1] hover:underline"
           >
             ← Выход из курса
           </Link>

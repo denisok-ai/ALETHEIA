@@ -1,19 +1,18 @@
 /**
- * Manager: Phygital homework verification queue — approve/reject.
+ * Manager: Phygital homework verification queue. Portal design.
  */
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
+import { PageHeader } from '@/components/portal/PageHeader';
 import { VerificationsList } from './VerificationsList';
 
 export default async function ManagerVerificationsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return (
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Верификация заданий</h1>
-        <p className="mt-2 text-text-muted">База данных недоступна.</p>
+      <div className="portal-card p-6 max-w-2xl">
+        <p className="text-[var(--portal-text-muted)]">База данных недоступна.</p>
       </div>
     );
   }
@@ -44,10 +43,12 @@ export default async function ManagerVerificationsPage() {
   }));
 
   return (
-    <div>
-      <Breadcrumbs items={[{ href: '/portal/manager/dashboard', label: 'Дашборд' }, { label: 'Верификация заданий' }]} />
-      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Верификация заданий</h1>
-      <p className="mt-1 text-text-muted">Очередь видео на проверку, одобрить / отклонить</p>
+    <div className="space-y-6 max-w-4xl">
+      <PageHeader
+        items={[{ href: '/portal/manager/dashboard', label: 'Дашборд' }, { label: 'Верификация заданий' }]}
+        title="Верификация заданий"
+        description="Очередь видео на проверку, одобрить / отклонить"
+      />
       <VerificationsList items={list} profileMap={profileMap} />
     </div>
   );

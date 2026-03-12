@@ -110,9 +110,9 @@ export function PaymentModal({ isOpen, onClose, tariff }: PaymentModalProps) {
               className="mt-1"
             />
           </div>
-          <div className="rounded-lg bg-bg-soft p-4">
+          <div className="rounded-lg bg-[#F1F5F9] p-4">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-dark">Итого:</span>
+              <span className="font-semibold text-[var(--portal-text)]">Итого:</span>
               <span className="text-2xl font-bold text-accent">
                 {tariff.price.toLocaleString('ru-RU')} ₽
               </span>
@@ -133,7 +133,7 @@ export function PaymentModal({ isOpen, onClose, tariff }: PaymentModalProps) {
               'Перейти к оплате'
             )}
           </Button>
-          <p className="text-xs text-text-muted text-center">
+          <p className="text-xs text-[var(--portal-text-muted)] text-center">
             Нажимая кнопку, вы соглашаетесь с{' '}
             <a href="/oferta" className="underline hover:text-accent">офертой</a>{' '}
             и{' '}

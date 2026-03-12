@@ -52,7 +52,7 @@ export function Author() {
                     const target = e.target as HTMLImageElement;
                     target.style.display = 'none';
                     const parent = target.closest('div');
-                    if (parent) parent.classList.add('min-h-[400px]', 'bg-bg-cream');
+                    if (parent) parent.classList.add('min-h-[400px]', 'bg-[#F8FAFC]');
                   }}
                 />
               </div>
@@ -67,15 +67,15 @@ export function Author() {
             <span className="block text-sm font-semibold uppercase tracking-widest text-accent">
               Основательница и ведущий мастер
             </span>
-            <h2 className="mt-2 font-heading text-3xl font-semibold text-dark sm:text-4xl">
+            <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl">
               Татьяна Стрельцова
             </h2>
-            <p className="mt-2 text-text-muted">22 года практики · более 15 000 консультаций</p>
-            <p className="mt-7 text-text-muted leading-relaxed">
+            <p className="mt-2 text-[var(--portal-text-muted)]">22 года практики · более 15 000 консультаций</p>
+            <p className="mt-7 text-[var(--portal-text-muted)] leading-relaxed">
               С 2004 года я практикую кинезиологию и мышечный тест, помогая людям обрести внутренний баланс и силу жизни. AVATERRA — это уникальная методика, которая получила признание среди коллег и экспертов.
             </p>
             {isInView && (
-              <p className="mt-6 border-l-4 border-accent pl-4 font-heading text-lg italic text-dark">
+              <p className="mt-6 border-l-4 border-accent pl-4 font-heading text-lg italic text-[var(--portal-text)]">
                 <Typewriter text={quote} speed={50} delay={800} cursor={false} />
               </p>
             )}

@@ -112,11 +112,11 @@ export function UserDetailClient({
 
   return (
     <>
-      <div className="rounded-xl border border-border bg-white p-4">
-        <h2 className="text-lg font-semibold text-dark">Профиль</h2>
+      <div className="portal-card p-4">
+        <h2 className="text-lg font-semibold text-[var(--portal-text)]">Профиль</h2>
         <div className="mt-3 space-y-3">
           <div>
-            <Label className="text-text-muted">Имя</Label>
+            <Label className="text-[var(--portal-text-muted)]">Имя</Label>
             <Input
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
@@ -125,7 +125,7 @@ export function UserDetailClient({
             />
           </div>
           <div>
-            <Label className="text-text-muted">Email (профиль)</Label>
+            <Label className="text-[var(--portal-text-muted)]">Email (профиль)</Label>
             <Input
               type="email"
               value={email}
@@ -138,14 +138,14 @@ export function UserDetailClient({
             {savingProfile ? 'Сохранение…' : 'Сохранить профиль'}
           </Button>
         </div>
-        <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-border pt-4">
+        <div className="mt-4 flex flex-wrap items-center gap-4 border-t border-[#E2E8F0] pt-4">
           <div>
-            <Label className="text-sm text-text-muted">Роль</Label>
+            <Label className="text-sm text-[var(--portal-text-muted)]">Роль</Label>
             <select
               value={role}
               onChange={handleRoleChange}
               disabled={updating}
-              className="ml-2 rounded border border-border bg-white px-2 py-1 text-sm"
+              className="ml-2 rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm"
             >
               {ROLES.map((r) => (
                 <option key={r} value={r}>{r}</option>
@@ -153,12 +153,12 @@ export function UserDetailClient({
             </select>
           </div>
           <div>
-            <Label className="text-sm text-text-muted">Статус</Label>
+            <Label className="text-sm text-[var(--portal-text-muted)]">Статус</Label>
             <select
               value={status}
               onChange={handleStatusChange}
               disabled={updating}
-              className="ml-2 rounded border border-border bg-white px-2 py-1 text-sm"
+              className="ml-2 rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm"
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>{s}</option>

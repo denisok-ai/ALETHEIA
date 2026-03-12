@@ -70,16 +70,16 @@ export function ChatBot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="fixed bottom-20 right-4 z-50 w-[calc(100vw-2rem)] max-w-md rounded-t-[1.75rem] rounded-b-xl border border-border/80 bg-white/95 shadow-[var(--shadow-card)] backdrop-blur-md md:bottom-24 md:right-6"
+            className="fixed bottom-20 right-4 z-50 w-[calc(100vw-2rem)] max-w-md rounded-t-[1.75rem] rounded-b-xl border border-[#E2E8F0] bg-white/95 shadow-[var(--shadow-card)] backdrop-blur-md md:bottom-24 md:right-6"
           >
-            <div className="flex items-center justify-between border-b border-border/80 px-5 py-4 rounded-t-[1.75rem] bg-white">
-              <span className="font-bold text-dark text-base">
+            <div className="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4 rounded-t-[1.75rem] bg-white">
+              <span className="font-bold text-[var(--portal-text)] text-base">
                 Консультант курса «Тело не врёт»
               </span>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
-                className="rounded-full p-2 text-text-muted hover:bg-black/5 hover:text-dark transition-colors"
+                className="rounded-full p-2 text-[var(--portal-text-muted)] hover:bg-black/5 hover:text-[var(--portal-text)] transition-colors"
                 aria-label="Закрыть чат"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -92,7 +92,7 @@ export function ChatBot() {
               className="h-80 overflow-y-auto p-5 space-y-4 bg-white"
             >
               {messages.length === 0 && (
-                <p className="text-sm text-dark">
+                <p className="text-sm text-[var(--portal-text)]">
                   Задайте любой вопрос о курсе, здоровье, усталости, страхах, деньгах или отношениях. Я отвечу по базе знаний курса.
                 </p>
               )}
@@ -102,8 +102,8 @@ export function ChatBot() {
                   className={cn(
                     'rounded-xl px-4 py-3 text-sm max-w-[90%]',
                     m.role === 'user'
-                      ? 'ml-auto bg-[var(--lavender-soft)] text-dark'
-                      : 'mr-auto bg-[var(--lavender-light)] text-dark'
+                      ? 'ml-auto bg-[var(--lavender-soft)] text-[var(--portal-text)]'
+                      : 'mr-auto bg-[var(--lavender-light)] text-[var(--portal-text)]'
                   )}
                 >
                   {m.role === 'user' ? (
@@ -116,12 +116,12 @@ export function ChatBot() {
                 </div>
               ))}
               {loading && (
-                <div className="mr-auto rounded-xl px-3 py-2 text-sm bg-[var(--lavender-light)] text-text-muted">
+                <div className="mr-auto rounded-xl px-3 py-2 text-sm bg-[var(--lavender-light)] text-[var(--portal-text-muted)]">
                   Думаю…
                 </div>
               )}
             </div>
-            <div className="border-t border-border/80 p-4 rounded-b-xl bg-white">
+            <div className="border-t border-[#E2E8F0] p-4 rounded-b-xl bg-white">
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -129,7 +129,7 @@ export function ChatBot() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && send()}
                   placeholder="Напишите вопрос..."
-                  className="flex-1 rounded-xl border border-border bg-bg px-3 py-2.5 text-sm placeholder:text-text-soft focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent"
+                  className="flex-1 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2.5 text-sm placeholder:text-[var(--portal-text-soft)] focus:outline-none focus:ring-2 focus:ring-[#6366F1]/50 focus:border-[#6366F1]"
                   disabled={loading}
                 />
                 <Button
@@ -143,7 +143,7 @@ export function ChatBot() {
                   Отправить
                 </Button>
               </div>
-              <p className="mt-2 text-xs text-text-muted">
+              <p className="mt-2 text-xs text-[var(--portal-text-muted)]">
                 Ответы по базе знаний курса. Не заменяют консультацию врача.
               </p>
             </div>

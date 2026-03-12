@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
     where: {
       courseId,
       lessonId: { in: requiredLessonIds },
-      completionStatus: 'completed',
+      completionStatus: { in: ['completed', 'passed'] },
       ...(filterUserIds?.length ? { userId: { in: filterUserIds } } : {}),
     },
     _count: { lessonId: true },

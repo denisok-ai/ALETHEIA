@@ -198,7 +198,7 @@ export function PublicationsAdminClient({
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white focus:ring-2 focus:ring-[#6366F1] px-3 py-2 text-sm"
         >
           <option value="all">Все типы</option>
           <option value="news">Новость</option>
@@ -209,7 +209,8 @@ export function PublicationsAdminClient({
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      <div className="portal-card overflow-hidden p-0">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -236,12 +237,12 @@ export function PublicationsAdminClient({
             ) : (
               filtered.map((p, idx) => (
                 <TableRow key={p.id}>
-                  <TableCell className="text-text-muted">{idx + 1}</TableCell>
-                  <TableCell className="font-medium text-dark">{p.title}</TableCell>
-                  <TableCell className="text-text-muted">
+                  <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                  <TableCell className="font-medium text-[var(--portal-text)]">{p.title}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">
                     {p.type === 'news' ? 'Новость' : 'Объявление'}
                   </TableCell>
-                  <TableCell className="text-text-muted">
+                  <TableCell className="text-[var(--portal-text-muted)]">
                     {format(new Date(p.publishAt), 'dd.MM.yyyy HH:mm')}
                   </TableCell>
                   <TableCell>
@@ -251,14 +252,14 @@ export function PublicationsAdminClient({
                       <span className="text-amber-600">Закрыта</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right text-text-muted">{p.viewsCount}</TableCell>
+                  <TableCell className="text-right text-[var(--portal-text-muted)]">{p.viewsCount}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <a
                         href={`/news/${p.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-primary"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
                         title="Предпросмотр"
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -266,7 +267,7 @@ export function PublicationsAdminClient({
                       <button
                         type="button"
                         onClick={() => openEdit(p)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-primary"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
                         title="Редактировать"
                       >
                         <Pencil className="h-4 w-4" />
@@ -274,7 +275,7 @@ export function PublicationsAdminClient({
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(p)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-red-600"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-red-600"
                         title="Удалить"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -286,6 +287,7 @@ export function PublicationsAdminClient({
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -310,7 +312,7 @@ export function PublicationsAdminClient({
                 <select
                   value={formType}
                   onChange={(e) => setFormType(e.target.value as 'news' | 'announcement')}
-                  className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white focus:ring-2 focus:ring-[#6366F1] px-3 py-2 text-sm"
                 >
                   <option value="news">Новость</option>
                   <option value="announcement">Объявление</option>
@@ -321,7 +323,7 @@ export function PublicationsAdminClient({
                 <select
                   value={formStatus}
                   onChange={(e) => setFormStatus(e.target.value as 'active' | 'closed')}
-                  className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white focus:ring-2 focus:ring-[#6366F1] px-3 py-2 text-sm"
                 >
                   <option value="active">Действительна</option>
                   <option value="closed">Закрыта</option>
@@ -346,7 +348,7 @@ export function PublicationsAdminClient({
                   value={formTeaser}
                   onChange={(e) => setFormTeaser(e.target.value)}
                   rows={2}
-                  className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
                 />
               </div>
             )}
@@ -358,7 +360,7 @@ export function PublicationsAdminClient({
                 onChange={(e) => setFormContent(e.target.value)}
                 rows={8}
                 required
-                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm font-mono"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] font-mono"
               />
             </div>
             <div>

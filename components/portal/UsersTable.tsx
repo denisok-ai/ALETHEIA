@@ -204,7 +204,7 @@ export function UsersTable({
           checked={table.getIsAllPageRowsSelected()}
           ref={(el) => { if (el) el.indeterminate = table.getIsSomePageRowsSelected(); }}
           onChange={table.getToggleAllPageRowsSelectedHandler()}
-          className="rounded border-border"
+          className="rounded border-[#E2E8F0]"
         />
       ),
       cell: ({ row }) => (
@@ -213,7 +213,7 @@ export function UsersTable({
           checked={row.getIsSelected()}
           disabled={!row.getCanSelect()}
           onChange={row.getToggleSelectedHandler()}
-          className="rounded border-border"
+          className="rounded border-[#E2E8F0]"
         />
       ),
     }),
@@ -223,7 +223,7 @@ export function UsersTable({
         const id = c.row.original.id;
         const v = c.getValue() ?? '—';
         return (
-          <Link href={`/portal/admin/users/${id}`} className="text-primary hover:underline font-medium">
+          <Link href={`/portal/admin/users/${id}`} className="text-[#6366F1] hover:underline font-medium">
             {v}
           </Link>
         );
@@ -235,7 +235,7 @@ export function UsersTable({
         const id = c.row.original.id;
         const v = c.getValue() ?? '—';
         return (
-          <Link href={`/portal/admin/users/${id}`} className="text-primary hover:underline">
+          <Link href={`/portal/admin/users/${id}`} className="text-[#6366F1] hover:underline">
             {v}
           </Link>
         );
@@ -249,7 +249,7 @@ export function UsersTable({
           value={row.original.role}
           onChange={(e) => handleRoleChange(row.original.id, e.target.value)}
           disabled={updating === row.original.id}
-          className="rounded border border-border bg-white px-2 py-1 text-sm"
+          className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
         >
           {ROLES.map((r) => (
             <option key={r} value={r}>{r}</option>
@@ -265,7 +265,7 @@ export function UsersTable({
           value={row.original.status}
           onChange={(e) => handleStatusChange(row.original.id, e.target.value)}
           disabled={updating === row.original.id}
-          className="rounded border border-border bg-white px-2 py-1 text-sm"
+          className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>{s}</option>
@@ -338,7 +338,7 @@ export function UsersTable({
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
         >
           <option value="all">Все статусы</option>
           <option value="active">Активные</option>
@@ -347,7 +347,7 @@ export function UsersTable({
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
         >
           <option value="all">Все роли</option>
           {ROLES.map((r) => (
@@ -360,12 +360,12 @@ export function UsersTable({
         </Button>
       </div>
       {selectedCount > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-          <span className="text-sm font-medium text-dark">
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+          <span className="text-sm font-medium text-[var(--portal-text)]">
             <Users className="mr-1 inline h-4 w-4" />
             Выбрано: {selectedCount}
           </span>
-          <span className="text-sm text-text-muted">Сменить роль:</span>
+          <span className="text-sm text-[var(--portal-text-muted)]">Сменить роль:</span>
           {ROLES.map((r) => (
             <Button
               key={r}
@@ -377,7 +377,7 @@ export function UsersTable({
               {r}
             </Button>
           ))}
-          <span className="text-sm text-text-muted">Сменить статус:</span>
+          <span className="text-sm text-[var(--portal-text-muted)]">Сменить статус:</span>
           {STATUSES.map((s) => (
             <Button
               key={s}
@@ -391,7 +391,7 @@ export function UsersTable({
           ))}
           {(onAddSelectedToGroup || onRemoveSelectedFromGroup) && (
             <>
-              <span className="text-sm text-text-muted ml-2">Группы:</span>
+              <span className="text-sm text-[var(--portal-text-muted)] ml-2">Группы:</span>
               {onAddSelectedToGroup && (
                 <Button
                   size="sm"
@@ -428,7 +428,8 @@ export function UsersTable({
           confirmLabel="Добавить"
         />
       )}
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      <div className="portal-card overflow-hidden p-0">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
@@ -465,10 +466,11 @@ export function UsersTable({
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
       {table.getPageCount() > 1 && (
         <div className="mt-3 flex items-center justify-between">
-          <p className="text-sm text-text-muted">
+          <p className="text-sm text-[var(--portal-text-muted)]">
             Строк {table.getRowModel().rows.length} из {filteredData.length}
           </p>
           <div className="flex gap-2">

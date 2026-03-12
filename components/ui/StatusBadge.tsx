@@ -21,21 +21,21 @@ export type StatusVariant =
   | 'default';
 
 const variantStyles: Record<StatusVariant, string> = {
-  new: 'bg-primary/10 text-primary border-primary/20',
+  new: 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]',
   active: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
-  archived: 'bg-text-muted/10 text-text-muted border-border',
+  archived: 'bg-[#F1F5F9] text-[var(--portal-text-muted)] border-[#E2E8F0]',
   draft: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
   published: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
   pending: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
   open: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
   in_progress: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
   resolved: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
-  closed: 'bg-text-muted/10 text-text-muted border-border',
+  closed: 'bg-[#F1F5F9] text-[var(--portal-text-muted)] border-[#E2E8F0]',
   contacted: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
   qualified: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
-  converted: 'bg-primary/10 text-primary border-primary/20',
+  converted: 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]',
   paid: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
-  default: 'bg-bg-cream text-text border-border',
+  default: 'bg-[#F8FAFC] text-[var(--portal-text)] border-[#E2E8F0]',
 };
 
 const defaultLabels: Partial<Record<StatusVariant, string>> = {

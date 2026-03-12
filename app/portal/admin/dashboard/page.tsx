@@ -21,8 +21,8 @@ export default async function AdminDashboardPage({
   if (!session?.user) {
     return (
       <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Дашборд администратора</h1>
-        <p className="mt-2 text-text-muted">База данных недоступна.</p>
+        <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Дашборд администратора</h1>
+        <p className="mt-2 text-[var(--portal-text-muted)]">База данных недоступна.</p>
       </div>
     );
   }
@@ -172,56 +172,80 @@ export default async function AdminDashboardPage({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-7xl">
       <PageHeader
         items={[{ label: 'Дашборд' }]}
-        title="Дашборд администратора"
-        description="Метрики и последние события"
+        title="Дашборд"
+        description="Сводная аналитика и последние события"
       />
+
+      {/* Быстрый доступ */}
       <QuickAccessSection />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Card>
-          <p className="text-sm text-text-muted">Активных пользователей</p>
-          <p className="text-2xl font-bold text-dark">{usersCount}</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-text-muted">Курсов</p>
-          <p className="text-2xl font-bold text-dark">{coursesCount}</p>
-        </Card>
-        <Card className="border-2 border-primary/30 bg-primary/5 shadow-sm">
-          <p className="text-sm font-medium text-primary">Выручка (мес.)</p>
-          <p className="text-3xl font-bold text-dark">{revenueMonth.toLocaleString('ru')} ₽</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-text-muted">Открытых тикетов</p>
-          <p className="text-2xl font-bold text-dark">{ticketsCount}</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-text-muted">Новых лидов</p>
-          <p className="text-2xl font-bold text-dark">{leadsCount}</p>
-        </Card>
+
+      {/* Главные KPI */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
+        {/* Выручка — акцентная indigo */}
+        <div
+          className="portal-card p-5 col-span-2 lg:col-span-1 flex items-center gap-4"
+          style={{
+            background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)',
+            borderColor: '#C7D2FE',
+          }}
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl
+            bg-[#6366F1] text-white shadow-sm">
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
+              <path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.182.160.198.144.447.257.706.358V7.249a2.032 2.032 0 00-.892.hands zM10 1a9 9 0 100 18A9 9 0 0010 1zm.75 4.495v.73a3.54 3.54 0 011.516.559c.481.304 1.234.94 1.234 2.216 0 1.275-.753 1.912-1.234 2.216a3.54 3.54 0 01-1.516.559v.73a.75.75 0 01-1.5 0v-.73a3.54 3.54 0 01-1.516-.56C7.253 11.912 6.5 11.275 6.5 10c0-1.275.753-1.912 1.234-2.215a3.54 3.54 0 011.516-.56v-.73a.75.75 0 011.5 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-xs font-semibold text-[#4338CA] mb-0.5">Выручка (мес.)</p>
+            <p className="text-2xl font-bold text-[var(--portal-text)]">{revenueMonth.toLocaleString('ru')} ₽</p>
+          </div>
+        </div>
+
+        <div className="portal-metric">
+          <p className="text-xs text-[var(--portal-text-muted)] mb-1">Пользователей</p>
+          <p className="text-2xl font-bold text-[var(--portal-text)]">{usersCount}</p>
+        </div>
+        <div className="portal-metric">
+          <p className="text-xs text-[var(--portal-text-muted)] mb-1">Курсов</p>
+          <p className="text-2xl font-bold text-[var(--portal-text)]">{coursesCount}</p>
+        </div>
+        <div className="portal-metric">
+          <p className="text-xs text-[var(--portal-text-muted)] mb-1">Открытых тикетов</p>
+          <p className="text-2xl font-bold text-[var(--portal-text)]">{ticketsCount}</p>
+          {ticketsCount > 0 && (
+            <span className="mt-1 status-badge badge-warn">{ticketsCount} требуют ответа</span>
+          )}
+        </div>
+        <div className="portal-metric">
+          <p className="text-xs text-[var(--portal-text-muted)] mb-1">Новых лидов</p>
+          <p className="text-2xl font-bold text-[var(--portal-text)]">{leadsCount}</p>
+        </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <p className="text-sm text-text-muted">SCORM: начали прохождение</p>
-          <p className="text-2xl font-bold text-dark">{scormStarted}</p>
-          <p className="text-xs text-text-muted">уникальных пользователей</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-text-muted">Сертификатов выдано</p>
-          <p className="text-2xl font-bold text-dark">{scormCertificates}</p>
-        </Card>
-        <Card>
-          <p className="text-sm text-text-muted">Средний балл (SCORM)</p>
-          <p className="text-2xl font-bold text-dark">
-            {scormAvgScore._avg.score != null ? Math.round(scormAvgScore._avg.score) : '—'}%
+      {/* Метрики обучения */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="portal-metric">
+          <p className="text-xs text-[var(--portal-text-muted)] mb-1">Начали обучение</p>
+          <p className="text-2xl font-bold text-[var(--portal-text)]">{scormStarted}</p>
+          <p className="text-xs text-[var(--portal-text-soft)]">уникальных слушателей</p>
+        </div>
+        <div className="portal-metric">
+          <p className="text-xs text-[var(--portal-text-muted)] mb-1">Сертификатов</p>
+          <p className="text-2xl font-bold text-[var(--portal-text)]">{scormCertificates}</p>
+        </div>
+        <div className="portal-metric">
+          <p className="text-xs text-[var(--portal-text-muted)] mb-1">Средний балл</p>
+          <p className="text-2xl font-bold text-[var(--portal-text)]">
+            {scormAvgScore._avg.score != null ? `${Math.round(scormAvgScore._avg.score)}%` : '—'}
           </p>
-        </Card>
-        <Card>
-          <p className="text-sm text-text-muted">Записей прогресса</p>
-          <p className="text-2xl font-bold text-dark">{scormProgressCount}</p>
-        </Card>
+        </div>
+        <div className="portal-metric">
+          <p className="text-xs text-[var(--portal-text-muted)] mb-1">Записей прогресса</p>
+          <p className="text-2xl font-bold text-[var(--portal-text)]">{scormProgressCount}</p>
+        </div>
       </div>
 
       <DashboardCharts revenueData={chartData} activityData={activityData} />

@@ -55,7 +55,7 @@ export default async function RootLayout({
   const settings = await getSystemSettings();
   return (
     <html lang="ru" className={`${literata.variable} ${outfit.variable}`}>
-      <body className="min-h-screen font-body bg-bg text-dark">
+      <body className="min-h-screen font-body bg-[#F8FAFC] text-[var(--portal-text)]">
         <SessionProvider>
           <Header />
           <main>{children}</main>

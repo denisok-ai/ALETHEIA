@@ -20,6 +20,7 @@
 | Портальный shell и сайдбары | Высокий | Завершена | layout.tsx, PortalHeader, PortalSidebar по ролям |
 | ЛК студента (дашборд, курсы, сертификаты, медиатека, уведомления, профиль) | Высокий | Завершена | Страницы и API |
 | SCORM (плеер, API progress, URL) | Высокий | Завершена | iframe + /api/portal/scorm/* |
+| SCORM: метрики на карточках, passed/completed, обновление после коммита | Средний | Завершена | Парсинг CMI и CommitObject, балл/время на карточке и странице курса, refresh после коммита в плеере; Diary 2026-03-10 |
 | Сертификаты (PDF, выдача, скачивание) | Высокий | Завершена | lib/certificates.tsx, API download |
 | Admin: пользователи (таблица, фильтр) | Высокий | Завершена | UsersTable, TanStack Table |
 | Admin: загрузка SCORM (ZIP) | Высокий | Завершена | POST /api/portal/admin/courses/upload, jszip |
@@ -224,6 +225,29 @@
 | API настроек: поддержка ключей PayKeeper в GET/PATCH | Высокий | Завершена | GET: paykeeper_password/secret только как флаги; PATCH: приём и шифрование; clearPayKeeperConfigCache после сохранения |
 | lib/paykeeper: чтение конфига из БД с fallback на env | Высокий | Завершена | getPayKeeperConfigFromSettings(), кеш 2 мин; createPayKeeperInvoice и webhook используют конфиг из БД или env |
 | Админка: карточка «Платежи (PayKeeper)» с формой | Высокий | Завершена | Форма: сервер, логин, пароль, секрет (пусто = не менять); подсказка URL уведомлений; ссылка на help.paykeeper.ru |
+
+---
+
+## Аудит пользовательского пути (план в docs/User-Journey-Audit.md)
+
+| Задача | Приоритет | Статус | Описание |
+|--------|-----------|--------|----------|
+| Привязка оплаченных заказов при регистрации | Критический | Завершена | POST /api/auth/register: claimPaidOrdersForNewUser — enrollment + notification + Order.userId |
+| Письмо клиенту «Заявка принята» (после формы контакта) | Высокий | Завершена | POST /api/contact: при указании email — письмо «Заявка принята» клиенту |
+| Письмо при оплате тарифа без курса (консультация/тренинг) | Высокий | Завершена | Webhook PayKeeper: при отсутствии courseId — письмо «Оплата получена, свяжемся с вами» |
+| Письмо при конвертации лида + ссылка «Установить пароль» | Высокий | Завершена | POST leads/convert: createPasswordToken, письмо со ссылкой /set-password?token=… |
+| Страница «Установить пароль» по токену | Высокий | Завершена | Модель PasswordToken, GET /set-password?token=, POST /api/auth/set-password, форма пароля → редирект /login |
+| Welcome-уведомление после регистрации | Средний | Завершена | eventType welcome в DEFAULT_NOTIFICATION_TEMPLATES; вызов triggerNotification после регистрации |
+| Уведомление менеджеру и автоответ при создании тикета | Средний | Завершена | POST /api/portal/tickets: письмо студенту «Обращение принято», письмо на resend_notify_email о новом тикете |
+| Персонализация страницы /success, привязка заказов при первом входе | Средний | Завершена | /success: для авторизованного — «Ваш курс/курсы уже в Мои курсы», название первого; portal layout: claimPaidOrdersForUser при входе студента; lib/claim-orders.ts |
+| Сброс пароля по email (прод) | Средний | Завершена | /reset-password (форма email), POST /api/auth/forgot-password → письмо со ссылкой /set-password?token=…, «Забыли пароль?» на странице входа |
+| Экран «Заявка отправлена» после формы контакта | Средний | Завершена | Contact.tsx: при status=sent — блок «Спасибо», CTA «Оплатить консультацию или курс», «Отправить ещё одну заявку» |
+| Шаблоны писем об оплате в настройках (2.2) | Средний | Завершена | SystemSetting: email_payment_course_*, email_payment_generic_*; админка «Шаблоны писем об оплате»; webhook использует getPaymentEmailTemplates() |
+| Онбординг-подсказка в ЛК студента (6.3) | Низкий | Завершена | StudentOnboardingHint на дашборде: подсказка «Мои курсы» / «Поддержка», кнопки, сокрытие по «Понятно» (localStorage) |
+| Query order на /success (4.2) | Низкий | Завершена | /success?order=ORDER_NUMBER: для гостя показ «Заказ № … оплачен», маскированный email; редирект после оплаты с order в URL (payment create) |
+| Шаблоны быстрых ответов для менеджера (7.3) | Низкий | Завершена | В TicketThread при canChangeStatus/canAssign — выпадающий список «Шаблон ответа» (доступ, «Мои курсы», уточняем, регистрация с email) |
+| Связь Lead ↔ Order (1.3) | Низкий | Завершена | Поле Lead.lastOrderNumber; при оплате (webhook) обновление лидов с тем же email; в CRM — отображение «Оплаченный заказ» в карточке и в экспорте |
+| Авто-тикет «Нет доступа после оплаты» (7.4) | Низкий | Завершена | При создании тикета: claim, затем поиск оплаченного заказа без доступа; Ticket.orderNumber, тема «Не приходит доступ»; в письме менеджеру и в интерфейсе тикета — заказ |
 
 ---
 

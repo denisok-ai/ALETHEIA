@@ -121,7 +121,7 @@ export function GroupFormModal({
           <DialogTitle>{editId ? 'Редактировать группу' : 'Новая группа'}</DialogTitle>
         </DialogHeader>
         {loading ? (
-          <p className="text-sm text-text-muted">Загрузка…</p>
+          <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
@@ -141,7 +141,7 @@ export function GroupFormModal({
                 id="group-parent"
                 value={selectedParentId ?? ''}
                 onChange={(e) => setSelectedParentId(e.target.value || null)}
-                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[#6366F1] bg-white px-3 py-2 text-sm"
               >
                 <option value="">— Без родителя (корневая)</option>
                 {parentOptions.map((g) => (
@@ -156,7 +156,7 @@ export function GroupFormModal({
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={2}
-                className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[#6366F1] px-3 py-2 text-sm"
               />
             </div>
             <div>
@@ -164,12 +164,12 @@ export function GroupFormModal({
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value as 'static' | 'dynamic')}
-                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[#6366F1] bg-white px-3 py-2 text-sm"
               >
                 <option value="static">Статическая</option>
                 <option value="dynamic">Динамическая</option>
               </select>
-              <p className="mt-1 text-xs text-text-muted">
+              <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
                 Статическая — ручное назначение; динамическая — может обновляться системой.
               </p>
             </div>

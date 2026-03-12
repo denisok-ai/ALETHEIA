@@ -35,7 +35,7 @@ export function HealthStatus() {
         }`}
         aria-hidden
       />
-      <span className="text-sm text-text-muted">
+      <span className="text-sm text-[var(--portal-text-muted)]">
         {loading && 'Проверка…'}
         {!loading && status === 'idle' && 'Нажмите кнопку, чтобы проверить доступность сервера.'}
         {!loading && status === 'ok' && 'Сервер отвечает.'}

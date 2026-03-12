@@ -93,7 +93,7 @@ export async function GET(
       score: p.score,
       timeSpent: p.timeSpent,
     });
-    if (p.completionStatus === 'completed') rec.completed += 1;
+    if (p.completionStatus === 'completed' || p.completionStatus === 'passed') rec.completed += 1;
     rec.totalTime += p.timeSpent;
     if (p.lastUpdated) {
       if (!rec.lastActivityAt || p.lastUpdated > rec.lastActivityAt) rec.lastActivityAt = p.lastUpdated;

@@ -84,19 +84,19 @@ export function UserGroupsBlock({ userId }: { userId: string }) {
   if (loading) {
     return (
       <Card>
-        <p className="text-text-muted">Загрузка…</p>
+        <p className="text-[var(--portal-text-muted)]">Загрузка…</p>
       </Card>
     );
   }
 
   return (
     <Card>
-      <h3 className="text-lg font-semibold text-dark mb-4">Группы пользователя</h3>
+      <h3 className="text-lg font-semibold text-[var(--portal-text)] mb-4">Группы пользователя</h3>
       <div className="flex flex-wrap items-end gap-2 mb-4">
         <select
           value={selectedGroupId}
           onChange={(e) => setSelectedGroupId(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm min-w-[180px]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-w-[180px]"
         >
           <option value="">— Выберите группу</option>
           {availableGroups.map((g) => (
@@ -106,7 +106,7 @@ export function UserGroupsBlock({ userId }: { userId: string }) {
         <select
           value={selectedRole}
           onChange={(e) => setSelectedRole(e.target.value as 'member' | 'moderator')}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
         >
           <option value="member">Участник</option>
           <option value="moderator">Модератор</option>
@@ -126,11 +126,11 @@ export function UserGroupsBlock({ userId }: { userId: string }) {
           {groups.map((g) => (
             <li
               key={g.id}
-              className="flex items-center justify-between rounded-lg border border-border bg-bg-cream/30 px-3 py-2"
+              className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2"
             >
               <span className="font-medium">{g.name}</span>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-text-muted">
+                <span className="text-xs text-[var(--portal-text-muted)]">
                   {g.role === 'moderator' ? 'Модератор' : 'Участник'}
                 </span>
                 <Button

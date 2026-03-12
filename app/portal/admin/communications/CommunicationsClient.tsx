@@ -217,16 +217,16 @@ export function CommunicationsClient({
     <div className="mt-6 space-y-8">
       <section>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-dark">Шаблоны</h2>
+          <h2 className="text-base font-semibold text-[var(--portal-text)]">Шаблоны</h2>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+              <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
               <input
                 type="search"
                 placeholder="Найти в списке"
                 value={templateSearch}
                 onChange={(e) => setTemplateSearch(e.target.value)}
-                className="w-48 rounded-lg border border-border bg-white py-2 pl-8 pr-3 text-sm text-dark placeholder:text-text-muted"
+                className="w-48 rounded-lg border border-[#E2E8F0] bg-white py-2 pl-8 pr-3 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-muted)]"
                 aria-label="Найти в списке"
               />
             </div>
@@ -236,7 +236,7 @@ export function CommunicationsClient({
             </Button>
           </div>
         </div>
-        <div className="mt-3 overflow-x-auto rounded-xl border border-border bg-white">
+        <div className="mt-3 overflow-x-auto portal-card bg-white">
           <Table>
             <TableHeader>
               <TableRow>
@@ -266,10 +266,10 @@ export function CommunicationsClient({
               ) : (
                 filteredTemplates.map((t, idx) => (
                   <TableRow key={t.id}>
-                    <TableCell className="text-text-muted">{idx + 1}</TableCell>
-                    <TableCell className="font-medium text-dark">{t.name}</TableCell>
-                    <TableCell className="text-text-muted">{t.channel}</TableCell>
-                    <TableCell className="text-text-muted">{t.subject ?? '—'}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                    <TableCell className="font-medium text-[var(--portal-text)]">{t.name}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{t.channel}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{t.subject ?? '—'}</TableCell>
                     <TableCell>
                       <div className="flex gap-1">
                         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setEditing(t)} aria-label="Редактировать">
@@ -289,14 +289,14 @@ export function CommunicationsClient({
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold text-dark">Отправить</h2>
-        <div className="mt-3 rounded-xl border border-border bg-white p-4 space-y-4 max-w-xl">
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Отправить</h2>
+        <div className="mt-3 portal-card bg-white p-4 space-y-4 max-w-xl">
           <div>
             <Label>Шаблон</Label>
             <select
               value={sendTemplateId}
               onChange={(e) => setSendTemplateId(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+              className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
             >
               <option value="">Выберите шаблон</option>
               {templates.map((t) => (
@@ -309,7 +309,7 @@ export function CommunicationsClient({
             <select
               value={recipientType}
               onChange={(e) => setRecipientType(e.target.value as 'all' | 'role' | 'list' | 'groups')}
-              className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+              className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
             >
               <option value="all">Все активные</option>
               <option value="role">По роли</option>
@@ -323,7 +323,7 @@ export function CommunicationsClient({
               <select
                 value={sendRole}
                 onChange={(e) => setSendRole(e.target.value)}
-                className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
               >
                 {ROLES.map((r) => (
                   <option key={r} value={r}>{r}</option>
@@ -334,7 +334,7 @@ export function CommunicationsClient({
           {recipientType === 'list' && (
             <div>
               <Label>Получатели</Label>
-              <div className="mt-1 max-h-40 overflow-y-auto rounded border border-border bg-white p-2 space-y-1">
+              <div className="mt-1 max-h-40 overflow-y-auto rounded border border-[#E2E8F0] bg-white p-2 space-y-1">
                 {recipients.map((u) => (
                   <label key={u.id} className="flex items-center gap-2 text-sm">
                     <input
@@ -355,9 +355,9 @@ export function CommunicationsClient({
           {recipientType === 'groups' && (
             <div>
               <Label>Включить группы (получатели — участники выбранных групп)</Label>
-              <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-border p-2">
+              <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-[#E2E8F0] p-2">
                 {userGroups.length === 0 ? (
-                  <p className="text-sm text-text-muted">Нет групп. Создайте группы в разделе «Пользователи».</p>
+                  <p className="text-sm text-[var(--portal-text-muted)]">Нет групп. Создайте группы в разделе «Пользователи».</p>
                 ) : (
                   userGroups.map((g) => (
                     <label key={g.id} className="flex items-center gap-2 py-1 text-sm">
@@ -412,12 +412,12 @@ export function CommunicationsClient({
 
       <section>
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-dark">Последние отправки</h2>
+          <h2 className="text-base font-semibold text-[var(--portal-text)]">Последние отправки</h2>
           <Button type="button" variant="ghost" size="sm" onClick={() => loadSends()}>
             Обновить
           </Button>
         </div>
-        <div className="mt-3 overflow-x-auto rounded-xl border border-border bg-white">
+        <div className="mt-3 overflow-x-auto portal-card bg-white">
           <Table>
             <TableHeader>
               <TableRow>
@@ -431,17 +431,17 @@ export function CommunicationsClient({
             <TableBody>
               {sends.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center text-text-muted py-6">
+                  <TableCell colSpan={5} className="text-center text-[var(--portal-text-muted)] py-6">
                     Нет отправок
                   </TableCell>
                 </TableRow>
               ) : (
                 sends.map((s) => (
                   <TableRow key={s.id}>
-                    <TableCell className="text-text-muted">{format(new Date(s.sentAt), 'dd.MM.yyyy HH:mm')}</TableCell>
-                    <TableCell className="text-text-muted">{s.channel}</TableCell>
-                    <TableCell className="text-text-muted">{s.recipient}</TableCell>
-                    <TableCell className="text-text-muted">{s.status}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{format(new Date(s.sentAt), 'dd.MM.yyyy HH:mm')}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{s.channel}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{s.recipient}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{s.status}</TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setDetailSend(s)}>
                         Детали
@@ -462,11 +462,11 @@ export function CommunicationsClient({
               <DialogTitle>Рассылка: {detailSend.id}</DialogTitle>
             </DialogHeader>
             <dl className="mt-2 space-y-1 text-sm">
-              <div><dt className="text-text-muted inline">Канал: </dt><dd className="inline">{detailSend.channel}</dd></div>
-              <div><dt className="text-text-muted inline">Получатель: </dt><dd className="inline break-all">{detailSend.recipient}</dd></div>
-              {detailSend.subject && <div><dt className="text-text-muted inline">Тема: </dt><dd className="inline">{detailSend.subject}</dd></div>}
-              <div><dt className="text-text-muted inline">Статус: </dt><dd className="inline">{detailSend.status}</dd></div>
-              <div><dt className="text-text-muted inline">Дата: </dt><dd className="inline">{format(new Date(detailSend.sentAt), 'dd.MM.yyyy HH:mm:ss')}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Канал: </dt><dd className="inline">{detailSend.channel}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Получатель: </dt><dd className="inline break-all">{detailSend.recipient}</dd></div>
+              {detailSend.subject && <div><dt className="text-[var(--portal-text-muted)] inline">Тема: </dt><dd className="inline">{detailSend.subject}</dd></div>}
+              <div><dt className="text-[var(--portal-text-muted)] inline">Статус: </dt><dd className="inline">{detailSend.status}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Дата: </dt><dd className="inline">{format(new Date(detailSend.sentAt), 'dd.MM.yyyy HH:mm:ss')}</dd></div>
             </dl>
           </DialogContent>
         </Dialog>
@@ -534,7 +534,7 @@ function TemplateForm({
               id="t-channel"
               value={channel}
               onChange={(e) => setChannel(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+              className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
             >
               {CHANNELS.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -551,7 +551,7 @@ function TemplateForm({
               id="t-body"
               value={htmlBody}
               onChange={(e) => setHtmlBody(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm min-h-[120px] font-mono"
+              className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm min-h-[120px] font-mono"
               placeholder="Подстановки: {{name}}, {{email}}"
             />
           </div>

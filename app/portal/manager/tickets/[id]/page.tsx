@@ -39,12 +39,14 @@ export default async function ManagerTicketPage({ params }: { params: Promise<{ 
   })();
 
   return (
-    <div>
+    <div className="space-y-6">
       <TicketThread
         ticketId={ticket.id}
         subject={ticket.subject}
         status={ticket.status}
         managerId={ticket.managerId}
+        orderNumber={ticket.orderNumber}
+        canLinkOrderToPayments={role === 'admin'}
         userDisplayName={ticket.user.profile?.displayName ?? ticket.user.email ?? ticket.userId.slice(0, 8)}
         managerDisplayName={ticket.manager?.profile?.displayName ?? ticket.manager?.email ?? null}
         initialMessages={messages}

@@ -26,7 +26,7 @@ export default async function AdminNotificationSetsPage() {
   if (!session?.user || role !== 'admin') {
     return (
       <div className="p-6">
-        <p className="text-text-muted">Доступ запрещён.</p>
+        <p className="text-[var(--portal-text-muted)]">Доступ запрещён.</p>
       </div>
     );
   }
@@ -54,7 +54,7 @@ export default async function AdminNotificationSetsPage() {
             icon={<Bell className="h-10 w-10" />}
           />
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -68,19 +68,19 @@ export default async function AdminNotificationSetsPage() {
               <TableBody>
                 {sets.map((s, idx) => (
                   <TableRow key={s.id}>
-                    <TableCell className="text-text-muted">{idx + 1}</TableCell>
-                    <TableCell className="text-text-muted">
+                    <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">
                       {getNotificationSetEventLabel(s.eventType)}
                     </TableCell>
-                    <TableCell className="font-medium text-dark">
+                    <TableCell className="font-medium text-[var(--portal-text)]">
                       <Link
                         href={`/portal/admin/notification-sets/${s.id}`}
-                        className="text-primary hover:underline"
+                        className="text-[#6366F1] hover:underline"
                       >
                         {s.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="text-text-muted">{s.isDefault ? 'Да' : 'Нет'}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{s.isDefault ? 'Да' : 'Нет'}</TableCell>
                     <TableCell>
                       <Link href={`/portal/admin/notification-sets/${s.id}`}>
                         <Button variant="ghost" size="sm" className="h-8 gap-1">

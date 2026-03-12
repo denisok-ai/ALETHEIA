@@ -9,7 +9,14 @@ import { PaymentsExportButton } from './PaymentsExportButton';
 import { PaymentsTableClient } from './PaymentsTableClient';
 import { ServicesAdminBlock } from './ServicesAdminBlock';
 
-export default async function AdminPaymentsPage() {
+export default async function AdminPaymentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ search?: string }>;
+}) {
+  const params = await searchParams;
+  const initialSearch = typeof params?.search === 'string' ? params.search.trim() : '';
+
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return (
@@ -39,7 +46,7 @@ export default async function AdminPaymentsPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <PageHeader
         items={[
           { href: '/portal/admin/dashboard', label: 'Дашборд' },
@@ -51,24 +58,24 @@ export default async function AdminPaymentsPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <div className="rounded-xl border border-border bg-white p-4">
-          <p className="text-sm text-text-muted">Выручка (всего)</p>
-          <p className="text-2xl font-bold text-dark">{totalRevenue.toLocaleString('ru')} ₽</p>
+        <div className="portal-card p-5">
+          <p className="text-xs font-medium text-[var(--portal-text-muted)]">Выручка (всего)</p>
+          <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{totalRevenue.toLocaleString('ru')} ₽</p>
         </div>
-        <div className="rounded-xl border border-border bg-white p-4">
-          <p className="text-sm text-text-muted">Оплаченных заказов</p>
-          <p className="text-2xl font-bold text-dark">{paid.length}</p>
+        <div className="portal-card p-5">
+          <p className="text-xs font-medium text-[var(--portal-text-muted)]">Оплаченных заказов</p>
+          <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{paid.length}</p>
         </div>
-        <div className="rounded-xl border border-border bg-white p-4">
-          <p className="text-sm text-text-muted">Всего заказов</p>
-          <p className="text-2xl font-bold text-dark">{orders.length}</p>
+        <div className="portal-card p-5">
+          <p className="text-xs font-medium text-[var(--portal-text-muted)]">Всего заказов</p>
+          <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{orders.length}</p>
         </div>
       </div>
 
       <ServicesAdminBlock />
 
       <div>
-        <PaymentsTableClient initialOrders={initialOrders} />
+        <PaymentsTableClient initialOrders={initialOrders} initialSearch={initialSearch} />
       </div>
     </div>
   );

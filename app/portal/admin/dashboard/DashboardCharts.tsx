@@ -41,35 +41,35 @@ export function DashboardCharts({
       <div className="mt-6 flex flex-wrap items-center gap-3">
         <Link
           href="/portal/manager/tickets"
-          className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-dark hover:bg-bg-soft"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC]"
         >
           Открытые тикеты
         </Link>
         <Link
           href="/portal/admin/crm?status=new"
-          className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-dark hover:bg-bg-soft"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC]"
         >
           Новые лиды
         </Link>
         <Link
           href="/portal/admin/payments"
-          className="rounded-lg border border-border bg-white px-4 py-2 text-sm font-medium text-dark hover:bg-bg-soft"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC]"
         >
           Оплаты и экспорт
         </Link>
       </div>
 
-      <div className="mt-8 rounded-xl border border-border bg-white p-6">
+      <div className="mt-8 portal-card p-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg font-semibold text-dark">Выручка по дням</h2>
-          <div className="flex rounded-lg border border-border p-0.5">
+          <h2 className="text-lg font-semibold text-[var(--portal-text)]">Выручка по дням</h2>
+          <div className="flex rounded-lg border border-[#E2E8F0] p-0.5">
             {PERIODS.map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => setPeriod(p)}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  periodParam === p ? 'bg-primary text-white' : 'text-text-muted hover:bg-bg-soft hover:text-dark'
+                  periodParam === p ? 'bg-[#6366F1] text-white' : 'text-[var(--portal-text-muted)] hover:bg-[#F1F5F9] hover:text-[var(--portal-text)]'
                 }`}
               >
                 {p} дн.
@@ -93,12 +93,12 @@ export function DashboardCharts({
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-text-muted">Нет данных за период</p>
+          <p className="py-8 text-center text-sm text-[var(--portal-text-muted)]">Нет данных за период</p>
         )}
       </div>
 
-      <div className="mt-6 rounded-xl border border-border bg-white p-6">
-        <h2 className="mb-3 text-lg font-semibold text-dark">Активность по дням (записи и сертификаты)</h2>
+      <div className="mt-6 portal-card p-6">
+        <h2 className="mb-3 text-lg font-semibold text-[var(--portal-text)]">Активность по дням (записи и сертификаты)</h2>
         {activityData.length > 0 ? (
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -114,7 +114,7 @@ export function DashboardCharts({
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-text-muted">Нет данных за период</p>
+          <p className="py-8 text-center text-sm text-[var(--portal-text-muted)]">Нет данных за период</p>
         )}
       </div>
     </>

@@ -44,7 +44,7 @@ export function Program() {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.05 }}
-            className="mt-3 font-heading text-3xl font-semibold text-dark sm:text-4xl"
+            className="mt-3 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl"
           >
             Что входит в программу
           </motion.h2>
@@ -53,15 +53,15 @@ export function Program() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.1 }}
-          className="mt-10 flex flex-wrap gap-8 rounded-2xl border border-border/60 bg-bg-cream/80 p-7 sm:p-8"
+          className="mt-10 flex flex-wrap gap-8 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] p-7 sm:p-8"
         >
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-accent/20 p-3">
               <BookOpen className="h-6 w-6 text-accent" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-dark">{totalLessons}</p>
-              <p className="text-sm text-text-muted">модулей и уроков</p>
+              <p className="text-2xl font-bold text-[var(--portal-text)]">{totalLessons}</p>
+              <p className="text-sm text-[var(--portal-text-muted)]">модулей и уроков</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -69,8 +69,8 @@ export function Program() {
               <Clock className="h-6 w-6 text-accent" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-dark">{totalHours}+</p>
-              <p className="text-sm text-text-muted">часов материала</p>
+              <p className="text-2xl font-bold text-[var(--portal-text)]">{totalHours}+</p>
+              <p className="text-sm text-[var(--portal-text-muted)]">часов материала</p>
             </div>
           </div>
         </motion.div>
@@ -81,7 +81,7 @@ export function Program() {
           transition={{ delay: 0.2 }}
           className="mt-6"
         >
-          <p className="mb-2 text-sm font-medium text-dark">Объём программы</p>
+          <p className="mb-2 text-sm font-medium text-[var(--portal-text)]">Объём программы</p>
           <div className="h-2 w-full overflow-hidden rounded-full bg-border">
             <motion.div
               initial={{ width: 0 }}
@@ -99,11 +99,11 @@ export function Program() {
               initial={{ opacity: 0, x: -20 }}
               animate={isInView ? { opacity: 1, x: 0 } : {}}
               transition={{ delay: 0.25 + i * 0.06 }}
-              className="rounded-xl border border-border bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+              className="rounded-xl border border-[#E2E8F0] bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow"
             >
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-3 p-4 text-left hover:bg-bg-soft/80 transition-colors"
+                className="flex w-full items-center justify-between gap-3 p-4 text-left hover:bg-[#F1F5F9] transition-colors"
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 aria-expanded={openIndex === i}
               >
@@ -111,9 +111,9 @@ export function Program() {
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent/20 text-sm font-bold text-accent">
                     {i + 1}
                   </span>
-                  <span className="font-heading font-semibold text-dark">{mod.title}</span>
+                  <span className="font-heading font-semibold text-[var(--portal-text)]">{mod.title}</span>
                 </span>
-                <span className="text-sm text-text-muted shrink-0">{mod.lessons} уроков · {mod.hours} ч</span>
+                <span className="text-sm text-[var(--portal-text-muted)] shrink-0">{mod.lessons} уроков · {mod.hours} ч</span>
                 <ChevronDown className={`h-5 w-5 shrink-0 transition-transform ${openIndex === i ? 'rotate-180' : ''}`} />
               </button>
               <AnimatePresence>
@@ -123,9 +123,9 @@ export function Program() {
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
                     transition={{ duration: 0.25 }}
-                    className="overflow-hidden border-t border-border bg-bg-soft/60"
+                    className="overflow-hidden border-t border-[#E2E8F0] bg-[#F8FAFC]"
                   >
-                    <div className="flex items-center gap-2 p-4 text-sm text-dark">
+                    <div className="flex items-center gap-2 p-4 text-sm text-[var(--portal-text)]">
                       <Video className="h-4 w-4 shrink-0 text-accent" />
                       Видеоуроки и практические задания
                     </div>

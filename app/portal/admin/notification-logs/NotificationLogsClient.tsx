@@ -54,7 +54,7 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
         <select
           value={eventFilter}
           onChange={(e) => setEventFilter(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
         >
           {EVENT_TYPES.map((e) => (
             <option key={e.value || 'all'} value={e.value}>{e.label}</option>
@@ -63,7 +63,7 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
         <select
           value={channelFilter}
           onChange={(e) => setChannelFilter(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
         >
           <option value="">Все каналы</option>
           <option value="internal">Внутренний</option>
@@ -71,7 +71,8 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      <div className="portal-card overflow-hidden p-0">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -98,22 +99,23 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
             ) : (
               filtered.map((l, idx) => (
                 <TableRow key={l.id}>
-                  <TableCell className="text-text-muted">{idx + 1}</TableCell>
-                  <TableCell className="text-text-muted text-sm whitespace-nowrap">
+                  <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)] text-sm whitespace-nowrap">
                     {format(new Date(l.createdAt), 'dd.MM.yy HH:mm')}
                   </TableCell>
                   <TableCell className="text-sm">
                     {l.userDisplayName ?? l.userEmail ?? l.userId ?? '—'}
                   </TableCell>
-                  <TableCell className="text-text-muted text-sm">{l.eventType}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)] text-sm">{l.eventType}</TableCell>
                   <TableCell className="text-sm line-clamp-1 max-w-[180px]">{l.subject ?? '—'}</TableCell>
-                  <TableCell className="text-text-muted text-sm">{l.channel}</TableCell>
-                  <TableCell className="text-text-muted text-xs line-clamp-2 max-w-[200px]">{l.content || '—'}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)] text-sm">{l.channel}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)] text-xs line-clamp-2 max-w-[200px]">{l.content || '—'}</TableCell>
                 </TableRow>
               ))
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
     </div>
   );

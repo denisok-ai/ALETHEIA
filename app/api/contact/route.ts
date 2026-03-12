@@ -43,22 +43,43 @@ export async function POST(request: NextRequest) {
 
     const overrides = await getEnvOverrides();
     const apiKey = overrides.resend_api_key || process.env.RESEND_API_KEY;
-    if (apiKey && notifyEmail) {
-      try {
-        const resend = new Resend(apiKey);
-        await resend.emails.send({
-          from: fromEmail,
-          to: notifyEmail,
-          subject: `AVATERRA: новая заявка от ${String(name).slice(0, 50)}`,
-          html: [
-            `<p><strong>Имя:</strong> ${escapeHtml(name)}</p>`,
-            `<p><strong>Телефон:</strong> ${escapeHtml(phone)}</p>`,
-            email ? `<p><strong>Email:</strong> ${escapeHtml(email)}</p>` : '',
-            message ? `<p><strong>Сообщение:</strong><br/>${escapeHtml(message)}</p>` : '',
-          ].join(''),
-        });
-      } catch (mailErr) {
-        console.error('Resend notify:', mailErr);
+    if (apiKey) {
+      const resend = new Resend(apiKey);
+      if (notifyEmail) {
+        try {
+          await resend.emails.send({
+            from: fromEmail,
+            to: notifyEmail,
+            subject: `AVATERRA: новая заявка от ${String(name).slice(0, 50)}`,
+            html: [
+              `<p><strong>Имя:</strong> ${escapeHtml(name)}</p>`,
+              `<p><strong>Телефон:</strong> ${escapeHtml(phone)}</p>`,
+              email ? `<p><strong>Email:</strong> ${escapeHtml(email)}</p>` : '',
+              message ? `<p><strong>Сообщение:</strong><br/>${escapeHtml(message)}</p>` : '',
+            ].join(''),
+          });
+        } catch (mailErr) {
+          console.error('Resend notify:', mailErr);
+        }
+      }
+      // Письмо клиенту «Заявка принята» (если указан email)
+      const clientEmail = email ? String(email).trim() : '';
+      if (clientEmail && /@/.test(clientEmail)) {
+        try {
+          await resend.emails.send({
+            from: fromEmail,
+            to: clientEmail,
+            subject: 'AVATERRA: заявка принята',
+            html: [
+              `<p>Здравствуйте, ${escapeHtml(String(name).slice(0, 100))}!</p>`,
+              '<p>Мы получили вашу заявку и свяжемся с вами в ближайшее время.</p>',
+              '<p>Если у вас есть вопросы, вы можете написать нам или ознакомиться с форматами работы на сайте.</p>',
+              '<p>— Школа AVATERRA</p>',
+            ].join(''),
+          });
+        } catch (clientMailErr) {
+          console.error('Resend client confirm:', clientMailErr);
+        }
       }
     }
 

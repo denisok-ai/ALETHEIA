@@ -72,7 +72,7 @@ export function Pricing() {
             initial={{ opacity: 0, y: 20 }}
             animate={isInView ? { opacity: 1, y: 0 } : {}}
             transition={{ delay: 0.05 }}
-            className="mt-2 font-heading text-3xl font-semibold text-dark sm:text-4xl"
+            className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl"
           >
             Купить курс или записаться на консультацию
           </motion.h2>
@@ -91,7 +91,7 @@ export function Pricing() {
                     className={`relative h-full rounded-2xl border p-7 transition-shadow md:p-8 ${
                       tariff.popular
                         ? 'border-accent/50 bg-gradient-to-b from-accent/10 to-bg-cream shadow-xl shadow-accent/20'
-                        : 'border-border bg-white hover:border-accent/40 hover:shadow-xl hover:shadow-black/10'
+                        : 'border-[#E2E8F0] bg-white hover:border-[#6366F1]/40 hover:shadow-xl hover:shadow-black/10'
                     }`}
                     style={{
                       boxShadow: tariff.popular
@@ -104,11 +104,11 @@ export function Pricing() {
                         Хит продаж
                       </span>
                     )}
-                    <h3 className="font-heading text-xl font-semibold text-dark">
+                    <h3 className="font-heading text-xl font-semibold text-[var(--portal-text)]">
                       {tariff.name}
                     </h3>
-                    <p className="mt-2 text-sm text-text-muted">{tariff.description}</p>
-                    <ul className="mt-4 space-y-2 text-sm text-text-muted">
+                    <p className="mt-2 text-sm text-[var(--portal-text-muted)]">{tariff.description}</p>
+                    <ul className="mt-4 space-y-2 text-sm text-[var(--portal-text-muted)]">
                       {tariff.features.map((f) => (
                         <li key={f}>• {f}</li>
                       ))}

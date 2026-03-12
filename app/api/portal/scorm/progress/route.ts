@@ -10,6 +10,11 @@ import { prisma } from '@/lib/db';
 import { triggerNotification } from '@/lib/notifications';
 import { nanoid } from 'nanoid';
 
+/** SCORM 1.2/2004: "passed" и "completed" считаем завершённым уроком. */
+export function isLessonCompleted(status: string | null | undefined): boolean {
+  return status === 'completed' || status === 'passed';
+}
+
 /** Extract completion_status, score, timeSpent from scorm-again CMI object (1.2 or 2004). */
 function extractFromCmi(cmi: Record<string, unknown>): {
   completionStatus: string | null;
@@ -28,12 +33,15 @@ function extractFromCmi(cmi: Record<string, unknown>): {
 
   const completion = cmi.completion_status as string | undefined;
   if (completion) completionStatus = completion;
+  const success = cmi.success_status as string | undefined;
+  if (success) completionStatus = success;
   const sc = cmi.score as { scaled?: string } | undefined;
   if (sc?.scaled != null) score = Number(sc.scaled) * 100;
   const total = cmi.total_time as string | undefined;
   if (total) timeSpent = parseScormTime(total);
   const session = cmi.session_time as string | undefined;
   if (session) timeSpent += parseScormTime(session);
+  if (typeof cmi.totalTimeSeconds === 'number') timeSpent = Math.round(cmi.totalTimeSeconds);
 
   return { completionStatus, score, timeSpent };
 }
@@ -86,7 +94,7 @@ async function maybeIssueCertificate(userId: string, courseId: string, lessonId:
       userId,
       courseId,
       lessonId: { in: requiredLessonIds },
-      completionStatus: 'completed',
+      completionStatus: { in: ['completed', 'passed'] },
     },
   });
   if (completed.length < requiredLessonIds.length) return;
@@ -143,42 +151,51 @@ export async function POST(request: NextRequest) {
   const role = (session?.user as { role?: string })?.role;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  let body: {
-    courseId?: string;
-    lessonId?: string;
-    cmi?: Record<string, unknown>;
-    cmi_data?: Record<string, unknown>;
-    completion_status?: string;
-    score?: number;
-    time_spent?: number;
-  };
+  let body: Record<string, unknown>;
   try {
-    body = await request.json();
+    body = (await request.json()) as Record<string, unknown>;
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { courseId, lessonId, cmi, cmi_data, completion_status, score, time_spent } = body;
+  const courseId = body.courseId as string | undefined;
+  const lessonId = body.lessonId as string | undefined;
   if (!courseId || !lessonId) return NextResponse.json({ error: 'Missing courseId or lessonId' }, { status: 400 });
 
   if (role === 'admin') {
     return NextResponse.json({ success: true });
   }
 
-  let cmiData: Record<string, unknown>;
-  let completionStatus: string | null = completion_status ?? null;
-  let scoreVal: number | null = score ?? null;
-  let timeSpentVal = time_spent ?? 0;
+  const cmi = body.cmi as Record<string, unknown> | undefined;
+  const cmi_data = body.cmi_data as Record<string, unknown> | undefined;
+  const runtimeData = body.runtimeData as Record<string, unknown> | undefined;
+  // scorm-again CommitObject: completionStatus, successStatus, totalTimeSeconds, score.scaled, runtimeData
+  let completionStatus: string | null =
+    (body.completion_status as string) ?? (body.completionStatus as string)
+    ?? (body.lesson_status as string) ?? (body.success_status as string) ?? (body.successStatus as string) ?? null;
+  let scoreVal: number | null = null;
+  if (body.score != null) {
+    if (typeof body.score === 'number') scoreVal = body.score <= 1 ? Math.round(body.score * 100) : Math.round(body.score);
+    else if (typeof body.score === 'object' && body.score !== null) {
+      const sc = (body.score as { scaled?: number }).scaled;
+      scoreVal = sc != null ? (sc <= 1 ? Math.round(sc * 100) : Math.round(sc)) : null;
+    }
+  }
+  let timeSpentVal = 0;
+  if (typeof body.time_spent === 'number') timeSpentVal = body.time_spent;
+  if (typeof body.totalTimeSeconds === 'number') timeSpentVal = Math.round(body.totalTimeSeconds);
+  if (typeof body.total_time === 'string') timeSpentVal = parseScormTime(body.total_time);
 
-  if (cmi && typeof cmi === 'object') {
-    const extracted = extractFromCmi(cmi);
+  const rawCmi = cmi ?? runtimeData ?? (body.core ? body : null);
+  if (rawCmi && typeof rawCmi === 'object') {
+    const extracted = extractFromCmi(rawCmi as Record<string, unknown>);
     completionStatus = extracted.completionStatus ?? completionStatus;
     scoreVal = extracted.score ?? scoreVal;
-    timeSpentVal = extracted.timeSpent || timeSpentVal;
-    cmiData = cmi as Record<string, unknown>;
-  } else {
-    cmiData = cmi_data ?? {};
+    if (extracted.timeSpent > 0) timeSpentVal = extracted.timeSpent;
   }
+
+  const cmiData: Record<string, unknown> =
+    (rawCmi && typeof rawCmi === 'object' ? rawCmi : cmi_data) ?? {};
 
   await prisma.scormProgress.upsert({
     where: {
@@ -201,7 +218,7 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  if (completionStatus === 'completed') {
+  if (isLessonCompleted(completionStatus)) {
     try {
       await maybeIssueCertificate(userId, courseId, lessonId);
     } catch (e) {

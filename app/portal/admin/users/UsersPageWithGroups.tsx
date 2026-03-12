@@ -106,7 +106,7 @@ export function UsersPageWithGroups({ initialRows }: { initialRows: UserRow[] })
       }
     >
       {loadingGroup ? (
-        <p className="text-text-muted py-4">Загрузка участников группы…</p>
+        <p className="text-[var(--portal-text-muted)] py-4">Загрузка участников группы…</p>
       ) : (
         <UsersTable
           key={selectedGroupId ?? 'all'}

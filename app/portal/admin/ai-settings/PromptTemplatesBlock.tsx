@@ -163,7 +163,7 @@ export function PromptTemplatesBlock() {
       description="Варианты system prompt для чат-бота. Один шаблон — активный (используется в чате). Генерируйте с помощью AI, сравнивайте статистику и выбирайте более эффективный."
     >
       {loading ? (
-        <p className="text-sm text-text-muted">Загрузка…</p>
+        <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>
       ) : (
         <>
           <div className="flex flex-wrap gap-2">
@@ -178,22 +178,22 @@ export function PromptTemplatesBlock() {
           </div>
 
           {templates.length === 0 ? (
-            <p className="mt-4 text-sm text-text-muted">Нет шаблонов. Добавьте или сгенерируйте с AI.</p>
+            <p className="mt-4 text-sm text-[var(--portal-text-muted)]">Нет шаблонов. Добавьте или сгенерируйте с AI.</p>
           ) : (
-            <div className="mt-4 overflow-x-auto rounded-lg border border-border">
+            <div className="mt-4 overflow-x-auto rounded-lg border border-[#E2E8F0]">
               <table className="w-full min-w-[520px] text-sm">
                 <thead>
-                  <tr className="border-b border-border bg-bg-cream">
-                    <th className="px-3 py-2 text-left font-medium text-dark">Название</th>
-                    <th className="px-3 py-2 text-left font-medium text-dark">Активный</th>
-                    <th className="px-3 py-2 text-left font-medium text-dark">Использований</th>
-                    <th className="px-3 py-2 text-left font-medium text-dark">Последнее использование</th>
-                    <th className="px-3 py-2 text-right font-medium text-dark">Действия</th>
+                  <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
+                    <th className="px-3 py-2 text-left font-medium text-[var(--portal-text)]">Название</th>
+                    <th className="px-3 py-2 text-left font-medium text-[var(--portal-text)]">Активный</th>
+                    <th className="px-3 py-2 text-left font-medium text-[var(--portal-text)]">Использований</th>
+                    <th className="px-3 py-2 text-left font-medium text-[var(--portal-text)]">Последнее использование</th>
+                    <th className="px-3 py-2 text-right font-medium text-[var(--portal-text)]">Действия</th>
                   </tr>
                 </thead>
                 <tbody>
                   {templates.map((t) => (
-                    <tr key={t.id} className="border-b border-border last:border-0">
+                    <tr key={t.id} className="border-b border-[#E2E8F0] last:border-0">
                       <td className="px-3 py-2 font-medium">{t.name}</td>
                       <td className="px-3 py-2">
                         {t.isActive ? (
@@ -206,8 +206,8 @@ export function PromptTemplatesBlock() {
                           </Button>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-text-muted">{t.usageCount}</td>
-                      <td className="px-3 py-2 text-text-muted">
+                      <td className="px-3 py-2 text-[var(--portal-text-muted)]">{t.usageCount}</td>
+                      <td className="px-3 py-2 text-[var(--portal-text-muted)]">
                         {t.lastUsedAt ? format(new Date(t.lastUsedAt), 'dd.MM.yyyy HH:mm', { locale: ru }) : '—'}
                       </td>
                       <td className="px-3 py-2 text-right">
@@ -250,7 +250,7 @@ export function PromptTemplatesBlock() {
                     value={formContent}
                     onChange={(e) => setFormContent(e.target.value)}
                     rows={12}
-                    className="mt-1 w-full rounded-lg border border-border px-3 py-2 font-mono text-sm"
+                    className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 font-mono text-sm"
                     placeholder="Ты консультант..."
                   />
                 </div>
@@ -271,7 +271,7 @@ export function PromptTemplatesBlock() {
               <DialogHeader>
                 <DialogTitle>Сгенерировать промпт с AI</DialogTitle>
               </DialogHeader>
-              <p className="text-sm text-text-muted">
+              <p className="text-sm text-[var(--portal-text-muted)]">
                 Опишите, каким должен быть консультант или стиль ответов. AI предложит текст system prompt.
               </p>
               <div className="mt-4">
@@ -281,7 +281,7 @@ export function PromptTemplatesBlock() {
                   value={generateInstruction}
                   onChange={(e) => setGenerateInstruction(e.target.value)}
                   rows={4}
-                  className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
                   placeholder="Например: дружелюбный тон, короткие ответы, акцент на мышечном тесте"
                 />
               </div>

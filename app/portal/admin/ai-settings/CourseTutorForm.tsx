@@ -46,8 +46,8 @@ export function CourseTutorForm({ initial }: { initial: CourseTutorSettings | nu
   }
 
   return (
-    <form onSubmit={handleSubmit} className="mt-4 max-w-2xl space-y-4 rounded-xl border border-border bg-white p-6">
-      <p className="text-sm text-text-muted">
+    <form onSubmit={handleSubmit} className="mt-4 max-w-2xl space-y-4 rounded-xl border border-[#E2E8F0] bg-white p-6">
+      <p className="text-sm text-[var(--portal-text-muted)]">
         Модель и параметры для AI-тьютора в плеере курса (ответы по материалам курса). System prompt формируется автоматически.
       </p>
       <div className="grid gap-4 sm:grid-cols-2">

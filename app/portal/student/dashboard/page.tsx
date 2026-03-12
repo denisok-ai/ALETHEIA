@@ -1,11 +1,48 @@
 /**
- * Student dashboard: progress overview, recent activity, notifications preview.
+ * Student dashboard — redesigned: welcome banner, progress stats, course cards, notifications.
  */
 import { getServerSession } from 'next-auth';
 import Link from 'next/link';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
+import { CourseCard } from '@/components/portal/CourseCard';
+import { StudentOnboardingHint } from '@/components/portal/StudentOnboardingHint';
+import { BookOpen, Award, Clock, Zap, ChevronRight, Bell } from 'lucide-react';
+
+function StatCard({
+  icon,
+  label,
+  value,
+  sub,
+  color = 'primary',
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  sub?: string;
+  color?: 'primary' | 'gold' | 'green' | 'blue';
+}) {
+  const colorMap = {
+    primary: { bg: 'bg-[#EEF2FF]', text: 'text-[#4F46E5]' },
+    gold:    { bg: 'bg-[#FEF9C3]', text: 'text-[#A16207]' },
+    green:   { bg: 'bg-[#DCFCE7]', text: 'text-[#15803D]' },
+    blue:    { bg: 'bg-[#DBEAFE]', text: 'text-[#1D4ED8]' },
+  };
+  const c = colorMap[color];
+
+  return (
+    <div className="portal-card flex items-center gap-4 p-5">
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${c.bg} ${c.text}`}>
+        {icon}
+      </span>
+      <div className="min-w-0">
+        <p className="text-2xl font-bold text-[var(--portal-text)] leading-tight">{value}</p>
+        <p className="text-sm text-[var(--portal-text-muted)] mt-0.5">{label}</p>
+        {sub && <p className="text-xs text-[var(--portal-text-soft)] mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  );
+}
 
 export default async function StudentDashboardPage() {
   const session = await getServerSession(authOptions);
@@ -13,24 +50,27 @@ export default async function StudentDashboardPage() {
 
   if (!userId) {
     return (
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Дашборд</h1>
-        <p className="mt-2 text-text-muted">Загрузка…</p>
+      <div className="portal-card p-6">
+        <p className="text-[var(--portal-text-muted)]">Загрузка…</p>
       </div>
     );
   }
 
-  const [enrollments, notifications, energy, progressByCourse] = await Promise.all([
+  const [enrollments, notifications, energy, progressByCourse, completedByCourse, certCount] = await Promise.all([
     prisma.enrollment.findMany({
       where: { userId, course: { status: 'published' } },
-      include: { course: { select: { id: true, title: true, thumbnailUrl: true, scormManifest: true } } },
+      include: {
+        course: {
+          select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true },
+        },
+      },
       orderBy: { enrolledAt: 'desc' },
-      take: 5,
+      take: 6,
     }),
     prisma.notification.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: 5,
+      take: 4,
     }),
     prisma.userEnergy.findUnique({ where: { userId } }),
     prisma.scormProgress.groupBy({
@@ -39,150 +79,238 @@ export default async function StudentDashboardPage() {
       _count: { lessonId: true },
       _sum: { timeSpent: true },
     }),
+    prisma.scormProgress.groupBy({
+      by: ['courseId'],
+      where: { userId, completionStatus: { in: ['completed', 'passed'] } },
+      _count: { lessonId: true },
+    }),
+    prisma.certificate.count({ where: { userId, revokedAt: null } }),
   ]);
-
-  const completedByCourse = await prisma.scormProgress.groupBy({
-    by: ['courseId'],
-    where: { userId, completionStatus: 'completed' },
-    _count: { lessonId: true },
-  });
 
   function totalLessons(manifest: string | null): number {
     if (!manifest) return 1;
     try {
       const p = JSON.parse(manifest) as { items?: unknown[] };
       return Array.isArray(p?.items) && p.items.length > 0 ? p.items.length : 1;
-    } catch {
-      return 1;
-    }
+    } catch { return 1; }
   }
 
-  const xp = energy?.xp ?? 0;
-  const level = energy?.level ?? 1;
-  const xpForNextLevel = 100;
-  const progressToNext = (xp % xpForNextLevel) / xpForNextLevel;
+  const displayName = (session?.user as { name?: string })?.name
+    || (session?.user as { email?: string })?.email?.split('@')[0]
+    || 'Слушатель';
+
+  const xp          = energy?.xp ?? 0;
+  const level       = energy?.level ?? 1;
+  const xpToNext    = 100;
+  const xpProgress  = ((xp % xpToNext) / xpToNext) * 100;
+  const totalTimeMin = Math.round(
+    progressByCourse.reduce((acc, p) => acc + (p._sum.timeSpent ?? 0), 0) / 60
+  );
+  const completedCourses = enrollments.filter((e) => {
+    if (!e.course) return false;
+    const total    = totalLessons(e.course.scormManifest);
+    const done     = completedByCourse.find((x) => x.courseId === e.course!.id)?._count.lessonId ?? 0;
+    return done >= total && total > 0;
+  }).length;
 
   const BADGES = [
-    { minXp: 0, label: 'Новичок', emoji: '🌱' },
-    { minXp: 50, label: 'Практик', emoji: '💪' },
+    { minXp: 0,   label: 'Новичок',   emoji: '🌱' },
+    { minXp: 50,  label: 'Практик',   emoji: '💪' },
     { minXp: 100, label: 'Уверенный', emoji: '⭐' },
-    { minXp: 200, label: 'Мастер', emoji: '🏆' },
-    { minXp: 500, label: 'Эксперт', emoji: '👑' },
+    { minXp: 200, label: 'Мастер',    emoji: '🏆' },
+    { minXp: 500, label: 'Эксперт',   emoji: '👑' },
   ];
   const earnedBadges = BADGES.filter((b) => xp >= b.minXp);
-  const nextBadge = BADGES.find((b) => xp < b.minXp);
+  const nextBadge    = BADGES.find((b) => xp < b.minXp);
 
   return (
-    <div>
-      <Breadcrumbs items={[{ label: 'Дашборд' }]} />
-      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Дашборд</h1>
-      <p className="mt-1 text-text-muted">Обзор обучения и активность</p>
+    <div className="space-y-6 max-w-6xl">
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold text-dark">Шкала Энергии</h2>
-        <p className="mt-1 text-sm text-text-muted">XP за практики мышечного тестирования</p>
-        <div className="mt-3 flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/20 font-bold text-secondary">
-            {level}
+      {/* ── Welcome banner ── */}
+      <div
+        className="relative overflow-hidden rounded-[var(--portal-radius-xl)] p-6 md:p-8"
+        style={{
+          background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 50%, #F3E8FF 100%)',
+          border: '1px solid #C7D2FE',
+        }}
+      >
+        {/* Декор-круги */}
+        <span className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-[#6366F1]/10 blur-3xl" aria-hidden />
+        <span className="absolute bottom-0 left-16 h-32 w-32 rounded-full bg-[#9333EA]/08 blur-2xl" aria-hidden />
+
+        <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+          <div>
+            <p className="text-[var(--portal-accent)] text-xs font-semibold uppercase tracking-widest mb-2">
+              Добро пожаловать
+            </p>
+            <h1 className="text-2xl md:text-3xl font-bold text-[var(--portal-text)] leading-tight">
+              {displayName} 👋
+            </h1>
+            <p className="mt-2 text-[var(--portal-text-muted)] text-sm max-w-md">
+              Продолжайте обучение — каждый день делает вас сильнее.
+            </p>
           </div>
-          <div className="flex-1">
-            <div className="flex justify-between text-sm">
-              <span className="text-dark">{xp} XP</span>
-              <span className="text-text-muted">Уровень {level}</span>
+
+          {/* XP-блок */}
+          <div className="flex items-center gap-4 bg-white/70 backdrop-blur-sm
+            rounded-2xl px-5 py-4 min-w-[210px] border border-white/80 shadow-sm">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full
+              bg-[var(--portal-accent)] text-white font-bold text-lg shadow-sm">
+              {level}
             </div>
-            <div className="mt-1 h-2 w-full overflow-hidden rounded-full bg-bg-soft">
-              <div
-                className="h-full rounded-full bg-secondary transition-all"
-                style={{ width: `${progressToNext * 100}%` }}
-              />
+            <div className="flex-1 min-w-0">
+              <div className="flex justify-between text-xs text-[var(--portal-text-muted)] mb-1.5">
+                <span className="font-semibold text-[var(--portal-text)]">{xp} XP</span>
+                <span>ур. {level}</span>
+              </div>
+              <div className="h-1.5 rounded-full bg-[#C7D2FE] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[var(--portal-accent)] transition-all duration-500"
+                  style={{ width: `${xpProgress}%` }}
+                />
+              </div>
+              {nextBadge && (
+                <p className="text-[0.68rem] text-[var(--portal-text-soft)] mt-1">
+                  до «{nextBadge.label}» ещё {nextBadge.minXp - xp} XP
+                </p>
+              )}
             </div>
           </div>
         </div>
-        <div className="mt-4">
-          <p className="text-sm font-medium text-dark">Бейджи</p>
-          <div className="mt-2 flex flex-wrap gap-2">
+
+        {/* Бейджи */}
+        {earnedBadges.length > 0 && (
+          <div className="relative mt-5 flex flex-wrap gap-2">
             {earnedBadges.map((b) => (
               <span
                 key={b.minXp}
-                className="inline-flex items-center gap-1 rounded-full bg-secondary/20 px-3 py-1 text-sm font-medium text-secondary"
-                title={b.label}
+                className="inline-flex items-center gap-1.5 rounded-full
+                  bg-white/80 border border-[#C7D2FE]
+                  px-3 py-1 text-xs font-medium text-[var(--portal-accent-dark)]"
               >
-                <span>{b.emoji}</span>
-                <span>{b.label}</span>
+                {b.emoji} {b.label}
               </span>
             ))}
-            {nextBadge && (
-              <span
-                className="inline-flex items-center gap-1 rounded-full border border-dashed border-border px-3 py-1 text-sm text-text-muted"
-                title={`Ещё ${nextBadge.minXp - xp} XP до «${nextBadge.label}»`}
-              >
-                <span>{nextBadge.emoji}</span>
-                <span>{nextBadge.label}</span>
-                <span className="text-xs">({nextBadge.minXp - xp} XP)</span>
-              </span>
-            )}
           </div>
-        </div>
-      </section>
+        )}
+      </div>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold text-dark">Мои курсы</h2>
+      <StudentOnboardingHint />
+
+      {/* ── Статистика ── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={<BookOpen className="h-5 w-5" />}
+          label="Всего курсов"
+          value={enrollments.length}
+          color="primary"
+        />
+        <StatCard
+          icon={<Award className="h-5 w-5" />}
+          label="Завершено"
+          value={completedCourses}
+          sub={certCount > 0 ? `${certCount} сертификат(ов)` : undefined}
+          color="green"
+        />
+        <StatCard
+          icon={<Clock className="h-5 w-5" />}
+          label="Время обучения"
+          value={totalTimeMin < 60 ? `${totalTimeMin} мин` : `${Math.floor(totalTimeMin / 60)} ч`}
+          color="blue"
+        />
+        <StatCard
+          icon={<Zap className="h-5 w-5" />}
+          label="Очки энергии"
+          value={`${xp} XP`}
+          sub={`Уровень ${level}`}
+          color="gold"
+        />
+      </div>
+
+      {/* ── Мои курсы ── */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-[var(--portal-text)]">Мои курсы</h2>
+          <Link
+            href="/portal/student/courses"
+            className="flex items-center gap-1 text-sm text-[var(--portal-primary)]
+              hover:text-[var(--portal-primary-light)] font-medium transition"
+          >
+            Все курсы <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+
         {enrollments.length === 0 ? (
-          <p className="mt-2 text-text-muted">Пока нет записей на курсы. <Link href="/#pricing" className="text-primary hover:underline">Выбрать курс</Link></p>
+          <div className="portal-card p-8 text-center">
+            <BookOpen className="h-10 w-10 mx-auto text-[var(--portal-text-soft)] mb-3" />
+            <p className="text-[var(--portal-text-muted)]">
+              Пока нет курсов.{' '}
+              <Link href="/#pricing" className="text-[var(--portal-primary)] hover:underline">
+                Выбрать курс
+              </Link>
+            </p>
+          </div>
         ) : (
-          <ul className="mt-3 space-y-3">
-            {enrollments.map((e) => {
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {enrollments.map((e, idx) => {
               const c = e.course;
-              const total = c ? totalLessons(c.scormManifest) : 1;
-              const completed = c ? (completedByCourse.find((x) => x.courseId === c.id)?._count.lessonId ?? 0) : 0;
-              const timeSpent = c ? (progressByCourse.find((x) => x.courseId === c.id)?._sum.timeSpent ?? 0) : 0;
-              const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+              if (!c) return null;
+              const total     = totalLessons(c.scormManifest);
+              const completed = completedByCourse.find((x) => x.courseId === c.id)?._count.lessonId ?? 0;
+              const timeSec   = progressByCourse.find((x) => x.courseId === c.id)?._sum.timeSpent ?? 0;
               return (
-                <li key={e.id} className="rounded-lg border border-border bg-white p-3">
-                  <Link href="/portal/student/courses" className="font-medium text-primary hover:underline">
-                    {c?.title ?? 'Курс'}
-                  </Link>
-                  {total > 0 && (
-                    <div className="mt-2">
-                      <div className="flex justify-between text-xs text-text-muted">
-                        <span>Прогресс</span>
-                        <span>{completed}/{total} ({pct}%)</span>
-                      </div>
-                      <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-bg-soft">
-                        <div
-                          className="h-full rounded-full bg-primary transition-all"
-                          style={{ width: `${pct}%` }}
-                        />
-                      </div>
-                      {timeSpent > 0 && (
-                        <p className="mt-1 text-xs text-text-muted">Время: {Math.floor(timeSpent / 60)} мин</p>
-                      )}
-                    </div>
-                  )}
-                </li>
+                <CourseCard
+                  key={e.id}
+                  id={c.id}
+                  title={c.title}
+                  description={c.description}
+                  thumbnailUrl={c.thumbnailUrl}
+                  totalLessons={total}
+                  completedLessons={completed}
+                  timeSpentMin={Math.round(timeSec / 60)}
+                  index={idx}
+                />
               );
             })}
-          </ul>
+          </div>
         )}
-      </section>
+      </div>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold text-dark">Уведомления</h2>
-        {notifications.length === 0 ? (
-          <p className="mt-2 text-text-muted">Нет новых уведомлений</p>
-        ) : (
-          <ul className="mt-3 space-y-2">
+      {/* ── Уведомления ── */}
+      {notifications.length > 0 && (
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-[var(--portal-text)]">Уведомления</h2>
+            <Link
+              href="/portal/student/notifications"
+              className="flex items-center gap-1 text-sm text-[var(--portal-primary)] hover:underline font-medium"
+            >
+              Все <ChevronRight className="h-4 w-4" />
+            </Link>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
             {notifications.map((n) => (
-              <li key={n.id} className="rounded-lg border border-border bg-white p-3">
-                <span className="text-sm font-medium text-dark">{n.type}</span>
-                <p className="text-sm text-text-muted">{String(n.content ?? '')}</p>
-                <time className="text-xs text-text-soft">{new Date(n.createdAt).toLocaleDateString('ru')}</time>
-              </li>
+              <div key={n.id} className="portal-card flex items-start gap-3 p-4">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
+                  bg-[#EEF2FF] text-[#4F46E5]">
+                  <Bell className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-[var(--portal-text)] truncate">{n.type}</p>
+                  <p className="text-xs text-[var(--portal-text-muted)] mt-0.5 line-clamp-2">
+                    {String(n.content ?? '')}
+                  </p>
+                  <time className="text-[0.7rem] text-[var(--portal-text-soft)] mt-1 block">
+                    {new Date(n.createdAt).toLocaleDateString('ru', {
+                      day: '2-digit', month: 'short', year: 'numeric',
+                    })}
+                  </time>
+                </div>
+              </div>
             ))}
-          </ul>
-        )}
-        <Link href="/portal/student/notifications" className="mt-2 inline-block text-sm text-primary hover:underline">Все уведомления →</Link>
-      </section>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

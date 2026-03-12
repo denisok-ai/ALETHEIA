@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ChevronLeft, ChevronRight, Pencil, Users } from 'lucide-react';
+import { TablePagination } from '@/components/ui/TablePagination';
+import { Pencil, Users } from 'lucide-react';
 
 interface Lead {
   id: number;
@@ -32,11 +33,12 @@ interface Lead {
   status: string;
   source?: string | null;
   converted_to_user_id: string | null;
+  last_order_number?: string | null;
   created_at: string;
 }
 
 const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'lost'] as const;
-const PAGE_SIZE = 10;
+const PAGE_SIZES = [10, 25, 50];
 
 export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
@@ -47,6 +49,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
   const [notesEditing, setNotesEditing] = useState<Lead | null>(null);
   const [notesValue, setNotesValue] = useState('');
   const [detailLead, setDetailLead] = useState<Lead | null>(null);
@@ -131,9 +134,9 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
             (l.email?.toLowerCase().includes(searchLower) ?? false) ||
             l.phone.includes(search)
         );
-  const totalPages = Math.max(1, Math.ceil(searched.length / PAGE_SIZE));
+  const totalPages = Math.max(1, Math.ceil(searched.length / pageSize));
   const pageIndex = Math.min(page, totalPages - 1);
-  const pageLeads = searched.slice(pageIndex * PAGE_SIZE, (pageIndex + 1) * PAGE_SIZE);
+  const pageLeads = searched.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
 
   const sources = Array.from(new Set(leads.map((l) => l.source).filter(Boolean))) as string[];
 
@@ -161,10 +164,10 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
   }
 
   function handleExportCsv() {
-    const headers = ['name', 'phone', 'email', 'status', 'source', 'notes', 'created_at'];
+    const headers = ['name', 'phone', 'email', 'status', 'source', 'last_order_number', 'notes', 'created_at'];
     const escape = (s: string) => (/[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
     const rows = searched.map((l) =>
-      [l.name, l.phone, l.email ?? '', l.status, l.source ?? '', l.notes ?? '', new Date(l.created_at).toISOString().slice(0, 10)].map(escape)
+      [l.name, l.phone, l.email ?? '', l.status, l.source ?? '', l.last_order_number ?? '', l.notes ?? '', new Date(l.created_at).toISOString().slice(0, 10)].map(escape)
     );
     const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
     const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
@@ -200,7 +203,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
         >
           <option value="all">Все статусы</option>
           {STATUSES.map((s) => (
@@ -210,21 +213,18 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         <select
           value={sourceFilter}
           onChange={(e) => { setSourceFilter(e.target.value); setPage(0); }}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
         >
           <option value="all">Все источники</option>
           {sources.map((s) => (
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
-        <Button variant="secondary" size="sm" onClick={handleExportCsv} disabled={searched.length === 0}>
-          Экспорт CSV
-        </Button>
       </div>
       {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-          <span className="text-sm font-medium text-dark">Выбрано: {selectedIds.size}</span>
-          <span className="text-sm text-text-muted">Сменить статус:</span>
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+          <span className="text-sm font-medium text-[var(--portal-text)]">Выбрано: {selectedIds.size}</span>
+          <span className="text-sm text-[var(--portal-text-muted)]">Сменить статус:</span>
           {STATUSES.map((s) => (
             <Button key={s} size="sm" variant="secondary" disabled={bulkUpdating} onClick={() => handleBulkStatus(s)}>
               {s}
@@ -233,7 +233,8 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Снять выбор</Button>
         </div>
       )}
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      <div className="portal-card overflow-hidden p-0">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -263,42 +264,42 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
               </TableRow>
             ) : (
               pageLeads.map((l, idx) => (
-                <TableRow key={l.id} className="cursor-pointer hover:bg-bg-cream" onClick={() => setDetailLead(l)}>
+                <TableRow key={l.id} className="cursor-pointer hover:bg-[#F8FAFC]" onClick={() => setDetailLead(l)}>
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
                       checked={selectedIds.has(l.id)}
                       onChange={() => toggleSelect(l.id)}
-                      className="rounded border-border"
+                      className="rounded border-[#E2E8F0]"
                     />
                   </TableCell>
-                  <TableCell className="text-text-muted">
-                    {pageIndex * PAGE_SIZE + idx + 1}
+                  <TableCell className="text-[var(--portal-text-muted)]">
+                    {pageIndex * pageSize + idx + 1}
                   </TableCell>
-                  <TableCell className="text-text-muted">
+                  <TableCell className="text-[var(--portal-text-muted)]">
                     {new Date(l.created_at).toLocaleDateString('ru')}
                   </TableCell>
-                  <TableCell className="font-medium text-dark">{l.name}</TableCell>
-                  <TableCell className="text-text-muted">{l.source ?? '—'}</TableCell>
-                  <TableCell className="text-text-muted">{l.phone}</TableCell>
-                  <TableCell className="text-text-muted">{l.email ?? '—'}</TableCell>
+                  <TableCell className="font-medium text-[var(--portal-text)]">{l.name}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{l.source ?? '—'}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{l.phone}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{l.email ?? '—'}</TableCell>
                   <TableCell>
                     <select
                       value={l.status}
                       onChange={(e) => handleStatusChange(l.id, e.target.value)}
                       disabled={updating === l.id}
-                      className="rounded border border-border bg-white px-2 py-1 text-sm"
+                      className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
                     >
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>{s}</option>
                       ))}
                     </select>
                   </TableCell>
-                  <TableCell className="max-w-[180px] truncate text-text-muted">
+                  <TableCell className="max-w-[180px] truncate text-[var(--portal-text-muted)]">
                     {l.message ?? '—'}
                   </TableCell>
                   <TableCell className="max-w-[120px]">
-                    <span className="truncate block text-text-muted text-xs">
+                    <span className="truncate block text-[var(--portal-text-muted)] text-xs">
                       {l.notes ? (l.notes.length > 40 ? l.notes.slice(0, 40) + '…' : l.notes) : '—'}
                     </span>
                     <Button
@@ -328,7 +329,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
                         {converting === l.id ? '…' : 'Конвертировать'}
                       </Button>
                     ) : (
-                      <span className="text-xs text-text-muted">Нет email</span>
+                      <span className="text-xs text-[var(--portal-text-muted)]">Нет email</span>
                     )}
                   </TableCell>
                 </TableRow>
@@ -336,32 +337,23 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
             )}
           </TableBody>
         </Table>
-      </div>
-      {searched.length > PAGE_SIZE && (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-text-muted">
-            {searched.length} лидов, стр. {pageIndex + 1} из {totalPages}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPage((p) => Math.max(0, p - 1))}
-              disabled={pageIndex <= 0}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-              disabled={pageIndex >= totalPages - 1}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
+        </div>
+      {searched.length > 0 && (
+        <div className="px-4 pb-3 pt-1 border-t border-[#E2E8F0]">
+          <TablePagination
+            currentPage={pageIndex}
+            totalPages={totalPages}
+            total={searched.length}
+            pageSize={pageSize}
+            pageSizeOptions={PAGE_SIZES}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+            onExportExcel={handleExportCsv}
+            exportLabel="Excel"
+          />
         </div>
       )}
+      </div>
 
       {detailLead && (
         <Dialog open onOpenChange={(open) => !open && setDetailLead(null)}>
@@ -370,20 +362,23 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
               <DialogTitle>Лид: {detailLead.name}</DialogTitle>
             </DialogHeader>
             <dl className="mt-2 space-y-1 text-sm">
-              <div><dt className="text-text-muted inline">Телефон: </dt><dd className="inline">{detailLead.phone}</dd></div>
-              <div><dt className="text-text-muted inline">Email: </dt><dd className="inline">{detailLead.email ?? '—'}</dd></div>
-              <div><dt className="text-text-muted inline">Статус: </dt><dd className="inline">{detailLead.status}</dd></div>
-              {detailLead.source && <div><dt className="text-text-muted inline">Источник: </dt><dd className="inline">{detailLead.source}</dd></div>}
-              <div><dt className="text-text-muted inline">Дата: </dt><dd className="inline">{new Date(detailLead.created_at).toLocaleString('ru')}</dd></div>
-              {detailLead.message && <div><dt className="text-text-muted inline">Сообщение: </dt><dd className="inline break-words">{detailLead.message}</dd></div>}
-              {detailLead.notes && <div><dt className="text-text-muted inline">Заметки: </dt><dd className="inline break-words">{detailLead.notes}</dd></div>}
+              <div><dt className="text-[var(--portal-text-muted)] inline">Телефон: </dt><dd className="inline">{detailLead.phone}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Email: </dt><dd className="inline">{detailLead.email ?? '—'}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Статус: </dt><dd className="inline">{detailLead.status}</dd></div>
+              {detailLead.source && <div><dt className="text-[var(--portal-text-muted)] inline">Источник: </dt><dd className="inline">{detailLead.source}</dd></div>}
+              <div><dt className="text-[var(--portal-text-muted)] inline">Дата: </dt><dd className="inline">{new Date(detailLead.created_at).toLocaleString('ru')}</dd></div>
+              {detailLead.last_order_number && (
+                <div><dt className="text-[var(--portal-text-muted)] inline">Оплаченный заказ: </dt><dd className="inline">{detailLead.last_order_number}</dd></div>
+              )}
+              {detailLead.message && <div><dt className="text-[var(--portal-text-muted)] inline">Сообщение: </dt><dd className="inline break-words">{detailLead.message}</dd></div>}
+              {detailLead.notes && <div><dt className="text-[var(--portal-text-muted)] inline">Заметки: </dt><dd className="inline break-words">{detailLead.notes}</dd></div>}
             </dl>
             <div className="mt-4 flex gap-2">
               <select
                 value={detailLead.status}
                 onChange={(e) => { handleStatusChange(detailLead.id, e.target.value); setDetailLead((p) => p ? { ...p, status: e.target.value } : null); }}
                 disabled={updating === detailLead.id}
-                className="rounded border border-border bg-white px-2 py-1 text-sm"
+                className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
               >
                 {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
@@ -419,7 +414,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
             <textarea
               value={notesValue}
               onChange={(e) => setNotesValue(e.target.value)}
-              className="mt-3 w-full rounded-lg border border-border px-3 py-2 text-sm min-h-[100px]"
+              className="mt-3 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm min-h-[100px] text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
               placeholder="Заметки по лиду..."
             />
             <div className="mt-3 flex gap-2">

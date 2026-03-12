@@ -12,7 +12,7 @@ export default async function NewNotificationTemplatePage() {
   if (!session?.user || role !== 'admin') {
     return (
       <div className="p-6">
-        <p className="text-text-muted">Доступ запрещён.</p>
+        <p className="text-[var(--portal-text-muted)]">Доступ запрещён.</p>
       </div>
     );
   }

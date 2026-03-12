@@ -173,21 +173,21 @@ export function ServicesAdminBlock() {
 
   if (loading) {
     return (
-      <div className="rounded-xl border border-border bg-white p-6">
-        <p className="text-sm text-text-muted">Загрузка товаров…</p>
+      <div className="portal-card p-6">
+        <p className="text-sm text-[var(--portal-text-muted)]">Загрузка товаров…</p>
       </div>
     );
   }
 
   return (
-    <div className="rounded-xl border border-border bg-white p-6">
+    <div className="portal-card p-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-dark">Товары для продажи на главной</h2>
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Товары для продажи на главной</h2>
         <Button size="sm" onClick={openCreate}>
           Добавить товар
         </Button>
       </div>
-      <p className="mt-1 text-sm text-text-muted">
+      <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
         Эти товары отображаются в блоке «Купить курс» на главной. Укажите slug, название, цену и ID тарифа PayKeeper; привяжите курс для автоматического зачисления после оплаты.
       </p>
       <div className="mt-4 overflow-x-auto">
@@ -216,8 +216,8 @@ export function ServicesAdminBlock() {
                   <TableCell className="font-mono text-sm">{s.slug}</TableCell>
                   <TableCell>{s.name}</TableCell>
                   <TableCell>{s.price.toLocaleString('ru')} ₽</TableCell>
-                  <TableCell className="text-text-muted">{s.paykeeperTariffId ?? '—'}</TableCell>
-                  <TableCell className="text-text-muted">{s.courseTitle ?? '—'}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{s.paykeeperTariffId ?? '—'}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{s.courseTitle ?? '—'}</TableCell>
                   <TableCell>{s.isActive ? 'Да' : 'Нет'}</TableCell>
                   <TableCell>
                     <div className="flex gap-1">
@@ -291,7 +291,7 @@ export function ServicesAdminBlock() {
                 id="svc-course"
                 value={form.courseId}
                 onChange={(e) => setForm((p) => ({ ...p, courseId: e.target.value }))}
-                className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
               >
                 <option value="">— не привязан</option>
                 {courses.map((c) => (
@@ -305,7 +305,7 @@ export function ServicesAdminBlock() {
                 id="svc-active"
                 checked={form.isActive}
                 onChange={(e) => setForm((p) => ({ ...p, isActive: e.target.checked }))}
-                className="rounded border-border"
+                className="rounded border-[#E2E8F0]"
               />
               <Label htmlFor="svc-active" className="font-normal">Показывать в магазине</Label>
             </div>

@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { writeAuditLog } from '@/lib/audit';
-import { clearSettingsCache, clearEnvOverridesCache } from '@/lib/settings';
+import { clearSettingsCache, clearEnvOverridesCache, clearPaymentEmailTemplatesCache } from '@/lib/settings';
 import { encrypt } from '@/lib/encrypt';
 import { clearPayKeeperConfigCache } from '@/lib/paykeeper';
 
@@ -16,6 +16,10 @@ const ALLOWED_KEYS = [
   'resend_from',
   'resend_notify_email',
   'contact_phone',
+  'email_payment_course_subject',
+  'email_payment_course_body',
+  'email_payment_generic_subject',
+  'email_payment_generic_body',
   'paykeeper_server',
   'paykeeper_login',
   'paykeeper_password',
@@ -37,6 +41,10 @@ const KEY_CATEGORY: Record<(typeof ALLOWED_KEYS)[number], string> = {
   resend_from: 'email',
   resend_notify_email: 'email',
   contact_phone: 'general',
+  email_payment_course_subject: 'payment_email',
+  email_payment_course_body: 'payment_email',
+  email_payment_generic_subject: 'payment_email',
+  email_payment_generic_body: 'payment_email',
   paykeeper_server: 'payments',
   paykeeper_login: 'payments',
   paykeeper_password: 'payments',
@@ -97,6 +105,10 @@ export async function GET() {
     telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN ?? '',
     cron_secret: process.env.CRON_SECRET ?? '',
     nextauth_url: process.env.NEXTAUTH_URL ?? '',
+    email_payment_course_subject: '',
+    email_payment_course_body: '',
+    email_payment_generic_subject: '',
+    email_payment_generic_body: '',
   };
 
   const byKey: Record<string, string> = { ...envFallback };
@@ -104,11 +116,13 @@ export async function GET() {
 
   const general: Record<string, string> = {};
   const email: Record<string, string> = {};
+  const payment_email: Record<string, string> = {};
   const keysOut: Record<string, string | boolean> = {};
   for (const k of ALLOWED_KEYS) {
     const v = byKey[k] ?? '';
     if (KEY_CATEGORY[k] === 'general') general[k] = v;
     else if (KEY_CATEGORY[k] === 'email') email[k] = v;
+    else if (KEY_CATEGORY[k] === 'payment_email') payment_email[k] = v;
     if (SENSITIVE_KEYS.has(k)) {
       keysOut[k] = v.length > 0;
     } else {
@@ -117,7 +131,7 @@ export async function GET() {
   }
 
   return NextResponse.json({
-    settings: { general, email },
+    settings: { general, email, payment_email },
     keys: keysOut,
   });
 }
@@ -173,6 +187,7 @@ export async function PATCH(request: NextRequest) {
 
   clearSettingsCache();
   clearEnvOverridesCache();
+  clearPaymentEmailTemplatesCache();
   clearPayKeeperConfigCache();
 
   return NextResponse.json({ success: true, updated: Object.keys(updates) });

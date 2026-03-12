@@ -122,7 +122,7 @@ export function CoursesPageWithGroups({ initialCourses }: { initialCourses: Cour
       }
     >
       {loadingGroup ? (
-        <p className="text-text-muted py-4">Загрузка курсов группы…</p>
+        <p className="text-[var(--portal-text-muted)] py-4">Загрузка курсов группы…</p>
       ) : (
         <CoursesAdminClient
           key={selectedGroupId ?? 'all'}

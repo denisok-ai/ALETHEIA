@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Публичный сайт ─── */
 :root {
   --bg: #fffefb;
   --bg-soft: #faf8f5;
@@ -26,6 +27,80 @@
   --card-radius: 1.25rem;
   --shadow-soft: 0 4px 24px -4px rgba(44, 42, 40, 0.06), 0 8px 32px -8px rgba(44, 42, 40, 0.04);
   --shadow-card: 0 8px 32px -8px rgba(44, 42, 40, 0.08), 0 16px 48px -16px rgba(166, 139, 91, 0.08);
+}
+
+/* ─── Портал (LMS) — Modern Light 2026 ─── */
+:root {
+  /* Акцентный цвет — Indigo (Linear / Notion style) */
+  --portal-accent:          #6366F1;   /* indigo-500  */
+  --portal-accent-dark:     #4F46E5;   /* indigo-600  */
+  --portal-accent-soft:     #EEF2FF;   /* indigo-50   */
+  --portal-accent-muted:    #C7D2FE;   /* indigo-200  */
+
+  /* Фон */
+  --portal-bg:              #F8FAFC;   /* slate-50    */
+  --portal-sidebar-bg:      #ffffff;
+  --portal-header-bg:       #ffffff;
+  --portal-surface:         #ffffff;
+  --portal-surface-soft:    #F8FAFC;
+  --portal-surface-hover:   #F1F5F9;   /* slate-100   */
+
+  /* Текст */
+  --portal-text:            #0F172A;   /* slate-900   */
+  --portal-text-muted:      #64748B;   /* slate-500   */
+  --portal-text-soft:       #94A3B8;   /* slate-400   */
+  --portal-text-on-accent:  #ffffff;
+
+  /* Sidebar (светлый) */
+  --portal-sidebar-border:  #E2E8F0;   /* slate-200   */
+  --portal-sidebar-item:           rgba(99,102,241,0.06);
+  --portal-sidebar-item-active:    rgba(99,102,241,0.10);
+  --portal-sidebar-item-active-border: #6366F1;
+  --portal-sidebar-text:           #475569;   /* slate-600 */
+  --portal-sidebar-text-active:    #4F46E5;   /* indigo-600 */
+  --portal-sidebar-label:          #94A3B8;   /* slate-400  */
+
+  /* Первичная кнопка = Indigo */
+  --portal-primary:         #6366F1;
+  --portal-primary-light:   #818CF8;   /* indigo-400 */
+
+  /* Статусы */
+  --status-active-bg:       #DCFCE7;
+  --status-active-text:     #15803D;
+  --status-warn-bg:         #FEF9C3;
+  --status-warn-text:       #A16207;
+  --status-error-bg:        #FFE4E6;
+  --status-error-text:      #BE123C;
+  --status-neutral-bg:      #F1F5F9;
+  --status-neutral-text:    #475569;
+  --status-info-bg:         #EEF2FF;
+  --status-info-text:       #4338CA;
+  --status-purple-bg:       #F3E8FF;
+  --status-purple-text:     #7E22CE;
+
+  /* Прогресс */
+  --progress-track:         #E2E8F0;
+  --progress-fill:          #6366F1;
+  --progress-done:          #22C55E;
+  --progress-mid:           #F59E0B;
+
+  /* Радиусы */
+  --portal-radius-sm:  6px;
+  --portal-radius:     10px;
+  --portal-radius-lg:  14px;
+  --portal-radius-xl:  18px;
+
+  /* Тени — мягче, без фиолетового */
+  --portal-shadow-sm:   0 1px 2px rgba(15,23,42,0.04), 0 1px 3px rgba(15,23,42,0.06);
+  --portal-shadow:      0 4px 12px -2px rgba(15,23,42,0.08), 0 2px 6px -1px rgba(15,23,42,0.04);
+  --portal-shadow-md:   0 8px 24px -4px rgba(15,23,42,0.10), 0 4px 12px -2px rgba(15,23,42,0.06);
+  --portal-shadow-card: 0 0 0 1px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.06);
+  --portal-shadow-accent: 0 4px 16px rgba(99,102,241,0.30);
+
+  /* Размеры */
+  --portal-header-h:          56px;
+  --portal-sidebar-w:         232px;
+  --portal-sidebar-collapsed-w: 56px;
 }
 
 html {
@@ -54,6 +129,157 @@ body {
     padding-left: 1.5rem;
     padding-right: 1.5rem;
   }
+}
+
+/* ─── Portal utility classes ─── */
+
+/* Карточка портала */
+.portal-card {
+  background: var(--portal-surface);
+  border-radius: var(--portal-radius);
+  box-shadow: var(--portal-shadow-card);
+  border: 1px solid #E2E8F0;
+}
+
+/* Фон страниц портала */
+.portal-page-bg {
+  background: var(--portal-bg);
+  min-height: 100vh;
+}
+
+/* Метрика-плитка */
+.portal-metric {
+  background: var(--portal-surface);
+  border-radius: var(--portal-radius);
+  box-shadow: var(--portal-shadow-sm);
+  border: 1px solid #E2E8F0;
+  padding: 1.25rem 1.5rem;
+}
+
+/* Статус-бейдж */
+.badge-active   { background: var(--status-active-bg);  color: var(--status-active-text);   }
+.badge-warn     { background: var(--status-warn-bg);    color: var(--status-warn-text);     }
+.badge-error    { background: var(--status-error-bg);   color: var(--status-error-text);    }
+.badge-neutral  { background: var(--status-neutral-bg); color: var(--status-neutral-text);  }
+.badge-info     { background: var(--status-info-bg);    color: var(--status-info-text);     }
+.badge-purple   { background: var(--status-purple-bg);  color: var(--status-purple-text);   }
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+/* Прогресс-бар */
+.progress-track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--progress-track);
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--progress-fill);
+  transition: width 0.5s cubic-bezier(.4,0,.2,1);
+}
+.progress-fill.done { background: var(--progress-done); }
+.progress-fill.mid  { background: var(--progress-mid); }
+
+/* Кнопки курса */
+.course-launch-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--portal-radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.course-launch-btn.primary {
+  background: var(--portal-accent);
+  color: #fff;
+}
+.course-launch-btn.primary:hover {
+  background: var(--portal-accent-dark);
+  box-shadow: var(--portal-shadow-accent);
+  transform: translateY(-1px);
+}
+.course-launch-btn.done {
+  background: var(--status-active-bg);
+  color: var(--status-active-text);
+}
+.course-launch-btn.start {
+  background: var(--portal-accent-soft);
+  color: var(--portal-accent-dark);
+  border: 1px solid var(--portal-accent-muted);
+}
+.course-launch-btn.start:hover {
+  background: var(--portal-accent);
+  color: #fff;
+  border-color: transparent;
+  box-shadow: var(--portal-shadow-accent);
+  transform: translateY(-1px);
+}
+
+/* Sidebar links — светлый стиль */
+.portal-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 10px;
+  border-radius: var(--portal-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--portal-sidebar-text);
+  transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+}
+.portal-sidebar-link:hover {
+  background: var(--portal-sidebar-item);
+  color: var(--portal-sidebar-text-active);
+}
+.portal-sidebar-link.active {
+  background: var(--portal-sidebar-item-active);
+  color: var(--portal-sidebar-text-active);
+  font-weight: 600;
+}
+.portal-sidebar-link.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  border-radius: 0 99px 99px 0;
+  background: var(--portal-sidebar-item-active-border);
+}
+
+/* Skeleton loader */
+@keyframes skeleton-shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #E2E8F0 25%, #F1F5F9 50%, #E2E8F0 75%);
+  background-size: 800px 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+  border-radius: var(--portal-radius-sm);
 }
 
 @media (prefers-reduced-motion: reduce) {

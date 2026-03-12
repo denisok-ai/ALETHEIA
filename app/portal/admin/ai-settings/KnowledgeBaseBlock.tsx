@@ -57,7 +57,7 @@ export function KnowledgeBaseBlock() {
       description="Текст, на основании которого работает чат-бот (курс «Тело не врёт»). Поддерживается Markdown. Плейсхолдер {{COURSE_URL}} подставится в ссылку на курс. Редактируйте по мере обновления материалов."
     >
       {loading ? (
-        <p className="text-sm text-text-muted">Загрузка…</p>
+        <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex-1 min-h-[320px]">
@@ -67,7 +67,7 @@ export function KnowledgeBaseBlock() {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={20}
-              className="w-full rounded-lg border border-border bg-white px-3 py-2 font-mono text-sm resize-y min-h-[320px]"
+              className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 font-mono text-sm resize-y min-h-[320px] focus:ring-2 focus:ring-[#6366F1]"
               placeholder="# База знаний\n\n## Раздел 1\n..."
               spellCheck={false}
             />

@@ -6,7 +6,7 @@ import { HelpContent } from '@/components/portal/HelpContent';
 
 export default function AdminHelpPage() {
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full max-w-4xl">
       <PageHeader
         items={[
           { href: '/portal/admin/dashboard', label: 'Дашборд' },

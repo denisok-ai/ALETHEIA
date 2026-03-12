@@ -1,111 +1,60 @@
 'use client';
 
 /**
- * Блок учётной записи: имя, email, выход. Для размещения в сайдбаре (нижний левый угол).
+ * Блок учётной записи в нижней части сайдбара — светлый стиль 2026.
  */
-import { useState, useRef, useEffect } from 'react';
 import { signOut } from 'next-auth/react';
-import { ChevronDown, LogOut, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePortalUI } from './PortalUIProvider';
 
-interface PortalAccountBlockProps {
-  collapsed?: boolean;
-  className?: string;
-}
-
-export function PortalAccountBlock({ collapsed, className }: PortalAccountBlockProps) {
+export function PortalAccountBlock({ collapsed, className }: { collapsed?: boolean; className?: string }) {
   const { user, profile } = usePortalUI();
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener('click', handleClickOutside);
-    return () => document.removeEventListener('click', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
-    if (!open || !dropdownRef.current) return;
-    const el = dropdownRef.current;
-    const focusables = el.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-    const first = focusables[0];
-    const last = focusables[focusables.length - 1];
-    first?.focus();
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') {
-        setOpen(false);
-        return;
-      }
-      if (e.key !== 'Tab') return;
-      if (e.shiftKey) {
-        if (document.activeElement === first) {
-          e.preventDefault();
-          last?.focus();
-        }
-      } else {
-        if (document.activeElement === last) {
-          e.preventDefault();
-          first?.focus();
-        }
-      }
-    }
-    el.addEventListener('keydown', onKeyDown);
-    return () => el.removeEventListener('keydown', onKeyDown);
-  }, [open]);
-
-  async function handleLogout() {
-    setOpen(false);
-    await signOut({ callbackUrl: '/login' });
-  }
-
-  const displayName = profile?.display_name || user?.email || 'Пользователь';
 
   if (!user?.email) return null;
 
+  const displayName = profile?.display_name || user.email.split('@')[0] || 'Пользователь';
+  const letters = displayName.split(' ').slice(0, 2).map((w: string) => w[0]).join('').toUpperCase() || '?';
+
+  async function handleLogout() {
+    await signOut({ callbackUrl: '/login' });
+  }
+
   return (
-    <div className={cn('relative mt-auto pt-3 border-t border-border', className)} ref={ref}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className={cn(
-          'flex w-full items-center rounded-lg py-2 text-sm font-medium transition text-dark hover:bg-bg-soft',
-          collapsed ? 'justify-center px-2' : 'gap-2 px-3'
-        )}
-        aria-expanded={open}
-        aria-haspopup="true"
-      >
-        {collapsed ? (
-          <User className="h-5 w-5 shrink-0 text-text-muted" aria-hidden />
-        ) : (
-          <>
-            <span className="min-w-0 truncate text-left">{displayName}</span>
-            <ChevronDown className={cn('h-4 w-4 shrink-0 transition', open && 'rotate-180')} />
-          </>
-        )}
-      </button>
-      {open && (
-        <div
-          ref={dropdownRef}
-          role="menu"
-          className="absolute left-0 bottom-full mb-1 w-48 rounded-lg border border-border bg-white py-1 shadow-lg"
-        >
-          <div className="border-b border-border px-3 py-2 text-xs text-text-muted" role="none">
-            {user?.email}
+    <div className={cn(
+      'flex items-center gap-2.5 pt-3',
+      collapsed && 'justify-center',
+      className
+    )}>
+      {/* Аватар */}
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full
+        bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]
+        text-xs font-bold select-none border border-[var(--portal-accent-muted)]">
+        {letters}
+      </span>
+
+      {!collapsed && (
+        <>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.8125rem] font-semibold text-[var(--portal-text)] truncate leading-tight">
+              {displayName}
+            </p>
+            <p className="text-[0.7rem] text-[var(--portal-text-soft)] truncate leading-tight mt-0.5">
+              {user.email}
+            </p>
           </div>
           <button
             type="button"
-            role="menuitem"
             onClick={handleLogout}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-dark hover:bg-bg-soft"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md
+              text-[var(--portal-text-soft)]
+              hover:text-red-500 hover:bg-red-50 transition"
+            title="Выйти"
+            aria-label="Выйти"
           >
-            <LogOut className="h-4 w-4" />
-            Выйти
+            <LogOut className="h-3.5 w-3.5" />
           </button>
-        </div>
+        </>
       )}
     </div>
   );

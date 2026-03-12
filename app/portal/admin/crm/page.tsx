@@ -22,6 +22,7 @@ export default async function AdminCrmPage() {
     orderBy: { createdAt: 'desc' },
   });
 
+  const STATUS_ORDER = ['new', 'contacted', 'qualified', 'converted', 'lost'] as const;
   const byStatus = leads.reduce(
     (acc, l) => {
       acc[l.status] = (acc[l.status] ?? 0) + 1;
@@ -29,6 +30,7 @@ export default async function AdminCrmPage() {
     },
     {} as Record<string, number>
   );
+  const statusEntries = STATUS_ORDER.map((status) => [status, byStatus[status] ?? 0] as const);
 
   const list = leads.map((l) => ({
     id: l.id,
@@ -40,11 +42,12 @@ export default async function AdminCrmPage() {
     status: l.status,
     source: l.source,
     converted_to_user_id: l.convertedToUserId,
+    last_order_number: l.lastOrderNumber ?? null,
     created_at: l.createdAt.toISOString(),
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <PageHeader
         items={[
           { href: '/portal/admin/dashboard', label: 'Дашборд' },
@@ -54,17 +57,17 @@ export default async function AdminCrmPage() {
         description="Лиды, воронка, конвертация в пользователей"
       />
 
-      <div className="grid gap-4 sm:grid-cols-4">
-        {Object.entries(byStatus).map(([status, count]) => (
-          <div key={status} className="rounded-xl border border-border bg-white p-4">
-            <p className="text-sm text-text-muted">{status}</p>
-            <p className="text-2xl font-bold text-dark">{count}</p>
+      <div className="grid grid-cols-5 gap-4 min-w-0">
+        {statusEntries.map(([status, count]) => (
+          <div key={status} className="portal-card p-5">
+            <p className="text-xs font-medium text-[var(--portal-text-muted)]">{status}</p>
+            <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{count}</p>
           </div>
         ))}
       </div>
 
-      <div className="mt-8 rounded-xl border border-border bg-white p-6">
-        <h2 className="text-lg font-semibold text-dark">Воронка лидов</h2>
+      <div className="portal-card p-6">
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Воронка лидов</h2>
         <CrmFunnelChart byStatus={byStatus} />
       </div>
 

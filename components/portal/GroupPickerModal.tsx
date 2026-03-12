@@ -64,16 +64,16 @@ export function GroupPickerModal({
         </DialogHeader>
         <div className="mt-4">
           {loading ? (
-            <p className="text-sm text-text-muted">Загрузка списка групп…</p>
+            <p className="text-sm text-[var(--portal-text-muted)]">Загрузка списка групп…</p>
           ) : groups.length === 0 ? (
-            <p className="text-sm text-text-muted">Нет доступных групп. Создайте группу в сайдбаре.</p>
+            <p className="text-sm text-[var(--portal-text-muted)]">Нет доступных групп. Создайте группу в сайдбаре.</p>
           ) : (
             <>
-              <label className="text-sm font-medium text-dark">Выберите группу</label>
+              <label className="text-sm font-medium text-[var(--portal-text)]">Выберите группу</label>
               <select
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                className="mt-2 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
               >
                 <option value="">—</option>
                 {groups.map((g) => (

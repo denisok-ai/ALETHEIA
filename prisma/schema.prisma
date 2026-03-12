@@ -34,6 +34,7 @@ model User {
   notificationLogs NotificationLog[]
   visitLogs       VisitLog[]
   userGroups      UserGroup[]
+  passwordTokens  PasswordToken[]
 }
 
 // Иерархические группы для модулей Курсы, Медиатека, Пользователи
@@ -253,16 +254,17 @@ model Notification {
 }
 
 model Ticket {
-  id        String   @id @default(cuid())
-  userId    String
-  user      User     @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
-  managerId String?
-  manager   User?    @relation("ManagerTickets", fields: [managerId], references: [id], onDelete: SetNull)
-  subject   String
-  status    String   @default("open") // open, in_progress, resolved, closed
-  messages  String   @default("[]")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("UserTickets", fields: [userId], references: [id], onDelete: Cascade)
+  managerId   String?
+  manager     User?    @relation("ManagerTickets", fields: [managerId], references: [id], onDelete: SetNull)
+  subject     String
+  status      String   @default("open") // open, in_progress, resolved, closed
+  messages    String   @default("[]")
+  orderNumber String?  // при обращении «Нет доступа» — заказ для аналитики (7.4)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 model PhygitalVerification {
@@ -446,6 +448,7 @@ model Lead {
   status             String   @default("new")
   source             String?  // form, landing, manual
   convertedToUserId  String?
+  lastOrderNumber    String?  // при оплате заказа с email лида — для аналитики (1.3)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -463,6 +466,18 @@ model Order {
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+/// Одноразовый токен для установки/сброса пароля (конвертация лида, восстановление пароля).
+model PasswordToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([token])
+  @@index([expiresAt])
 }
 
 model Mailing {

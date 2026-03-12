@@ -316,7 +316,8 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
         </Button>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      <div className="portal-card overflow-hidden p-0">
+        <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -343,21 +344,21 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
             ) : (
               items.map((m, idx) => (
                 <TableRow key={m.id}>
-                  <TableCell className="text-text-muted">{idx + 1}</TableCell>
-                  <TableCell className="font-medium text-dark">{m.internalTitle}</TableCell>
-                  <TableCell className="text-text-muted line-clamp-1 max-w-[200px]">{m.emailSubject}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                  <TableCell className="font-medium text-[var(--portal-text)]">{m.internalTitle}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)] line-clamp-1 max-w-[200px]">{m.emailSubject}</TableCell>
                   <TableCell>
                     {m.status === 'planned' && <span className="text-amber-600">Запланирована</span>}
                     {m.status === 'processing' && <span className="text-blue-600">Идёт</span>}
                     {m.status === 'completed' && <span className="text-green-600">Завершена</span>}
                   </TableCell>
-                  <TableCell className="text-text-muted">{format(new Date(m.createdAt), 'dd.MM.yyyy HH:mm')}</TableCell>
-                  <TableCell className="text-right text-text-muted">{m.logsCount}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{format(new Date(m.createdAt), 'dd.MM.yyyy HH:mm')}</TableCell>
+                  <TableCell className="text-right text-[var(--portal-text-muted)]">{m.logsCount}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       <Link
                         href={`/portal/admin/mailings/${m.id}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-primary"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
                         title="Подробнее / Результаты"
                       >
                         <FileText className="h-4 w-4" />
@@ -367,7 +368,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                           <button
                             type="button"
                             onClick={() => openEdit(m)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-primary"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
                             title="Редактировать"
                           >
                             <Pencil className="h-4 w-4" />
@@ -376,7 +377,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                             type="button"
                             onClick={() => handleSend(m)}
                             disabled={sending}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-green-600"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-green-600"
                             title="Отправить сейчас"
                           >
                             <Send className="h-4 w-4" />
@@ -384,7 +385,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                           <button
                             type="button"
                             onClick={() => setDeleteTarget(m)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-red-600"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-red-600"
                             title="Удалить"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -395,7 +396,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                         <button
                           type="button"
                           onClick={() => handleCopy(m)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded text-text-muted hover:text-primary"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
                           title="Копировать"
                         >
                           <Copy className="h-4 w-4" />
@@ -408,6 +409,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
             )}
           </TableBody>
         </Table>
+        </div>
       </div>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -417,7 +419,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-dark">Основное</h3>
+              <h3 className="text-sm font-semibold text-[var(--portal-text)]">Основное</h3>
               <div>
                 <Label htmlFor="mail-title">Внутреннее название</Label>
                 <Input
@@ -448,7 +450,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                   onChange={(e) => setFormBody(e.target.value)}
                   rows={6}
                   required
-                  className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -478,7 +480,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                   <select
                     value={formScheduleMode}
                     onChange={(e) => setFormScheduleMode(e.target.value as 'manual' | 'scheduled')}
-                    className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
                   >
                     <option value="manual">Вручную (по кнопке)</option>
                     <option value="scheduled">По расписанию</option>
@@ -501,15 +503,15 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
 
             {editingId && (
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold text-dark flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-[var(--portal-text)] flex items-center gap-2">
                   <Paperclip className="h-4 w-4" /> Вложения (макс. 10 МБ)
                 </h3>
                 {formAttachments.length > 0 && (
-                  <ul className="rounded-lg border border-border divide-y divide-border bg-muted/30">
+                  <ul className="rounded-lg border border-[#E2E8F0] divide-y divide-[#E2E8F0] bg-[#F8FAFC]">
                     {formAttachments.map((a) => (
                       <li key={a.pathOrKey} className="flex items-center justify-between px-3 py-2 text-sm">
-                        <span className="truncate text-dark">{a.name}</span>
-                        <span className="text-text-muted shrink-0 ml-2">{formatBytes(a.size)}</span>
+                        <span className="truncate text-[var(--portal-text)]">{a.name}</span>
+                        <span className="text-[var(--portal-text-muted)] shrink-0 ml-2">{formatBytes(a.size)}</span>
                         <Button
                           type="button"
                           variant="ghost"
@@ -542,7 +544,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                     Добавить файл
                   </Button>
                   {formAttachments.length > 0 && (
-                    <span className="text-text-muted text-sm">
+                    <span className="text-[var(--portal-text-muted)] text-sm">
                       Всего: {formatBytes(formAttachments.reduce((s, a) => s + a.size, 0))}
                     </span>
                   )}
@@ -551,13 +553,13 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
             )}
 
             <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-dark">Адресаты</h3>
+              <h3 className="text-sm font-semibold text-[var(--portal-text)]">Адресаты</h3>
               <div>
                 <Label>Кому</Label>
                 <select
                   value={formRecipientType}
                   onChange={(e) => setFormRecipientType(e.target.value as 'all' | 'role' | 'list' | 'groups')}
-                  className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
                 >
                   <option value="all">Все активные пользователи</option>
                   <option value="role">По роли</option>
@@ -571,7 +573,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                   <select
                     value={formRole}
                     onChange={(e) => setFormRole(e.target.value)}
-                    className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+                    className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
                   >
                     <option value="user">Студент</option>
                     <option value="manager">Менеджер</option>
@@ -580,7 +582,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                 </div>
               )}
               {formRecipientType === 'list' && (
-                <div className="max-h-48 overflow-y-auto rounded-lg border border-border p-2">
+                <div className="max-h-48 overflow-y-auto rounded-lg border border-[#E2E8F0] p-2">
                   {users.filter((u) => u.email).map((u) => (
                     <label key={u.id} className="flex items-center gap-2 py-1 text-sm">
                       <input
@@ -589,7 +591,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                         onChange={() => toggleUserId(u.id)}
                       />
                       <span>{u.displayName}</span>
-                      <span className="text-text-muted">({u.email})</span>
+                      <span className="text-[var(--portal-text-muted)]">({u.email})</span>
                     </label>
                   ))}
                 </div>
@@ -597,9 +599,9 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
               {formRecipientType === 'groups' && (
                 <div>
                   <Label>Включить группы (получатели — участники выбранных групп)</Label>
-                  <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-border p-2">
+                  <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-[#E2E8F0] p-2">
                     {userGroups.length === 0 ? (
-                      <p className="text-sm text-text-muted">Нет групп. Создайте группы в разделе «Пользователи».</p>
+                      <p className="text-sm text-[var(--portal-text-muted)]">Нет групп. Создайте группы в разделе «Пользователи».</p>
                     ) : (
                       userGroups.map((g) => (
                         <label key={g.id} className="flex items-center gap-2 py-1 text-sm">
@@ -617,9 +619,9 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
               )}
               <div>
                 <Label>Исключить группы (убрать из списка получателей участников выбранных групп)</Label>
-                <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-border border-amber-200 bg-amber-50/50 p-2">
+                <div className="mt-2 max-h-40 overflow-y-auto rounded-lg border border-[#E2E8F0] border-amber-200 bg-amber-50/50 p-2">
                   {userGroups.length === 0 ? (
-                    <p className="text-sm text-text-muted">Нет групп</p>
+                    <p className="text-sm text-[var(--portal-text-muted)]">Нет групп</p>
                   ) : (
                     userGroups.map((g) => (
                       <label key={g.id} className="flex items-center gap-2 py-1 text-sm">

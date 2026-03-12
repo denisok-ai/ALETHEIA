@@ -71,14 +71,14 @@ export function CourseMediaBlock({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
-      <h2 className="text-lg font-semibold text-dark">Медиа курса</h2>
-      <p className="mt-1 text-sm text-text-muted">Привязанные файлы из медиатеки отображаются в курсе.</p>
+    <div className="portal-card p-4">
+      <h2 className="text-base font-semibold text-[var(--portal-text)]">Медиа курса</h2>
+      <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Привязанные файлы из медиатеки отображаются в курсе.</p>
       {attached.length > 0 && (
         <ul className="mt-3 space-y-2">
           {attached.map((m) => (
-            <li key={m.id} className="flex items-center justify-between rounded-lg border border-border bg-bg-cream px-3 py-2 text-sm">
-              <a href={m.file_url.startsWith('/') ? m.file_url : `/${m.file_url}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
+            <li key={m.id} className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-sm">
+              <a href={m.file_url.startsWith('/') ? m.file_url : `/${m.file_url}`} target="_blank" rel="noopener noreferrer" className="text-[#6366F1] hover:underline">
                 {m.title}
               </a>
               <Button
@@ -86,7 +86,7 @@ export function CourseMediaBlock({
                 size="sm"
                 disabled={detaching === m.id}
                 onClick={() => handleDetach(m.id)}
-                className="text-text-muted hover:text-dark"
+                className="text-[var(--portal-text-muted)] hover:text-[var(--portal-text)]"
               >
                 <Unlink className="mr-1 h-4 w-4" />
                 Отвязать
@@ -100,7 +100,7 @@ export function CourseMediaBlock({
           <select
             value={selectedId}
             onChange={(e) => setSelectedId(e.target.value)}
-            className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[#6366F1]"
           >
             <option value="">Выберите файл для привязки</option>
             {available.map((m) => (
@@ -119,7 +119,7 @@ export function CourseMediaBlock({
         </div>
       )}
       {attached.length === 0 && available.length === 0 && (
-        <p className="mt-2 text-sm text-text-muted">Нет медиа в медиатеке или все уже привязаны к этому курсу.</p>
+        <p className="mt-2 text-sm text-[var(--portal-text-muted)]">Нет медиа в медиатеке или все уже привязаны к этому курсу.</p>
       )}
     </div>
   );

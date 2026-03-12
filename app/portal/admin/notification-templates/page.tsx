@@ -30,8 +30,8 @@ export default async function AdminNotificationTemplatesPage() {
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || role !== 'admin') {
     return (
-      <div className="p-6">
-        <p className="text-text-muted">Доступ запрещён.</p>
+      <div className="portal-card p-6 max-w-2xl">
+        <p className="text-[var(--portal-text-muted)]">Доступ запрещён.</p>
       </div>
     );
   }
@@ -42,7 +42,7 @@ export default async function AdminNotificationTemplatesPage() {
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <PageHeader
         items={[
           { href: '/portal/admin/dashboard', label: 'Дашборд' },
@@ -53,7 +53,7 @@ export default async function AdminNotificationTemplatesPage() {
         actions={
           <Link
             href="/portal/admin/notification-templates/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-dark hover:opacity-90"
+            className="inline-flex items-center gap-2 rounded-lg bg-[#6366F1] px-3 py-2 text-sm font-medium text-white hover:bg-[#4F46E5] shadow-sm transition-colors"
           >
             <Plus className="h-4 w-4" />
             Добавить шаблон
@@ -73,7 +73,7 @@ export default async function AdminNotificationTemplatesPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-border">
+          <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -87,14 +87,14 @@ export default async function AdminNotificationTemplatesPage() {
               <TableBody>
                 {templates.map((t, idx) => (
                   <TableRow key={t.id}>
-                    <TableCell className="text-text-muted">{idx + 1}</TableCell>
-                    <TableCell className="font-medium text-dark">
-                      <Link href={`/portal/admin/notification-templates/${t.id}`} className="text-primary hover:underline">
+                    <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                    <TableCell className="font-medium text-[var(--portal-text)]">
+                      <Link href={`/portal/admin/notification-templates/${t.id}`} className="text-[#6366F1] hover:underline">
                         {t.name}
                       </Link>
                     </TableCell>
-                    <TableCell className="max-w-[200px] truncate text-text-muted">{t.subject ?? '—'}</TableCell>
-                    <TableCell className="text-text-muted">{TYPE_LABEL[t.type] ?? t.type}</TableCell>
+                    <TableCell className="max-w-[200px] truncate text-[var(--portal-text-muted)]">{t.subject ?? '—'}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{TYPE_LABEL[t.type] ?? t.type}</TableCell>
                     <TableCell>
                       <Link href={`/portal/admin/notification-templates/${t.id}`}>
                         <Button variant="secondary" size="sm">Изменить</Button>

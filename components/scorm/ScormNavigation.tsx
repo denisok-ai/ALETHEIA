@@ -27,7 +27,7 @@ export function ScormNavigation({
 }: ScormNavigationProps) {
   return (
     <nav
-      className={cn('flex w-56 flex-col border-r border-border bg-bg-cream/50 p-3', className)}
+      className={cn('flex w-56 flex-col border-r border-[#E2E8F0] bg-[#F8FAFC] p-3', className)}
       aria-label="Навигация по курсу"
     >
       <ul className="space-y-1">
@@ -42,11 +42,11 @@ export function ScormNavigation({
                 className={cn(
                   'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors',
                   isCurrent
-                    ? 'bg-primary/10 text-primary font-medium'
-                    : 'text-dark hover:bg-bg-cream',
+                    ? 'bg-[#EEF2FF] text-[#4F46E5] font-medium'
+                    : 'text-[var(--portal-text)] hover:bg-[#F8FAFC]',
                 )}
               >
-                <span className="flex h-5 w-5 shrink-0 items-center justify-center text-text-muted">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center text-[var(--portal-text-muted)]">
                   {status === 'completed' && <Check className="h-4 w-4 text-emerald-600" />}
                   {status === 'in_progress' && <Play className="h-3 w-3" />}
                   {status === 'not_started' && <Circle className="h-3.5 w-3" />}

@@ -60,7 +60,9 @@ export async function POST(request: NextRequest) {
     where: { userId, courseId },
     select: { lessonId: true, completionStatus: true },
   });
-  const completedLessons = progressList.filter((p) => p.completionStatus === 'completed').length;
+  const completedLessons = progressList.filter(
+  (p) => p.completionStatus === 'completed' || p.completionStatus === 'passed'
+).length;
   let totalLessons = 1;
   if (course.aiContext) {
     try {

@@ -20,7 +20,8 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Download, FileText, Inbox } from 'lucide-react';
+import { TablePagination } from '@/components/ui/TablePagination';
+import { FileText, Inbox } from 'lucide-react';
 import { format } from 'date-fns';
 
 interface AuditLogRow {
@@ -104,7 +105,7 @@ export function AuditLogClient() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
   const pageRows = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-  const PAGE_SIZES = [5, 10, 50] as const;
+  const PAGE_SIZES = [5, 10, 50];
 
   function handleExportCsv() {
     const headers = ['id', 'action', 'entity', 'entityId', 'actorId', 'createdAt'];
@@ -133,7 +134,7 @@ export function AuditLogClient() {
         <select
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
         >
           <option value="">Все действия</option>
           {distinctActions.map((a) => (
@@ -143,7 +144,7 @@ export function AuditLogClient() {
         <select
           value={entityFilter}
           onChange={(e) => setEntityFilter(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
         >
           <option value="">Все сущности</option>
           {distinctEntities.map((e) => (
@@ -153,16 +154,13 @@ export function AuditLogClient() {
         <select
           value={actorFilter}
           onChange={(e) => setActorFilter(e.target.value)}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-sm min-w-[140px]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-w-[140px]"
         >
           <option value="">Все акторы</option>
           {users.map((u) => (
             <option key={u.id} value={u.id}>{u.email ?? u.id.slice(0, 8)}</option>
           ))}
         </select>
-        <Button variant="secondary" size="sm" onClick={handleExportCsv} disabled={filtered.length === 0}>
-          <Download className="mr-2 h-4 w-4" /> Экспорт CSV
-        </Button>
         <DateRangeFilter
           from={dateFrom || undefined}
           to={dateTo || undefined}
@@ -175,7 +173,7 @@ export function AuditLogClient() {
         <TableSkeleton rows={8} cols={7} />
       ) : (
         <>
-        <div className="overflow-x-auto rounded-xl border border-border bg-white">
+        <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
           <Table>
             <TableHeader>
               <TableRow>
@@ -202,16 +200,16 @@ export function AuditLogClient() {
               ) : (
                 pageRows.map((l, idx) => (
                   <TableRow key={l.id}>
-                    <TableCell className="text-text-muted text-xs">
+                    <TableCell className="text-[var(--portal-text-muted)] text-xs">
                       {currentPage * pageSize + idx + 1}
                     </TableCell>
-                    <TableCell className="text-text-muted text-xs">
+                    <TableCell className="text-[var(--portal-text-muted)] text-xs">
                       {format(new Date(l.createdAt), 'dd.MM.yyyy HH:mm')}
                     </TableCell>
-                    <TableCell className="font-medium text-dark">{l.action}</TableCell>
-                    <TableCell className="text-text-muted">{l.entity}</TableCell>
-                    <TableCell className="font-mono text-xs text-text-muted">{l.entityId ?? '—'}</TableCell>
-                    <TableCell className="font-mono text-xs text-text-muted">{l.actorId?.slice(0, 8) ?? '—'}</TableCell>
+                    <TableCell className="font-medium text-[var(--portal-text)]">{l.action}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{l.entity}</TableCell>
+                    <TableCell className="font-mono text-xs text-[var(--portal-text-muted)]">{l.entityId ?? '—'}</TableCell>
+                    <TableCell className="font-mono text-xs text-[var(--portal-text-muted)]">{l.actorId?.slice(0, 8) ?? '—'}</TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setDetailLog(l)} title="Подробнее" aria-label="Подробнее о записи журнала">
                         <FileText className="h-4 w-4" />
@@ -224,46 +222,17 @@ export function AuditLogClient() {
           </Table>
         </div>
         {total > 0 && (
-          <div className="flex flex-wrap items-center justify-between gap-2 pt-3">
-            <div className="flex items-center gap-2">
-              {PAGE_SIZES.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => { setPageSize(size); setPage(0); }}
-                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-primary/10 text-primary font-medium' : 'text-text-muted hover:bg-bg-cream'}`}
-                >
-                  +{size}
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-text-muted">
-                Записи {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, total)} из {total}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={currentPage === 0}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Предыдущая страница"
-              >
-                ←
-              </button>
-              <span className="text-sm text-text-muted">
-                Страница {currentPage + 1} из {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={currentPage >= totalPages - 1}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Следующая страница"
-              >
-                →
-              </button>
-            </div>
-          </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            total={total}
+            pageSize={pageSize}
+            pageSizeOptions={PAGE_SIZES}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            onExportExcel={handleExportCsv}
+            exportLabel="Excel"
+          />
         )}
         </>
       )}
@@ -275,15 +244,15 @@ export function AuditLogClient() {
               <DialogTitle>Запись журнала #{detailLog.id}</DialogTitle>
             </DialogHeader>
             <dl className="mt-2 space-y-1 text-sm">
-              <div><dt className="text-text-muted inline">Действие: </dt><dd className="inline font-medium">{detailLog.action}</dd></div>
-              <div><dt className="text-text-muted inline">Сущность: </dt><dd className="inline">{detailLog.entity}</dd></div>
-              <div><dt className="text-text-muted inline">ID: </dt><dd className="inline font-mono">{detailLog.entityId ?? '—'}</dd></div>
-              <div><dt className="text-text-muted inline">Актор: </dt><dd className="inline font-mono">{detailLog.actorId ?? '—'}</dd></div>
-              <div><dt className="text-text-muted inline">Дата: </dt><dd className="inline">{format(new Date(detailLog.createdAt), 'dd.MM.yyyy HH:mm:ss')}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Действие: </dt><dd className="inline font-medium">{detailLog.action}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Сущность: </dt><dd className="inline">{detailLog.entity}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">ID: </dt><dd className="inline font-mono">{detailLog.entityId ?? '—'}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Актор: </dt><dd className="inline font-mono">{detailLog.actorId ?? '—'}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Дата: </dt><dd className="inline">{format(new Date(detailLog.createdAt), 'dd.MM.yyyy HH:mm:ss')}</dd></div>
               {detailLog.diff && (
                 <div className="mt-2">
-                  <dt className="text-text-muted text-xs font-medium">Diff (JSON):</dt>
-                  <dd className="mt-1 rounded bg-bg-cream p-2 text-xs font-mono overflow-x-auto max-h-40 overflow-y-auto whitespace-pre-wrap break-all">
+                  <dt className="text-[var(--portal-text-muted)] text-xs font-medium">Diff (JSON):</dt>
+                  <dd className="mt-1 rounded bg-[#F8FAFC] p-2 text-xs font-mono overflow-x-auto max-h-40 overflow-y-auto whitespace-pre-wrap break-all">
                     {(() => {
                       try {
                         return JSON.stringify(JSON.parse(detailLog.diff), null, 2);

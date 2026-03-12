@@ -1,10 +1,10 @@
 /**
- * Student: profile — view and edit displayName.
+ * Student: profile — view and edit displayName. Portal design.
  */
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
+import { PageHeader } from '@/components/portal/PageHeader';
 import { ProfileEditForm } from './ProfileEditForm';
 
 export default async function StudentProfilePage() {
@@ -13,9 +13,8 @@ export default async function StudentProfilePage() {
 
   if (!userId) {
     return (
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Профиль</h1>
-        <p className="mt-2 text-text-muted">Загрузка…</p>
+      <div className="portal-card p-6 max-w-xl">
+        <p className="text-[var(--portal-text-muted)]">Загрузка…</p>
       </div>
     );
   }
@@ -32,10 +31,12 @@ export default async function StudentProfilePage() {
   const displayName = profile?.displayName ?? null;
 
   return (
-    <div>
-      <Breadcrumbs items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Профиль' }]} />
-      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Профиль</h1>
-      <p className="mt-1 text-text-muted">Ваши данные и настройки</p>
+    <div className="space-y-6 max-w-xl">
+      <PageHeader
+        items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Профиль' }]}
+        title="Профиль"
+        description="Ваши данные и настройки отображения"
+      />
       <ProfileEditForm initialDisplayName={displayName} email={email} />
     </div>
   );

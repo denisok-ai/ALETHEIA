@@ -21,6 +21,8 @@ import {
 } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { TablePagination } from '@/components/ui/TablePagination';
+import { buildCsv, downloadCsv } from '@/lib/export-csv';
 
 type EnrollmentRow = {
   id: string;
@@ -62,7 +64,7 @@ function formatTime(seconds: number): string {
   return `${seconds} сек`;
 }
 
-const PAGE_SIZES = [5, 10, 50] as const;
+const PAGE_SIZES = [5, 10, 50];
 
 export function CourseLearningResults({
   courseId,
@@ -127,6 +129,19 @@ export function CourseLearningResults({
   const start = currentPage * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
 
+  const handleExportExcel = () => {
+    const csv = buildCsv(filtered, [
+      { key: (r) => r.user.email, header: 'Email' },
+      { key: (r) => r.user.displayName, header: 'Имя' },
+      { key: 'status', header: 'Статус' },
+      { key: (r) => r.progress.percent, header: '%' },
+      { key: (r) => r.progress.completedLessons, header: 'Уроков' },
+      { key: (r) => r.progress.totalLessons, header: 'Всего' },
+      { key: (r) => r.certificate?.certNumber ?? '', header: 'Сертификат' },
+    ]);
+    downloadCsv(csv, `results-${courseId}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  };
+
   const toggleSelectAll = () => {
     if (selectedIds.size >= pageRows.length) {
       setSelectedIds(new Set());
@@ -186,9 +201,9 @@ export function CourseLearningResults({
   };
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
+    <div className="portal-card p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-dark">Результаты</h2>
+        <h2 className="text-lg font-semibold text-[var(--portal-text)]">Результаты</h2>
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative" ref={bulkRef}>
             <Button
@@ -206,19 +221,19 @@ export function CourseLearningResults({
             </Button>
             {bulkOpen && (
               <div
-                className="absolute left-0 top-full z-10 mt-1 min-w-[220px] rounded-lg border border-border bg-white py-1 shadow-lg"
+                className="absolute left-0 top-full z-10 mt-1 min-w-[220px] rounded-lg border border-[#E2E8F0] bg-white py-1 shadow-lg"
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
                   type="button"
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-bg-cream"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]"
                   onClick={handleBulkSetResults}
                 >
                   Проставить результаты
                 </button>
                 <button
                   type="button"
-                  className="w-full px-3 py-2 text-left text-sm hover:bg-bg-cream disabled:opacity-50"
+                  className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC] disabled:opacity-50"
                   onClick={handleBulkGenerateCerts}
                   disabled={certGenerating}
                 >
@@ -230,7 +245,7 @@ export function CourseLearningResults({
           <select
             value={sourceFilter}
             onChange={(e) => setSourceFilter(e.target.value)}
-            className="rounded-lg border border-border bg-white px-3 py-2 text-sm text-dark"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)]"
             aria-label="Фильтр по источнику"
           >
             {SOURCE_FILTER_OPTIONS.map((o) => (
@@ -240,13 +255,13 @@ export function CourseLearningResults({
             ))}
           </select>
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
             <input
               type="search"
               placeholder="Найти в списке"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-48 rounded-lg border border-border bg-white py-2 pl-8 pr-3 text-sm text-dark placeholder:text-text-muted"
+              className="w-48 rounded-lg border border-[#E2E8F0] bg-white py-2 pl-8 pr-3 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-muted)]"
               aria-label="Найти в списке"
             />
           </div>
@@ -295,7 +310,7 @@ export function CourseLearningResults({
               <TableBody>
                 {pageRows.map((row, idx) => (
                   <TableRow key={row.id}>
-                    <TableCell className="text-text-muted">{start + idx + 1}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{start + idx + 1}</TableCell>
                     <TableCell>
                       <input
                         type="checkbox"
@@ -307,31 +322,31 @@ export function CourseLearningResults({
                     <TableCell>
                       <Link
                         href={`/portal/admin/users/${row.userId}`}
-                        className="font-medium text-primary hover:underline"
+                        className="font-medium text-[#6366F1] hover:underline"
                       >
                         {row.user.displayName || row.user.email}
                       </Link>
                       {row.user.displayName && (
-                        <span className="ml-1 block text-xs text-text-muted">{row.user.email}</span>
+                        <span className="ml-1 block text-xs text-[var(--portal-text-muted)]">{row.user.email}</span>
                       )}
                     </TableCell>
                     <TableCell>{row.attempts}</TableCell>
-                    <TableCell className="text-text-muted text-sm">
+                    <TableCell className="text-[var(--portal-text-muted)] text-sm">
                       {row.firstActivityAt
                         ? format(new Date(row.firstActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })
                         : '—'}
                     </TableCell>
-                    <TableCell className="text-text-muted text-sm">
+                    <TableCell className="text-[var(--portal-text-muted)] text-sm">
                       {row.lastActivityAt
                         ? format(new Date(row.lastActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })
                         : '—'}
                     </TableCell>
-                    <TableCell className="text-text-muted">
+                    <TableCell className="text-[var(--portal-text-muted)]">
                       {row.progress.totalTimeSeconds > 0
                         ? formatTime(row.progress.totalTimeSeconds)
                         : '—'}
                     </TableCell>
-                    <TableCell className="text-text-muted text-sm">
+                    <TableCell className="text-[var(--portal-text-muted)] text-sm">
                       {row.lastActivityAt
                         ? format(new Date(row.lastActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })
                         : '—'}
@@ -345,7 +360,7 @@ export function CourseLearningResults({
                     <TableCell>
                       {row.progress.avgScore != null ? `${row.progress.avgScore}%` : 'Неопределено'}
                     </TableCell>
-                    <TableCell className="text-text-muted">—</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">—</TableCell>
                     <TableCell>
                       <span
                         className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${
@@ -353,7 +368,7 @@ export function CourseLearningResults({
                             ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
                             : row.status === 'in_progress'
                               ? 'border-blue-500/20 bg-blue-500/10 text-blue-700'
-                              : 'border-border bg-bg-cream text-text-muted'
+                              : 'border-[#E2E8F0] bg-[#F8FAFC] text-[var(--portal-text-muted)]'
                         }`}
                       >
                         {STATUS_LABELS[row.status] ?? row.status}
@@ -365,7 +380,7 @@ export function CourseLearningResults({
                     <TableCell>
                       <Link
                         href={`/portal/admin/courses/${courseId}/enrollments/${row.userId}`}
-                        className="text-sm text-primary hover:underline"
+                        className="text-sm text-[#6366F1] hover:underline"
                       >
                         Подробные результаты
                       </Link>
@@ -376,48 +391,18 @@ export function CourseLearningResults({
             </Table>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-            <div className="flex items-center gap-2">
-              {PAGE_SIZES.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => {
-                    setPageSize(size);
-                    setPage(0);
-                  }}
-                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-primary/10 text-primary font-medium' : 'text-text-muted hover:bg-bg-cream'}`}
-                >
-                  +{size}
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-text-muted">
-                Записи {total === 0 ? '0' : start + 1}–{Math.min(start + pageSize, total)} из {total}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={currentPage === 0}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Предыдущая страница"
-              >
-                ←
-              </button>
-              <span className="text-sm text-text-muted">
-                Страница {currentPage + 1} из {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={currentPage >= totalPages - 1}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Следующая страница"
-              >
-                →
-              </button>
-            </div>
+          <div className="mt-4 border-t border-[#E2E8F0] pt-3">
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              total={total}
+              pageSize={pageSize}
+              pageSizeOptions={PAGE_SIZES}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+              onExportExcel={handleExportExcel}
+              exportLabel="Excel"
+            />
           </div>
         </>
       )}

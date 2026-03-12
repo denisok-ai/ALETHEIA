@@ -111,14 +111,14 @@ export function UnsubscribedBlock() {
             </Button>
           </div>
           {loading ? (
-            <p className="py-8 text-center text-sm text-text-muted">Загрузка…</p>
+            <p className="py-8 text-center text-sm text-[var(--portal-text-muted)]">Загрузка…</p>
           ) : list.length === 0 ? (
             <EmptyState
               title="Нет отписавшихся"
               description="Когда пользователи отпишутся через страницу /unsubscribe, они появятся здесь."
             />
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-border">
+            <div className="overflow-x-auto rounded-lg border border-[#E2E8F0]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -131,16 +131,16 @@ export function UnsubscribedBlock() {
                 <TableBody>
                   {list.map((row, idx) => (
                     <TableRow key={row.id}>
-                      <TableCell className="text-text-muted">{idx + 1}</TableCell>
+                      <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
                       <TableCell className="font-medium">{row.email}</TableCell>
-                      <TableCell className="text-text-muted">
+                      <TableCell className="text-[var(--portal-text-muted)]">
                         {format(new Date(row.createdAt), 'dd.MM.yyyy HH:mm')}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-text-muted hover:text-dark"
+                          className="text-[var(--portal-text-muted)] hover:text-[var(--portal-text)]"
                           disabled={removingId !== null}
                           onClick={() => setConfirmRemove(row)}
                           aria-label={`Удалить ${row.email} из списка отписавшихся`}

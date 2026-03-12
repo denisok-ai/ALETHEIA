@@ -52,14 +52,14 @@ export function MailingDetailClient({
       </Link>
 
       {(status === 'completed' || status === 'processing') && (
-        <div className="rounded-xl border border-border bg-white p-4">
-          <h2 className="text-lg font-semibold text-dark">Результаты</h2>
+        <div className="portal-card p-4">
+          <h2 className="text-lg font-semibold text-[var(--portal-text)]">Результаты</h2>
           <div className="mt-2 flex flex-wrap gap-6 text-sm">
             {startedAt && (
-              <span className="text-text-muted">Начало: {format(new Date(startedAt), 'dd.MM.yyyy HH:mm')}</span>
+              <span className="text-[var(--portal-text-muted)]">Начало: {format(new Date(startedAt), 'dd.MM.yyyy HH:mm')}</span>
             )}
             {completedAt && (
-              <span className="text-text-muted">Окончание: {format(new Date(completedAt), 'dd.MM.yyyy HH:mm')}</span>
+              <span className="text-[var(--portal-text-muted)]">Окончание: {format(new Date(completedAt), 'dd.MM.yyyy HH:mm')}</span>
             )}
             <span className="flex items-center gap-1 text-green-600">
               <CheckCircle className="h-4 w-4" /> Отправлено: {sentCount}
@@ -71,7 +71,7 @@ export function MailingDetailClient({
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      <div className="overflow-x-auto portal-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -85,7 +85,7 @@ export function MailingDetailClient({
           <TableBody>
             {initialLogs.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-text-muted py-8">
+                <TableCell colSpan={5} className="text-center text-[var(--portal-text-muted)] py-8">
                   Пока нет записей. Запустите отправку со страницы рассылок.
                 </TableCell>
               </TableRow>
@@ -93,7 +93,7 @@ export function MailingDetailClient({
               initialLogs.map((l) => (
                 <TableRow key={l.id}>
                   <TableCell className="font-mono text-sm">{l.recipientEmail || '—'}</TableCell>
-                  <TableCell className="text-text-muted">{l.recipientName ?? '—'}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{l.recipientName ?? '—'}</TableCell>
                   <TableCell>
                     {l.status === 'sent' ? (
                       <span className="text-green-600">Отправлено</span>
@@ -104,7 +104,7 @@ export function MailingDetailClient({
                   <TableCell className="text-sm text-red-600 max-w-[200px] truncate">
                     {l.errorMessage ?? '—'}
                   </TableCell>
-                  <TableCell className="text-text-muted text-sm">
+                  <TableCell className="text-[var(--portal-text-muted)] text-sm">
                     {l.sentAt ? format(new Date(l.sentAt), 'dd.MM.yy HH:mm') : '—'}
                   </TableCell>
                 </TableRow>

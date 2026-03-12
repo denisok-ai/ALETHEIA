@@ -230,7 +230,7 @@ export function MonitoringClient() {
             type="button"
             onClick={() => setTab('online')}
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-              tab === 'online' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-white text-text-muted hover:bg-bg-soft'
+              tab === 'online' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
             }`}
           >
             <Activity className="h-4 w-4" />
@@ -240,7 +240,7 @@ export function MonitoringClient() {
             type="button"
             onClick={() => setTab('visits')}
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-              tab === 'visits' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-white text-text-muted hover:bg-bg-soft'
+              tab === 'visits' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
             }`}
           >
             <Users className="h-4 w-4" />
@@ -250,7 +250,7 @@ export function MonitoringClient() {
             type="button"
             onClick={() => setTab('tasks')}
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-              tab === 'tasks' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-white text-text-muted hover:bg-bg-soft'
+              tab === 'tasks' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
             }`}
           >
             <ListTodo className="h-4 w-4" />
@@ -262,12 +262,12 @@ export function MonitoringClient() {
       {tab === 'online' && (
         <>
           <Card className="p-4">
-            <h3 className="mb-3 text-sm font-semibold text-dark">В системе по ролям</h3>
+            <h3 className="mb-3 text-sm font-semibold text-[var(--portal-text)]">В системе по ролям</h3>
             <div className="flex flex-wrap gap-4">
               {onlineSummary.map((s) => (
-                <div key={s.role} className="rounded-lg border border-border bg-bg-cream/50 px-4 py-2">
-                  <span className="text-sm text-text-muted">{s.label}</span>
-                  <span className="ml-2 font-semibold text-dark">{s.count}</span>
+                <div key={s.role} className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2">
+                  <span className="text-sm text-[var(--portal-text-muted)]">{s.label}</span>
+                  <span className="ml-2 font-semibold text-[var(--portal-text)]">{s.count}</span>
                 </div>
               ))}
             </div>
@@ -275,20 +275,20 @@ export function MonitoringClient() {
           <Card className="p-4">
             <div className="mb-4 flex flex-wrap items-center gap-3">
               <div className="relative flex-1 min-w-[200px] max-w-xs">
-                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
                 <input
                   type="text"
                   placeholder="Поиск по имени или email..."
                   value={onlineSearch}
                   onChange={(e) => setOnlineSearch(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && fetchOnline()}
-                  className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm"
+                  className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2 pl-9 pr-3 text-sm"
                 />
               </div>
               <select
                 value={onlineRoleFilter}
                 onChange={(e) => setOnlineRoleFilter(e.target.value)}
-                className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
               >
                 <option value="">Все роли</option>
                 <option value="admin">Администратор</option>
@@ -301,7 +301,7 @@ export function MonitoringClient() {
               </Button>
             </div>
             {onlineLoading && onlineItems.length === 0 ? (
-              <div className="py-8 text-center text-sm text-text-muted">Загрузка...</div>
+              <div className="py-8 text-center text-sm text-[var(--portal-text-muted)]">Загрузка...</div>
             ) : onlineItems.length === 0 ? (
               <EmptyState title="Нет активных сессий" description="Пользователи с активностью за последние 15 минут не найдены." />
             ) : (
@@ -321,7 +321,7 @@ export function MonitoringClient() {
                       <TableCell>
                         <Link
                           href={`/portal/admin/users/${row.userId}`}
-                          className="text-primary hover:underline"
+                          className="text-[#6366F1] hover:underline"
                         >
                           {row.displayName || row.email || row.userId}
                         </Link>
@@ -336,7 +336,7 @@ export function MonitoringClient() {
               </Table>
             )}
             {onlinePagination.total > onlinePagination.limit && (
-              <div className="mt-3 flex items-center justify-between text-sm text-text-muted">
+              <div className="mt-3 flex items-center justify-between text-sm text-[var(--portal-text-muted)]">
                 <span>
                   Показано {onlineItems.length} из {onlinePagination.total}
                 </span>
@@ -372,7 +372,7 @@ export function MonitoringClient() {
                 type="button"
                 onClick={() => setVisitsSubTab('stats')}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
-                  visitsSubTab === 'stats' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-white'
+                  visitsSubTab === 'stats' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white'
                 }`}
               >
                 <Calendar className="h-4 w-4" />
@@ -382,7 +382,7 @@ export function MonitoringClient() {
                 type="button"
                 onClick={() => setVisitsSubTab('chart')}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
-                  visitsSubTab === 'chart' ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-white'
+                  visitsSubTab === 'chart' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white'
                 }`}
               >
                 <BarChart3 className="h-4 w-4" />
@@ -400,7 +400,7 @@ export function MonitoringClient() {
                     type="date"
                     value={visitsDateFrom}
                     onChange={(e) => setVisitsDateFrom(e.target.value)}
-                    className="rounded border border-border bg-white px-2 py-1.5 text-sm"
+                    className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]""
                   />
                 </label>
                 <label className="flex items-center gap-2 text-sm">
@@ -409,18 +409,18 @@ export function MonitoringClient() {
                     type="date"
                     value={visitsDateTo}
                     onChange={(e) => setVisitsDateTo(e.target.value)}
-                    className="rounded border border-border bg-white px-2 py-1.5 text-sm"
+                    className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]""
                   />
                 </label>
                 <div className="relative max-w-[240px]">
-                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+                  <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
                   <input
                     type="text"
                     placeholder="Поиск по имени..."
                     value={visitsSearch}
                     onChange={(e) => setVisitsSearch(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && fetchVisits()}
-                    className="w-full rounded-lg border border-border bg-white py-2 pl-9 pr-3 text-sm"
+                    className="w-full rounded-lg border border-[#E2E8F0] bg-white py-2 pl-9 pr-3 text-sm"
                   />
                 </div>
                 <Button variant="secondary" size="sm" onClick={fetchVisits} disabled={visitsLoading}>
@@ -430,7 +430,7 @@ export function MonitoringClient() {
                 <select
                   value={clearOlderThanDays === '' ? 'all' : String(clearOlderThanDays)}
                   onChange={(e) => setClearOlderThanDays(e.target.value === 'all' ? '' : Number(e.target.value))}
-                  className="rounded-lg border border-border bg-white px-2 py-1.5 text-sm"
+                  className="rounded-lg border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm"
                 >
                   <option value="all">Очистить всё</option>
                   <option value="30">Старше 30 дней</option>
@@ -448,7 +448,7 @@ export function MonitoringClient() {
                 </Button>
               </div>
               {visitsLoading && visitsItems.length === 0 ? (
-                <div className="py-8 text-center text-sm text-text-muted">Загрузка...</div>
+                <div className="py-8 text-center text-sm text-[var(--portal-text-muted)]">Загрузка...</div>
               ) : visitsItems.length === 0 ? (
                 <EmptyState title="Нет данных за период" description="Выберите другой период или обновите страницу." />
               ) : (
@@ -466,7 +466,7 @@ export function MonitoringClient() {
                         <TableCell>
                           <Link
                             href={`/portal/admin/users/${row.userId}`}
-                            className="text-primary hover:underline"
+                            className="text-[#6366F1] hover:underline"
                           >
                             {row.displayName || row.email || row.userId}
                           </Link>
@@ -475,7 +475,7 @@ export function MonitoringClient() {
                         <TableCell>
                           <Link
                             href={`/portal/admin/monitoring/visits/user/${row.userId}`}
-                            className="text-sm text-primary hover:underline"
+                            className="text-sm text-[#6366F1] hover:underline"
                           >
                             Детализация
                           </Link>
@@ -486,7 +486,7 @@ export function MonitoringClient() {
                 </Table>
               )}
               {visitsPagination.total > visitsPagination.limit && (
-                <div className="mt-3 flex justify-between text-sm text-text-muted">
+                <div className="mt-3 flex justify-between text-sm text-[var(--portal-text-muted)]">
                   <span>Показано {visitsItems.length} из {visitsPagination.total}</span>
                   <div className="flex gap-2">
                     <Button
@@ -522,7 +522,7 @@ export function MonitoringClient() {
                     max={2030}
                     value={chartYear}
                     onChange={(e) => setChartYear(parseInt(e.target.value, 10) || new Date().getFullYear())}
-                    className="w-20 rounded border border-border bg-white px-2 py-1.5 text-sm"
+                    className="w-20 rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]""
                   />
                 </label>
                 <label className="flex items-center gap-2 text-sm">
@@ -530,7 +530,7 @@ export function MonitoringClient() {
                   <select
                     value={chartMonth}
                     onChange={(e) => setChartMonth(parseInt(e.target.value, 10))}
-                    className="rounded border border-border bg-white px-2 py-1.5 text-sm"
+                    className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]""
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
                       <option key={m} value={m}>
@@ -544,20 +544,20 @@ export function MonitoringClient() {
                 </Button>
               </div>
               {chartLoading ? (
-                <div className="py-12 text-center text-sm text-text-muted">Загрузка...</div>
+                <div className="py-12 text-center text-sm text-[var(--portal-text-muted)]">Загрузка...</div>
               ) : chartData.length === 0 ? (
                 <EmptyState title="Нет данных" description="Выберите год и месяц и нажмите «Построить»." />
               ) : (
                 <div className="flex items-end gap-1 overflow-x-auto py-4">
                   {chartData.map((d) => (
                     <div key={d.day} className="flex min-w-[24px] flex-1 flex-col items-center">
-                      <span className="mb-1 text-xs text-text-muted">{d.uniqueVisitors}</span>
+                      <span className="mb-1 text-xs text-[var(--portal-text-muted)]">{d.uniqueVisitors}</span>
                       <div
-                        className="w-full min-w-[8px] rounded-t bg-primary/70 transition-all"
+                        className="w-full min-w-[8px] rounded-t bg-[#6366F1]/70 transition-all"
                         style={{ height: `${(d.uniqueVisitors / maxChart) * 120}px` }}
                         title={`${d.day}: ${d.uniqueVisitors} уникальных посетителей`}
                       />
-                      <span className="mt-1 text-xs text-text-muted">{d.day}</span>
+                      <span className="mt-1 text-xs text-[var(--portal-text-muted)]">{d.day}</span>
                     </div>
                   ))}
                 </div>
@@ -576,7 +576,7 @@ export function MonitoringClient() {
             </Button>
           </div>
           {tasksLoading && tasksItems.length === 0 ? (
-            <div className="py-8 text-center text-sm text-text-muted">Загрузка...</div>
+            <div className="py-8 text-center text-sm text-[var(--portal-text-muted)]">Загрузка...</div>
           ) : tasksItems.length === 0 ? (
             <EmptyState
               title="Нет активных задач"

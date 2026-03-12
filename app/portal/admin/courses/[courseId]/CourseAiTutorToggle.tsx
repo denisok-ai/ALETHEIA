@@ -34,12 +34,12 @@ export function CourseAiTutorToggle({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
-      <h2 className="text-lg font-semibold text-dark flex items-center gap-2">
-        <Bot className="h-5 w-5 text-primary" />
+    <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+      <h2 className="text-lg font-semibold text-[var(--portal-text)] flex items-center gap-2">
+        <Bot className="h-5 w-5 text-[#6366F1]" />
         AI-тьютор в плеере
       </h2>
-      <p className="mt-1 text-sm text-text-muted">
+      <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
         Если включён, студенты видят кнопку чата с AI-тьютором при прохождении курса.
       </p>
       <div className="mt-3 flex items-center gap-3">
@@ -51,8 +51,8 @@ export function CourseAiTutorToggle({
           disabled={loading}
           onClick={handleToggle}
           className={cn(
-            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 disabled:opacity-50',
-            enabled ? 'bg-primary' : 'bg-border'
+            'relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-2 disabled:opacity-50',
+            enabled ? 'bg-[#6366F1]' : 'bg-[#E2E8F0]'
           )}
         >
           <span
@@ -62,7 +62,7 @@ export function CourseAiTutorToggle({
             )}
           />
         </button>
-        <Label className="text-sm font-medium text-dark cursor-pointer" onClick={handleToggle}>
+        <Label className="text-sm font-medium text-[var(--portal-text)] cursor-pointer" onClick={handleToggle}>
           {enabled ? 'Включён' : 'Выключен'}
         </Label>
       </div>

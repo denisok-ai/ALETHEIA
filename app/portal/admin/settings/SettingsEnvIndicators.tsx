@@ -25,7 +25,7 @@ export function SettingsEnvIndicators() {
       .catch(() => setCheck({}));
   }, []);
 
-  if (!check) return <p className="text-sm text-text-muted">Загрузка…</p>;
+  if (!check) return <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>;
 
   const items: { key: string; label: string }[] = [
     { key: 'RESEND_API_KEY', label: 'Почта (Resend)' },

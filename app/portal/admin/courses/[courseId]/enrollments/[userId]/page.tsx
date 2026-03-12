@@ -29,7 +29,7 @@ export default async function AdminCourseEnrollmentProgressPage({
   if (!session?.user || role !== 'admin') {
     return (
       <div className="p-6">
-        <p className="text-text-muted">Доступ запрещён.</p>
+        <p className="text-[var(--portal-text-muted)]">Доступ запрещён.</p>
       </div>
     );
   }
@@ -97,7 +97,9 @@ export default async function AdminCourseEnrollmentProgressPage({
     };
   });
 
-  const completedCount = lessons.filter((l) => l.completionStatus === 'completed').length;
+  const completedCount = lessons.filter(
+  (l) => l.completionStatus === 'completed' || l.completionStatus === 'passed'
+).length;
   const totalLessons = lessons.length;
   const avgScore =
     lessons.filter((l) => l.score != null).length > 0
@@ -121,7 +123,7 @@ export default async function AdminCourseEnrollmentProgressPage({
         actions={
           <Link
             href={`/portal/admin/courses/${courseId}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-dark hover:bg-bg-cream hover:text-primary"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[#6366F1] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             К курсу
@@ -130,59 +132,59 @@ export default async function AdminCourseEnrollmentProgressPage({
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-xl border border-border bg-white p-4">
-          <p className="text-sm text-text-muted">Записан</p>
-          <p className="text-lg font-semibold text-dark">
+        <div className="portal-card p-4">
+          <p className="text-sm text-[var(--portal-text-muted)]">Записан</p>
+          <p className="text-lg font-semibold text-[var(--portal-text)]">
             {new Date(enrollment.enrolledAt).toLocaleDateString('ru')}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-white p-4">
-          <p className="text-sm text-text-muted">Прогресс</p>
-          <p className="text-lg font-semibold text-dark">
+        <div className="portal-card p-4">
+          <p className="text-sm text-[var(--portal-text-muted)]">Прогресс</p>
+          <p className="text-lg font-semibold text-[var(--portal-text)]">
             {completedCount}/{totalLessons} ({totalLessons > 0 ? Math.round((completedCount / totalLessons) * 100) : 0}%)
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-white p-4">
-          <p className="text-sm text-text-muted">Средний балл</p>
-          <p className="text-lg font-semibold text-dark">
+        <div className="portal-card p-4">
+          <p className="text-sm text-[var(--portal-text-muted)]">Средний балл</p>
+          <p className="text-lg font-semibold text-[var(--portal-text)]">
             {avgScore != null ? `${Math.round(avgScore)}%` : '—'}
           </p>
         </div>
-        <div className="rounded-xl border border-border bg-white p-4">
-          <p className="text-sm text-text-muted">Время в курсе</p>
-          <p className="text-lg font-semibold text-dark">
+        <div className="portal-card p-4">
+          <p className="text-sm text-[var(--portal-text-muted)]">Время в курсе</p>
+          <p className="text-lg font-semibold text-[var(--portal-text)]">
             {totalTimeSeconds > 0 ? formatTime(totalTimeSeconds) : '—'}
           </p>
         </div>
       </div>
 
       {certificate && (
-        <div className="rounded-xl border border-border bg-white p-4">
-          <h2 className="text-lg font-semibold text-dark">Сертификат</h2>
-          <p className="mt-1 text-sm text-text-muted">
+        <div className="portal-card p-4">
+          <h2 className="text-lg font-semibold text-[var(--portal-text)]">Сертификат</h2>
+          <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
             {certificate.certNumber} — выдан {new Date(certificate.issuedAt).toLocaleDateString('ru')}
           </p>
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-white p-4">
-        <h2 className="text-lg font-semibold text-dark">По урокам</h2>
+      <div className="portal-card p-4">
+        <h2 className="text-lg font-semibold text-[var(--portal-text)]">По урокам</h2>
         <div className="mt-4 overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead>
-              <tr className="border-b border-border bg-bg-soft">
-                <th className="px-4 py-2 font-medium text-dark">Урок</th>
-                <th className="px-4 py-2 font-medium text-dark">Статус</th>
-                <th className="px-4 py-2 font-medium text-dark">Балл</th>
-                <th className="px-4 py-2 font-medium text-dark">Время</th>
+              <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
+                <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Урок</th>
+                <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Статус</th>
+                <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Балл</th>
+                <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Время</th>
               </tr>
             </thead>
             <tbody>
               {lessons.map((l) => (
-                <tr key={l.lessonId} className="border-b border-border">
-                  <td className="px-4 py-2 font-medium text-dark">{l.title}</td>
-                  <td className="px-4 py-2 text-text-muted">
-                    {l.completionStatus === 'completed' ? (
+                <tr key={l.lessonId} className="border-b border-[#E2E8F0]">
+                  <td className="px-4 py-2 font-medium text-[var(--portal-text)]">{l.title}</td>
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)]">
+                    {l.completionStatus === 'completed' || l.completionStatus === 'passed' ? (
                       <span className="text-green-600">Завершён</span>
                     ) : l.completionStatus ? (
                       l.completionStatus
@@ -190,10 +192,10 @@ export default async function AdminCourseEnrollmentProgressPage({
                       '—'
                     )}
                   </td>
-                  <td className="px-4 py-2 text-text-muted">
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)]">
                     {l.score != null ? `${Math.round(l.score)}%` : '—'}
                   </td>
-                  <td className="px-4 py-2 text-text-muted">
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)]">
                     {l.timeSpent > 0 ? formatTime(l.timeSpent) : '—'}
                   </td>
                 </tr>

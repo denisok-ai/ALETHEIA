@@ -43,7 +43,7 @@ export default async function AdminCertificatesPage() {
   }));
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <PageHeader
         items={[
           { href: '/portal/admin/dashboard', label: 'Дашборд' },

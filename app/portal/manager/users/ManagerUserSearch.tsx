@@ -1,9 +1,11 @@
 'use client';
 
 /**
- * Manager: search users by email or name.
+ * Manager: search users by email or name. Portal design.
  */
 import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -36,50 +38,53 @@ export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profil
   }
 
   return (
-    <div className="mt-6">
-      <form onSubmit={handleSearch} className="mb-4 flex gap-2">
+    <div className="space-y-4">
+      <form onSubmit={handleSearch} className="portal-card p-4 flex flex-wrap gap-2">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Email или имя..."
-          className="flex-1 rounded-lg border border-border px-4 py-2"
+          className="flex-1 min-w-[200px] rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
         />
-        <button
-          type="submit"
-          disabled={loading}
-          className="rounded-lg bg-primary px-4 py-2 text-white hover:bg-primary/90 disabled:opacity-50"
-        >
+        <Button type="submit" variant="primary" disabled={loading}>
+          <Search className="h-4 w-4 mr-1.5" />
           {loading ? 'Поиск…' : 'Найти'}
-        </button>
+        </Button>
       </form>
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
-        <table className="w-full text-left text-sm">
-          <thead>
-            <tr className="border-b border-border bg-bg-soft">
-              <th className="px-4 py-2 font-medium text-dark">Имя</th>
-              <th className="px-4 py-2 font-medium text-dark">Email</th>
-              <th className="px-4 py-2 font-medium text-dark">Статус</th>
-              <th className="px-4 py-2 font-medium text-dark">Дата</th>
-            </tr>
-          </thead>
-          <tbody>
-            {profiles.map((p) => (
-              <tr key={p.id} className="border-b border-border hover:bg-bg-cream">
-                <td className="px-4 py-2 font-medium text-dark">{p.display_name ?? '—'}</td>
-                <td className="px-4 py-2 text-text-muted">{p.email ?? '—'}</td>
-                <td className="px-4 py-2 text-text-muted">{p.status}</td>
-                <td className="px-4 py-2 text-text-muted">
-                  {new Date(p.created_at).toLocaleDateString('ru')}
-                </td>
+      <div className="portal-card overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
+                <th className="px-4 py-3 font-semibold text-[var(--portal-text)]">Имя</th>
+                <th className="px-4 py-3 font-semibold text-[var(--portal-text)]">Email</th>
+                <th className="px-4 py-3 font-semibold text-[var(--portal-text)]">Статус</th>
+                <th className="px-4 py-3 font-semibold text-[var(--portal-text)]">Дата</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {profiles.map((p) => (
+                <tr key={p.id} className="border-b border-[#E2E8F0] last:border-0 hover:bg-[#F8FAFC] transition-colors">
+                  <td className="px-4 py-3 font-medium text-[var(--portal-text)]">{p.display_name ?? '—'}</td>
+                  <td className="px-4 py-3 text-[var(--portal-text-muted)]">{p.email ?? '—'}</td>
+                  <td className="px-4 py-3">
+                    <span className={`status-badge ${p.status === 'active' ? 'badge-active' : 'badge-neutral'}`}>
+                      {p.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-[var(--portal-text-muted)]">
+                    {new Date(p.created_at).toLocaleDateString('ru')}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
       {profiles.length === 0 && (
-        <p className="mt-4 text-center text-text-muted">Ничего не найдено.</p>
+        <p className="text-center text-sm text-[var(--portal-text-muted)] py-6">Ничего не найдено.</p>
       )}
     </div>
   );

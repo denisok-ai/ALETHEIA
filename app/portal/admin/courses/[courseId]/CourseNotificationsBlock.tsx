@@ -26,6 +26,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { TablePagination } from '@/components/ui/TablePagination';
+import { buildCsv, downloadCsv } from '@/lib/export-csv';
 import { getNotificationSetEventLabel } from '@/lib/notification-set-events';
 
 type AttachedSet = {
@@ -42,7 +44,7 @@ type CatalogSet = {
   isDefault: boolean;
 };
 
-const PAGE_SIZES = [5, 10, 50] as const;
+const PAGE_SIZES = [5, 10, 50];
 
 export function CourseNotificationsBlock({
   courseId,
@@ -128,6 +130,15 @@ export function CourseNotificationsBlock({
   const start = currentPage * pageSize;
   const pageRows = filtered.slice(start, start + pageSize);
 
+  const handleExportExcel = () => {
+    const csv = buildCsv(filtered, [
+      { key: 'name', header: 'Название' },
+      { key: 'eventType', header: 'Событие' },
+      { key: 'notificationSetId', header: 'ID набора' },
+    ]);
+    downloadCsv(csv, `notifications-${courseId}-${new Date().toISOString().slice(0, 10)}.csv`);
+  };
+
   const handleAddSets = async () => {
     const ids = Array.from(selectedCatalogIds);
     if (ids.length === 0) {
@@ -200,9 +211,9 @@ export function CourseNotificationsBlock({
   const catalogAvailable = catalog.filter((c) => !attachedSetIds.has(c.id));
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
+    <div className="portal-card p-4">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-dark">Уведомления</h2>
+        <h2 className="text-lg font-semibold text-[var(--portal-text)]">Уведомления</h2>
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative" ref={addRef}>
             <Button
@@ -218,17 +229,17 @@ export function CourseNotificationsBlock({
               <ChevronDown className="h-4 w-4" />
             </Button>
             {addDropdownOpen && (
-            <div className="absolute left-0 top-full z-10 mt-1 min-w-[200px] rounded-lg border border-border bg-white py-1 shadow-lg">
+            <div className="absolute left-0 top-full z-10 mt-1 min-w-[200px] rounded-lg border border-[#E2E8F0] bg-white py-1 shadow-lg">
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-sm hover:bg-bg-cream"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]"
                 onClick={() => openAddCatalog('one')}
               >
                 Выбрать один
               </button>
               <button
                 type="button"
-                className="w-full px-3 py-2 text-left text-sm hover:bg-bg-cream"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]"
                 onClick={() => openAddCatalog('several')}
               >
                 Выбрать несколько
@@ -237,22 +248,22 @@ export function CourseNotificationsBlock({
             )}
           </div>
           <div className="relative">
-            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+            <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
             <input
               type="search"
               placeholder="Найти в списке"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-48 rounded-lg border border-border bg-white py-2 pl-8 pr-3 text-sm text-dark placeholder:text-text-muted"
+              className="w-48 rounded-lg border border-[#E2E8F0] bg-white py-2 pl-8 pr-3 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-muted)] focus:ring-2 focus:ring-[#6366F1]"
               aria-label="Найти в списке"
             />
           </div>
         </div>
       </div>
 
-      <p className="mb-4 text-sm text-text-muted">
+      <p className="mb-4 text-sm text-[var(--portal-text-muted)]">
         Наборы уведомлений, которые будут автоматически отправляться пользователям по данному мероприятию.{' '}
-        <Link href="/portal/admin/notification-sets" className="text-primary hover:underline">
+        <Link href="/portal/admin/notification-sets" className="text-[#6366F1] hover:underline">
           Каталог наборов →
         </Link>
       </p>
@@ -286,12 +297,12 @@ export function CourseNotificationsBlock({
               <TableBody>
                 {pageRows.map((row, idx) => (
                   <TableRow key={row.id}>
-                    <TableCell className="text-text-muted">{start + idx + 1}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{start + idx + 1}</TableCell>
                     <TableCell>{getNotificationSetEventLabel(row.eventType)}</TableCell>
                     <TableCell>
                       <Link
                         href={`/portal/admin/notification-sets/${row.notificationSetId}`}
-                        className="font-medium text-primary hover:underline"
+                        className="font-medium text-[#6366F1] hover:underline"
                       >
                         {row.name}
                       </Link>
@@ -300,7 +311,7 @@ export function CourseNotificationsBlock({
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/portal/admin/notification-sets/${row.notificationSetId}`}
-                          className="text-sm text-primary hover:underline"
+                          className="text-sm text-[#6366F1] hover:underline"
                         >
                           Подробнее
                         </Link>
@@ -320,48 +331,18 @@ export function CourseNotificationsBlock({
             </Table>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-border pt-3">
-            <div className="flex items-center gap-2">
-              {PAGE_SIZES.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => {
-                    setPageSize(size);
-                    setPage(0);
-                  }}
-                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-primary/10 text-primary font-medium' : 'text-text-muted hover:bg-bg-cream'}`}
-                >
-                  +{size}
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-text-muted">
-                Записи {total === 0 ? '0' : start + 1}–{Math.min(start + pageSize, total)} из {total}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={currentPage === 0}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Предыдущая страница"
-              >
-                ←
-              </button>
-              <span className="text-sm text-text-muted">
-                Страница {currentPage + 1} из {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={currentPage >= totalPages - 1}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Следующая страница"
-              >
-                →
-              </button>
-            </div>
+          <div className="mt-4 border-t border-[#E2E8F0] pt-3">
+            <TablePagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              total={total}
+              pageSize={pageSize}
+              pageSizeOptions={PAGE_SIZES}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+              onExportExcel={handleExportExcel}
+              exportLabel="Excel"
+            />
           </div>
         </>
       )}
@@ -374,9 +355,9 @@ export function CourseNotificationsBlock({
             </DialogTitle>
           </DialogHeader>
           {catalogLoading ? (
-            <p className="py-4 text-sm text-text-muted">Загрузка каталога…</p>
+            <p className="py-4 text-sm text-[var(--portal-text-muted)]">Загрузка каталога…</p>
           ) : catalogAvailable.length === 0 ? (
-            <p className="py-4 text-sm text-text-muted">
+            <p className="py-4 text-sm text-[var(--portal-text-muted)]">
               Все наборы из каталога уже прикреплены к мероприятию.
             </p>
           ) : (
@@ -384,7 +365,7 @@ export function CourseNotificationsBlock({
               {catalogAvailable.map((s) => (
                 <label
                   key={s.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-border p-2 hover:bg-bg-cream"
+                  className="flex cursor-pointer items-center gap-2 rounded-lg border border-[#E2E8F0] p-2 hover:bg-[#F8FAFC]"
                 >
                   <input
                     type="checkbox"
@@ -393,7 +374,7 @@ export function CourseNotificationsBlock({
                     className="rounded"
                   />
                   <span className="text-sm font-medium">{s.name}</span>
-                  <span className="text-xs text-text-muted">
+                  <span className="text-xs text-[var(--portal-text-muted)]">
                     ({getNotificationSetEventLabel(s.eventType)})
                   </span>
                 </label>

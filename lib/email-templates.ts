@@ -133,6 +133,16 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateDef[] = [
 <p>Дата: %date%. По вопросам обращайтесь в поддержку.</p>
 <p>Команда ${SCHOOL_NAME}</p>`,
   },
+  {
+    eventType: 'welcome',
+    name: 'Добро пожаловать',
+    subject: 'Добро пожаловать в личный кабинет — %systemtitle%',
+    body: `<p>Здравствуйте, <strong>%recfirstname% %reclastname%</strong>!</p>
+<p>Добро пожаловать в личный кабинет ${SCHOOL_NAME}. Здесь вы можете просматривать свои курсы, отслеживать прогресс, получать сертификаты и обращаться в поддержку.</p>
+<p>Основные разделы: <strong>Мои курсы</strong> — запуск материалов и прогресс; <strong>Поддержка</strong> — обращение в службу поддержки; <strong>Профиль</strong> — данные учётной записи.</p>
+<p>Дата регистрации: %date%.</p>
+<p>Команда ${SCHOOL_NAME}</p>`,
+  },
 ];
 
 /**

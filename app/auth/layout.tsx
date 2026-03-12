@@ -9,10 +9,10 @@ export default function AuthFlowLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-bg-cream px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F8FAFC] px-4">
       <Link
         href="/"
-        className="absolute top-6 left-6 font-semibold text-primary hover:underline"
+        className="absolute top-6 left-6 font-semibold text-[#6366F1] hover:underline"
       >
         ← AVATERRA
       </Link>

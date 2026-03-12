@@ -36,13 +36,13 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
   return (
     <div className={cn('fixed bottom-6 right-6 z-40', className)}>
       {open && (
-        <div className="mb-2 flex h-[420px] w-[380px] flex-col overflow-hidden rounded-2xl border border-border bg-white shadow-xl">
-          <div className="flex shrink-0 items-center justify-between border-b border-border bg-bg-cream px-4 py-2">
-            <span className="text-sm font-medium text-dark">AI-тьютор</span>
+        <div className="mb-2 flex h-[420px] w-[380px] flex-col overflow-hidden rounded-2xl border border-[#E2E8F0] bg-white shadow-xl">
+          <div className="flex shrink-0 items-center justify-between border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2">
+            <span className="text-sm font-medium text-[var(--portal-text)]">AI-тьютор</span>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="rounded p-1 text-text-muted hover:bg-bg-soft hover:text-dark"
+              className="rounded p-1 text-[var(--portal-text-muted)] hover:bg-[#F1F5F9] hover:text-[var(--portal-text)]"
               aria-label="Закрыть"
             >
               <X className="h-4 w-4" />
@@ -50,7 +50,7 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {messages.length === 0 && (
-              <p className="text-sm text-text-muted">Задайте вопрос по материалам курса.</p>
+              <p className="text-sm text-[var(--portal-text-muted)]">Задайте вопрос по материалам курса.</p>
             )}
             {messages.map((m) => (
               <div
@@ -58,8 +58,8 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
                 className={cn(
                   'rounded-lg px-3 py-2 text-sm',
                   m.role === 'user'
-                    ? 'ml-6 bg-primary/10 text-dark'
-                    : 'mr-6 bg-bg-cream text-dark'
+                    ? 'ml-6 bg-[#EEF2FF] text-[var(--portal-text)]'
+                    : 'mr-6 bg-[#F8FAFC] text-[var(--portal-text)]'
                 )}
               >
                 {m.role === 'user' ? (
@@ -75,7 +75,7 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
               <p className="text-sm text-red-600">{error.message}</p>
             )}
           </div>
-          <div className="shrink-0 border-t border-border p-2">
+          <div className="shrink-0 border-t border-[#E2E8F0] p-2">
             {messages.length === 0 && (
               <div className="mb-2 flex flex-wrap gap-1">
                 {SUGGESTED.map((q) => (
@@ -84,7 +84,7 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
                     type="button"
                     onClick={() => sendMessage({ text: q })}
                     disabled={isLoading}
-                    className="rounded-full bg-bg-cream px-2 py-1 text-xs text-dark hover:bg-primary/10"
+                    className="rounded-full bg-[#F8FAFC] px-2 py-1 text-xs text-[var(--portal-text)] hover:bg-[#EEF2FF]"
                   >
                     {q}
                   </button>
@@ -119,7 +119,7 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-white shadow-lg hover:bg-primary/90"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#6366F1] text-white shadow-lg hover:bg-[#4F46E5]"
         aria-label={open ? 'Закрыть чат' : 'Открыть AI-тьютор'}
       >
         <MessageCircle className="h-5 w-5" />

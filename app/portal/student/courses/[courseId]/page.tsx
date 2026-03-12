@@ -1,12 +1,24 @@
 /**
- * Student: course detail and link to SCORM player.
+ * Student: course detail — cover, progress, launch button. Portal design.
  */
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { prisma } from '@/lib/db';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
+import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
+import { PageHeader } from '@/components/portal/PageHeader';
+import { CourseCoverPlaceholder } from '@/components/portal/CourseCoverPlaceholder';
+import { Button } from '@/components/ui/button';
+import { Play, CheckCircle2, ArrowLeft, Settings } from 'lucide-react';
+
+function totalLessons(manifest: string | null): number {
+  if (!manifest) return 1;
+  try {
+    const p = JSON.parse(manifest) as { items?: unknown[] };
+    return Array.isArray(p?.items) && p.items.length > 0 ? p.items.length : 1;
+  } catch { return 1; }
+}
 
 export default async function StudentCourseDetailPage({
   params,
@@ -19,56 +31,160 @@ export default async function StudentCourseDetailPage({
   const role = (session?.user as { role?: string })?.role;
 
   if (!userId) {
-    return <p className="text-text-muted">Загрузка…</p>;
-  }
-
-  const course = await prisma.course.findUnique({
-    where: { id: courseId },
-  });
-  if (!course) notFound();
-
-  const enrollment = await prisma.enrollment.findUnique({
-    where: { userId_courseId: { userId, courseId } },
-  });
-
-  const canAccess = !!enrollment || role === 'admin';
-  if (!canAccess) {
     return (
-      <div>
-        <p className="text-text-muted">У вас нет доступа к этому курсу.</p>
-        <Link href="/portal/student/courses" className="mt-2 inline-block text-primary hover:underline">← К моим курсам</Link>
+      <div className="portal-card p-6 max-w-2xl">
+        <p className="text-[var(--portal-text-muted)]">Загрузка…</p>
       </div>
     );
   }
 
+  const course = await prisma.course.findUnique({ where: { id: courseId } });
+  if (!course) notFound();
+
+  const [enrollment, progressByLesson, completedByLesson] = await Promise.all([
+    prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    }),
+    prisma.scormProgress.findMany({
+      where: { userId, courseId },
+      select: { lessonId: true, timeSpent: true, score: true },
+    }),
+    prisma.scormProgress.findMany({
+      where: { userId, courseId, completionStatus: { in: ['completed', 'passed'] } },
+      select: { lessonId: true },
+    }),
+  ]);
+
+  const canAccess = !!enrollment || role === 'admin';
+  if (!canAccess) {
+    return (
+      <div className="space-y-6 max-w-2xl">
+        <PageHeader
+          items={[
+            { href: '/portal/student/dashboard', label: 'Дашборд' },
+            { href: '/portal/student/courses', label: 'Мои курсы' },
+            { label: 'Доступ закрыт' },
+          ]}
+          title="Нет доступа"
+          description="У вас нет доступа к этому курсу. Запишитесь на курс или обратитесь к администратору."
+        />
+        <div className="portal-card p-6">
+          <Link href="/portal/student/courses">
+            <Button variant="secondary"><ArrowLeft className="h-4 w-4 mr-2" /> К моим курсам</Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const total = totalLessons(course.scormManifest);
+  const completed = completedByLesson.length;
+  const pct = total > 0 ? Math.min(100, Math.round((completed / total) * 100)) : 0;
+  const timeSpentSec = progressByLesson.reduce((s, p) => s + p.timeSpent, 0);
+  const timeSpentMin = Math.round(timeSpentSec / 60);
+  const scoresWithValue = progressByLesson.filter((p): p is typeof p & { score: number } => p.score != null);
+  const avgScore = scoresWithValue.length > 0
+    ? Math.round(scoresWithValue.reduce((s, p) => s + p.score, 0) / scoresWithValue.length)
+    : null;
+
+  const isCompleted = total > 0 && completed >= total;
+  const hasProgress = completed > 0 || progressByLesson.length > 0;
+
   return (
-    <div>
-      <Breadcrumbs
+    <div className="space-y-6 max-w-4xl">
+      <PageHeader
         items={[
           { href: '/portal/student/dashboard', label: 'Дашборд' },
           { href: '/portal/student/courses', label: 'Мои курсы' },
           { label: course.title },
         ]}
-      />
-      <Link href="/portal/student/courses" className="mt-2 inline-block text-sm text-primary hover:underline">← Мои курсы</Link>
-      <h1 className="mt-4 font-heading text-2xl font-bold text-dark">{course.title}</h1>
-      {course.description && <p className="mt-2 text-text-muted">{course.description}</p>}
-      <div className="mt-6 flex flex-wrap gap-3">
-        <Link
-          href={`/portal/student/courses/${courseId}/play`}
-          className="inline-flex items-center rounded-lg bg-primary px-4 py-2 font-medium text-white hover:bg-primary/90"
-        >
-          Открыть курс (плеер)
-        </Link>
-        {role === 'admin' && (
-          <Link
-            href={`/portal/admin/courses/${courseId}`}
-            className="inline-flex items-center rounded-lg border border-amber-600 bg-amber-50 px-4 py-2 font-medium text-amber-800 hover:bg-amber-100"
-          >
-            Управлять курсом в админке
+        title={course.title}
+        description={course.description ?? undefined}
+        actions={
+          <Link href="/portal/student/courses">
+            <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Назад</Button>
           </Link>
-        )}
+        }
+      />
+
+      {/* Обложка */}
+      <div className="portal-card overflow-hidden p-0">
+        <div className="relative aspect-[21/9] w-full min-h-[180px] bg-[#EEF2FF]">
+          {course.thumbnailUrl ? (
+            <Image
+              src={course.thumbnailUrl}
+              alt=""
+              fill
+              className="object-cover"
+              sizes="(max-width: 1024px) 100vw, 896px"
+            />
+          ) : (
+            <CourseCoverPlaceholder title={course.title} variant={0} className="absolute inset-0 w-full h-full" />
+          )}
+        </div>
       </div>
+
+      {/* Прогресс и действия */}
+      <div className="portal-card p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-[var(--portal-text-muted)] mb-1">Прогресс прохождения (SCORM)</p>
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-2xl font-bold text-[var(--portal-text)]">{pct}%</span>
+              <span className="text-sm text-[var(--portal-text-muted)]">
+                {completed} из {total} уроков
+              </span>
+              {timeSpentMin > 0 && (
+                <span className="text-xs text-[var(--portal-text-soft)]">
+                  Время: {timeSpentMin < 60 ? `${timeSpentMin} мин` : `${Math.floor(timeSpentMin / 60)} ч`}
+                </span>
+              )}
+              {avgScore != null && (
+                <span className="text-xs text-[var(--portal-text-soft)]">
+                  Балл: {avgScore}%
+                </span>
+              )}
+            </div>
+            <div className="mt-2 progress-track max-w-md">
+              <div
+                className={`progress-fill ${pct === 100 ? 'done' : pct >= 30 ? 'mid' : ''}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <Link href={`/portal/student/courses/${courseId}/play`}>
+              {isCompleted ? (
+                <Button variant="secondary" size="lg">
+                  <CheckCircle2 className="h-4 w-4 mr-2" /> Курс завершён
+                </Button>
+              ) : hasProgress ? (
+                <Button variant="primary" size="lg">
+                  <Play className="h-4 w-4 mr-2" /> Продолжить
+                </Button>
+              ) : (
+                <Button variant="primary" size="lg">
+                  <Play className="h-4 w-4 mr-2" /> Начать курс
+                </Button>
+              )}
+            </Link>
+            {role === 'admin' && (
+              <Link href={`/portal/admin/courses/${courseId}`}>
+                <Button variant="ghost" size="lg">
+                  <Settings className="h-4 w-4 mr-2" /> Управлять
+                </Button>
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {course.description && (
+        <div className="portal-card p-6">
+          <h2 className="text-sm font-semibold text-[var(--portal-text)] mb-2">О курсе</h2>
+          <p className="text-sm text-[var(--portal-text-muted)] whitespace-pre-wrap">{course.description}</p>
+        </div>
+      )}
     </div>
   );
 }

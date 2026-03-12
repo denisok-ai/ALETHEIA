@@ -239,7 +239,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
   if (loadingData) {
     return (
       <Card>
-        <p className="text-text-muted">Загрузка…</p>
+        <p className="text-[var(--portal-text-muted)]">Загрузка…</p>
       </Card>
     );
   }
@@ -261,14 +261,14 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
         <div>
           <Label>Подложка (PNG, JPG или PDF)</Label>
           {backgroundImageUrl && !removeBackground && (
-            <p className="mt-1 text-sm text-text-muted">Текущая: {backgroundImageUrl}</p>
+            <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Текущая: {backgroundImageUrl}</p>
           )}
           {!templateId && (
             <input
               id="ct-file"
               type="file"
               accept=".png,.jpg,.jpeg,.pdf"
-              className="mt-1 block w-full text-sm text-text-muted file:mr-4 file:rounded file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-dark"
+              className="mt-1 block w-full text-sm text-[var(--portal-text-muted)] file:mr-4 file:rounded file:border-0 file:bg-[#6366F1] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           )}
@@ -278,7 +278,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
                 id="ct-file-edit"
                 type="file"
                 accept=".png,.jpg,.jpeg,.pdf"
-                className="mt-1 block w-full text-sm text-text-muted file:mr-4 file:rounded file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-dark"
+                className="mt-1 block w-full text-sm text-[var(--portal-text-muted)] file:mr-4 file:rounded file:border-0 file:bg-[#6366F1] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
                 onChange={(e) => { setFile(e.target.files?.[0] ?? null); setRemoveBackground(false); }}
               />
               {backgroundImageUrl && (
@@ -288,14 +288,14 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
                     id="ct-remove-bg"
                     checked={removeBackground}
                     onChange={(e) => { setRemoveBackground(e.target.checked); if (e.target.checked) setFile(null); }}
-                    className="h-4 w-4 rounded border-border"
+                    className="h-4 w-4 rounded border-[#E2E8F0]"
                   />
                   <Label htmlFor="ct-remove-bg" className="font-normal text-sm">Удалить подложку</Label>
                 </div>
               )}
             </>
           )}
-          <p className="mt-1 text-xs text-text-muted">Без подложки используется макет по умолчанию при генерации PDF.</p>
+          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Без подложки используется макет по умолчанию при генерации PDF.</p>
         </div>
         <div>
           <Label htmlFor="ct-textmapping">textMapping (JSON, опционально)</Label>
@@ -305,9 +305,9 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
             onChange={(e) => setTextMapping(e.target.value)}
             rows={4}
             placeholder='{"name":{"x":100,"y":200},"date":{"x":100,"y":250},...}'
-            className="mt-1 w-full rounded-lg border border-border px-3 py-2 font-mono text-sm"
+            className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[#6366F1] px-3 py-2 font-mono text-sm"
           />
-          <p className="mt-1 text-xs text-text-muted">Координаты для полей: name, date, courseTitle, certNumber.</p>
+          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Координаты для полей: name, date, courseTitle, certNumber.</p>
         </div>
         <div>
           <Label htmlFor="ct-course">Курс</Label>
@@ -315,7 +315,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
             id="ct-course"
             value={courseId ?? ''}
             onChange={(e) => setCourseId(e.target.value || null)}
-            className="mt-1 w-full rounded-lg border border-border px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[#6366F1] px-3 py-2 text-sm"
           >
             <option value="">— общий шаблон</option>
             {courses.map((c) => (
@@ -378,7 +378,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
             id="ct-allowUserDownload"
             checked={allowUserDownload}
             onChange={(e) => setAllowUserDownload(e.target.checked)}
-            className="h-4 w-4 rounded border-border"
+            className="h-4 w-4 rounded border-[#E2E8F0]"
           />
           <Label htmlFor="ct-allowUserDownload" className="font-normal">Электронная версия доступна пользователям (кнопка «Скачать PDF»)</Label>
         </div>

@@ -43,11 +43,19 @@ export function SupportTicketsClient({ initialTickets }: { initialTickets: Ticke
     setSubmitting(false);
   }
 
+  const STATUS_MAP: Record<string, { label: string; cls: string }> = {
+    open:        { label: 'Открыт',    cls: 'badge-warn' },
+    in_progress: { label: 'В работе',  cls: 'badge-info' },
+    resolved:    { label: 'Решён',     cls: 'badge-active' },
+    closed:      { label: 'Закрыт',    cls: 'badge-neutral' },
+  };
+
   return (
-    <div className="mt-6 space-y-8">
-      <form onSubmit={handleSubmit} className="max-w-xl rounded-xl border border-border bg-white p-6">
-        <h2 className="text-lg font-semibold text-dark">Новое обращение</h2>
-        <div className="mt-4 space-y-4">
+    <div className="space-y-6 max-w-2xl">
+      {/* Форма */}
+      <form onSubmit={handleSubmit} className="portal-card p-6">
+        <h2 className="text-base font-semibold text-[var(--portal-text)] mb-4">Новое обращение</h2>
+        <div className="space-y-4">
           <div>
             <Label htmlFor="subject">Тема *</Label>
             <Input
@@ -67,46 +75,61 @@ export function SupportTicketsClient({ initialTickets }: { initialTickets: Ticke
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Подробности (необязательно)"
               rows={4}
-              className="mt-1 w-full rounded-lg border border-border px-4 py-2 text-sm"
+              className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3.5 py-2.5 text-sm
+                text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)]
+                focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent"
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          <Button type="submit" disabled={submitting}>
-            {submitting ? 'Отправка…' : 'Отправить'}
+          {error && (
+            <p className="text-sm text-red-500 bg-red-50 rounded-lg px-3 py-2">{error}</p>
+          )}
+          <Button type="submit" variant="primary" disabled={submitting}>
+            {submitting ? 'Отправка…' : 'Отправить обращение'}
           </Button>
         </div>
       </form>
 
+      {/* Список тикетов */}
       <section>
-        <h2 className="text-lg font-semibold text-dark">Мои обращения</h2>
-        <ul className="mt-3 space-y-2">
-          {tickets.map((t) => (
-            <li
-              key={t.id}
-              className="rounded-lg border border-border bg-white p-4"
-            >
-              <Link href={`/portal/student/support/${t.id}`} className="font-medium text-dark text-primary hover:underline">
-                {t.subject}
-              </Link>
-              <div className="mt-1 flex items-center gap-2 text-sm text-text-muted">
-                <span
-                  className={`rounded px-2 py-0.5 text-xs ${
-                    t.status === 'open'
-                      ? 'bg-amber-100 text-amber-800'
-                      : t.status === 'resolved'
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-gray-100 text-gray-800'
-                  }`}
-                >
-                  {t.status}
-                </span>
-                <time>{new Date(t.created_at).toLocaleString('ru')}</time>
-              </div>
-            </li>
-          ))}
-        </ul>
-        {tickets.length === 0 && (
-          <p className="mt-2 text-text-muted">Нет обращений.</p>
+        <h2 className="text-base font-semibold text-[var(--portal-text)] mb-3">Мои обращения</h2>
+        {tickets.length === 0 ? (
+          <div className="portal-card p-8 text-center">
+            <p className="text-sm text-[var(--portal-text-muted)]">Нет обращений</p>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {tickets.map((t) => {
+              const s = STATUS_MAP[t.status] ?? { label: t.status, cls: 'badge-neutral' };
+              return (
+                <li key={t.id}
+                  className="portal-card flex items-center justify-between gap-4 p-4
+                    hover:shadow-[var(--portal-shadow)] transition-shadow">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/portal/student/support/${t.id}`}
+                      className="font-medium text-[var(--portal-text)] hover:text-[var(--portal-accent)] transition-colors"
+                    >
+                      {t.subject}
+                    </Link>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <span className={`status-badge ${s.cls}`}>{s.label}</span>
+                      <time className="text-xs text-[var(--portal-text-soft)]">
+                        {new Date(t.created_at).toLocaleString('ru', {
+                          day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit',
+                        })}
+                      </time>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/portal/student/support/${t.id}`}
+                    className="text-xs text-[var(--portal-accent)] hover:underline shrink-0"
+                  >
+                    Открыть →
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         )}
       </section>
     </div>

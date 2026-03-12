@@ -6,7 +6,7 @@
  */
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, Pencil, Trash2, ExternalLink } from 'lucide-react';
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Plus, Pencil, Trash2, ExternalLink, FolderPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export interface GroupTreeNode {
@@ -41,9 +41,6 @@ function TreeRow({
   level,
   selectedId,
   onSelect,
-  onAddGroup,
-  onEditGroup,
-  onDeleteGroup,
   expandedIds,
   toggleExpanded,
   showCounts,
@@ -52,9 +49,6 @@ function TreeRow({
   level: number;
   selectedId: string | null;
   onSelect: (id: string) => void;
-  onAddGroup?: (parentId: string | null) => void;
-  onEditGroup?: (id: string) => void;
-  onDeleteGroup?: (id: string) => void;
   expandedIds: Set<string>;
   toggleExpanded: (id: string) => void;
   showCounts: boolean;
@@ -67,7 +61,7 @@ function TreeRow({
     <div className="select-none">
       <div
         className={`flex items-center gap-1 py-1.5 px-2 rounded-lg cursor-pointer group ${
-          isSelected ? 'bg-primary/15 text-primary' : 'hover:bg-border/50 text-dark'
+          isSelected ? 'bg-[#EEF2FF] text-[#4F46E5]' : 'hover:bg-[#F8FAFC] text-[var(--portal-text)]'
         }`}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={() => onSelect(node.id)}
@@ -92,13 +86,13 @@ function TreeRow({
           )}
         </button>
         {hasChildren && isExpanded ? (
-          <FolderOpen className="h-4 w-4 text-primary shrink-0" />
+          <FolderOpen className="h-4 w-4 text-[#6366F1] shrink-0" />
         ) : (
-          <Folder className="h-4 w-4 text-text-muted shrink-0" />
+          <Folder className="h-4 w-4 text-[var(--portal-text-muted)] shrink-0" />
         )}
         <span className="truncate flex-1 min-w-0">{node.name}</span>
         {showCounts && (
-          <span className="text-xs text-text-muted shrink-0">
+          <span className="text-xs text-[var(--portal-text-muted)] shrink-0">
             {node.moduleType === 'course' && node.coursesCount > 0 && node.coursesCount}
             {node.moduleType === 'media' && node.mediaCount > 0 && node.mediaCount}
             {node.moduleType === 'user' && node.usersCount > 0 && node.usersCount}
@@ -111,53 +105,8 @@ function TreeRow({
           title="Открыть страницу группы"
           aria-label="Открыть страницу группы"
         >
-          <ExternalLink className="h-3.5 w-3.5 text-text-muted" />
+          <ExternalLink className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />
         </Link>
-        {onAddGroup && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 min-w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAddGroup(node.id);
-            }}
-            aria-label="Добавить подгруппу"
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        {onEditGroup && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 min-w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-              onEditGroup(node.id);
-            }}
-            aria-label="Редактировать группу"
-          >
-            <Pencil className="h-3.5 w-3.5" />
-          </Button>
-        )}
-        {onDeleteGroup && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 min-w-6 p-0 opacity-0 group-hover:opacity-100 shrink-0 text-red-600 hover:text-red-700"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDeleteGroup(node.id);
-            }}
-            aria-label="Удалить группу"
-          >
-            <Trash2 className="h-3.5 w-3.5" />
-          </Button>
-        )}
       </div>
       {hasChildren && isExpanded &&
         node.children.map((child) => (
@@ -167,9 +116,6 @@ function TreeRow({
             level={level + 1}
             selectedId={selectedId}
             onSelect={onSelect}
-            onAddGroup={onAddGroup}
-            onEditGroup={onEditGroup}
-            onDeleteGroup={onDeleteGroup}
             expandedIds={expandedIds}
             toggleExpanded={toggleExpanded}
             showCounts={showCounts}
@@ -214,37 +160,80 @@ export function GroupTree({
 
   if (loading) {
     return (
-      <div className={`rounded-xl border border-border bg-white p-4 ${className}`}>
-        <p className="text-sm text-text-muted">Загрузка дерева групп…</p>
+      <div className={`portal-card p-4 ${className}`}>
+        <p className="text-sm text-[var(--portal-text-muted)]">Загрузка дерева групп…</p>
       </div>
     );
   }
 
   return (
-    <div className={`rounded-xl border border-border bg-white p-2 ${className}`}>
-      <div className="flex items-center justify-between mb-2 px-2">
-        <span className="text-sm font-medium text-dark">
+    <div className={`portal-card flex flex-col p-0 overflow-hidden ${className}`}>
+      <div className="shrink-0 px-2 pt-2 pb-1">
+        <span className="text-sm font-medium text-[var(--portal-text)] block mb-2">
           {moduleType === 'course' && 'Группы курсов'}
           {moduleType === 'media' && 'Группы медиатеки'}
           {moduleType === 'user' && 'Группы пользователей'}
         </span>
-        {onAddGroup && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 text-primary"
-            onClick={() => onAddGroup(null)}
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        )}
+        <div className="flex flex-wrap gap-1">
+          {onAddGroup && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[#6366F1] px-2"
+              onClick={() => onAddGroup(null)}
+              title="Добавить группу (корневую)"
+            >
+              <Plus className="h-3.5 w-3.5 mr-1" />
+              Добавить
+            </Button>
+          )}
+          {selectedGroupId && onAddGroup && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 text-[#6366F1] px-2"
+              onClick={() => onAddGroup(selectedGroupId)}
+              title="Добавить подгруппу"
+            >
+              <FolderPlus className="h-3.5 w-3.5 mr-1" />
+              Подгруппа
+            </Button>
+          )}
+          {selectedGroupId && onEditGroup && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2"
+              onClick={() => onEditGroup(selectedGroupId)}
+              title="Изменить группу"
+            >
+              <Pencil className="h-3.5 w-3.5 mr-1" />
+              Изменить
+            </Button>
+          )}
+          {selectedGroupId && onDeleteGroup && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-red-600 hover:text-red-700"
+              onClick={() => onDeleteGroup(selectedGroupId)}
+              title="Удалить группу"
+            >
+              <Trash2 className="h-3.5 w-3.5 mr-1" />
+              Удалить
+            </Button>
+          )}
+        </div>
       </div>
-      <div className="max-h-[70vh] overflow-y-auto">
+      <div className="flex-1 min-h-0 max-h-[70vh] overflow-y-auto px-2 pb-2">
         <button
           type="button"
           className={`w-full flex items-center gap-1 py-1.5 px-2 rounded-lg text-left ${
-            !selectedGroupId ? 'bg-primary/15 text-primary' : 'hover:bg-border/50 text-dark'
+            !selectedGroupId ? 'bg-[#EEF2FF] text-[#4F46E5]' : 'hover:bg-[#F8FAFC] text-[var(--portal-text)]'
           }`}
           onClick={() => onSelectGroup(null)}
         >
@@ -258,16 +247,13 @@ export function GroupTree({
             level={0}
             selectedId={selectedGroupId}
             onSelect={onSelectGroup}
-            onAddGroup={onAddGroup}
-            onEditGroup={onEditGroup}
-            onDeleteGroup={onDeleteGroup}
             expandedIds={expandedIds}
             toggleExpanded={toggleExpanded}
             showCounts={showCounts}
           />
         ))}
         {tree.length === 0 && (
-          <p className="text-sm text-text-muted px-2 py-4">Нет групп. Создайте группу.</p>
+          <p className="text-sm text-[var(--portal-text-muted)] px-2 py-4">Нет групп. Создайте группу.</p>
         )}
       </div>
     </div>

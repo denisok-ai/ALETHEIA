@@ -32,16 +32,16 @@ export function NewsWidget() {
   if (loading || items.length === 0) return null;
 
   return (
-    <section className="section-padding bg-bg-cream" aria-labelledby="news-heading">
+    <section className="section-padding bg-[#F8FAFC]" aria-labelledby="news-heading">
       <div className="container mx-auto max-w-6xl">
         <motion.h2
           id="news-heading"
-          className="font-heading text-2xl font-bold text-dark mb-8 flex items-center gap-2"
+          className="font-heading text-2xl font-bold text-[var(--portal-text)] mb-8 flex items-center gap-2"
           initial={{ opacity: 0, y: 12 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <Newspaper className="h-7 w-7 text-primary" />
+          <Newspaper className="h-7 w-7 text-[#6366F1]" />
           Новости и анонсы
         </motion.h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -52,9 +52,9 @@ export function NewsWidget() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.05 }}
-              className="rounded-xl border border-border bg-white p-5 shadow-sm transition hover:shadow-md"
+              className="rounded-xl border border-[#E2E8F0] bg-white p-5 shadow-sm transition hover:shadow-md"
             >
-              <p className="text-xs text-text-muted">
+              <p className="text-xs text-[var(--portal-text-muted)]">
                 {new Date(p.publishAt).toLocaleDateString('ru', {
                   day: 'numeric',
                   month: 'long',
@@ -62,19 +62,19 @@ export function NewsWidget() {
                 })}
                 {p.type === 'news' ? ' · Новость' : ' · Объявление'}
               </p>
-              <h3 className="mt-1 font-semibold text-dark line-clamp-2">{p.title}</h3>
+              <h3 className="mt-1 font-semibold text-[var(--portal-text)] line-clamp-2">{p.title}</h3>
               {p.type === 'news' && p.teaser && (
-                <p className="mt-2 text-sm text-text-muted line-clamp-2">{p.teaser}</p>
+                <p className="mt-2 text-sm text-[var(--portal-text-muted)] line-clamp-2">{p.teaser}</p>
               )}
               {p.type === 'announcement' && p.content && (
-                <p className="mt-2 text-sm text-text-muted line-clamp-2">
+                <p className="mt-2 text-sm text-[var(--portal-text-muted)] line-clamp-2">
                   {p.content.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 150)}
                   {p.content.length > 150 ? '…' : ''}
                 </p>
               )}
               <Link
                 href={`/news/${p.id}`}
-                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
+                className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-[#6366F1] hover:underline"
               >
                 Читать далее
                 <ChevronRight className="h-4 w-4" />

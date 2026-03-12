@@ -84,7 +84,7 @@ export function UserDetailTabs({
 
   return (
     <div className="space-y-4">
-      <div className="border-b border-border">
+      <div className="border-b border-[#E2E8F0]">
         <nav className="-mb-px flex flex-wrap gap-1" aria-label="Разделы пользователя">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -96,8 +96,8 @@ export function UserDetailTabs({
                 aria-current={activeTab === tab.id ? 'page' : undefined}
                 className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-text-muted hover:border-border hover:text-dark'
+                    ? 'border-[#6366F1] text-[#6366F1]'
+                    : 'border-transparent text-[var(--portal-text-muted)] hover:border-[#E2E8F0] hover:text-[var(--portal-text)]'
                 }`}
               >
                 <Icon className="h-4 w-4" />
@@ -145,16 +145,16 @@ export function UserDetailTabs({
                 <li key={e.id} className="flex items-center gap-2">
                   <Link
                     href={`/portal/admin/courses/${e.courseId}`}
-                    className="text-primary hover:underline"
+                    className="text-[#6366F1] hover:underline"
                   >
                     {e.courseTitle ?? e.courseId}
                   </Link>
-                  <span className="text-xs text-text-muted">
+                  <span className="text-xs text-[var(--portal-text-muted)]">
                     {format(new Date(e.enrolledAt), 'dd.MM.yyyy')}
                   </span>
                   <Link
                     href={`/portal/admin/courses/${e.courseId}/enrollments/${userId}`}
-                    className="text-xs text-primary hover:underline"
+                    className="text-xs text-[#6366F1] hover:underline"
                   >
                     Прогресс
                   </Link>
@@ -179,7 +179,7 @@ export function UserDetailTabs({
               {certificates.map((c) => (
                 <li key={c.id}>
                   {c.courseTitle ?? '—'} — {c.certNumber}
-                  <span className="ml-2 text-xs text-text-muted">
+                  <span className="ml-2 text-xs text-[var(--portal-text-muted)]">
                     {format(new Date(c.issuedAt), 'dd.MM.yyyy')}
                   </span>
                 </li>
@@ -203,7 +203,7 @@ export function UserDetailTabs({
               {orders.map((o) => (
                 <li key={o.id}>
                   {o.orderNumber ?? o.id} — {o.amount} ₽ — {o.status}
-                  <span className="ml-2 text-xs text-text-muted">
+                  <span className="ml-2 text-xs text-[var(--portal-text-muted)]">
                     {o.paidAt
                       ? format(new Date(o.paidAt), 'dd.MM.yyyy')
                       : format(new Date(o.createdAt), 'dd.MM.yyyy')}
@@ -228,10 +228,10 @@ export function UserDetailTabs({
             <ul className="space-y-1">
               {tickets.map((t) => (
                 <li key={t.id}>
-                  <Link href="/portal/manager/tickets" className="text-primary hover:underline">
+                  <Link href="/portal/manager/tickets" className="text-[#6366F1] hover:underline">
                     {t.subject}
                   </Link>
-                  <span className="ml-2 text-xs text-text-muted">{t.status}</span>
+                  <span className="ml-2 text-xs text-[var(--portal-text-muted)]">{t.status}</span>
                 </li>
               ))}
             </ul>

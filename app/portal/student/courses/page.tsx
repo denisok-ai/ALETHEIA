@@ -1,46 +1,66 @@
 /**
- * Student: list of enrolled courses with progress.
+ * Student: enrolled courses — new design with CourseCard grid.
  */
 import { getServerSession } from 'next-auth';
 import Link from 'next/link';
-import Image from 'next/image';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
+import { CourseCard } from '@/components/portal/CourseCard';
+import { BookOpen } from 'lucide-react';
+
+function totalLessons(manifest: string | null): number {
+  if (!manifest) return 1;
+  try {
+    const p = JSON.parse(manifest) as { items?: unknown[] };
+    return Array.isArray(p?.items) && p.items.length > 0 ? p.items.length : 1;
+  } catch { return 1; }
+}
 
 export default async function StudentCoursesPage() {
-  const session = await getServerSession(authOptions);
-  const userId = (session?.user as { id?: string })?.id;
-  const role = (session?.user as { role?: string })?.role;
+  const session  = await getServerSession(authOptions);
+  const userId   = (session?.user as { id?: string })?.id;
+  const role     = (session?.user as { role?: string })?.role;
+  const isAdmin  = role === 'admin';
 
   if (!userId) {
     return (
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Мои курсы</h1>
-        <p className="mt-2 text-text-muted">Загрузка…</p>
+      <div className="portal-card p-6">
+        <p className="text-[var(--portal-text-muted)]">Загрузка…</p>
       </div>
     );
   }
 
-  const isAdmin = role === 'admin';
   const enrollments = await prisma.enrollment.findMany({
     where: { userId, course: { status: 'published' } },
     include: {
-      course: { select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true } },
+      course: {
+        select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true },
+      },
     },
     orderBy: { enrolledAt: 'desc' },
   });
 
-  let list: { id: string; course: { id: string; title: string; description: string | null; thumbnailUrl: string | null; scormManifest: string | null } }[];
+  type CourseItem = {
+    enrollId: string;
+    course: { id: string; title: string; description: string | null; thumbnailUrl: string | null; scormManifest: string | null };
+    accessClosed?: boolean;
+  };
+
+  let list: CourseItem[];
+
   if (isAdmin) {
     const allCourses = await prisma.course.findMany({
       where: { status: 'published' },
       select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true },
       orderBy: { sortOrder: 'asc' },
     });
-    list = allCourses.map((c) => ({ id: `admin-${c.id}`, course: c }));
+    list = allCourses.map((c) => ({ enrollId: `admin-${c.id}`, course: c }));
   } else {
-    list = enrollments.map((e) => ({ id: e.id, course: e.course! }));
+    list = enrollments.map((e) => ({
+      enrollId: e.id,
+      course: e.course!,
+      accessClosed: e.accessClosed,
+    }));
   }
 
   const progressByCourse = await prisma.scormProgress.groupBy({
@@ -48,106 +68,105 @@ export default async function StudentCoursesPage() {
     where: { userId },
     _count: { lessonId: true },
     _sum: { timeSpent: true },
+    _avg: { score: true },
   });
   const completedByCourse = await prisma.scormProgress.groupBy({
     by: ['courseId'],
-    where: { userId, completionStatus: 'completed' },
+    where: { userId, completionStatus: { in: ['completed', 'passed'] } },
     _count: { lessonId: true },
   });
 
-  function totalLessons(manifest: string | null): number {
-    if (!manifest) return 1;
-    try {
-      const p = JSON.parse(manifest) as { items?: unknown[] };
-      return Array.isArray(p?.items) && p.items.length > 0 ? p.items.length : 1;
-    } catch {
-      return 1;
-    }
-  }
+  const completedCount  = list.filter((e) => {
+    const total = totalLessons(e.course.scormManifest);
+    const done  = completedByCourse.find((x) => x.courseId === e.course.id)?._count.lessonId ?? 0;
+    return done >= total && total > 0;
+  }).length;
+  const inProgressCount = list.filter((e) => {
+    const done = completedByCourse.find((x) => x.courseId === e.course.id)?._count.lessonId ?? 0;
+    const total = totalLessons(e.course.scormManifest);
+    const started = (progressByCourse.find((x) => x.courseId === e.course.id)?._count.lessonId ?? 0) > 0;
+    return started && done < total;
+  }).length;
 
   return (
-    <div>
-      <Breadcrumbs items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Мои курсы' }]} />
-      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Мои курсы</h1>
-      <p className="mt-1 text-text-muted">
-        {isAdmin ? 'Все курсы (доступ ко всем как администратор)' : 'Курсы, на которые вы записаны'}
-      </p>
+    <div className="space-y-6 max-w-6xl">
+
+      {/* Заголовок */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-[var(--portal-text)]">
+            {isAdmin ? 'Все курсы' : 'Мои курсы'}
+          </h1>
+          <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
+            {isAdmin
+              ? 'Полный доступ как администратор'
+              : `${list.length} записей · ${completedCount} завершено · ${inProgressCount} в процессе`}
+          </p>
+        </div>
+
+        {/* Мини-фильтр (статические кнопки для визуала — можно расширить) */}
+        {!isAdmin && list.length > 0 && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="status-badge badge-info">{inProgressCount} в процессе</span>
+            <span className="status-badge badge-active">{completedCount} завершено</span>
+          </div>
+        )}
+      </div>
 
       {list.length === 0 ? (
-        <div className="mt-6 space-y-3">
-          <p className="text-text-muted">
-            У вас пока нет записей на курсы. <Link href="/#pricing" className="text-primary hover:underline">Перейти к тарифам</Link>
+        <div className="portal-card p-10 text-center">
+          <BookOpen className="h-12 w-12 mx-auto mb-4 text-[var(--portal-text-soft)]" />
+          <h2 className="text-lg font-semibold text-[var(--portal-text)]">Курсов пока нет</h2>
+          <p className="mt-2 text-[var(--portal-text-muted)] text-sm max-w-sm mx-auto">
+            {isAdmin
+              ? 'Создайте первый курс в Админка → Курсы.'
+              : 'Запишитесь на курс, чтобы начать обучение.'}
           </p>
-          {isAdmin && (
-            <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-              Нет ни одного курса. Создайте курс в{' '}
-              <Link href="/portal/admin/courses" className="font-medium text-primary underline hover:no-underline">Админка → Курсы</Link>.
-            </p>
-          )}
+          <div className="mt-5">
+            {isAdmin ? (
+              <Link
+                href="/portal/admin/courses"
+                className="course-launch-btn primary inline-flex"
+              >
+                Управление курсами
+              </Link>
+            ) : (
+              <Link
+                href="/#pricing"
+                className="course-launch-btn gold inline-flex"
+              >
+                Выбрать курс
+              </Link>
+            )}
+          </div>
         </div>
       ) : (
-        <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((e) => {
-            const c = e.course;
-            if (!c) return null;
-            const total = totalLessons(c.scormManifest);
-            const completed = completedByCourse.find((x) => x.courseId === c.id)?._count.lessonId ?? 0;
-            const timeSpent = progressByCourse.find((x) => x.courseId === c.id)?._sum.timeSpent ?? 0;
-            const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {list.map((e, idx) => {
+            const c       = e.course;
+            const total   = totalLessons(c.scormManifest);
+            const done    = completedByCourse.find((x) => x.courseId === c.id)?._count.lessonId ?? 0;
+            const prog    = progressByCourse.find((x) => x.courseId === c.id);
+            const timeSec = prog?._sum.timeSpent ?? 0;
+            const avgScore = prog?._avg?.score != null ? Math.round(prog._avg.score) : undefined;
             return (
-              <li key={e.id}>
-                <div className="block rounded-xl border border-border bg-white p-4 shadow-sm transition hover:shadow-md">
-                  <Link href={`/portal/student/courses/${c.id}`} className="block">
-                    {c.thumbnailUrl && (
-                      <div className="relative aspect-video w-full overflow-hidden rounded-lg bg-bg-soft">
-                        <Image
-                          src={c.thumbnailUrl}
-                          alt=""
-                          fill
-                          className="object-cover"
-                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                        />
-                      </div>
-                    )}
-                    <h2 className="mt-3 font-semibold text-dark">{c.title}</h2>
-                    {c.description && <p className="mt-1 line-clamp-2 text-sm text-text-muted">{c.description}</p>}
-                    {total > 0 && !isAdmin && (
-                      <div className="mt-2">
-                        <div className="flex justify-between text-xs text-text-muted">
-                          <span>Прогресс</span>
-                          <span>{completed}/{total} ({pct}%)</span>
-                        </div>
-                        <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-bg-soft">
-                          <div
-                            className="h-full rounded-full bg-primary transition-all"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                        {timeSpent > 0 && (
-                          <p className="mt-1 text-xs text-text-muted">
-                            Время: {Math.floor(timeSpent / 60)} мин
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {total > 0 && isAdmin && (
-                      <p className="mt-2 text-xs text-text-muted">Уроков: {total}</p>
-                    )}
-                    <span className="mt-2 inline-block text-sm text-primary">Открыть курс →</span>
-                  </Link>
-                  {isAdmin && (
-                    <Link
-                      href={`/portal/admin/courses/${c.id}`}
-                      className="mt-2 inline-block text-xs text-amber-700 hover:underline"
-                    >
-                      Управлять в админке
-                    </Link>
-                  )}
-                </div>
-              </li>
+              <CourseCard
+                key={e.enrollId}
+                id={c.id}
+                title={c.title}
+                description={c.description}
+                thumbnailUrl={c.thumbnailUrl}
+                totalLessons={total}
+                completedLessons={done}
+                timeSpentMin={Math.round(timeSec / 60)}
+                scorePct={avgScore}
+                accessClosed={e.accessClosed}
+                index={idx}
+                adminHref={isAdmin ? `/portal/admin/courses/${c.id}` : undefined}
+              />
             );
           })}
-        </ul>
+        </div>
       )}
     </div>
   );

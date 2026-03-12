@@ -85,14 +85,14 @@ export function NotificationSetEditForm({ setId, initial }: NotificationSetEditF
             id="ns-template"
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
-            className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+            className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[#6366F1]"
           >
             <option value="">— Без шаблона (использовать стандартный) —</option>
             {templates.map((t) => (
               <option key={t.id} value={t.id}>{t.name}</option>
             ))}
           </select>
-          <p className="mt-1 text-xs text-text-muted">
+          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
             Шаблоны создаются в разделе «Шаблоны уведомлений». Если шаблон не выбран, используется стандартный текст.
           </p>
         </div>
@@ -102,7 +102,7 @@ export function NotificationSetEditForm({ setId, initial }: NotificationSetEditF
               type="checkbox"
               checked={isDefault}
               onChange={(e) => setIsDefault(e.target.checked)}
-              className="rounded border-border"
+              className="rounded border-[#E2E8F0]"
             />
             <span className="text-sm">По умолчанию (прикреплять к новым курсам)</span>
           </label>
@@ -113,7 +113,7 @@ export function NotificationSetEditForm({ setId, initial }: NotificationSetEditF
               type="checkbox"
               checked={isActive}
               onChange={(e) => setIsActive(e.target.checked)}
-              className="rounded border-border"
+              className="rounded border-[#E2E8F0]"
             />
             <span className="text-sm">Активен</span>
           </label>

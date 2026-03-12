@@ -72,17 +72,17 @@ export function Contact() {
             <span className="block text-sm font-semibold uppercase tracking-widest text-accent">
               Записаться
             </span>
-            <h2 className="mt-2 font-heading text-3xl font-semibold text-dark sm:text-4xl">
+            <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl">
               Оставьте заявку
             </h2>
-            <p className="mt-4 leading-relaxed text-text-muted">
+            <p className="mt-4 leading-relaxed text-[var(--portal-text-muted)]">
               Мы свяжемся с вами и подберём формат: консультация, тренинг или курс.
             </p>
             <div className="mt-8">
-              <p className="font-heading text-lg font-semibold text-dark">
+              <p className="font-heading text-lg font-semibold text-[var(--portal-text)]">
                 Татьяна Стрельцова
               </p>
-              <ul className="mt-2 space-y-1 text-text-muted">
+              <ul className="mt-2 space-y-1 text-[var(--portal-text-muted)]">
                 <li>
                   <a href="tel:+74951234567" className="hover:text-accent transition-colors">
                     +7 (495) 123-45-67
@@ -95,65 +95,89 @@ export function Contact() {
                 </li>
                 <li>Москва, ул. Здоровья, д. 10</li>
               </ul>
-              <p className="mt-4 text-sm text-text-soft">
+              <p className="mt-4 text-sm text-[var(--portal-text-soft)]">
                 Партнёры: Институт им. Энгельгардта, РНИМУ им. Пирогова
               </p>
             </div>
           </motion.div>
 
-          <motion.form
-            initial={{ opacity: 0, x: 20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: 0.1 }}
-            onSubmit={handleSubmit}
-            className="rounded-2xl border border-border bg-white p-7 shadow-[var(--shadow-soft)] md:p-8"
-          >
-            <div className="space-y-4">
-              {/* Honeypot: скрытое поле против ботов (не заполнять) */}
-              <div className="absolute -left-[9999px] w-1 h-1 overflow-hidden" aria-hidden="true">
-                <Label htmlFor="contact-website">Сайт</Label>
-                <Input id="contact-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+          {status === 'sent' ? (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-[var(--shadow-soft)] md:p-8 text-center"
+            >
+              <h3 className="font-heading text-xl font-semibold text-[var(--portal-text)]">Спасибо, заявка принята</h3>
+              <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
+                Мы свяжемся с вами в ближайшее время. Если указали email — вам пришло подтверждение.
+              </p>
+              <a href="#pricing" className="mt-6 inline-block">
+                <Button variant="primary">Оплатить консультацию или курс</Button>
+              </a>
+              <p className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setStatus('idle')}
+                  className="text-sm text-[#6366F1] hover:underline"
+                >
+                  Отправить ещё одну заявку
+                </button>
+              </p>
+            </motion.div>
+          ) : (
+            <motion.form
+              initial={{ opacity: 0, x: 20 }}
+              animate={isInView ? { opacity: 1, x: 0 } : {}}
+              transition={{ delay: 0.1 }}
+              onSubmit={handleSubmit}
+              className="rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-[var(--shadow-soft)] md:p-8"
+            >
+              <div className="space-y-4">
+                {/* Honeypot: скрытое поле против ботов (не заполнять) */}
+                <div className="absolute -left-[9999px] w-1 h-1 overflow-hidden" aria-hidden="true">
+                  <Label htmlFor="contact-website">Сайт</Label>
+                  <Input id="contact-website" name="website" type="text" tabIndex={-1} autoComplete="off" />
+                </div>
+                <div>
+                  <Label htmlFor="name">Имя *</Label>
+                  <Input id="name" name="name" required placeholder="Ваше имя" className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="phone">Телефон *</Label>
+                  <Input id="phone" name="phone" type="tel" required placeholder="+7 (___) ___-__-__" className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input id="email" name="email" type="email" placeholder="email@example.com" className="mt-1" />
+                </div>
+                <div>
+                  <Label htmlFor="message">Сообщение</Label>
+                  <textarea
+                    id="message"
+                    name="message"
+                    rows={3}
+                    placeholder="Интересующий формат или вопрос"
+                    className="mt-1 flex w-full rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:border-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
+                  />
+                </div>
+                {errorMessage && (
+                  <p className="text-sm text-red-600" role="alert">
+                    {errorMessage}
+                  </p>
+                )}
+                <Button
+                  type="submit"
+                  variant="primary"
+                  className="w-full"
+                  disabled={status === 'sending'}
+                >
+                  {status === 'sending' && 'Отправка…'}
+                  {status === 'error' && 'Ошибка. Попробуйте снова'}
+                  {status === 'idle' && 'Отправить заявку'}
+                </Button>
               </div>
-              <div>
-                <Label htmlFor="name">Имя *</Label>
-                <Input id="name" name="name" required placeholder="Ваше имя" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="phone">Телефон *</Label>
-                <Input id="phone" name="phone" type="tel" required placeholder="+7 (___) ___-__-__" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" name="email" type="email" placeholder="email@example.com" className="mt-1" />
-              </div>
-              <div>
-                <Label htmlFor="message">Сообщение</Label>
-                <textarea
-                  id="message"
-                  name="message"
-                  rows={3}
-                  placeholder="Интересующий формат или вопрос"
-                  className="mt-1 flex w-full rounded-lg border border-border bg-bg px-4 py-2 text-dark placeholder:text-text-soft focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
-                />
-              </div>
-              {errorMessage && (
-                <p className="text-sm text-red-600" role="alert">
-                  {errorMessage}
-                </p>
-              )}
-              <Button
-                type="submit"
-                variant="primary"
-                className="w-full"
-                disabled={status === 'sending'}
-              >
-                {status === 'sending' && 'Отправка…'}
-                {status === 'sent' && 'Заявка отправлена'}
-                {status === 'error' && 'Ошибка. Попробуйте снова'}
-                {status === 'idle' && 'Отправить заявку'}
-              </Button>
-            </div>
-          </motion.form>
+            </motion.form>
+          )}
         </div>
       </motion.div>
     </section>

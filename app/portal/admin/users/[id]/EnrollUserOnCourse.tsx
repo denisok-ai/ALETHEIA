@@ -57,16 +57,16 @@ export function EnrollUserOnCourse({
   if (availableCourses.length === 0) return null;
 
   return (
-    <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-border bg-bg-soft/50 p-3">
+    <div className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3">
       <div className="min-w-[200px]">
-        <Label htmlFor="enroll-course" className="text-xs text-text-muted">
+        <Label htmlFor="enroll-course" className="text-xs text-[var(--portal-text-muted)]">
           Записать на курс
         </Label>
         <select
           id="enroll-course"
           value={courseId}
           onChange={(e) => setCourseId(e.target.value)}
-          className="mt-1 w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-dark"
+          className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
         >
           <option value="">Выберите курс</option>
           {availableCourses.map((c) => (

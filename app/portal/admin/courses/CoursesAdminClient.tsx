@@ -349,9 +349,9 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
       {showCreate && (
         <form
           onSubmit={handleCreate}
-          className="mb-6 rounded-xl border border-border bg-white p-6"
+          className="mb-6 rounded-xl border border-[#E2E8F0] bg-white p-6"
         >
-          <h2 className="text-lg font-semibold text-dark">Новый курс</h2>
+          <h2 className="text-lg font-semibold text-[var(--portal-text)]">Новый курс</h2>
           <div className="mt-4 space-y-4">
             <div>
               <Label htmlFor="title">Название</Label>
@@ -369,7 +369,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                 id="desc"
                 value={newDesc}
                 onChange={(e) => setNewDesc(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-border px-4 py-2"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-4 py-2"
                 rows={3}
               />
             </div>
@@ -401,7 +401,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                 id="newStatus"
                 value={newStatus}
                 onChange={(e) => setNewStatus(e.target.value as CourseStatusKey)}
-                className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
               >
                 {COURSE_STATUS_OPTIONS.map((o) => (
                   <option key={o.value} value={o.value}>
@@ -433,15 +433,15 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
       )}
 
       {selectedIds.size > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-          <span className="text-sm font-medium text-dark">Выбрано: {selectedIds.size}</span>
-          <span className="text-sm text-text-muted">Установить статус:</span>
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+          <span className="text-sm font-medium text-[var(--portal-text)]">Выбрано: {selectedIds.size}</span>
+          <span className="text-sm text-[var(--portal-text-muted)]">Установить статус:</span>
           {COURSE_STATUS_OPTIONS.map((o) => (
             <Button key={o.value} size="sm" variant="secondary" disabled={bulkUpdating} onClick={() => handleBulkStatus(o.value)}>
               {o.label}
             </Button>
           ))}
-          <span className="text-sm text-text-muted ml-2">Группы:</span>
+          <span className="text-sm text-[var(--portal-text-muted)] ml-2">Группы:</span>
           <Button size="sm" variant="secondary" disabled={groupActionLoading} onClick={() => setGroupPickerOpen(true)}>
             <FolderPlus className="h-3.5 w-3.5 mr-1" />
             Добавить в группу
@@ -458,31 +458,31 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
         </div>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-border bg-white">
+      <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-border bg-bg-soft">
+            <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
               <th className="w-10 px-2 py-2">
                 <button type="button" onClick={toggleSelectAll} className="p-1" title={selectedIds.size >= courses.length ? 'Снять выбор' : 'Выбрать все'}>
-                  {selectedIds.size >= courses.length && courses.length > 0 ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-text-muted" />}
+                  {selectedIds.size >= courses.length && courses.length > 0 ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
                 </button>
               </th>
-              <th className="px-4 py-2 font-medium text-dark w-8">↑↓</th>
-              <th className="px-4 py-2 font-medium text-dark">Название</th>
-              <th className="px-4 py-2 font-medium text-dark">Начало</th>
-              <th className="px-4 py-2 font-medium text-dark">Окончание</th>
-              <th className="px-4 py-2 font-medium text-dark">Статус</th>
-              <th className="px-4 py-2 font-medium text-dark">Цена</th>
-              <th className="px-4 py-2 font-medium text-dark">SCORM</th>
-              <th className="px-4 py-2 font-medium text-dark">Действия</th>
+              <th className="px-4 py-2 font-medium text-[var(--portal-text)] w-8">↑↓</th>
+              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Название</th>
+              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Начало</th>
+              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Окончание</th>
+              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Статус</th>
+              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Цена</th>
+              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">SCORM</th>
+              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Действия</th>
             </tr>
           </thead>
           <tbody>
             {[...courses].sort((a, b) => a.sort_order - b.sort_order).map((c) => (
-              <tr key={c.id} className="border-b border-border hover:bg-bg-cream">
+              <tr key={c.id} className="border-b border-[#E2E8F0] hover:bg-[#F8FAFC]">
                 <td className="px-2 py-2">
                   <button type="button" onClick={() => toggleSelect(c.id)} className="p-1">
-                    {selectedIds.has(c.id) ? <CheckSquare className="h-4 w-4 text-primary" /> : <Square className="h-4 w-4 text-text-muted" />}
+                    {selectedIds.has(c.id) ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
                   </button>
                 </td>
                 <td className="px-2 py-2">
@@ -491,7 +491,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                       type="button"
                       onClick={() => handleReorder(-1, c)}
                       disabled={reordering === c.id}
-                      className="p-0.5 text-text-muted hover:text-dark disabled:opacity-50"
+                      className="p-0.5 text-[var(--portal-text-muted)] hover:text-[var(--portal-text)] disabled:opacity-50"
                       aria-label="Поднять"
                     >
                       <ChevronUp className="h-4 w-4" />
@@ -500,7 +500,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                       type="button"
                       onClick={() => handleReorder(1, c)}
                       disabled={reordering === c.id}
-                      className="p-0.5 text-text-muted hover:text-dark disabled:opacity-50"
+                      className="p-0.5 text-[var(--portal-text-muted)] hover:text-[var(--portal-text)] disabled:opacity-50"
                       aria-label="Опустить"
                     >
                       <ChevronDown className="h-4 w-4" />
@@ -510,20 +510,20 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                 <td className="px-4 py-2">
                   <Link
                     href={`/portal/admin/courses/${c.id}`}
-                    className="font-medium text-primary hover:underline"
+                    className="font-medium text-[#6366F1] hover:underline"
                   >
                     {c.title}
                   </Link>
                 </td>
-                <td className="px-4 py-2 text-text-muted whitespace-nowrap">
+                <td className="px-4 py-2 text-[var(--portal-text-muted)] whitespace-nowrap">
                   {c.starts_at ? formatDateTime(c.starts_at) : '—'}
                 </td>
-                <td className="px-4 py-2 text-text-muted whitespace-nowrap">
+                <td className="px-4 py-2 text-[var(--portal-text-muted)] whitespace-nowrap">
                   {c.ends_at ? formatDateTime(c.ends_at) : '—'}
                 </td>
-                <td className="px-4 py-2 text-text-muted">{getCourseStatusLabel(c.status)}</td>
-                <td className="px-4 py-2 text-text-muted">{c.price != null ? `${c.price} ₽` : '—'}</td>
-                <td className="px-4 py-2 text-text-muted">{c.scorm_path ? 'Загружен' : '—'}</td>
+                <td className="px-4 py-2 text-[var(--portal-text-muted)]">{getCourseStatusLabel(c.status)}</td>
+                <td className="px-4 py-2 text-[var(--portal-text-muted)]">{c.price != null ? `${c.price} ₽` : '—'}</td>
+                <td className="px-4 py-2 text-[var(--portal-text-muted)]">{c.scorm_path ? 'Загружен' : '—'}</td>
                 <td className="px-4 py-2">
                   <div className="flex flex-wrap items-center gap-1">
                     {c.scorm_path && (
@@ -531,7 +531,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                         href={`/portal/student/courses/${c.id}/play`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-text-muted hover:bg-bg-soft hover:text-primary"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--portal-text-muted)] hover:bg-[#F8FAFC] hover:text-[#6366F1]"
                         title="Просмотр SCORM-курса"
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -572,7 +572,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                     <select
                       value={c.status}
                       onChange={(e) => handleStatusChange(c, e.target.value as CourseStatusKey)}
-                      className="rounded border border-border bg-white px-2 py-1 text-xs"
+                      className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-xs"
                       title="Изменить статус"
                     >
                       {COURSE_STATUS_OPTIONS.map((o) => (
@@ -593,7 +593,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                           e.target.value = '';
                         }}
                       />
-                      <span className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs hover:bg-bg-soft">
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-2 py-1 text-xs hover:bg-[#F8FAFC]">
                         <Upload className="h-3 w-3" />
                         {uploading === c.id ? '…' : 'ZIP'}
                       </span>
@@ -704,7 +704,7 @@ function EditCourseDialog({
               id="edit-desc"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-border px-4 py-2"
+              className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-4 py-2"
               rows={3}
             />
           </div>
@@ -746,7 +746,7 @@ function EditCourseDialog({
               id="edit-status"
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+              className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
             >
               {COURSE_STATUS_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>

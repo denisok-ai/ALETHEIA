@@ -43,9 +43,9 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-8 shadow-lg">
-      <h1 className="font-heading text-2xl font-bold text-dark">Регистрация</h1>
-      <p className="mt-1 text-sm text-text-muted">Создайте аккаунт для доступа к курсам</p>
+    <div className="rounded-2xl border border-[#E2E8F0] bg-surface p-8 shadow-lg">
+      <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Регистрация</h1>
+      <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Создайте аккаунт для доступа к курсам</p>
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
           <Label htmlFor="name">Имя</Label>
@@ -82,7 +82,7 @@ export default function RegisterPage() {
             minLength={6}
             className="mt-1"
           />
-          <p className="mt-1 text-xs text-text-muted">Не менее 6 символов</p>
+          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Не менее 6 символов</p>
         </div>
         {error && (
           <p className="text-sm text-red-600" role="alert">
@@ -93,9 +93,9 @@ export default function RegisterPage() {
           {loading ? 'Отправка…' : 'Зарегистрироваться'}
         </Button>
       </form>
-      <p className="mt-4 text-center text-sm text-text-muted">
+      <p className="mt-4 text-center text-sm text-[var(--portal-text-muted)]">
         Уже есть аккаунт?{' '}
-        <Link href="/login" className="font-medium text-primary underline">
+        <Link href="/login" className="font-medium text-[#6366F1] underline">
           Войти
         </Link>
       </p>

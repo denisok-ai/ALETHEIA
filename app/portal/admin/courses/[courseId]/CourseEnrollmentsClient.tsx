@@ -390,9 +390,9 @@ export function CourseEnrollmentsClient({
   }
 
   return (
-    <div className="rounded-xl border border-border bg-white p-4">
+    <div className="portal-card p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold text-dark">Участники</h2>
+        <h2 className="text-lg font-semibold text-[var(--portal-text)]">Участники</h2>
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
             <Button variant="secondary" size="sm" onClick={() => { setAddDropdownOpen((v) => !v); setAccessDropdownOpen(false); }}>
@@ -401,11 +401,11 @@ export function CourseEnrollmentsClient({
               <ChevronDown className="ml-1 h-4 w-4" />
             </Button>
             {addDropdownOpen && (
-              <div className="absolute left-0 top-full z-10 mt-1 min-w-[220px] rounded-lg border border-border bg-white py-1 shadow-lg">
-                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-bg-soft" onClick={() => { setAddOpen(true); setAddDropdownOpen(false); }}>
+              <div className="absolute left-0 top-full z-10 mt-1 min-w-[220px] rounded-lg border border-[#E2E8F0] bg-white py-1 shadow-lg">
+                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]" onClick={() => { setAddOpen(true); setAddDropdownOpen(false); }}>
                   Быстрое добавление одного
                 </button>
-                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-bg-soft" onClick={() => { setBulkEnrollOpen(true); setAddDropdownOpen(false); }}>
+                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]" onClick={() => { setBulkEnrollOpen(true); setAddDropdownOpen(false); }}>
                   Быстрое добавление нескольких
                 </button>
               </div>
@@ -418,11 +418,11 @@ export function CourseEnrollmentsClient({
               <ChevronDown className="ml-1 h-4 w-4" />
             </Button>
             {accessDropdownOpen && (
-              <div className="absolute left-0 top-full z-10 mt-1 min-w-[180px] rounded-lg border border-border bg-white py-1 shadow-lg">
-                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-bg-soft" onClick={() => handleBulkAccess(false)}>
+              <div className="absolute left-0 top-full z-10 mt-1 min-w-[180px] rounded-lg border border-[#E2E8F0] bg-white py-1 shadow-lg">
+                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]" onClick={() => handleBulkAccess(false)}>
                   Открыть всем
                 </button>
-                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-bg-soft" onClick={() => handleBulkAccess(true)}>
+                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]" onClick={() => handleBulkAccess(true)}>
                   Закрыть всем
                 </button>
               </div>
@@ -436,9 +436,9 @@ export function CourseEnrollmentsClient({
       </div>
 
       <div className="mt-3 flex items-center gap-2">
-        <span className="text-sm text-text-muted">Найти в списке:</span>
+        <span className="text-sm text-[var(--portal-text-muted)]">Найти в списке:</span>
         <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+          <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
           <Input
             value={listSearch}
             onChange={(e) => setListSearch(e.target.value)}
@@ -449,8 +449,8 @@ export function CourseEnrollmentsClient({
       </div>
 
       {selectedArr.length > 0 && (
-        <div className="mt-3 flex items-center gap-3 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2">
-          <span className="text-sm font-medium text-dark">Выбрано: {selectedArr.length}</span>
+        <div className="mt-3 flex items-center gap-3 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+          <span className="text-sm font-medium text-[var(--portal-text)]">Выбрано: {selectedArr.length}</span>
           <Button variant="danger" size="sm" onClick={() => setBulkUnenrollConfirm(true)} disabled={bulkUnenrolling}>
             Отчислить выбранных
           </Button>
@@ -506,17 +506,17 @@ export function CourseEnrollmentsClient({
                       aria-label={`Выбрать ${row.user.displayName || row.user.email}`}
                     />
                   </TableCell>
-                  <TableCell className="text-text-muted">{idx + 1}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
                   <TableCell>
                     <Link
                       href={`/portal/admin/users/${row.userId}`}
-                      className="font-medium text-primary hover:underline"
+                      className="font-medium text-[#6366F1] hover:underline"
                     >
                       {row.user.displayName || row.user.email || '—'}
                     </Link>
                   </TableCell>
-                  <TableCell className="text-text-muted">{row.user.email ?? '—'}</TableCell>
-                  <TableCell className="text-text-muted whitespace-nowrap">
+                  <TableCell className="text-[var(--portal-text-muted)]">{row.user.email ?? '—'}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)] whitespace-nowrap">
                     {formatPeriod(row.enrolledAt, row.expiresAt)}
                   </TableCell>
                   <TableCell>
@@ -530,14 +530,14 @@ export function CourseEnrollmentsClient({
                     {row.completedAt || row.progress.percent >= 100 ? (
                       <span className="text-green-600">Завершено</span>
                     ) : (
-                      <span className="text-text-muted">Не завершено</span>
+                      <span className="text-[var(--portal-text-muted)]">Не завершено</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap items-center gap-1">
                       <Link
                         href={`/portal/admin/users/${row.userId}`}
-                        className="inline-flex h-8 items-center rounded px-2 text-xs text-primary hover:bg-bg-soft"
+                        className="inline-flex h-8 items-center rounded px-2 text-xs text-[#6366F1] hover:bg-[#F8FAFC]"
                         title="Подробнее"
                         aria-label="Карточка участника"
                       >
@@ -545,7 +545,7 @@ export function CourseEnrollmentsClient({
                       </Link>
                       <Link
                         href={`/portal/admin/courses/${courseId}/enrollments/${row.userId}`}
-                        className="inline-flex h-8 items-center rounded px-2 text-xs text-primary hover:bg-bg-soft"
+                        className="inline-flex h-8 items-center rounded px-2 text-xs text-[#6366F1] hover:bg-[#F8FAFC]"
                         title="Изменить результаты"
                         aria-label="Изменить результаты прохождения"
                       >
@@ -600,7 +600,7 @@ export function CourseEnrollmentsClient({
           <DialogHeader>
             <DialogTitle>Записать пользователя на курс</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-text-muted">Курс: {courseTitle}</p>
+          <p className="text-sm text-[var(--portal-text-muted)]">Курс: {courseTitle}</p>
           <div className="space-y-2">
             <Label htmlFor="user-search">Поиск по email или имени</Label>
             <Input
@@ -610,19 +610,19 @@ export function CourseEnrollmentsClient({
               placeholder="Введите email или имя..."
             />
           </div>
-          {searching && <p className="text-sm text-text-muted">Поиск…</p>}
+          {searching && <p className="text-sm text-[var(--portal-text-muted)]">Поиск…</p>}
           {searchQ.length >= 2 && !searching && (
-            <ul className="max-h-60 space-y-1 overflow-y-auto rounded border border-border p-2">
+            <ul className="max-h-60 space-y-1 overflow-y-auto rounded border border-[#E2E8F0] p-2">
               {searchResults.length === 0 ? (
-                <li className="text-sm text-text-muted">Никого не найдено</li>
+                <li className="text-sm text-[var(--portal-text-muted)]">Никого не найдено</li>
               ) : (
                 searchResults.map((p) => {
                   const enrolled = alreadyEnrolledIds.has(p.id);
                   return (
-                    <li key={p.id} className="flex items-center justify-between gap-2 rounded py-1.5 px-2 hover:bg-bg-soft">
+                    <li key={p.id} className="flex items-center justify-between gap-2 rounded py-1.5 px-2 hover:bg-[#F8FAFC]">
                       <span className="text-sm">
                         {p.display_name || p.email}
-                        {p.display_name && <span className="text-text-muted"> ({p.email})</span>}
+                        {p.display_name && <span className="text-[var(--portal-text-muted)]"> ({p.email})</span>}
                       </span>
                       <Button
                         type="button"
@@ -646,7 +646,7 @@ export function CourseEnrollmentsClient({
           <DialogHeader>
             <DialogTitle>Массовое зачисление</DialogTitle>
           </DialogHeader>
-          <p className="text-sm text-text-muted">
+          <p className="text-sm text-[var(--portal-text-muted)]">
             Введите email или ID пользователей — по одному на строку (макс. {BULK_LIMIT}). Либо загрузите CSV с колонкой email.
           </p>
           <div className="space-y-2">
@@ -657,7 +657,7 @@ export function CourseEnrollmentsClient({
               onChange={(e) => setBulkEnrollText(e.target.value)}
               placeholder="user@example.com&#10;user2@example.com"
               rows={8}
-              className="w-full rounded-lg border border-border px-3 py-2 text-sm"
+              className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
             />
             <div className="flex items-center gap-2">
               <input
@@ -668,7 +668,7 @@ export function CourseEnrollmentsClient({
                 id="bulk-enroll-csv"
               />
               <Label htmlFor="bulk-enroll-csv" className="cursor-pointer">
-                <span className="inline-flex items-center gap-2 rounded-lg border border-border bg-white px-3 py-2 text-sm hover:bg-bg-soft">
+                <span className="inline-flex items-center gap-2 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm hover:bg-[#F8FAFC]">
                   <Upload className="h-4 w-4" />
                   Загрузить CSV (колонка email)
                 </span>

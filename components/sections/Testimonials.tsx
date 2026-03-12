@@ -54,7 +54,7 @@ export function Testimonials() {
           initial={{ opacity: 0, y: 20 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.05 }}
-          className="mt-2 font-heading text-3xl font-semibold text-dark sm:text-4xl"
+          className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl"
         >
           Истории тех, кто прошёл наши программы
         </motion.h2>
@@ -72,7 +72,7 @@ export function Testimonials() {
               aria-hidden
             />
           ))}
-          <span className="ml-2 text-sm text-text-muted">5.0 · на основе отзывов</span>
+          <span className="ml-2 text-sm text-[var(--portal-text-muted)]">5.0 · на основе отзывов</span>
         </motion.div>
 
         <div className="relative mt-12 min-h-[240px]">
@@ -91,9 +91,9 @@ export function Testimonials() {
             >
               <TiltCard maxTilt={5} className="h-full rounded-2xl border border-lavender-soft/50 bg-lavender-light/40 bg-white/95 p-8 shadow-[var(--shadow-soft)] backdrop-blur-xl md:p-10">
                 <Quote className="mb-4 h-10 w-10 text-accent/60" />
-                <p className="text-lg italic leading-relaxed text-dark">{review.text}</p>
+                <p className="text-lg italic leading-relaxed text-[var(--portal-text)]">{review.text}</p>
                 <div className="mt-6 flex items-center justify-between">
-                  <cite className="not-italic font-semibold text-text-muted">{review.author}</cite>
+                  <cite className="not-italic font-semibold text-[var(--portal-text-muted)]">{review.author}</cite>
                   <div className="flex gap-1">
                     {Array.from({ length: review.rating }).map((_, j) => (
                       <Star key={j} className="h-4 w-4 fill-[#D4AF37] text-accent" />

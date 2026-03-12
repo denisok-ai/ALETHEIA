@@ -35,7 +35,7 @@ export function CourseDetailTabs({
 
   return (
     <div className="space-y-4">
-      <div className="border-b border-border">
+      <div className="border-b border-[#E2E8F0]">
         <nav className="-mb-px flex flex-wrap gap-1" aria-label="Разделы курса">
           {TABS.map((tab) => {
             const Icon = tab.icon;
@@ -47,8 +47,8 @@ export function CourseDetailTabs({
                 aria-current={activeTab === tab.id ? 'page' : undefined}
                 className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'border-primary text-primary'
-                    : 'border-transparent text-text-muted hover:border-border hover:text-dark'
+                    ? 'border-[#6366F1] text-[#4F46E5]'
+                    : 'border-transparent text-[var(--portal-text-muted)] hover:border-[#E2E8F0] hover:text-[var(--portal-text)]'
                 }`}
               >
                 <Icon className="h-4 w-4" />

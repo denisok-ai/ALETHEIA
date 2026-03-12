@@ -23,6 +23,8 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { Download, FileText, Ban, ExternalLink, Award, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { CERTIFICATE_TEMPLATE_LABELS, type CertificateTemplateId } from '@/lib/certificates-constants';
+import { TablePagination } from '@/components/ui/TablePagination';
+import { buildCsv, downloadCsv } from '@/lib/export-csv';
 
 export interface CertRow {
   id: string;
@@ -127,7 +129,19 @@ export function CertificatesAdminClient({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
   const pageCerts = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-  const PAGE_SIZES = [5, 10, 50] as const;
+  const PAGE_SIZES = [5, 10, 50];
+
+  const handleExportExcel = () => {
+    const csv = buildCsv(filtered, [
+      { key: 'certNumber', header: 'Номер' },
+      { key: 'courseTitle', header: 'Курс' },
+      { key: 'displayName', header: 'Имя' },
+      { key: 'userEmail', header: 'Email' },
+      { key: 'issuedAt', header: 'Дата выдачи' },
+      { key: 'revokedAt', header: 'Аннулирован' },
+    ]);
+    downloadCsv(csv, `certificates-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+  };
 
   async function refetch() {
     const r = await fetch('/api/portal/admin/certificates');
@@ -225,7 +239,7 @@ export function CertificatesAdminClient({
           <select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
-            className="rounded-lg border border-border bg-white px-3 py-2 text-sm"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
           >
             <option value="all">Все курсы</option>
             {courses.map((c) => (
@@ -237,7 +251,8 @@ export function CertificatesAdminClient({
             Экспорт CSV
           </Button>
         </div>
-        <div className="overflow-x-auto rounded-xl border border-border bg-white">
+        <div className="portal-card overflow-hidden p-0">
+        <div className="overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -265,13 +280,13 @@ export function CertificatesAdminClient({
               ) : (
                 pageCerts.map((c, idx) => (
                   <TableRow key={c.id} className={c.revokedAt ? 'opacity-60' : ''}>
-                    <TableCell className="text-text-muted">{currentPage * pageSize + idx + 1}</TableCell>
-                    <TableCell className="font-mono text-dark">{c.certNumber}</TableCell>
-                    <TableCell className="text-text-muted">{c.courseTitle ?? '—'}</TableCell>
-                    <TableCell className="text-text-muted">
+                    <TableCell className="text-[var(--portal-text-muted)]">{currentPage * pageSize + idx + 1}</TableCell>
+                    <TableCell className="font-mono text-[var(--portal-text)]">{c.certNumber}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{c.courseTitle ?? '—'}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">
                       {c.displayName ?? c.userEmail ?? c.userId.slice(0, 8)}
                     </TableCell>
-                    <TableCell className="text-text-muted">{format(new Date(c.issuedAt), 'dd.MM.yyyy')}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{format(new Date(c.issuedAt), 'dd.MM.yyyy')}</TableCell>
                     <TableCell>
                       {c.revokedAt ? (
                         <span className="text-red-600 font-medium">Аннулирован</span>
@@ -285,7 +300,7 @@ export function CertificatesAdminClient({
                           href={downloadUrl(c.id)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                          className="inline-flex items-center gap-1 text-sm text-[#6366F1] hover:underline"
                         >
                           <Download className="h-4 w-4" />
                           PDF
@@ -304,47 +319,19 @@ export function CertificatesAdminClient({
           </Table>
         </div>
         {total > 0 && (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              {PAGE_SIZES.map((size) => (
-                <button
-                  key={size}
-                  type="button"
-                  onClick={() => { setPageSize(size); setPage(0); }}
-                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-primary/10 text-primary font-medium' : 'text-text-muted hover:bg-bg-cream'}`}
-                >
-                  +{size}
-                </button>
-              ))}
-              <span className="ml-2 text-sm text-text-muted">
-                Записи {currentPage * pageSize + 1}–{Math.min((currentPage + 1) * pageSize, total)} из {total}
-              </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={currentPage === 0}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Предыдущая страница"
-              >
-                ←
-              </button>
-              <span className="text-sm text-text-muted">
-                Страница {currentPage + 1} из {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
-                disabled={currentPage >= totalPages - 1}
-                className="rounded border border-border bg-white px-2 py-1 text-sm disabled:opacity-50"
-                aria-label="Следующая страница"
-              >
-                →
-              </button>
-            </div>
-          </div>
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            total={total}
+            pageSize={pageSize}
+            pageSizeOptions={PAGE_SIZES}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+            onExportExcel={handleExportExcel}
+            exportLabel="Excel"
+          />
         )}
+      </div>
       </section>
 
       {detailCert && (
@@ -354,17 +341,17 @@ export function CertificatesAdminClient({
               <DialogTitle>Сертификат {detailCert.certNumber}</DialogTitle>
             </DialogHeader>
             <dl className="mt-2 space-y-1 text-sm">
-              <div><dt className="text-text-muted inline">Курс: </dt><dd className="inline">{detailCert.courseTitle ?? '—'}</dd></div>
-              <div><dt className="text-text-muted inline">Пользователь: </dt><dd className="inline">{detailCert.displayName ?? detailCert.userEmail ?? detailCert.userId}</dd></div>
-              <div><dt className="text-text-muted inline">Дата выдачи: </dt><dd className="inline">{format(new Date(detailCert.issuedAt), 'dd.MM.yyyy')}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Курс: </dt><dd className="inline">{detailCert.courseTitle ?? '—'}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Пользователь: </dt><dd className="inline">{detailCert.displayName ?? detailCert.userEmail ?? detailCert.userId}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Дата выдачи: </dt><dd className="inline">{format(new Date(detailCert.issuedAt), 'dd.MM.yyyy')}</dd></div>
               {detailCert.revokedAt && (
-                <div><dt className="text-text-muted inline">Аннулирован: </dt><dd className="inline text-red-600">{format(new Date(detailCert.revokedAt), 'dd.MM.yyyy')}</dd></div>
+                <div><dt className="text-[var(--portal-text-muted)] inline">Аннулирован: </dt><dd className="inline text-red-600">{format(new Date(detailCert.revokedAt), 'dd.MM.yyyy')}</dd></div>
               )}
             </dl>
             <div className="mt-4 flex flex-wrap gap-2">
               {!detailCert.revokedAt && (
                 <>
-                  <span className="text-sm text-text-muted mr-1 self-center">Шаблон PDF:</span>
+                  <span className="text-sm text-[var(--portal-text-muted)] mr-1 self-center">Шаблон PDF:</span>
                   {(['default', 'minimal', 'elegant'] as const).map((tpl) => (
                     <a key={tpl} href={downloadUrl(detailCert.id, tpl)} target="_blank" rel="noopener noreferrer">
                       <Button variant="secondary" size="sm"><Download className="mr-1 h-4 w-4" /> {CERTIFICATE_TEMPLATE_LABELS[tpl]}</Button>
@@ -398,7 +385,7 @@ export function CertificatesAdminClient({
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div>
-                <label className="block text-sm font-medium text-dark">Пользователь</label>
+                <label className="block text-sm font-medium text-[var(--portal-text)]">Пользователь</label>
                 <input
                   type="text"
                   value={issueSelectedUser ? (issueSelectedUser.display_name || issueSelectedUser.email) : issueUserSearch}
@@ -407,15 +394,15 @@ export function CertificatesAdminClient({
                     if (issueSelectedUser) setIssueSelectedUser(null);
                   }}
                   placeholder="Поиск по имени или email…"
-                  className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
                 />
                 {issueUserSearch && !issueSelectedUser && issueUserResults.length > 0 && (
-                  <ul className="mt-1 max-h-40 overflow-y-auto rounded border border-border bg-white">
+                  <ul className="mt-1 max-h-40 overflow-y-auto rounded border border-[#E2E8F0] bg-white">
                     {issueUserResults.map((u) => (
                       <li key={u.id}>
                         <button
                           type="button"
-                          className="w-full px-3 py-2 text-left text-sm hover:bg-bg-cream"
+                          className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]"
                           onClick={() => {
                             setIssueSelectedUser(u);
                             setIssueUserSearch('');
@@ -432,18 +419,18 @@ export function CertificatesAdminClient({
                   <button
                     type="button"
                     onClick={() => setIssueSelectedUser(null)}
-                    className="mt-1 text-xs text-primary hover:underline"
+                    className="mt-1 text-xs text-[#6366F1] hover:underline"
                   >
                     Сбросить выбор
                   </button>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-dark">Курс</label>
+                <label className="block text-sm font-medium text-[var(--portal-text)]">Курс</label>
                 <select
                   value={issueCourseId}
                   onChange={(e) => setIssueCourseId(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
                 >
                   <option value="">— Выберите курс —</option>
                   {courses.map((c) => (
@@ -452,14 +439,14 @@ export function CertificatesAdminClient({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-dark">Срок действия (дней, необязательно)</label>
+                <label className="block text-sm font-medium text-[var(--portal-text)]">Срок действия (дней, необязательно)</label>
                 <input
                   type="number"
                   min={1}
                   value={issueValidityDays}
                   onChange={(e) => setIssueValidityDays(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
                   placeholder="Без срока"
-                  className="mt-1 block w-full rounded-lg border border-border bg-white px-3 py-2 text-sm"
+                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
                 />
               </div>
               <div className="flex gap-2 pt-2">
@@ -475,9 +462,9 @@ export function CertificatesAdminClient({
         </Dialog>
       )}
 
-      <section className="rounded-xl border border-border bg-white p-4">
-        <h2 className="text-lg font-semibold text-dark">Ручная и массовая выдача</h2>
-        <p className="mt-1 text-sm text-text-muted">
+      <section className="portal-card p-4">
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Ручная и массовая выдача</h2>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
           Выдать один сертификат вручную (пользователь + курс) или массово — всем, кто завершил курс.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-3">
@@ -488,7 +475,7 @@ export function CertificatesAdminClient({
           <select
             value={generateCourseId}
             onChange={(e) => setGenerateCourseId(e.target.value)}
-            className="rounded-lg border border-border bg-white px-3 py-2 text-sm min-w-[200px]"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-w-[200px] text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
           >
             <option value="">Выберите курс</option>
             {courses.map((c) => (
@@ -503,7 +490,7 @@ export function CertificatesAdminClient({
               href={downloadUrl(firstCertForPreview.id)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-sm text-[#6366F1] hover:underline"
             >
               <ExternalLink className="h-4 w-4" />
               Предпросмотр PDF

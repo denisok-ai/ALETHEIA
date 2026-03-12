@@ -163,32 +163,32 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-white p-4">
-        <h2 className="text-sm font-semibold text-dark mb-2">Информация</h2>
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+        <h2 className="text-sm font-semibold text-[var(--portal-text)] mb-2">Информация</h2>
         <dl className="grid gap-2 text-sm">
           <div>
-            <dt className="text-text-muted">Название</dt>
-            <dd className="font-medium text-dark">{group.name}</dd>
+            <dt className="text-[var(--portal-text-muted)]">Название</dt>
+            <dd className="font-medium text-[var(--portal-text)]">{group.name}</dd>
           </div>
           {group.description && (
             <div>
-              <dt className="text-text-muted">Описание</dt>
-              <dd className="text-dark">{group.description}</dd>
+              <dt className="text-[var(--portal-text-muted)]">Описание</dt>
+              <dd className="text-[var(--portal-text)]">{group.description}</dd>
             </div>
           )}
           {group.parent && (
             <div>
-              <dt className="text-text-muted">Родительская группа</dt>
+              <dt className="text-[var(--portal-text-muted)]">Родительская группа</dt>
               <dd>
-                <Link href={`/portal/admin/groups/${group.parent.id}`} className="text-primary hover:underline">
+                <Link href={`/portal/admin/groups/${group.parent.id}`} className="text-[#6366F1] hover:underline">
                   {group.parent.name}
                 </Link>
               </dd>
             </div>
           )}
           <div>
-            <dt className="text-text-muted">Тип</dt>
-            <dd className="text-dark">{group.type === 'dynamic' ? 'Динамическая' : 'Статическая'}</dd>
+            <dt className="text-[var(--portal-text-muted)]">Тип</dt>
+            <dd className="text-[var(--portal-text)]">{group.type === 'dynamic' ? 'Динамическая' : 'Статическая'}</dd>
           </div>
         </dl>
         <div className="flex flex-wrap gap-2 mt-3">
@@ -220,8 +220,8 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
       />
 
       {(group.children ?? []).length > 0 && (
-        <div className="rounded-xl border border-border bg-white p-4">
-          <h2 className="text-sm font-semibold text-dark flex items-center gap-2 mb-3">
+        <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+          <h2 className="text-sm font-semibold text-[var(--portal-text)] flex items-center gap-2 mb-3">
             <FolderTree className="h-4 w-4" />
             Дочерние группы
           </h2>
@@ -230,7 +230,7 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
               <li key={ch.id}>
                 <Link
                   href={`/portal/admin/groups/${ch.id}`}
-                  className="text-primary hover:underline text-sm"
+                  className="text-[#6366F1] hover:underline text-sm"
                 >
                   {ch.name}
                 </Link>
@@ -240,9 +240,9 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
         </div>
       )}
 
-      <div className="rounded-xl border border-border bg-white p-4">
+      <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
         <div className="flex items-center justify-between gap-2 mb-4">
-          <h2 className="text-sm font-semibold text-dark flex items-center gap-2">
+          <h2 className="text-sm font-semibold text-[var(--portal-text)] flex items-center gap-2">
             {moduleType === 'course' && <BookOpen className="h-4 w-4" />}
             {moduleType === 'media' && <FolderOpen className="h-4 w-4" />}
             {moduleType === 'user' && <Users className="h-4 w-4" />}
@@ -259,7 +259,7 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
         {moduleType === 'course' && (
           <>
             {loading ? (
-              <p className="text-sm text-text-muted">Загрузка…</p>
+              <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>
             ) : courses.length === 0 ? (
               <EmptyState
                 title="Нет курсов"
@@ -279,11 +279,11 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
                   {courses.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell>
-                        <Link href={`/portal/admin/courses/${c.id}`} className="text-primary hover:underline">
+                        <Link href={`/portal/admin/courses/${c.id}`} className="text-[#6366F1] hover:underline">
                           {c.title}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-text-muted">{c.status}</TableCell>
+                      <TableCell className="text-[var(--portal-text-muted)]">{c.status}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -306,7 +306,7 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
         {moduleType === 'media' && (
           <>
             {loading ? (
-              <p className="text-sm text-text-muted">Загрузка…</p>
+              <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>
             ) : media.length === 0 ? (
               <EmptyState
                 title="Нет ресурсов"
@@ -326,11 +326,11 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
                   {media.map((m) => (
                     <TableRow key={m.id}>
                       <TableCell>
-                        <Link href={`/portal/admin/media`} className="text-primary hover:underline">
+                        <Link href={`/portal/admin/media`} className="text-[#6366F1] hover:underline">
                           {m.title}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-text-muted">{m.type ?? '—'}</TableCell>
+                      <TableCell className="text-[var(--portal-text-muted)]">{m.type ?? '—'}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -353,7 +353,7 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
         {moduleType === 'user' && (
           <>
             {loading ? (
-              <p className="text-sm text-text-muted">Загрузка…</p>
+              <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>
             ) : users.length === 0 ? (
               <EmptyState
                 title="Нет участников"
@@ -374,12 +374,12 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
                   {users.map((u) => (
                     <TableRow key={u.userId}>
                       <TableCell>
-                        <Link href={`/portal/admin/users/${u.userId}`} className="text-primary hover:underline">
+                        <Link href={`/portal/admin/users/${u.userId}`} className="text-[#6366F1] hover:underline">
                           {u.displayName ?? u.email ?? u.userId}
                         </Link>
                       </TableCell>
-                      <TableCell className="text-text-muted">{u.email ?? '—'}</TableCell>
-                      <TableCell className="text-text-muted">{u.role === 'moderator' ? 'Модератор' : 'Участник'}</TableCell>
+                      <TableCell className="text-[var(--portal-text-muted)]">{u.email ?? '—'}</TableCell>
+                      <TableCell className="text-[var(--portal-text-muted)]">{u.role === 'moderator' ? 'Модератор' : 'Участник'}</TableCell>
                       <TableCell>
                         <Button
                           variant="ghost"
@@ -529,11 +529,11 @@ function AddToGroupModal({
           <DialogTitle>{title}</DialogTitle>
         </DialogHeader>
         {loading ? (
-          <p className="text-sm text-text-muted">Загрузка…</p>
+          <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>
         ) : (
-          <div className="max-h-64 overflow-y-auto rounded border border-border p-2 space-y-1">
+          <div className="max-h-64 overflow-y-auto rounded border border-[#E2E8F0] p-2 space-y-1">
             {list.length === 0 ? (
-              <p className="text-sm text-text-muted">Нет элементов для добавления</p>
+              <p className="text-sm text-[var(--portal-text-muted)]">Нет элементов для добавления</p>
             ) : (
               list.map((item) => (
                 <label key={item.id} className="flex items-center gap-2 py-1 text-sm cursor-pointer">

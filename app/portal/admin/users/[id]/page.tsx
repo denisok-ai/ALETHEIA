@@ -19,8 +19,8 @@ export default async function AdminUserDetailPage({
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || role !== 'admin') {
     return (
-      <div className="p-6">
-        <p className="text-text-muted">Доступ запрещён.</p>
+      <div className="portal-card p-6 max-w-2xl">
+        <p className="text-[var(--portal-text-muted)]">Доступ запрещён.</p>
       </div>
     );
   }
@@ -51,7 +51,7 @@ export default async function AdminUserDetailPage({
   const email = profile?.email ?? user.email;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 w-full">
       <PageHeader
         items={[
           { href: '/portal/admin/dashboard', label: 'Дашборд' },
@@ -63,7 +63,7 @@ export default async function AdminUserDetailPage({
         actions={
           <Link
             href="/portal/admin/users"
-            className="inline-flex items-center gap-1 rounded-lg border border-border bg-white px-3 py-2 text-sm font-medium text-dark hover:bg-bg-cream hover:text-primary"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[#6366F1] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             К списку пользователей

@@ -1,19 +1,18 @@
 /**
- * Manager: user search by email/name (read-only).
+ * Manager: user search by email/name (read-only). Portal design.
  */
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
+import { PageHeader } from '@/components/portal/PageHeader';
 import { ManagerUserSearch } from './ManagerUserSearch';
 
 export default async function ManagerUsersPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return (
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Пользователи</h1>
-        <p className="mt-2 text-text-muted">База данных недоступна.</p>
+      <div className="portal-card p-6 max-w-2xl">
+        <p className="text-[var(--portal-text-muted)]">База данных недоступна.</p>
       </div>
     );
   }
@@ -35,10 +34,12 @@ export default async function ManagerUsersPage() {
   }));
 
   return (
-    <div>
-      <Breadcrumbs items={[{ href: '/portal/manager/dashboard', label: 'Дашборд' }, { label: 'Пользователи' }]} />
-      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Пользователи</h1>
-      <p className="mt-1 text-text-muted">Поиск и просмотр карточки студента</p>
+    <div className="space-y-6 max-w-4xl">
+      <PageHeader
+        items={[{ href: '/portal/manager/dashboard', label: 'Дашборд' }, { label: 'Пользователи' }]}
+        title="Пользователи"
+        description="Поиск и просмотр карточки студента"
+      />
       <ManagerUserSearch initialProfiles={initialProfiles} />
     </div>
   );

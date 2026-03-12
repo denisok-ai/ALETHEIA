@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         service_name: `AVATERRA — ${serviceName}`,
         client_email: email.trim(),
         client_phone: typeof phone === 'string' ? phone.trim() || undefined : undefined,
-        successRedirectUrl: baseUrl ? `${baseUrl}/success` : undefined,
+        successRedirectUrl: baseUrl ? `${baseUrl}/success?order=${encodeURIComponent(orderNumber)}` : undefined,
       });
     } catch (pkErr) {
       console.error('PayKeeper create invoice:', pkErr);

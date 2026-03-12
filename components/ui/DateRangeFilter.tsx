@@ -38,7 +38,7 @@ export function DateRangeFilter({
   return (
     <div className={cn('flex items-center gap-2', className)}>
       <div className="relative flex-1">
-        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
         <Input
           type="date"
           value={fromVal}
@@ -47,9 +47,9 @@ export function DateRangeFilter({
           className="pl-9"
         />
       </div>
-      <span className="text-text-muted text-sm">—</span>
+      <span className="text-[var(--portal-text-muted)] text-sm">—</span>
       <div className="relative flex-1">
-        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
+        <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
         <Input
           type="date"
           value={toVal}

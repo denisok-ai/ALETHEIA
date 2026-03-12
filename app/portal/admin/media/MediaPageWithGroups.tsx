@@ -123,7 +123,7 @@ export function MediaPageWithGroups({ initialItems }: { initialItems: MediaItem[
       }
     >
       {loadingGroup ? (
-        <p className="text-text-muted py-4">Загрузка ресурсов группы…</p>
+        <p className="text-[var(--portal-text-muted)] py-4">Загрузка ресурсов группы…</p>
       ) : (
         <MediaAdminClient
           key={selectedGroupId ?? 'all'}

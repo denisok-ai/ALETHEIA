@@ -255,8 +255,8 @@ export function ReportsClient() {
                 onClick={() => setReportType(t.id)}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                   reportType === t.id
-                    ? 'border-primary bg-primary/10 text-primary'
-                    : 'border-border bg-white text-text-muted hover:bg-bg-soft'
+                    ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]'
+                    : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
                 }`}
               >
                 {t.icon}
@@ -265,29 +265,29 @@ export function ReportsClient() {
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-text-muted">
+            <label className="flex items-center gap-2 text-sm text-[var(--portal-text-muted)]">
               С
               <input
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="rounded border border-border bg-white px-2 py-1.5 text-sm"
+                className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]"
               />
             </label>
-            <label className="flex items-center gap-2 text-sm text-text-muted">
+            <label className="flex items-center gap-2 text-sm text-[var(--portal-text-muted)]">
               По
               <input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="rounded border border-border bg-white px-2 py-1.5 text-sm"
+                className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]"
               />
             </label>
             {reportType === 'by-course' && (
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="rounded border border-border bg-white px-2 py-1.5 text-sm"
+                className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]"
               >
                 <option value="all">Все курсы</option>
                 <option value="published">Опубликованные</option>
@@ -299,7 +299,7 @@ export function ReportsClient() {
               <select
                 value={roleFilter}
                 onChange={(e) => setRoleFilter(e.target.value)}
-                className="rounded border border-border bg-white px-2 py-1.5 text-sm"
+                className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]"
               >
                 <option value="all">Все роли</option>
                 <option value="user">Слушатели</option>
@@ -311,7 +311,7 @@ export function ReportsClient() {
               <select
                 value={selectedCourseId}
                 onChange={(e) => setSelectedCourseId(e.target.value)}
-                className="rounded border border-border bg-white px-2 py-1.5 text-sm min-w-[200px]"
+                className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)] min-w-[200px]"
               >
                 <option value="">— Выберите курс —</option>
                 {courseList.map((c) => (
@@ -340,43 +340,43 @@ export function ReportsClient() {
         const s = summary.summary as Record<string, unknown>;
         return (
           <Card className="p-6">
-            <h3 className="mb-4 font-heading text-lg font-semibold text-dark">Сводные показатели</h3>
+            <h3 className="mb-4 font-heading text-lg font-semibold text-[var(--portal-text)]">Сводные показатели</h3>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
-              <div className="rounded-lg border border-border bg-bg-soft p-4">
-                <p className="text-xs font-medium uppercase text-text-muted">Активных пользователей</p>
-                <p className="mt-1 text-2xl font-bold text-dark">{s.usersActive as number}</p>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">Активных пользователей</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.usersActive as number}</p>
               </div>
-              <div className="rounded-lg border border-border bg-bg-soft p-4">
-                <p className="text-xs font-medium uppercase text-text-muted">Курсов (всего / опубл.)</p>
-                <p className="mt-1 text-2xl font-bold text-dark">{s.coursesTotal as number} / {s.coursesPublished as number}</p>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">Курсов (всего / опубл.)</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.coursesTotal as number} / {s.coursesPublished as number}</p>
               </div>
-              <div className="rounded-lg border border-border bg-bg-soft p-4">
-                <p className="text-xs font-medium uppercase text-text-muted">Зачислений всего</p>
-                <p className="mt-1 text-2xl font-bold text-dark">{s.enrollmentsTotal as number}</p>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">Зачислений всего</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.enrollmentsTotal as number}</p>
               </div>
-              <div className="rounded-lg border border-border bg-bg-soft p-4">
-                <p className="text-xs font-medium uppercase text-text-muted">Завершило обучение</p>
-                <p className="mt-1 text-2xl font-bold text-dark">{s.enrollmentsCompletedTotal as number}</p>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">Завершило обучение</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.enrollmentsCompletedTotal as number}</p>
               </div>
-              <div className="rounded-lg border border-border bg-bg-soft p-4">
-                <p className="text-xs font-medium uppercase text-text-muted">% завершения</p>
-                <p className="mt-1 text-2xl font-bold text-dark">{s.completionRatePercent as number}%</p>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">% завершения</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.completionRatePercent as number}%</p>
               </div>
-              <div className="rounded-lg border border-border bg-bg-soft p-4">
-                <p className="text-xs font-medium uppercase text-text-muted">Сертификатов выдано</p>
-                <p className="mt-1 text-2xl font-bold text-dark">{s.certificatesTotal as number}</p>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">Сертификатов выдано</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.certificatesTotal as number}</p>
               </div>
-              <div className="rounded-lg border border-border bg-bg-soft p-4">
-                <p className="text-xs font-medium uppercase text-text-muted">За период: зачислений</p>
-                <p className="mt-1 text-2xl font-bold text-dark">{s.enrollmentsInPeriod as number}</p>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">За период: зачислений</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.enrollmentsInPeriod as number}</p>
               </div>
-              <div className="rounded-lg border border-border bg-bg-soft p-4">
-                <p className="text-xs font-medium uppercase text-text-muted">За период: завершений</p>
-                <p className="mt-1 text-2xl font-bold text-dark">{s.completedInPeriod as number}</p>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">За период: завершений</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.completedInPeriod as number}</p>
               </div>
-              <div className="rounded-lg border border-border bg-bg-soft p-4">
-                <p className="text-xs font-medium uppercase text-text-muted">За период: выручка (₽)</p>
-                <p className="mt-1 text-2xl font-bold text-dark">{s.revenueInPeriod as number}</p>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">За период: выручка (₽)</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.revenueInPeriod as number}</p>
               </div>
             </div>
           </Card>
@@ -404,7 +404,7 @@ export function ReportsClient() {
                 {byCourse.rows.map((row) => (
                   <TableRow key={String((row as Record<string, unknown>).courseId)}>
                     <TableCell className="font-medium">{(row as Record<string, unknown>).title as string}</TableCell>
-                    <TableCell className="text-text-muted">{(row as Record<string, unknown>).status as string}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{(row as Record<string, unknown>).status as string}</TableCell>
                     <TableCell className="text-right">{(row as Record<string, unknown>).enrolled as number}</TableCell>
                     <TableCell className="text-right">{(row as Record<string, unknown>).accessOpen as number}</TableCell>
                     <TableCell className="text-right">{(row as Record<string, unknown>).completed as number}</TableCell>
@@ -441,13 +441,13 @@ export function ReportsClient() {
                 {byLearner.rows.map((row) => (
                   <TableRow key={String((row as Record<string, unknown>).userId)}>
                     <TableCell className="font-medium">{(row as Record<string, unknown>).displayName as string}</TableCell>
-                    <TableCell className="text-text-muted">{(row as Record<string, unknown>).email as string}</TableCell>
-                    <TableCell className="text-text-muted">{(row as Record<string, unknown>).role as string}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{(row as Record<string, unknown>).email as string}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{(row as Record<string, unknown>).role as string}</TableCell>
                     <TableCell className="text-right">{(row as Record<string, unknown>).enrolled as number}</TableCell>
                     <TableCell className="text-right">{(row as Record<string, unknown>).inProgress as number}</TableCell>
                     <TableCell className="text-right">{(row as Record<string, unknown>).completed as number}</TableCell>
                     <TableCell className="text-right">{(row as Record<string, unknown>).certificates as number}</TableCell>
-                    <TableCell className="text-text-muted text-sm">
+                    <TableCell className="text-[var(--portal-text-muted)] text-sm">
                       {(row as Record<string, unknown>).lastActivity
                         ? format(new Date((row as Record<string, unknown>).lastActivity as string), 'dd.MM.yyyy HH:mm')
                         : '—'}
@@ -464,7 +464,7 @@ export function ReportsClient() {
       {byPeriod?.rows && byPeriod.rows.length > 0 && (
         <Card className="overflow-hidden p-0">
           {byPeriod.totals && (
-            <div className="border-b border-border bg-bg-soft px-4 py-2 text-sm font-medium text-dark">
+            <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[var(--portal-text)]">
               Итого за период: зачислений {byPeriod.totals.enrollments}, завершений {byPeriod.totals.completions}, сертификатов {byPeriod.totals.certificates}, оплат {byPeriod.totals.ordersCount}, выручка {byPeriod.totals.revenue} ₽
             </div>
           )}
@@ -499,7 +499,7 @@ export function ReportsClient() {
 
       {courseLearners && (
         <Card className="overflow-hidden p-0">
-          <div className="border-b border-border bg-bg-soft px-4 py-2 text-sm font-medium text-dark">
+          <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[var(--portal-text)]">
             Курс: {courseLearners.courseTitle}
           </div>
           <div className="overflow-x-auto">
@@ -521,7 +521,7 @@ export function ReportsClient() {
                 {courseLearners.rows.map((r) => (
                   <TableRow key={r.userId}>
                     <TableCell className="font-medium">{r.displayName}</TableCell>
-                    <TableCell className="text-text-muted">{r.email}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{r.email}</TableCell>
                     <TableCell className="text-sm">{r.enrolledAt.slice(0, 10)}</TableCell>
                     <TableCell>{r.accessClosed ? 'Закрыт' : 'Открыт'}</TableCell>
                     <TableCell className="text-sm">{r.completedAt ? r.completedAt.slice(0, 10) : '—'}</TableCell>
@@ -538,7 +538,7 @@ export function ReportsClient() {
       )}
 
       {!loading && !summary?.summary && !byCourse?.rows?.length && !byLearner?.rows?.length && !byPeriod?.rows?.length && !courseLearners?.rows?.length && (
-        <p className="text-center text-text-muted">Выберите тип отчёта и нажмите «Сформировать».</p>
+        <p className="text-center text-[var(--portal-text-muted)]">Выберите тип отчёта и нажмите «Сформировать».</p>
       )}
     </div>
   );

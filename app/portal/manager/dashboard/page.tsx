@@ -1,19 +1,19 @@
 /**
- * Manager dashboard: my tickets, active students.
+ * Manager dashboard: tickets and verifications. Portal design.
  */
 import { getServerSession } from 'next-auth';
+import Link from 'next/link';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import Link from 'next/link';
-import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
+import { PageHeader } from '@/components/portal/PageHeader';
+import { MessageSquare, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export default async function ManagerDashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return (
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-dark">Дашборд менеджера</h1>
-        <p className="mt-2 text-text-muted">База данных недоступна.</p>
+      <div className="portal-card p-6 max-w-2xl">
+        <p className="text-[var(--portal-text-muted)]">База данных недоступна.</p>
       </div>
     );
   }
@@ -28,49 +28,88 @@ export default async function ManagerDashboardPage() {
     }),
   ]);
 
-  return (
-    <div>
-      <Breadcrumbs items={[{ label: 'Дашборд' }]} />
-      <h1 className="mt-2 font-heading text-2xl font-bold text-dark">Дашборд менеджера</h1>
-      <p className="mt-1 text-text-muted">Тикеты и активные студенты</p>
+  const STATUS_MAP: Record<string, string> = {
+    open: 'badge-warn',
+    in_progress: 'badge-info',
+    resolved: 'badge-active',
+    closed: 'badge-neutral',
+  };
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+  return (
+    <div className="space-y-6 max-w-4xl">
+      <PageHeader
+        items={[{ label: 'Дашборд' }]}
+        title="Дашборд"
+        description="Тикеты и верификация заданий"
+      />
+
+      <div className="grid gap-4 sm:grid-cols-2">
         <Link
           href="/portal/manager/tickets"
-          className="rounded-xl border border-border bg-white p-4 transition hover:shadow-md"
+          className="portal-card flex items-center gap-4 p-5 hover:shadow-[var(--portal-shadow)] transition-shadow"
         >
-          <p className="text-sm text-text-muted">Открытых тикетов</p>
-          <p className="text-2xl font-bold text-dark">{openTickets}</p>
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#4F46E5]">
+            <MessageSquare className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-[var(--portal-text-muted)]">Открытых тикетов</p>
+            <p className="text-2xl font-bold text-[var(--portal-text)]">{openTickets}</p>
+          </div>
+          <span className="ml-auto text-[var(--portal-text-soft)]"><ArrowRight className="h-4 w-4" /></span>
         </Link>
         <Link
           href="/portal/manager/verifications"
-          className="rounded-xl border border-border bg-white p-4 transition hover:shadow-md"
+          className="portal-card flex items-center gap-4 p-5 hover:shadow-[var(--portal-shadow)] transition-shadow"
         >
-          <p className="text-sm text-text-muted">На верификации</p>
-          <p className="text-2xl font-bold text-dark">{pendingVerifications}</p>
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#DBEAFE] text-[#1D4ED8]">
+            <CheckCircle2 className="h-6 w-6" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs font-medium text-[var(--portal-text-muted)]">На верификации</p>
+            <p className="text-2xl font-bold text-[var(--portal-text)]">{pendingVerifications}</p>
+          </div>
+          <span className="ml-auto text-[var(--portal-text-soft)]"><ArrowRight className="h-4 w-4" /></span>
         </Link>
       </div>
 
-      <section className="mt-8">
-        <h2 className="text-lg font-semibold text-dark">Последние тикеты</h2>
-        <ul className="mt-3 space-y-2">
-          {recentTickets.map((t) => (
-            <li key={t.id}>
-              <Link
-                href="/portal/manager/tickets"
-                className="block rounded-lg border border-border bg-white p-3 hover:bg-bg-cream"
-              >
-                <span className="font-medium text-dark">{t.subject}</span>
-                <span className="ml-2 text-xs text-text-muted">{t.status}</span>
-                <time className="ml-2 text-xs text-text-soft">
-                  {new Date(t.createdAt).toLocaleString('ru')}
-                </time>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        {recentTickets.length === 0 && (
-          <p className="mt-2 text-text-muted">Нет тикетов.</p>
+      <section>
+        <h2 className="text-base font-semibold text-[var(--portal-text)] mb-3">Последние тикеты</h2>
+        {recentTickets.length === 0 ? (
+          <div className="portal-card p-8 text-center">
+            <p className="text-sm text-[var(--portal-text-muted)]">Нет тикетов</p>
+            <Link href="/portal/manager/tickets" className="mt-3 inline-block text-sm font-medium text-[#6366F1] hover:underline">
+              Перейти к тикетам →
+            </Link>
+          </div>
+        ) : (
+          <ul className="space-y-2">
+            {recentTickets.map((t) => (
+              <li key={t.id}>
+                <Link
+                  href={`/portal/manager/tickets/${t.id}`}
+                  className="portal-card flex items-center justify-between gap-4 p-4 hover:shadow-[var(--portal-shadow)] transition-shadow"
+                >
+                  <span className="font-medium text-[var(--portal-text)] truncate">{t.subject}</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className={`status-badge ${STATUS_MAP[t.status] ?? 'badge-neutral'}`}>
+                      {t.status === 'open' ? 'Открыт' : t.status === 'in_progress' ? 'В работе' : t.status === 'resolved' ? 'Решён' : 'Закрыт'}
+                    </span>
+                    <time className="text-xs text-[var(--portal-text-soft)]">
+                      {new Date(t.createdAt).toLocaleString('ru', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    </time>
+                    <ArrowRight className="h-4 w-4 text-[var(--portal-text-soft)]" />
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+        {recentTickets.length > 0 && (
+          <p className="mt-3">
+            <Link href="/portal/manager/tickets" className="text-sm font-medium text-[#6366F1] hover:underline">
+              Все тикеты →
+            </Link>
+          </p>
         )}
       </section>
     </div>

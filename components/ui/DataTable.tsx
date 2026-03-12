@@ -95,7 +95,7 @@ export function DataTable<TData>({
 
   return (
     <div className={cn('space-y-4', className)}>
-      <div className="rounded-lg border border-border bg-white">
+      <div className="rounded-lg border border-[#E2E8F0] bg-white">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -118,7 +118,7 @@ export function DataTable<TData>({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-24 text-center text-text-muted"
+                  className="h-24 text-center text-[var(--portal-text-muted)]"
                 >
                   {emptyNode ?? 'Нет записей'}
                 </TableCell>
@@ -147,7 +147,7 @@ export function DataTable<TData>({
       </div>
       {pageCount > 1 && (
         <div className="flex items-center justify-between px-2">
-          <p className="text-sm text-text-muted">
+          <p className="text-sm text-[var(--portal-text-muted)]">
             Строк: {table.getFilteredRowModel().rows.length}
           </p>
           <div className="flex items-center gap-2">

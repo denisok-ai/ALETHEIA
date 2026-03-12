@@ -77,7 +77,9 @@ export async function GET(
     };
   });
 
-  const completedCount = lessons.filter((l) => l.completionStatus === 'completed').length;
+  const completedCount = lessons.filter(
+    (l) => l.completionStatus === 'completed' || l.completionStatus === 'passed'
+  ).length;
   const totalLessons = lessons.length;
   const avgScore =
     lessons.filter((l) => l.score != null).length > 0
