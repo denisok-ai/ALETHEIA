@@ -1,6 +1,7 @@
 /**
  * Admin: course detail — tabs: Overview, Enrolled, Learning results, Certificates, Notifications.
  */
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
@@ -11,16 +12,26 @@ import { PageHeader } from '@/components/portal/PageHeader';
 import { ScormManifestViewer } from '@/components/admin/ScormManifestViewer';
 import { CourseAdminClient } from './CourseAdminClient';
 import { CourseAiTutorToggle } from './CourseAiTutorToggle';
+import { CourseCoverBlock } from './CourseCoverBlock';
 import { CourseMediaBlock } from './CourseMediaBlock';
+import { CourseVerificationLessonsBlock } from './CourseVerificationLessonsBlock';
 import { CourseDetailTabs } from './CourseDetailTabs';
 import { CourseCardActions } from './CourseCardActions';
 import { getCourseStatusLabel } from '@/lib/course-status';
 
-export default async function AdminCourseDetailPage({
-  params,
-}: {
-  params: Promise<{ courseId: string }>;
-}) {
+type PageProps = { params: Promise<{ courseId: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { courseId } = await params;
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { title: true },
+  });
+  if (!course) return { title: 'Курс' };
+  return { title: course.title.slice(0, 60) };
+}
+
+export default async function AdminCourseDetailPage({ params }: PageProps) {
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || role !== 'admin') {
@@ -149,6 +160,17 @@ export default async function AdminCourseDetailPage({
             </div>
 
             <CourseAiTutorToggle courseId={courseId} initialEnabled={course.aiTutorEnabled ?? true} />
+
+            <CourseVerificationLessonsBlock
+              courseId={courseId}
+              scormManifest={course.scormManifest}
+              verificationRequiredLessonIdsJson={course.verificationRequiredLessonIds}
+            />
+
+            <CourseCoverBlock
+              courseId={courseId}
+              initialThumbnailUrl={course.thumbnailUrl}
+            />
 
             <div>
               <ScormManifestViewer

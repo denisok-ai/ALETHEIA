@@ -26,10 +26,14 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { ChevronLeft, ChevronRight, Download, Users, FolderPlus, FolderMinus } from 'lucide-react';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { Download, Users, FolderPlus, FolderMinus } from 'lucide-react';
 import { GroupPickerModal } from '@/components/portal/GroupPickerModal';
+import { downloadXlsx } from '@/lib/export-xlsx';
+import type { CsvColumn } from '@/lib/export-csv';
 
 export interface UserRow {
   id: string;
@@ -41,6 +45,11 @@ export interface UserRow {
 }
 
 const ROLES = ['user', 'manager', 'admin'] as const;
+const ROLE_LABELS: Record<string, string> = {
+  user: 'Студент',
+  manager: 'Менеджер',
+  admin: 'Администратор',
+};
 const STATUSES = ['active', 'archived'] as const;
 
 const columnHelper = createColumnHelper<UserRow>();
@@ -57,10 +66,23 @@ interface UsersTableProps {
 
 const PAGE_SIZE = 10;
 
-function escapeCsvCell(s: string): string {
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-  return s;
-}
+const USER_EXPORT_COLUMNS: CsvColumn<UserRow>[] = [
+  { key: 'email', header: 'Email' },
+  { key: 'display_name', header: 'Имя' },
+  { key: 'role', header: 'Роль' },
+  { key: 'status', header: 'Статус' },
+  { key: 'created_at', header: 'Дата' },
+];
+
+const USER_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'num', label: '№' },
+  { id: 'select', label: 'Выбор' },
+  { id: 'display_name', label: 'Имя' },
+  { id: 'email', label: 'Email' },
+  { id: 'role', label: 'Роль' },
+  { id: 'status', label: 'Статус' },
+  { id: 'created_at', label: 'Дата' },
+];
 
 export function UsersTable({
   data,
@@ -79,31 +101,14 @@ export function UsersTable({
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [groupActionLoading, setGroupActionLoading] = useState(false);
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: PAGE_SIZE });
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => USER_TABLE_COLUMNS.map((c) => c.id));
 
   let filteredData = rows;
   if (statusFilter !== 'all') filteredData = filteredData.filter((u) => u.status === statusFilter);
   if (roleFilter !== 'all') filteredData = filteredData.filter((u) => u.role === roleFilter);
 
-  function handleExportCsv() {
-    const headers = ['email', 'display_name', 'role', 'status', 'created_at'];
-    const csvRows = [
-      headers.join(','),
-      ...filteredData.map((u) =>
-        headers
-          .map((h) => {
-            const v = u[h as keyof UserRow];
-            return escapeCsvCell(v != null ? String(v) : '');
-          })
-          .join(',')
-      ),
-    ];
-    const blob = new Blob(['\uFEFF' + csvRows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+  function handleExportExcel() {
+    downloadXlsx(filteredData, USER_EXPORT_COLUMNS, `users-${new Date().toISOString().slice(0, 10)}.xlsx`);
     toast.success('Экспорт выполнен');
   }
 
@@ -241,8 +246,7 @@ export function UsersTable({
         );
       },
     }),
-    columnHelper.display({
-      id: 'role',
+    columnHelper.accessor('role', {
       header: 'Роль',
       cell: ({ row }) => (
         <select
@@ -252,13 +256,12 @@ export function UsersTable({
           className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
         >
           {ROLES.map((r) => (
-            <option key={r} value={r}>{r}</option>
+            <option key={r} value={r}>{ROLE_LABELS[r] ?? r}</option>
           ))}
         </select>
       ),
     }),
-    columnHelper.display({
-      id: 'status',
+    columnHelper.accessor('status', {
       header: 'Статус',
       cell: ({ row }) => (
         <select
@@ -279,6 +282,15 @@ export function UsersTable({
     }),
   ];
 
+  const columnVisibility = Object.fromEntries(
+    columns
+      .map((c) => {
+        const id = (c as { id?: string }).id;
+        return id != null ? [id, visibleColumnIds.includes(id)] as const : null;
+      })
+      .filter((x): x is [string, boolean] => x != null)
+  ) as Record<string, boolean>;
+
   const table = useReactTable({
     data: filteredData,
     columns,
@@ -287,6 +299,7 @@ export function UsersTable({
       globalFilter,
       pagination,
       rowSelection,
+      columnVisibility,
     },
     onSortingChange: setSorting,
     onGlobalFilterChange: setGlobalFilter,
@@ -351,12 +364,12 @@ export function UsersTable({
         >
           <option value="all">Все роли</option>
           {ROLES.map((r) => (
-            <option key={r} value={r}>{r}</option>
+            <option key={r} value={r}>{ROLE_LABELS[r] ?? r}</option>
           ))}
         </select>
-        <Button variant="secondary" size="sm" onClick={handleExportCsv} className="ml-auto">
+        <Button variant="secondary" size="sm" onClick={handleExportExcel} className="ml-auto">
           <Download className="mr-2 h-4 w-4" />
-          Экспорт CSV
+          Экспорт Excel
         </Button>
       </div>
       {selectedCount > 0 && (
@@ -374,7 +387,7 @@ export function UsersTable({
               disabled={bulkUpdating}
               onClick={() => handleBulkRoleChange(table.getSelectedRowModel().rows.map((row) => row.original.id), r)}
             >
-              {r}
+              {ROLE_LABELS[r] ?? r}
             </Button>
           ))}
           <span className="text-sm text-[var(--portal-text-muted)]">Сменить статус:</span>
@@ -428,17 +441,38 @@ export function UsersTable({
           confirmLabel="Добавить"
         />
       )}
-      <div className="portal-card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (
               <TableRow key={hg.id}>
-                {hg.headers.map((h) => (
-                  <TableHead key={h.id}>
-                    {flexRender(h.column.columnDef.header, h.getContext())}
-                  </TableHead>
-                ))}
+                {hg.headers.map((h) => {
+                  const canSort = h.column.getCanSort();
+                  const sortState = table.getState().sorting[0];
+                  const currentSortKey = sortState?.id ?? null;
+                  const currentSortDir = sortState?.desc ? 'desc' : 'asc';
+                  const handleSort = (columnId: string) => {
+                    const col = table.getColumn(columnId);
+                    if (col) col.toggleSorting(col.getIsSorted() === 'asc');
+                  };
+                  return canSort ? (
+                    <SortableTableHead
+                      key={h.id}
+                      sortKey={h.column.id}
+                      currentSortKey={currentSortKey}
+                      currentSortDir={currentSortDir}
+                      onSort={handleSort}
+                    >
+                      {typeof h.column.columnDef.header === 'string'
+                        ? h.column.columnDef.header
+                        : flexRender(h.column.columnDef.header, h.getContext())}
+                    </SortableTableHead>
+                  ) : (
+                    <TableHead key={h.id}>
+                      {flexRender(h.column.columnDef.header, h.getContext())}
+                    </TableHead>
+                  );
+                })}
               </TableRow>
             ))}
           </TableHeader>
@@ -466,32 +500,22 @@ export function UsersTable({
             )}
           </TableBody>
         </Table>
-        </div>
       </div>
-      {table.getPageCount() > 1 && (
-        <div className="mt-3 flex items-center justify-between">
-          <p className="text-sm text-[var(--portal-text-muted)]">
-            Строк {table.getRowModel().rows.length} из {filteredData.length}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => table.previousPage()}
-              disabled={!table.getCanPreviousPage()}
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => table.nextPage()}
-              disabled={!table.getCanNextPage()}
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
+      {filteredData.length > 0 && (
+        <TablePagination
+          currentPage={table.getState().pagination.pageIndex}
+          totalPages={table.getPageCount()}
+          total={filteredData.length}
+          pageSize={table.getState().pagination.pageSize}
+          pageSizeOptions={STANDARD_PAGE_SIZES}
+          onPageChange={(p) => setPagination((prev) => ({ ...prev, pageIndex: p }))}
+          onPageSizeChange={(s) => setPagination((prev) => ({ ...prev, pageSize: s, pageIndex: 0 }))}
+          columnConfig={USER_TABLE_COLUMNS}
+          visibleColumnIds={visibleColumnIds}
+          onVisibleColumnIdsChange={setVisibleColumnIds}
+          onExportExcel={handleExportExcel}
+          exportLabel="Экспорт Excel"
+        />
       )}
     </div>
   );

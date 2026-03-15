@@ -1,5 +1,6 @@
 /**
  * Telegram bot webhook: receive updates, reply to /progress, /cert, /help.
+ * Validates X-Telegram-Bot-Api-Secret-Token when TELEGRAM_WEBHOOK_SECRET is set.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getEnvOverrides } from '@/lib/settings';
@@ -9,6 +10,15 @@ export async function POST(request: NextRequest) {
   const overrides = await getEnvOverrides();
   const token = overrides.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN;
   if (!token) return NextResponse.json({ ok: false }, { status: 503 });
+
+  const webhookSecret = overrides.telegram_webhook_secret ?? process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (webhookSecret) {
+    const headerSecret = request.headers.get('x-telegram-bot-api-secret-token');
+    if (headerSecret !== webhookSecret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+  }
+
   try {
     const body = await request.json();
     const message = body?.message;

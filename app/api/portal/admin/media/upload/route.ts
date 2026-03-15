@@ -8,6 +8,24 @@ import { nanoid } from 'nanoid';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
+const ALLOWED_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml',
+  'application/pdf',
+  'video/mp4',
+  'video/webm',
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'text/plain',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+];
+const MAX_SIZE = 50 * 1024 * 1024; // 50 MB
+
 export async function POST(request: NextRequest) {
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -23,9 +41,20 @@ export async function POST(request: NextRequest) {
   if (!file || file.size === 0) {
     return NextResponse.json({ error: 'Файл не выбран' }, { status: 400 });
   }
+  if (file.size > MAX_SIZE) {
+    return NextResponse.json({ error: `Размер файла не более ${MAX_SIZE / 1024 / 1024} МБ` }, { status: 400 });
+  }
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    return NextResponse.json(
+      { error: 'Недопустимый тип файла. Разрешены: изображения, PDF, видео, аудио, текст, Word.' },
+      { status: 400 }
+    );
+  }
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
-  const safeName = `${nanoid(10)}.${ext}`;
+  const safeExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'mp4', 'webm', 'mp3', 'wav', 'txt', 'doc', 'docx'];
+  const safeExt = safeExts.includes(ext) ? ext : 'bin';
+  const safeName = `${nanoid(10)}.${safeExt}`;
   const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'media');
   const fullPath = path.join(uploadDir, safeName);
 

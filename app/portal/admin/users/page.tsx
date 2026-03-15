@@ -1,7 +1,11 @@
 /**
  * Admin: user catalog (active/archived). TanStack Table + filter.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Пользователи' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
@@ -22,6 +26,7 @@ export default async function AdminUsersPage() {
   const profiles = await prisma.profile.findMany({
     include: { user: { select: { email: true } } },
     orderBy: { createdAt: 'desc' },
+    take: 2000,
   });
 
   const rows: UserRow[] = profiles.map((p) => ({

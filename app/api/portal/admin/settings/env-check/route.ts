@@ -16,7 +16,9 @@ export async function GET() {
   return NextResponse.json({
     RESEND_API_KEY: !!(overrides.resend_api_key || process.env.RESEND_API_KEY),
     TELEGRAM_BOT_TOKEN: !!(overrides.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN),
-    DEEPSEEK_API_KEY: !!process.env.DEEPSEEK_API_KEY,
+    TELEGRAM_WEBHOOK_SECRET: !!(overrides.telegram_webhook_secret || process.env.TELEGRAM_WEBHOOK_SECRET),
+    DEEPSEEK_API_KEY: !!(overrides.deepseek_api_key || process.env.DEEPSEEK_API_KEY),
+    OPENAI_API_KEY: !!(overrides.openai_api_key || process.env.OPENAI_API_KEY),
     PAYKEEPER_SERVER: !!(pkConfig?.server || process.env.PAYKEEPER_SERVER),
     NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
     DATABASE_URL: !!process.env.DATABASE_URL,

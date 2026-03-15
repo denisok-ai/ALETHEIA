@@ -10,7 +10,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Sparkles, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useUnsavedChanges } from '@/lib/useUnsavedChanges';
 
 interface TemplateFormProps {
@@ -24,6 +25,7 @@ export function NotificationTemplateForm({ templateId }: TemplateFormProps) {
   const [body, setBody] = useState('');
   const [type, setType] = useState<'internal' | 'email' | 'both'>('both');
   const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
   const initialLoaded = useRef(false);
@@ -114,6 +116,34 @@ export function NotificationTemplateForm({ templateId }: TemplateFormProps) {
     setDeleteConfirm(false);
   }
 
+  async function handleAiGenerate() {
+    const templateName = name.trim() || 'Шаблон уведомления';
+    setGenerating(true);
+    try {
+      const r = await fetch('/api/portal/admin/ai-settings/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: `Сгенерируй тему и текст уведомления для шаблона «${templateName}», канал: ${type}. Используй плейсхолдеры %recfirstname%, %reclastname%, %date%, %systemtitle%, %objectname% где уместно. Ответь строго в формате:\nТема:\n...\n\nТекст:\n...`,
+          systemPrompt: 'Ты помогаешь писать шаблоны уведомлений для школы AVATERRA. Отвечай только в формате: блок Тема, затем блок Текст. Без пояснений.',
+          maxTokens: 1024,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Ошибка');
+      const content = data.content ?? '';
+      const themeMatch = content.match(/Тема:\s*\n?([\s\S]*?)(?=\n\nТекст:|$)/i);
+      const bodyMatch = content.match(/Текст:\s*\n?([\s\S]*)/i);
+      if (themeMatch?.[1]) setSubject(themeMatch[1].trim());
+      if (bodyMatch?.[1]) setBody(bodyMatch[1].trim());
+      if (content && !themeMatch?.[1] && !bodyMatch?.[1]) setBody(content);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка генерации');
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   return (
     <Card className="p-6">
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -129,7 +159,13 @@ export function NotificationTemplateForm({ templateId }: TemplateFormProps) {
           />
         </div>
         <div>
-          <Label htmlFor="nt-subject">Тема (для email)</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="nt-subject" className="mb-0">Тема (для email)</Label>
+            <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleAiGenerate} disabled={generating}>
+              {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+              <span className="ml-1">{generating ? 'Генерация…' : 'AI сгенерировать'}</span>
+            </Button>
+          </div>
           <Input
             id="nt-subject"
             value={subject}

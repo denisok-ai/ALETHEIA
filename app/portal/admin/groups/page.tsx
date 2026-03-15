@@ -2,7 +2,11 @@
  * Админ: хаб «Группы» — переходы в разделы Курсы, Медиатека, Пользователи,
  * где доступны дерево групп и управление составом.
  */
+import type { Metadata } from 'next';
 import Link from 'next/link';
+
+export const metadata: Metadata = { title: 'Группы' };
+
 import { PageHeader } from '@/components/portal/PageHeader';
 import { Card } from '@/components/portal/Card';
 import { BookOpen, FolderOpen, Users, ArrowRight } from 'lucide-react';

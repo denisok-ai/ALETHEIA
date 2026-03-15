@@ -1,24 +1,19 @@
 /**
  * Admin: каталог наборов уведомлений — список с переходом в карточку набора.
  */
-import Link from 'next/link';
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Наборы уведомлений' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { Card } from '@/components/portal/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { getNotificationSetEventLabel } from '@/lib/notification-set-events';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Bell, FileText } from 'lucide-react';
+import { NotificationSetsTableClient } from './NotificationSetsTableClient';
+import { CreateNotificationSetButton } from './CreateNotificationSetButton';
+import { Bell } from 'lucide-react';
 
 export default async function AdminNotificationSetsPage() {
   const session = await getServerSession(authOptions);
@@ -36,6 +31,13 @@ export default async function AdminNotificationSetsPage() {
     select: { id: true, eventType: true, name: true, isDefault: true },
   });
 
+  const setsData = sets.map((s) => ({
+    id: s.id,
+    eventType: s.eventType,
+    name: s.name,
+    isDefault: s.isDefault,
+  }));
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -45,55 +47,17 @@ export default async function AdminNotificationSetsPage() {
         ]}
         title="Наборы уведомлений"
         description="Каталог наборов для прикрепления к мероприятиям"
+        actions={<CreateNotificationSetButton />}
       />
       <Card title="Каталог" description="Наборы, отмеченные «По умолчанию», автоматически прикрепляются к новым курсам.">
         {sets.length === 0 ? (
           <EmptyState
             title="Нет наборов уведомлений"
-            description="Наборы создаются через сид или миграции БД"
+            description="Создайте первый набор с помощью кнопки «Создать набор» выше"
             icon={<Bell className="h-10 w-10" />}
           />
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">№</TableHead>
-                  <TableHead>Тип события</TableHead>
-                  <TableHead>Название</TableHead>
-                  <TableHead className="w-24">По умолчанию</TableHead>
-                  <TableHead className="w-28"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sets.map((s, idx) => (
-                  <TableRow key={s.id}>
-                    <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">
-                      {getNotificationSetEventLabel(s.eventType)}
-                    </TableCell>
-                    <TableCell className="font-medium text-[var(--portal-text)]">
-                      <Link
-                        href={`/portal/admin/notification-sets/${s.id}`}
-                        className="text-[#6366F1] hover:underline"
-                      >
-                        {s.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{s.isDefault ? 'Да' : 'Нет'}</TableCell>
-                    <TableCell>
-                      <Link href={`/portal/admin/notification-sets/${s.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8 gap-1">
-                          <FileText className="h-4 w-4" />
-                          Подробнее
-                        </Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <NotificationSetsTableClient sets={setsData} />
         )}
       </Card>
     </div>

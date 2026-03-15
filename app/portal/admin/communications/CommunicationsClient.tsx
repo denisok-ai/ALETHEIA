@@ -3,7 +3,7 @@
 /**
  * Admin Communications: CRUD templates, send form (Resend/Telegram), recent sends.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
 import {
   Dialog,
   DialogContent,
@@ -24,8 +26,23 @@ import {
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Plus, Pencil, Trash2, Send, Search, Mail } from 'lucide-react';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
+import { Plus, Pencil, Trash2, Send, Search, Mail, Sparkles, Loader2 } from 'lucide-react';
+
+const TEMPLATES_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'name', label: 'Название' },
+  { id: 'channel', label: 'Канал' },
+  { id: 'subject', label: 'Тема' },
+];
+const SENDS_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'date', label: 'Дата' },
+  { id: 'channel', label: 'Канал' },
+  { id: 'recipient', label: 'Получатель' },
+  { id: 'status', label: 'Статус' },
+];
 import { format } from 'date-fns';
+
 
 interface Template {
   id: string;
@@ -80,6 +97,42 @@ export function CommunicationsClient({
   const [sending, setSending] = useState(false);
   const [detailSend, setDetailSend] = useState<CommsSendRow | null>(null);
   const [templateSearch, setTemplateSearch] = useState('');
+  const [templatesPage, setTemplatesPage] = useState(0);
+  const [templatesPageSize, setTemplatesPageSize] = useState(10);
+  const [sendsPage, setSendsPage] = useState(0);
+  const [sendsPageSize, setSendsPageSize] = useState(10);
+  const [templatesVisibleColumnIds, setTemplatesVisibleColumnIds] = useState<string[]>(() => TEMPLATES_TABLE_COLUMNS.map((c) => c.id));
+  const [sendsVisibleColumnIds, setSendsVisibleColumnIds] = useState<string[]>(() => SENDS_TABLE_COLUMNS.map((c) => c.id));
+  const [templatesSortKey, setTemplatesSortKey] = useState<string | null>(null);
+  const [templatesSortDir, setTemplatesSortDir] = useState<SortDir>('asc');
+  const [sendsSortKey, setSendsSortKey] = useState<string | null>(null);
+  const [sendsSortDir, setSendsSortDir] = useState<SortDir>('asc');
+  const handleTemplatesSort = (columnId: string) => {
+    setTemplatesPage(0);
+    if (templatesSortKey === columnId) setTemplatesSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setTemplatesSortKey(columnId); setTemplatesSortDir('asc'); }
+  };
+  const handleSendsSort = (columnId: string) => {
+    setSendsPage(0);
+    if (sendsSortKey === columnId) setSendsSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSendsSortKey(columnId); setSendsSortDir('asc'); }
+  };
+
+  const handleTemplatesExportExcel = () => {
+    const headers = ['Название', 'Канал', 'Тема'];
+    const rows = sortedTemplates.map((t) => [t.name, t.channel, t.subject ?? '—']);
+    downloadXlsxFromArrays(headers, rows, `comms-templates-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
+  const handleSendsExportExcel = () => {
+    const headers = ['Дата', 'Канал', 'Получатель', 'Статус'];
+    const rows = sortedSends.map((s) => [
+      format(new Date(s.sentAt), 'dd.MM.yyyy HH:mm'),
+      s.channel,
+      s.recipient,
+      s.status,
+    ]);
+    downloadXlsxFromArrays(headers, rows, `comms-sends-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
 
   useEffect(() => {
     fetch('/api/portal/admin/comms/recipients')
@@ -213,6 +266,39 @@ export function CommunicationsClient({
       )
     : templates;
 
+  const templateSortGetters: Record<string, (t: Template) => unknown> = {
+    name: (t) => t.name,
+    channel: (t) => t.channel,
+    subject: (t) => t.subject ?? '',
+  };
+  const sortedTemplates = useMemo(() => {
+    if (!templatesSortKey || !templateSortGetters[templatesSortKey]) return filteredTemplates;
+    return sortTableBy(filteredTemplates, templateSortGetters[templatesSortKey], templatesSortDir);
+  }, [filteredTemplates, templatesSortKey, templatesSortDir]);
+
+  const templatesTotal = sortedTemplates.length;
+  const templatesTotalPages = Math.max(1, Math.ceil(templatesTotal / templatesPageSize));
+  const templatesCurrentPage = Math.min(templatesPage, templatesTotalPages - 1);
+  const templatesStart = templatesCurrentPage * templatesPageSize;
+  const templatesPageRows = sortedTemplates.slice(templatesStart, templatesStart + templatesPageSize);
+
+  const sendsSortGetters: Record<string, (s: CommsSendRow) => unknown> = {
+    date: (s) => s.sentAt,
+    channel: (s) => s.channel,
+    recipient: (s) => s.recipient,
+    status: (s) => s.status,
+  };
+  const sortedSends = useMemo(() => {
+    if (!sendsSortKey || !sendsSortGetters[sendsSortKey]) return sends;
+    return sortTableBy(sends, sendsSortGetters[sendsSortKey], sendsSortDir);
+  }, [sends, sendsSortKey, sendsSortDir]);
+
+  const sendsTotal = sortedSends.length;
+  const sendsTotalPages = Math.max(1, Math.ceil(sendsTotal / sendsPageSize));
+  const sendsCurrentPage = Math.min(sendsPage, sendsTotalPages - 1);
+  const sendsStart = sendsCurrentPage * sendsPageSize;
+  const sendsPageRows = sortedSends.slice(sendsStart, sendsStart + sendsPageSize);
+
   return (
     <div className="mt-6 space-y-8">
       <section>
@@ -236,19 +322,19 @@ export function CommunicationsClient({
             </Button>
           </div>
         </div>
-        <div className="mt-3 overflow-x-auto portal-card bg-white">
+        <div className="mt-3 overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10">№</TableHead>
-                <TableHead>Название</TableHead>
-                <TableHead>Канал</TableHead>
-                <TableHead>Тема</TableHead>
+                <SortableTableHead sortKey="name" currentSortKey={templatesSortKey} currentSortDir={templatesSortDir} onSort={handleTemplatesSort}>Название</SortableTableHead>
+                <SortableTableHead sortKey="channel" currentSortKey={templatesSortKey} currentSortDir={templatesSortDir} onSort={handleTemplatesSort}>Канал</SortableTableHead>
+                <SortableTableHead sortKey="subject" currentSortKey={templatesSortKey} currentSortDir={templatesSortDir} onSort={handleTemplatesSort}>Тема</SortableTableHead>
                 <TableHead className="w-24">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTemplates.length === 0 ? (
+              {sortedTemplates.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="p-0">
                     <EmptyState
@@ -264,9 +350,9 @@ export function CommunicationsClient({
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredTemplates.map((t, idx) => (
+                templatesPageRows.map((t, idx) => (
                   <TableRow key={t.id}>
-                    <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{templatesStart + idx + 1}</TableCell>
                     <TableCell className="font-medium text-[var(--portal-text)]">{t.name}</TableCell>
                     <TableCell className="text-[var(--portal-text-muted)]">{t.channel}</TableCell>
                     <TableCell className="text-[var(--portal-text-muted)]">{t.subject ?? '—'}</TableCell>
@@ -286,6 +372,22 @@ export function CommunicationsClient({
             </TableBody>
           </Table>
         </div>
+        {sortedTemplates.length > 0 && (
+          <TablePagination
+            currentPage={templatesCurrentPage}
+            totalPages={templatesTotalPages}
+            total={templatesTotal}
+            pageSize={templatesPageSize}
+            pageSizeOptions={STANDARD_PAGE_SIZES}
+            onPageChange={setTemplatesPage}
+            onPageSizeChange={(s) => { setTemplatesPageSize(s); setTemplatesPage(0); }}
+            columnConfig={TEMPLATES_TABLE_COLUMNS}
+            visibleColumnIds={templatesVisibleColumnIds}
+            onVisibleColumnIdsChange={setTemplatesVisibleColumnIds}
+            onExportExcel={handleTemplatesExportExcel}
+            exportLabel="Excel"
+          />
+        )}
       </section>
 
       <section>
@@ -417,26 +519,26 @@ export function CommunicationsClient({
             Обновить
           </Button>
         </div>
-        <div className="mt-3 overflow-x-auto portal-card bg-white">
+        <div className="mt-3 overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Дата</TableHead>
-                <TableHead>Канал</TableHead>
-                <TableHead>Получатель</TableHead>
-                <TableHead>Статус</TableHead>
+                <SortableTableHead sortKey="date" currentSortKey={sendsSortKey} currentSortDir={sendsSortDir} onSort={handleSendsSort}>Дата</SortableTableHead>
+                <SortableTableHead sortKey="channel" currentSortKey={sendsSortKey} currentSortDir={sendsSortDir} onSort={handleSendsSort}>Канал</SortableTableHead>
+                <SortableTableHead sortKey="recipient" currentSortKey={sendsSortKey} currentSortDir={sendsSortDir} onSort={handleSendsSort}>Получатель</SortableTableHead>
+                <SortableTableHead sortKey="status" currentSortKey={sendsSortKey} currentSortDir={sendsSortDir} onSort={handleSendsSort}>Статус</SortableTableHead>
                 <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sends.length === 0 ? (
+              {sortedSends.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-[var(--portal-text-muted)] py-6">
                     Нет отправок
                   </TableCell>
                 </TableRow>
               ) : (
-                sends.map((s) => (
+                sendsPageRows.map((s) => (
                   <TableRow key={s.id}>
                     <TableCell className="text-[var(--portal-text-muted)]">{format(new Date(s.sentAt), 'dd.MM.yyyy HH:mm')}</TableCell>
                     <TableCell className="text-[var(--portal-text-muted)]">{s.channel}</TableCell>
@@ -453,6 +555,22 @@ export function CommunicationsClient({
             </TableBody>
           </Table>
         </div>
+        {sends.length > 0 && (
+          <TablePagination
+            currentPage={Math.min(sendsPage, Math.max(0, Math.ceil(sends.length / sendsPageSize) - 1))}
+            totalPages={Math.max(1, Math.ceil(sends.length / sendsPageSize))}
+            total={sends.length}
+            pageSize={sendsPageSize}
+            pageSizeOptions={STANDARD_PAGE_SIZES}
+            onPageChange={setSendsPage}
+            onPageSizeChange={(s) => { setSendsPageSize(s); setSendsPage(0); }}
+            columnConfig={SENDS_TABLE_COLUMNS}
+            visibleColumnIds={sendsVisibleColumnIds}
+            onVisibleColumnIdsChange={setSendsVisibleColumnIds}
+            onExportExcel={handleSendsExportExcel}
+            exportLabel="Excel"
+          />
+        )}
       </section>
 
       {detailSend && (
@@ -516,6 +634,35 @@ function TemplateForm({
   const [subject, setSubject] = useState(initial?.subject ?? '');
   const [htmlBody, setHtmlBody] = useState(initial?.htmlBody ?? '');
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+
+  async function handleAiGenerate() {
+    const templateName = name.trim() || 'Шаблон';
+    setGenerating(true);
+    try {
+      const r = await fetch('/api/portal/admin/ai-settings/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: `Сгенерируй тему письма и тело сообщения для шаблона «${templateName}», канал: ${channel}. Для email — тело в HTML (простые теги). Для Telegram — обычный текст. Используй подстановки {{name}}, {{email}} где уместно. Ответь строго в формате:\nТема:\n...\n\nТело:\n...`,
+          systemPrompt: 'Ты помогаешь писать шаблоны писем и сообщений для школы AVATERRA. Отвечай только в запрошенном формате: блок Тема, затем блок Тело. Без пояснений.',
+          maxTokens: 1024,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Ошибка');
+      const content = data.content ?? '';
+      const themeMatch = content.match(/Тема:\s*\n?([\s\S]*?)(?=\n\nТело:|$)/i);
+      const bodyMatch = content.match(/Тело:\s*\n?([\s\S]*)/i);
+      if (themeMatch?.[1]) setSubject(themeMatch[1].trim());
+      if (bodyMatch?.[1]) setHtmlBody(bodyMatch[1].trim());
+      if (content && !themeMatch?.[1] && !bodyMatch?.[1]) setHtmlBody(content);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка генерации');
+    } finally {
+      setGenerating(false);
+    }
+  }
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -542,7 +689,13 @@ function TemplateForm({
             </select>
           </div>
           <div>
-            <Label htmlFor="t-subject">Тема (email)</Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="t-subject" className="mb-0">Тема (email)</Label>
+              <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleAiGenerate} disabled={generating}>
+                {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                <span className="ml-1">{generating ? 'Генерация…' : 'AI сгенерировать'}</span>
+              </Button>
+            </div>
             <Input id="t-subject" value={subject} onChange={(e) => setSubject(e.target.value)} className="mt-1" placeholder="Для Telegram не используется" />
           </div>
           <div>
@@ -562,7 +715,7 @@ function TemplateForm({
                 onSave({ name, channel, subject: subject || undefined, htmlBody: htmlBody || undefined });
                 setSaving(false);
               }}
-              disabled={saving || !name.trim()}
+              disabled={saving || generating || !name.trim()}
             >
               Сохранить
             </Button>

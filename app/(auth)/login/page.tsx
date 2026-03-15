@@ -18,8 +18,9 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') ?? '/portal/student/dashboard';
+  const redirect = searchParams.get('redirect') ?? '/portal';
   const justSetPassword = searchParams.get('set') === '1';
+  const justVerified = searchParams.get('verified') === '1';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -50,6 +51,9 @@ function LoginForm() {
       <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Войдите в личный кабинет</p>
       {justSetPassword && (
         <p className="mt-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">Пароль успешно установлен. Войдите, используя email и новый пароль.</p>
+      )}
+      {justVerified && (
+        <p className="mt-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">Email подтверждён. Войдите в личный кабинет.</p>
       )}
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>

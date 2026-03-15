@@ -1,7 +1,11 @@
 /**
  * Admin: audit log — filters (action, entity, actor, date), search.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Аудит' };
+
 import { authOptions } from '@/lib/auth';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { Card } from '@/components/portal/Card';

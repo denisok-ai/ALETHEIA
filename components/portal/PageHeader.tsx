@@ -12,9 +12,9 @@ export interface PageHeaderProps {
 
 export function PageHeader({ items, title, description, actions }: PageHeaderProps) {
   return (
-    <header className="mb-6">
+    <header className="mb-4">
       <Breadcrumbs items={items} />
-      <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
+      <div className="mt-2 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1
             className="text-2xl font-bold leading-tight"
@@ -23,7 +23,7 @@ export function PageHeader({ items, title, description, actions }: PageHeaderPro
             {title}
           </h1>
           {description && (
-            <p className="mt-1.5 text-sm" style={{ color: 'var(--portal-text-muted)' }}>
+            <p className="mt-1 text-sm leading-snug" style={{ color: 'var(--portal-text-muted)' }}>
               {description}
             </p>
           )}

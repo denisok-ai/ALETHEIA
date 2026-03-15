@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/portal/Card';
 import { MediaCoverPlaceholder } from '@/components/portal/CourseCoverPlaceholder';
 import { Play, Download, Star } from 'lucide-react';
+import { isPlaceholderOrExampleUrl } from '@/lib/placeholder-url';
 
 export type MediaListItem = {
   id: string;
@@ -159,7 +160,7 @@ export function MediaListClient({ items }: { items: MediaListItem[] }) {
                       <Play className="h-3.5 w-3.5" /> Смотреть
                     </Button>
                   </Link>
-                  {m.allowDownload && (
+                  {m.allowDownload && !isPlaceholderOrExampleUrl(m.fileUrl) && (
                     <a href={m.fileUrl} download target="_blank" rel="noopener noreferrer">
                       <Button variant="ghost" size="sm">
                         <Download className="h-3.5 w-3.5" /> Скачать

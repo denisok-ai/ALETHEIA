@@ -10,6 +10,8 @@ import { prisma } from '@/lib/db';
 import { sendEmail } from '@/lib/email';
 import { getSystemSettings } from '@/lib/settings';
 import { claimPaidOrdersForUser } from '@/lib/claim-orders';
+import { generateAutoReply, isConfidentReply } from '@/lib/ticket-auto-reply';
+import { ticketCreateSchema } from '@/lib/validations/ticket';
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -41,22 +43,25 @@ export async function POST(request: NextRequest) {
   const userId = (session?.user as { id?: string })?.id;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  let body: { subject?: string; message?: string };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  let subject = typeof body?.subject === 'string' ? body.subject.trim() : '';
-  const message = typeof body?.message === 'string' ? body.message.trim() : '';
-  if (!subject) {
-    return NextResponse.json({ error: 'Укажите тему обращения' }, { status: 400 });
+  const parsed = ticketCreateSchema.safeParse(body);
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? 'Неверные данные';
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
+
+  let subject = parsed.data.subject.trim();
+  const message = (parsed.data.message ?? '').trim();
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { email: true },
+    select: { email: true, profile: { select: { displayName: true } } },
   });
   const emailNorm = user?.email?.trim().toLowerCase() ?? '';
   await claimPaidOrdersForUser(userId, emailNorm);
@@ -77,14 +82,9 @@ export async function POST(request: NextRequest) {
       orderNumber: orderWithoutAccess ?? undefined,
     },
   });
-
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    include: { profile: { select: { displayName: true } } },
-  });
   const settings = await getSystemSettings();
   const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
-  const displayName = user?.profile?.displayName ?? user?.displayName ?? user?.email ?? 'Клиент';
+  const displayName = user?.profile?.displayName ?? user?.email ?? 'Клиент';
 
   if (user?.email) {
     try {
@@ -118,6 +118,43 @@ export async function POST(request: NextRequest) {
       await sendEmail(notifyEmail, `Поддержка: новое обращение — ${subject.slice(0, 50)}`, htmlNotify);
     } catch (e) {
       console.error('Ticket: notify manager', e);
+    }
+  }
+
+  // Опциональный автоответ от AI при включённой настройке
+  if (message) {
+    const autoReplySetting = await prisma.systemSetting.findUnique({
+      where: { key: 'ticket_auto_reply_enabled' },
+    });
+    const autoReplyEnabled = autoReplySetting?.value === 'true' || autoReplySetting?.value === '1';
+    if (autoReplyEnabled) {
+      try {
+        const autoReply = await generateAutoReply(subject, message);
+        if (autoReply && isConfidentReply(autoReply)) {
+          const updatedMessages = [
+            ...messages,
+            { role: 'manager' as const, content: autoReply, at: new Date().toISOString() },
+          ];
+          await prisma.ticket.update({
+            where: { id: ticket.id },
+            data: { messages: JSON.stringify(updatedMessages), updatedAt: new Date() },
+          });
+          if (user?.email) {
+            const ticketUrl = siteUrl ? `${siteUrl}/portal/student/support/${ticket.id}` : '';
+            const htmlReply = `
+              <p>Здравствуйте, ${escapeHtml(displayName)}!</p>
+              <p>По вашему обращению «${escapeHtml(subject)}» подготовлен ответ.</p>
+              <p><strong>Ответ:</strong></p>
+              <p>${escapeHtml(autoReply).replace(/\n/g, '<br/>')}</p>
+              ${ticketUrl ? `<p><a href="${escapeHtml(ticketUrl)}">Открыть обращение</a></p>` : ''}
+              <p>— ${settings.portal_title || 'AVATERRA'}</p>
+            `;
+            await sendEmail(user.email, `Ответ по обращению: ${subject.slice(0, 50)}`, htmlReply);
+          }
+        }
+      } catch (e) {
+        console.error('Ticket: auto-reply', e);
+      }
     }
   }
 

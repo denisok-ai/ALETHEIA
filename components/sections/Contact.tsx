@@ -56,7 +56,11 @@ export function Contact() {
   };
 
   return (
-    <section id="contact" ref={ref} className="relative py-28 px-5 bg-gradient-to-b from-lavender/20 to-bg md:py-32 md:px-6">
+    <section
+      id="contact"
+      ref={ref}
+      className="relative py-28 px-5 bg-gradient-to-b from-lavender/20 to-bg md:py-32 md:px-6 scroll-mt-20 scroll-mb-[100px]"
+    >
       <motion.div
         style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
         initial={{ opacity: 0, rotateX: 18 }}

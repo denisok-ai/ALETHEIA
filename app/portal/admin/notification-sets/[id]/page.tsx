@@ -1,6 +1,7 @@
 /**
  * Admin: карточка набора уведомлений — просмотр и редактирование параметров.
  */
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
@@ -11,11 +12,19 @@ import { ArrowLeft } from 'lucide-react';
 import { getNotificationSetEventLabel } from '@/lib/notification-set-events';
 import { NotificationSetEditForm } from './NotificationSetEditForm';
 
-export default async function AdminNotificationSetPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type Props = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const set = await prisma.notificationSet.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+  if (!set) return { title: 'Набор уведомлений' };
+  return { title: set.name.slice(0, 60) };
+}
+
+export default async function AdminNotificationSetPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || role !== 'admin') {

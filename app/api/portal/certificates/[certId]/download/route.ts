@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions, requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { storageRead, storageWrite, storageExists } from '@/lib/storage';
 import {
   generateCertificatePdf,
   generateCertificatePdfWithImage,
@@ -31,7 +32,7 @@ export async function GET(
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const cert = await prisma.certificate.findFirst({
-    where: { id: certId, userId },
+    where: { id: certId, userId, revokedAt: null },
     include: {
       course: { select: { title: true } },
       template: { select: { backgroundImageUrl: true, textMapping: true, allowUserDownload: true } },
@@ -39,6 +40,19 @@ export async function GET(
   });
 
   if (!cert) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  const cachePath = cert.pdfUrl && !cert.pdfUrl.startsWith('http') ? cert.pdfUrl : null;
+  if (cachePath && storageExists(cachePath)) {
+    const cached = await storageRead(cachePath);
+    if (cached) {
+      return new NextResponse(new Uint8Array(cached), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="certificate-${cert.certNumber}.pdf"`,
+        },
+      });
+    }
+  }
 
   const admin = await requireAdminSession();
   if (!admin && cert.template?.allowUserDownload === false) {
@@ -78,6 +92,17 @@ export async function GET(
         ? (templateParam as CertificateTemplateId)
         : 'default';
     buffer = await generateCertificatePdf(data, template);
+  }
+
+  const certCachePath = `uploads/certificates/${certId}.pdf`;
+  try {
+    await storageWrite(certCachePath, buffer);
+    await prisma.certificate.update({
+      where: { id: certId },
+      data: { pdfUrl: certCachePath },
+    });
+  } catch {
+    // кеш не критичен
   }
 
   return new NextResponse(new Uint8Array(buffer), {

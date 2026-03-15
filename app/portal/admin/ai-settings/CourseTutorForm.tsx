@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -41,6 +42,7 @@ export function CourseTutorForm({ initial }: { initial: CourseTutorSettings | nu
       setSaved(true);
     } catch (err) {
       console.error(err);
+      toast.error('Ошибка сохранения');
     }
     setSaving(false);
   }

@@ -2,16 +2,12 @@
  * Manager: search profiles by email or display_name.
  */
 import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { requireManagerSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const role = (session?.user as { role?: string })?.role;
-  if (!session?.user || (role !== 'manager' && role !== 'admin')) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const auth = await requireManagerSession();
+  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const { searchParams } = new URL(request.url);
   const q = searchParams.get('q')?.trim();

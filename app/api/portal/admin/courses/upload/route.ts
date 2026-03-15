@@ -12,6 +12,8 @@ import { parseScormManifest } from '@/lib/scorm/manifest-parser';
 import { extractCourseContent } from '@/lib/scorm/course-content-extractor';
 import { writeAuditLog } from '@/lib/audit';
 
+const MAX_SCORM_SIZE = 200 * 1024 * 1024; // 200 MB
+
 export async function POST(request: NextRequest) {
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -22,6 +24,12 @@ export async function POST(request: NextRequest) {
     const courseId = formData.get('courseId') as string | null;
     if (!file || !courseId) {
       return NextResponse.json({ error: 'Missing file or courseId' }, { status: 400 });
+    }
+    if (file.size > MAX_SCORM_SIZE) {
+      return NextResponse.json(
+        { error: `Размер архива не более ${MAX_SCORM_SIZE / 1024 / 1024} МБ` },
+        { status: 400 }
+      );
     }
 
     const buf = Buffer.from(await file.arrayBuffer());
@@ -35,12 +43,18 @@ export async function POST(request: NextRequest) {
     const prefix = path.join(process.cwd(), 'public', 'uploads', 'scorm', `courses-${courseId}`);
     await mkdir(prefix, { recursive: true });
 
-    // Extract all files
+    const resolvedPrefix = path.resolve(prefix);
+
+    // Extract all files (with path traversal protection — Zip Slip)
     const htmlEntries: { path: string; content: string }[] = [];
     for (const [filePath, entry] of Object.entries(zip.files)) {
       if (entry.dir) continue;
-      const content = await entry.async('nodebuffer');
       const fullPath = path.join(prefix, filePath);
+      const resolvedFull = path.resolve(fullPath);
+      if (!resolvedFull.startsWith(resolvedPrefix)) {
+        continue; // skip path traversal attempt
+      }
+      const content = await entry.async('nodebuffer');
       const dir = path.dirname(fullPath);
       await mkdir(dir, { recursive: true });
       await writeFile(fullPath, content);

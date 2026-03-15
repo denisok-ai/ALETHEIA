@@ -1,9 +1,9 @@
 'use client';
 
 /**
- * Вкладки: Пользователи Online | Посещения (статистика + график).
+ * Вкладки: Пользователи Online | Посещения (статистика + график). Сортировка по колонкам.
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/portal/Card';
 import {
@@ -14,9 +14,25 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 import { Activity, Users, Calendar, BarChart3, Search, RefreshCw, Trash2, ListTodo, StopCircle } from 'lucide-react';
+
+const ONLINE_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'user', label: 'Пользователь' },
+  { id: 'role', label: 'Роль' },
+  { id: 'loginAt', label: 'Время входа' },
+  { id: 'lastActivityAt', label: 'Последний запрос' },
+  { id: 'ip', label: 'IP' },
+];
+const VISITS_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'user', label: 'Пользователь' },
+  { id: 'count', label: 'Количество посещений' },
+];
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
@@ -81,6 +97,35 @@ export function MonitoringClient() {
   const [onlineSearch, setOnlineSearch] = useState('');
   const [onlineRoleFilter, setOnlineRoleFilter] = useState('');
   const [onlineLoading, setOnlineLoading] = useState(false);
+  const [onlineSortKey, setOnlineSortKey] = useState<string | null>(null);
+  const [onlineSortDir, setOnlineSortDir] = useState<SortDir>('asc');
+  const [onlineVisibleColumnIds, setOnlineVisibleColumnIds] = useState<string[]>(() => ONLINE_TABLE_COLUMNS.map((c) => c.id));
+  const handleOnlineExportExcel = () => {
+    const headers = ['Пользователь', 'Роль', 'Время входа', 'Последний запрос', 'IP'];
+    const rows = sortedOnlineItems.map((row) => [
+      row.displayName || row.email || row.userId,
+      ROLE_LABEL[row.role] ?? row.role,
+      format(new Date(row.loginAt), 'dd.MM.yyyy HH:mm', { locale: ru }),
+      format(new Date(row.lastActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru }),
+      row.ipAddress ?? '—',
+    ]);
+    downloadXlsxFromArrays(headers, rows, `online-${format(new Date(), 'yyyy-MM-dd-HHmm')}.xlsx`);
+  };
+  const handleOnlineSort = (columnId: string) => {
+    if (onlineSortKey === columnId) setOnlineSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setOnlineSortKey(columnId); setOnlineSortDir('asc'); }
+  };
+  const onlineSortGetters: Record<string, (r: OnlineItem) => unknown> = {
+    user: (r) => r.displayName ?? r.email ?? r.userId,
+    role: (r) => r.role,
+    loginAt: (r) => r.loginAt,
+    lastActivityAt: (r) => r.lastActivityAt,
+    ip: (r) => r.ipAddress ?? '',
+  };
+  const sortedOnlineItems = useMemo(() => {
+    if (!onlineSortKey || !onlineSortGetters[onlineSortKey]) return onlineItems;
+    return sortTableBy(onlineItems, onlineSortGetters[onlineSortKey], onlineSortDir);
+  }, [onlineItems, onlineSortKey, onlineSortDir]);
 
   const [visitsDateFrom, setVisitsDateFrom] = useState(() => {
     const d = new Date();
@@ -92,6 +137,29 @@ export function MonitoringClient() {
   const [visitsItems, setVisitsItems] = useState<VisitsItem[]>([]);
   const [visitsPagination, setVisitsPagination] = useState({ page: 1, limit: 20, total: 0 });
   const [visitsLoading, setVisitsLoading] = useState(false);
+  const [visitsSortKey, setVisitsSortKey] = useState<string | null>(null);
+  const [visitsSortDir, setVisitsSortDir] = useState<SortDir>('asc');
+  const [visitsVisibleColumnIds, setVisitsVisibleColumnIds] = useState<string[]>(() => VISITS_TABLE_COLUMNS.map((c) => c.id));
+  const handleVisitsExportExcel = () => {
+    const headers = ['Пользователь', 'Количество посещений'];
+    const rows = sortedVisitsItems.map((row) => [
+      row.displayName || row.email || row.userId,
+      String(row.visitsCount),
+    ]);
+    downloadXlsxFromArrays(headers, rows, `visits-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
+  const handleVisitsSort = (columnId: string) => {
+    if (visitsSortKey === columnId) setVisitsSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setVisitsSortKey(columnId); setVisitsSortDir('asc'); }
+  };
+  const visitsSortGetters: Record<string, (r: VisitsItem) => unknown> = {
+    user: (r) => r.displayName ?? r.email ?? r.userId,
+    count: (r) => r.visitsCount,
+  };
+  const sortedVisitsItems = useMemo(() => {
+    if (!visitsSortKey || !visitsSortGetters[visitsSortKey]) return visitsItems;
+    return sortTableBy(visitsItems, visitsSortGetters[visitsSortKey], visitsSortDir);
+  }, [visitsItems, visitsSortKey, visitsSortDir]);
 
   const [chartYear, setChartYear] = useState(new Date().getFullYear());
   const [chartMonth, setChartMonth] = useState(new Date().getMonth() + 1);
@@ -305,18 +373,19 @@ export function MonitoringClient() {
             ) : onlineItems.length === 0 ? (
               <EmptyState title="Нет активных сессий" description="Пользователи с активностью за последние 15 минут не найдены." />
             ) : (
+              <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Пользователь</TableHead>
-                    <TableHead>Роль</TableHead>
-                    <TableHead>Время входа</TableHead>
-                    <TableHead>Последний запрос</TableHead>
-                    <TableHead>IP</TableHead>
+                    <SortableTableHead sortKey="user" currentSortKey={onlineSortKey} currentSortDir={onlineSortDir} onSort={handleOnlineSort}>Пользователь</SortableTableHead>
+                    <SortableTableHead sortKey="role" currentSortKey={onlineSortKey} currentSortDir={onlineSortDir} onSort={handleOnlineSort}>Роль</SortableTableHead>
+                    <SortableTableHead sortKey="loginAt" currentSortKey={onlineSortKey} currentSortDir={onlineSortDir} onSort={handleOnlineSort}>Время входа</SortableTableHead>
+                    <SortableTableHead sortKey="lastActivityAt" currentSortKey={onlineSortKey} currentSortDir={onlineSortDir} onSort={handleOnlineSort}>Последний запрос</SortableTableHead>
+                    <SortableTableHead sortKey="ip" currentSortKey={onlineSortKey} currentSortDir={onlineSortDir} onSort={handleOnlineSort}>IP</SortableTableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {onlineItems.map((row) => (
+                  {sortedOnlineItems.map((row) => (
                     <TableRow key={row.id}>
                       <TableCell>
                         <Link
@@ -334,31 +403,23 @@ export function MonitoringClient() {
                   ))}
                 </TableBody>
               </Table>
-            )}
-            {onlinePagination.total > onlinePagination.limit && (
-              <div className="mt-3 flex items-center justify-between text-sm text-[var(--portal-text-muted)]">
-                <span>
-                  Показано {onlineItems.length} из {onlinePagination.total}
-                </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={onlinePagination.page <= 1}
-                    onClick={() => setOnlinePagination((p) => ({ ...p, page: p.page - 1 }))}
-                  >
-                    Назад
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    disabled={onlinePagination.page * onlinePagination.limit >= onlinePagination.total}
-                    onClick={() => setOnlinePagination((p) => ({ ...p, page: p.page + 1 }))}
-                  >
-                    Вперёд
-                  </Button>
-                </div>
               </div>
+            )}
+            {onlinePagination.total > 0 && (
+              <TablePagination
+                currentPage={onlinePagination.page - 1}
+                totalPages={Math.max(1, Math.ceil(onlinePagination.total / onlinePagination.limit))}
+                total={onlinePagination.total}
+                pageSize={onlinePagination.limit}
+                pageSizeOptions={STANDARD_PAGE_SIZES}
+                onPageChange={(p) => setOnlinePagination((prev) => ({ ...prev, page: p + 1 }))}
+                onPageSizeChange={(s) => setOnlinePagination((prev) => ({ ...prev, limit: s, page: 1 }))}
+                columnConfig={ONLINE_TABLE_COLUMNS}
+                visibleColumnIds={onlineVisibleColumnIds}
+                onVisibleColumnIdsChange={setOnlineVisibleColumnIds}
+                onExportExcel={handleOnlineExportExcel}
+                exportLabel="Excel"
+              />
             )}
           </Card>
         </>
@@ -400,7 +461,7 @@ export function MonitoringClient() {
                     type="date"
                     value={visitsDateFrom}
                     onChange={(e) => setVisitsDateFrom(e.target.value)}
-                    className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]""
+                    className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]"
                   />
                 </label>
                 <label className="flex items-center gap-2 text-sm">
@@ -409,7 +470,7 @@ export function MonitoringClient() {
                     type="date"
                     value={visitsDateTo}
                     onChange={(e) => setVisitsDateTo(e.target.value)}
-                    className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]""
+                    className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]"
                   />
                 </label>
                 <div className="relative max-w-[240px]">
@@ -452,16 +513,17 @@ export function MonitoringClient() {
               ) : visitsItems.length === 0 ? (
                 <EmptyState title="Нет данных за период" description="Выберите другой период или обновите страницу." />
               ) : (
+                <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Пользователь</TableHead>
-                      <TableHead>Количество посещений</TableHead>
+                      <SortableTableHead sortKey="user" currentSortKey={visitsSortKey} currentSortDir={visitsSortDir} onSort={handleVisitsSort}>Пользователь</SortableTableHead>
+                      <SortableTableHead sortKey="count" currentSortKey={visitsSortKey} currentSortDir={visitsSortDir} onSort={handleVisitsSort}>Количество посещений</SortableTableHead>
                       <TableHead></TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {visitsItems.map((row) => (
+                    {sortedVisitsItems.map((row) => (
                       <TableRow key={row.userId}>
                         <TableCell>
                           <Link
@@ -484,29 +546,23 @@ export function MonitoringClient() {
                     ))}
                   </TableBody>
                 </Table>
-              )}
-              {visitsPagination.total > visitsPagination.limit && (
-                <div className="mt-3 flex justify-between text-sm text-[var(--portal-text-muted)]">
-                  <span>Показано {visitsItems.length} из {visitsPagination.total}</span>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={visitsPagination.page <= 1}
-                      onClick={() => setVisitsPagination((p) => ({ ...p, page: p.page - 1 }))}
-                    >
-                      Назад
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={visitsPagination.page * visitsPagination.limit >= visitsPagination.total}
-                      onClick={() => setVisitsPagination((p) => ({ ...p, page: p.page + 1 }))}
-                    >
-                      Вперёд
-                    </Button>
-                  </div>
                 </div>
+              )}
+              {visitsPagination.total > 0 && (
+                <TablePagination
+                  currentPage={visitsPagination.page - 1}
+                  totalPages={Math.max(1, Math.ceil(visitsPagination.total / visitsPagination.limit))}
+                  total={visitsPagination.total}
+                  pageSize={visitsPagination.limit}
+                  pageSizeOptions={STANDARD_PAGE_SIZES}
+                  onPageChange={(p) => setVisitsPagination((prev) => ({ ...prev, page: p + 1 }))}
+                  onPageSizeChange={(s) => setVisitsPagination((prev) => ({ ...prev, limit: s, page: 1 }))}
+                  columnConfig={VISITS_TABLE_COLUMNS}
+                  visibleColumnIds={visitsVisibleColumnIds}
+                  onVisibleColumnIdsChange={setVisitsVisibleColumnIds}
+                  onExportExcel={handleVisitsExportExcel}
+                  exportLabel="Excel"
+                />
               )}
             </Card>
           )}
@@ -522,7 +578,7 @@ export function MonitoringClient() {
                     max={2030}
                     value={chartYear}
                     onChange={(e) => setChartYear(parseInt(e.target.value, 10) || new Date().getFullYear())}
-                    className="w-20 rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]""
+                    className="w-20 rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]"
                   />
                 </label>
                 <label className="flex items-center gap-2 text-sm">
@@ -530,7 +586,7 @@ export function MonitoringClient() {
                   <select
                     value={chartMonth}
                     onChange={(e) => setChartMonth(parseInt(e.target.value, 10))}
-                    className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]""
+                    className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]"
                   >
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => (
                       <option key={m} value={m}>

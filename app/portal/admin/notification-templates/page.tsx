@@ -1,29 +1,20 @@
 /**
  * Admin: каталог шаблонов уведомлений — список с переходом в создание/редактирование.
  */
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Шаблоны уведомлений' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { Card } from '@/components/portal/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { NotificationTemplatesTableClient } from './NotificationTemplatesTableClient';
 import { Button } from '@/components/ui/button';
 import { LayoutTemplate, Plus } from 'lucide-react';
-
-const TYPE_LABEL: Record<string, string> = {
-  internal: 'Только в ленте',
-  email: 'Только email',
-  both: 'Лента и email',
-};
 
 export default async function AdminNotificationTemplatesPage() {
   const session = await getServerSession(authOptions);
@@ -40,6 +31,13 @@ export default async function AdminNotificationTemplatesPage() {
     orderBy: { name: 'asc' },
     select: { id: true, name: true, subject: true, type: true },
   });
+
+  const templatesData = templates.map((t) => ({
+    id: t.id,
+    name: t.name,
+    subject: t.subject,
+    type: t.type,
+  }));
 
   return (
     <div className="space-y-6 w-full">
@@ -73,38 +71,7 @@ export default async function AdminNotificationTemplatesPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">№</TableHead>
-                  <TableHead>Название</TableHead>
-                  <TableHead>Тема (email)</TableHead>
-                  <TableHead>Канал</TableHead>
-                  <TableHead className="w-28"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {templates.map((t, idx) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
-                    <TableCell className="font-medium text-[var(--portal-text)]">
-                      <Link href={`/portal/admin/notification-templates/${t.id}`} className="text-[#6366F1] hover:underline">
-                        {t.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="max-w-[200px] truncate text-[var(--portal-text-muted)]">{t.subject ?? '—'}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{TYPE_LABEL[t.type] ?? t.type}</TableCell>
-                    <TableCell>
-                      <Link href={`/portal/admin/notification-templates/${t.id}`}>
-                        <Button variant="secondary" size="sm">Изменить</Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <NotificationTemplatesTableClient templates={templatesData} />
         )}
       </Card>
     </div>

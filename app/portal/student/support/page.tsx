@@ -1,10 +1,14 @@
 /**
  * Student: support tickets — list and create.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Поддержка' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
+import { PageHeader } from '@/components/portal/PageHeader';
 import { SupportTicketsClient } from './SupportTicketsClient';
 
 export default async function StudentSupportPage() {
@@ -13,9 +17,12 @@ export default async function StudentSupportPage() {
 
   if (!userId) {
     return (
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Поддержка</h1>
-        <p className="mt-2 text-[var(--portal-text-muted)]">Загрузка…</p>
+      <div className="w-full">
+        <PageHeader
+          items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Поддержка' }]}
+          title="Поддержка"
+          description="Загрузка…"
+        />
       </div>
     );
   }
@@ -33,10 +40,12 @@ export default async function StudentSupportPage() {
   }));
 
   return (
-    <div>
-      <Breadcrumbs items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Поддержка' }]} />
-      <h1 className="mt-2 font-heading text-2xl font-bold text-[var(--portal-text)]">Поддержка</h1>
-      <p className="mt-1 text-[var(--portal-text-muted)]">Ваши обращения и заявки</p>
+    <div className="w-full space-y-4">
+      <PageHeader
+        items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Поддержка' }]}
+        title="Поддержка"
+        description="Ваши обращения и заявки"
+      />
       <SupportTicketsClient initialTickets={initialTickets} />
     </div>
   );

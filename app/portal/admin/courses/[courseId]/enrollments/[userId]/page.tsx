@@ -1,6 +1,7 @@
 /**
  * Admin: detailed progress of one user in one course (per-lesson).
  */
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
@@ -19,11 +20,23 @@ function formatTime(seconds: number): string {
   return `${seconds} сек`;
 }
 
-export default async function AdminCourseEnrollmentProgressPage({
-  params,
-}: {
-  params: Promise<{ courseId: string; userId: string }>;
-}) {
+type Props = { params: Promise<{ courseId: string; userId: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { courseId, userId } = await params;
+  const [course, user] = await Promise.all([
+    prisma.course.findUnique({ where: { id: courseId }, select: { title: true } }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      include: { profile: { select: { displayName: true } } },
+    }),
+  ]);
+  const courseTitle = course?.title ?? 'Курс';
+  const userName = user?.profile?.displayName ?? user?.email ?? 'Участник';
+  return { title: `Прогресс: ${courseTitle} — ${userName}`.slice(0, 60) };
+}
+
+export default async function AdminCourseEnrollmentProgressPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || role !== 'admin') {

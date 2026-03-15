@@ -4,8 +4,10 @@
  * Manager: search users by email or name. Portal design.
  */
 import { useState } from 'react';
+import Link from 'next/link';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Search, ExternalLink } from 'lucide-react';
 
 interface Profile {
   id: string;
@@ -30,8 +32,12 @@ export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profil
       if (res.ok) {
         const data = await res.json();
         setProfiles(data.profiles ?? []);
+      } else {
+        toast.error('Ошибка поиска');
+        setProfiles([]);
       }
     } catch {
+      toast.error('Ошибка соединения');
       setProfiles([]);
     }
     setLoading(false);
@@ -62,6 +68,7 @@ export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profil
                 <th className="px-4 py-3 font-semibold text-[var(--portal-text)]">Email</th>
                 <th className="px-4 py-3 font-semibold text-[var(--portal-text)]">Статус</th>
                 <th className="px-4 py-3 font-semibold text-[var(--portal-text)]">Дата</th>
+                <th className="px-4 py-3 font-semibold text-[var(--portal-text)] w-10"></th>
               </tr>
             </thead>
             <tbody>
@@ -76,6 +83,15 @@ export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profil
                   </td>
                   <td className="px-4 py-3 text-[var(--portal-text-muted)]">
                     {new Date(p.created_at).toLocaleDateString('ru')}
+                  </td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/portal/manager/users/${p.id}`}
+                      className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:bg-[#EEF2FF] hover:text-[#6366F1]"
+                      title="Открыть карточку"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Link>
                   </td>
                 </tr>
               ))}

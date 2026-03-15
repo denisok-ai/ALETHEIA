@@ -3,7 +3,7 @@
 /**
  * Admin: mailings table, create/edit form (main + recipients), send, copy, delete.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -17,6 +17,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
 import {
   Dialog,
   DialogContent,
@@ -25,7 +27,17 @@ import {
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Plus, Pencil, Trash2, Send, Copy, FileText, Paperclip, Loader2 } from 'lucide-react';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
+import { Plus, Pencil, Trash2, Send, Copy, FileText, Paperclip, Loader2, Sparkles } from 'lucide-react';
+
+const MAILINGS_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'internalTitle', label: 'Название' },
+  { id: 'emailSubject', label: 'Тема' },
+  { id: 'status', label: 'Статус' },
+  { id: 'scheduleMode', label: 'Режим' },
+  { id: 'createdAt', label: 'Создано' },
+];
 import { format } from 'date-fns';
 
 export interface MailingRow {
@@ -64,6 +76,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
   const [formTitle, setFormTitle] = useState('');
   const [formSubject, setFormSubject] = useState('');
   const [formBody, setFormBody] = useState('');
+  const [formAiGenerating, setFormAiGenerating] = useState(false);
   const [formSenderName, setFormSenderName] = useState('');
   const [formSenderEmail, setFormSenderEmail] = useState('');
   const [formScheduleMode, setFormScheduleMode] = useState<'manual' | 'scheduled'>('manual');
@@ -78,6 +91,28 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
   const [attachmentUploading, setAttachmentUploading] = useState(false);
   const [attachmentRemoving, setAttachmentRemoving] = useState<string | null>(null);
   const attachmentFileInputRef = useRef<HTMLInputElement>(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => MAILINGS_TABLE_COLUMNS.map((c) => c.id));
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
+
+  const mailingsSortGetters: Record<string, (m: MailingRow) => unknown> = {
+    title: (m) => m.internalTitle,
+    subject: (m) => m.emailSubject,
+    status: (m) => m.status,
+    createdAt: (m) => m.createdAt,
+    recipients: (m) => m.logsCount,
+  };
+  const sortedItems = useMemo(() => {
+    if (!sortKey || !mailingsSortGetters[sortKey]) return items;
+    return sortTableBy(items, mailingsSortGetters[sortKey], sortDir);
+  }, [items, sortKey, sortDir]);
 
   useEffect(() => {
     fetch('/api/portal/admin/comms/recipients')
@@ -92,6 +127,25 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
       .then((d) => setUserGroups((d?.groups ?? []).map((g: GroupOption) => ({ id: g.id, name: g.name }))))
       .catch(() => {});
   }, []);
+
+  const mailingsTotal = sortedItems.length;
+  const mailingsTotalPages = Math.max(1, Math.ceil(mailingsTotal / pageSize));
+  const mailingsCurrentPage = Math.min(page, mailingsTotalPages - 1);
+  const mailingsStart = mailingsCurrentPage * pageSize;
+  const mailingsPageRows = sortedItems.slice(mailingsStart, mailingsStart + pageSize);
+
+  const handleExportExcel = () => {
+    const headers = ['Название', 'Тема', 'Статус', 'Режим', 'Создано', 'Отправлено'];
+    const rows = sortedItems.map((m) => [
+      m.internalTitle,
+      m.emailSubject,
+      m.status === 'planned' ? 'Запланирована' : m.status === 'processing' ? 'Идёт' : 'Завершена',
+      m.scheduleMode === 'scheduled' ? 'По расписанию' : 'Вручную',
+      format(new Date(m.createdAt), 'dd.MM.yyyy HH:mm'),
+      String(m.logsCount),
+    ]);
+    downloadXlsxFromArrays(headers, rows, `mailings-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
 
   async function loadList() {
     const r = await fetch('/api/portal/admin/mailings');
@@ -264,8 +318,15 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
       const r = await fetch(`/api/portal/admin/mailings/${m.id}/send`, { method: 'POST' });
       const data = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(data.error ?? 'Ошибка');
-      toast.success(`Отправлено: ${data.sent}, ошибок: ${data.failed}`);
-      await loadList();
+      if (r.status === 202) {
+        toast.success(data.message ?? 'Рассылка запущена. Обновите страницу для просмотра статуса.');
+        await loadList();
+        const poll = setInterval(loadList, 5000);
+        setTimeout(() => clearInterval(poll), 60000);
+      } else {
+        toast.success(`Отправлено: ${data.sent}, ошибок: ${data.failed}`);
+        await loadList();
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Ошибка');
     }
@@ -296,6 +357,34 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
     }
   }
 
+  async function handleAiSuggestMailing() {
+    const title = formTitle.trim() || 'Рассылка';
+    setFormAiGenerating(true);
+    try {
+      const r = await fetch('/api/portal/admin/ai-settings/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: `Сгенерируй тему письма и HTML-текст рассылки по названию «${title}». Используй подстановки %FirstName%, %LastName%, %date%, %unsubscribe% где уместно. Ответь строго в формате:\nТема:\n...\n\nТекст:\n...`,
+          systemPrompt: 'Ты помогаешь писать рассылки для школы AVATERRA. Отвечай только в формате: блок Тема, затем блок Текст (HTML). Без пояснений.',
+          maxTokens: 1024,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Ошибка');
+      const content = data.content ?? '';
+      const themeMatch = content.match(/Тема:\s*\n?([\s\S]*?)(?=\n\nТекст:|$)/i);
+      const bodyMatch = content.match(/Текст:\s*\n?([\s\S]*)/i);
+      if (themeMatch?.[1]) setFormSubject(themeMatch[1].trim());
+      if (bodyMatch?.[1]) setFormBody(bodyMatch[1].trim());
+      if (content && !themeMatch?.[1] && !bodyMatch?.[1]) setFormBody(content);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка генерации');
+    } finally {
+      setFormAiGenerating(false);
+    }
+  }
+
   function toggleUserId(id: string) {
     setFormUserIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
@@ -316,17 +405,16 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
         </Button>
       </div>
 
-      <div className="portal-card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">№</TableHead>
-              <TableHead>Название</TableHead>
-              <TableHead>Тема</TableHead>
-              <TableHead>Статус</TableHead>
-              <TableHead>Создана</TableHead>
-              <TableHead className="text-right">Получателей</TableHead>
+              <SortableTableHead sortKey="title" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Название</SortableTableHead>
+              <SortableTableHead sortKey="subject" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Тема</SortableTableHead>
+              <SortableTableHead sortKey="status" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Статус</SortableTableHead>
+              <SortableTableHead sortKey="createdAt" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Создана</SortableTableHead>
+              <SortableTableHead sortKey="recipients" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort} className="text-right">Получателей</SortableTableHead>
               <TableHead className="w-40"></TableHead>
             </TableRow>
           </TableHeader>
@@ -342,9 +430,9 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                 </TableCell>
               </TableRow>
             ) : (
-              items.map((m, idx) => (
+              mailingsPageRows.map((m, idx) => (
                 <TableRow key={m.id}>
-                  <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{mailingsStart + idx + 1}</TableCell>
                   <TableCell className="font-medium text-[var(--portal-text)]">{m.internalTitle}</TableCell>
                   <TableCell className="text-[var(--portal-text-muted)] line-clamp-1 max-w-[200px]">{m.emailSubject}</TableCell>
                   <TableCell>
@@ -409,8 +497,23 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
             )}
           </TableBody>
         </Table>
-        </div>
       </div>
+      {items.length > 0 && (
+        <TablePagination
+          currentPage={Math.min(page, Math.max(0, Math.ceil(items.length / pageSize) - 1))}
+          totalPages={Math.max(1, Math.ceil(items.length / pageSize))}
+          total={items.length}
+          pageSize={pageSize}
+          pageSizeOptions={STANDARD_PAGE_SIZES}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+          columnConfig={MAILINGS_TABLE_COLUMNS}
+          visibleColumnIds={visibleColumnIds}
+          onVisibleColumnIdsChange={setVisibleColumnIds}
+          onExportExcel={handleExportExcel}
+          exportLabel="Excel"
+        />
+      )}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">
@@ -432,7 +535,13 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                 />
               </div>
               <div>
-                <Label htmlFor="mail-subject">Тема письма</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="mail-subject" className="mb-0">Тема письма</Label>
+                  <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleAiSuggestMailing} disabled={formAiGenerating}>
+                    {formAiGenerating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
+                    <span className="ml-1">{formAiGenerating ? 'Генерация…' : 'AI предложить тему и текст'}</span>
+                  </Button>
+                </div>
                 <Input
                   id="mail-subject"
                   value={formSubject}

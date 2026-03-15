@@ -1,19 +1,29 @@
 /**
  * Student: view a single media resource. Portal design.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { canStudentAccessMedia } from '@/lib/media-access';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { MediaViewClient } from './MediaViewClient';
 
-export default async function StudentMediaViewPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type Props = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const media = await prisma.media.findUnique({
+    where: { id },
+    select: { title: true },
+  });
+  if (!media) return { title: 'Медиа' };
+  return { title: (media.title ?? 'Медиа').slice(0, 60) };
+}
+
+export default async function StudentMediaViewPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
 
@@ -34,8 +44,13 @@ export default async function StudentMediaViewPage({
   }
 
   const { id } = await params;
-  const media = await prisma.media.findUnique({ where: { id } });
+  const media = await prisma.media.findUnique({
+    where: { id },
+    include: { mediaGroups: { select: { groupId: true } } },
+  });
   if (!media) notFound();
+  const allowed = await canStudentAccessMedia(userId, media);
+  if (!allowed) notFound();
 
   return (
     <div className="space-y-6 max-w-4xl">

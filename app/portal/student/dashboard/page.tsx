@@ -1,10 +1,16 @@
 /**
  * Student dashboard — redesigned: welcome banner, progress stats, course cards, notifications.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Дашборд' };
+
 import Link from 'next/link';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { formatNotificationContent, formatNotificationType } from '@/lib/notification-content';
+import { pluralize } from '@/lib/pluralize';
 import { CourseCard } from '@/components/portal/CourseCard';
 import { StudentOnboardingHint } from '@/components/portal/StudentOnboardingHint';
 import { BookOpen, Award, Clock, Zap, ChevronRight, Bell } from 'lucide-react';
@@ -209,7 +215,7 @@ export default async function StudentDashboardPage() {
           icon={<Award className="h-5 w-5" />}
           label="Завершено"
           value={completedCourses}
-          sub={certCount > 0 ? `${certCount} сертификат(ов)` : undefined}
+          sub={certCount > 0 ? `${certCount} ${pluralize(certCount, 'сертификат', 'сертификата', 'сертификатов')}` : undefined}
           color="green"
         />
         <StatCard
@@ -296,10 +302,14 @@ export default async function StudentDashboardPage() {
                   <Bell className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-[var(--portal-text)] truncate">{n.type}</p>
-                  <p className="text-xs text-[var(--portal-text-muted)] mt-0.5 line-clamp-2">
-                    {String(n.content ?? '')}
+                  <p className="text-sm font-medium text-[var(--portal-text)] truncate">
+                    {formatNotificationContent(n.content, n.type) || formatNotificationType(n.type)}
                   </p>
+                  {formatNotificationContent(n.content, n.type) && (
+                    <p className="text-xs text-[var(--portal-text-muted)] mt-0.5">
+                      {formatNotificationType(n.type)}
+                    </p>
+                  )}
                   <time className="text-[0.7rem] text-[var(--portal-text-soft)] mt-1 block">
                     {new Date(n.createdAt).toLocaleDateString('ru', {
                       day: '2-digit', month: 'short', year: 'numeric',

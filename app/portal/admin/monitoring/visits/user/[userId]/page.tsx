@@ -1,16 +1,26 @@
 /**
  * Admin: детализация посещений по пользователю — список сессий (IP, вход, выход).
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { VisitDetailClient } from './VisitDetailClient';
 
-export default async function VisitDetailPage({
-  params,
-}: {
-  params: Promise<{ userId: string }>;
-}) {
+type Props = { params: Promise<{ userId: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { userId } = await params;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { profile: { select: { displayName: true } } },
+  });
+  const name = user?.profile?.displayName ?? user?.email ?? 'Пользователь';
+  return { title: `Посещения: ${String(name).slice(0, 40)}` };
+}
+
+export default async function VisitDetailPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return (

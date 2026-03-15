@@ -1,13 +1,27 @@
 /**
  * Manager: ticket thread — messages, reply, status, assign.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { TicketThread } from '@/components/portal/TicketThread';
 
-export default async function ManagerTicketPage({ params }: { params: Promise<{ id: string }> }) {
+type Props = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const ticket = await prisma.ticket.findUnique({
+    where: { id },
+    select: { subject: true },
+  });
+  if (!ticket) return { title: 'Тикет' };
+  const title = ticket.subject?.trim() || 'Тикет';
+  return { title: title.length > 50 ? title.slice(0, 47) + '…' : title };
+}
+
+export default async function ManagerTicketPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
   const role = (session?.user as { role?: string })?.role;
@@ -52,6 +66,7 @@ export default async function ManagerTicketPage({ params }: { params: Promise<{ 
         initialMessages={messages}
         canChangeStatus
         canAssign
+        canAddToKb={role === 'admin'}
         managers={managers.map((p) => ({ id: p.userId, label: p.displayName ?? p.user.email ?? p.userId.slice(0, 8) }))}
         backHref="/portal/manager/tickets"
         backLabel="← К списку тикетов"

@@ -348,6 +348,7 @@ function CertificateFromImage({
 }) {
   return (
     <Page size="A4" style={{ padding: 0, fontFamily: FONT_FAMILY }}>
+      {/* eslint-disable-next-line jsx-a11y/alt-text -- PDF Image from @react-pdf/renderer has no alt prop */}
       <Image
         src={backgroundSrc}
         style={{ position: 'absolute', top: 0, left: 0, width: A4_WIDTH, height: A4_HEIGHT }}

@@ -1,32 +1,73 @@
 /**
  * Portal shell: header + role-specific sidebar. PortalUIProvider for mobile menu state.
- * Для студента при каждом входе привязываем оплаченные заказы по email (страховка после оплаты без регистрации).
+ * Для студента при первом входе в сессию привязываем оплаченные заказы по email (cookie ограничивает частоту вызова).
  */
 import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { getUser } from '@/lib/auth';
 import { getSystemSettings } from '@/lib/settings';
 import { claimPaidOrdersForUser } from '@/lib/claim-orders';
 import { PortalUIProvider } from '@/components/portal/PortalUIProvider';
+import { PortalHeader } from '@/components/portal/PortalHeader';
+import { prisma } from '@/lib/db';
+import type { Metadata } from 'next';
+
+const CLAIM_COOKIE = 'avaterra_claim_checked';
+const CLAIM_COOKIE_MAX_AGE = 86400; // 1 day
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSystemSettings();
+  const title = settings?.portal_title || 'AVATERRA';
+  return {
+    title: { default: `Портал ${title}`, template: `%s | ${title}` },
+  };
+}
 
 export default async function PortalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [{ user, profile }, settings] = await Promise.all([getUser(), getSystemSettings()]);
+  const [{ user, profile }, settings, cookieStore] = await Promise.all([
+    getUser(),
+    getSystemSettings(),
+    cookies(),
+  ]);
+  const unreadCount =
+    user?.id && profile?.role === 'user'
+      ? await prisma.notification.count({ where: { userId: user.id, isRead: false } })
+      : 0;
   if (!user) redirect('/login');
 
-  if (profile?.role === 'user' && user.email) {
+  if (profile?.role === 'user' && user.id) {
+    const dbProfile = await prisma.profile.findUnique({
+      where: { userId: user.id },
+      select: { emailVerifiedAt: true },
+    });
+    if (dbProfile && !dbProfile.emailVerifiedAt) {
+      redirect('/verify-email-required');
+    }
+  }
+
+  const email = user.email;
+  if (profile?.role === 'user' && user.id && email && !cookieStore.get(CLAIM_COOKIE)) {
     try {
-      await claimPaidOrdersForUser(user.id, user.email.trim().toLowerCase());
+      const emailNorm = email.trim().toLowerCase();
+      await claimPaidOrdersForUser(user.id, emailNorm);
+      cookieStore.set(CLAIM_COOKIE, '1', { maxAge: CLAIM_COOKIE_MAX_AGE, path: '/portal' });
     } catch (e) {
       console.error('Portal: claim orders', e);
     }
   }
 
+  const portalTitle = settings.portal_title || 'AVATERRA';
+
   return (
-    <PortalUIProvider user={user} profile={profile} portalTitle={settings.portal_title || 'AVATERRA'}>
-      {children}
+    <PortalUIProvider user={user} profile={profile} portalTitle={portalTitle}>
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        <PortalHeader user={user} profile={profile} portalTitle={portalTitle} unreadNotificationCount={unreadCount} />
+        <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
+      </div>
     </PortalUIProvider>
   );
 }

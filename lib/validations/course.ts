@@ -13,6 +13,7 @@ export const courseCreateSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
   thumbnailUrl: z.string().max(2000).optional().nullable(),
   aiTutorEnabled: z.boolean().optional(),
+  verificationRequiredLessonIds: z.array(z.string()).optional().nullable(),
 });
 
 export const courseUpdateSchema = courseCreateSchema.partial();

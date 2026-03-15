@@ -1,7 +1,11 @@
 /**
  * Admin: мониторинг — пользователи онлайн, посещения, график.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Мониторинг' };
+
 import { authOptions } from '@/lib/auth';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { MonitoringClient } from './MonitoringClient';

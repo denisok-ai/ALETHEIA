@@ -1,13 +1,14 @@
 'use client';
 
 /**
- * Admin courses: table + create form + SCORM upload, edit, delete, status toggle, reorder.
+ * Admin courses: table + create form + SCORM upload, edit, delete, status toggle, reorder, column sort.
  */
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Upload, Pencil, Trash2, ChevronUp, ChevronDown, ExternalLink, Copy, CheckSquare, Square, FolderPlus, FolderMinus } from 'lucide-react';
+import { Plus, Upload, Pencil, Trash2, ChevronUp, ChevronDown, ArrowUpDown, ExternalLink, Copy, CheckSquare, Square, FolderPlus, FolderMinus, Sparkles } from 'lucide-react';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +21,18 @@ import {
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { GroupPickerModal } from '@/components/portal/GroupPickerModal';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { COURSE_STATUS_OPTIONS, getCourseStatusLabel, type CourseStatusKey } from '@/lib/course-status';
+import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
+
+const COURSES_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'title', label: 'Название' },
+  { id: 'starts_at', label: 'Начало' },
+  { id: 'ends_at', label: 'Окончание' },
+  { id: 'status', label: 'Статус' },
+  { id: 'price', label: 'Цена' },
+  { id: 'scorm', label: 'SCORM' },
+];
 
 function formatDateTime(iso: string) {
   try {
@@ -71,6 +83,44 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
   const [duplicating, setDuplicating] = useState<string | null>(null);
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [groupActionLoading, setGroupActionLoading] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => COURSES_TABLE_COLUMNS.map((c) => c.id));
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const handleExportExcel = () => {
+    const headers = ['Название', 'Начало', 'Окончание', 'Статус', 'Цена', 'SCORM'];
+    const rows = sortedCourses.map((c) => [
+      c.title,
+      c.starts_at ? formatDateTime(c.starts_at) : '—',
+      c.ends_at ? formatDateTime(c.ends_at) : '—',
+      getCourseStatusLabel(c.status),
+      c.price != null ? `${c.price}` : '—',
+      c.scorm_path ? 'Загружен' : '—',
+    ]);
+    downloadXlsxFromArrays(headers, rows, `courses-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
+
+  const courseSortGetters: Record<string, (c: Course) => unknown> = {
+    title: (c) => c.title,
+    starts_at: (c) => c.starts_at ?? '',
+    ends_at: (c) => c.ends_at ?? '',
+    status: (c) => c.status,
+    price: (c) => c.price ?? -1,
+    scorm: (c) => (c.scorm_path ? 1 : 0),
+  };
+  const sortedCourses = useMemo(() => {
+    if (!sortKey || !courseSortGetters[sortKey]) {
+      return [...courses].sort((a, b) => a.sort_order - b.sort_order);
+    }
+    return sortTableBy(courses, courseSortGetters[sortKey], sortDir);
+  }, [courses, sortKey, sortDir]);
 
   async function handleDuplicate(c: Course) {
     setDuplicating(c.id);
@@ -231,6 +281,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
       setNewPrice('');
     } catch (err) {
       console.error(err);
+      toast.error('Ошибка создания курса');
     }
     setCreating(false);
   }
@@ -364,7 +415,36 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
               />
             </div>
             <div>
-              <Label htmlFor="desc">Описание</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="desc">Описание</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 gap-1 text-xs"
+                  onClick={async () => {
+                    if (!newTitle.trim()) { toast.error('Введите название курса'); return; }
+                    try {
+                      const res = await fetch('/api/portal/admin/ai-settings/generate-text', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          instruction: 'Сгенерируй краткое описание курса (2-4 предложения) для лендинга. Только текст, без заголовков.',
+                          context: `Название курса: ${newTitle}`,
+                          maxTokens: 300,
+                        }),
+                      });
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+                      setNewDesc(data.content ?? '');
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : 'Не удалось сгенерировать');
+                    }
+                  }}
+                >
+                  <Sparkles className="h-3.5 w-3.5" /> AI описание
+                </Button>
+              </div>
               <textarea
                 id="desc"
                 value={newDesc}
@@ -468,17 +548,64 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                 </button>
               </th>
               <th className="px-4 py-2 font-medium text-[var(--portal-text)] w-8">↑↓</th>
-              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Название</th>
-              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Начало</th>
-              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Окончание</th>
-              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Статус</th>
-              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Цена</th>
-              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">SCORM</th>
+              {visibleColumnIds.includes('title') && (
+                <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
+                  <button type="button" onClick={() => handleSort('title')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                    Название
+                    {sortKey === 'title' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                  </button>
+                </th>
+              )}
+              {visibleColumnIds.includes('starts_at') && (
+                <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
+                  <button type="button" onClick={() => handleSort('starts_at')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                    Начало
+                    {sortKey === 'starts_at' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                  </button>
+                </th>
+              )}
+              {visibleColumnIds.includes('ends_at') && (
+                <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
+                  <button type="button" onClick={() => handleSort('ends_at')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                    Окончание
+                    {sortKey === 'ends_at' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                  </button>
+                </th>
+              )}
+              {visibleColumnIds.includes('status') && (
+                <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
+                  <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                    Статус
+                    {sortKey === 'status' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                  </button>
+                </th>
+              )}
+              {visibleColumnIds.includes('price') && (
+                <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
+                  <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                    Цена
+                    {sortKey === 'price' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                  </button>
+                </th>
+              )}
+              {visibleColumnIds.includes('scorm') && (
+                <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
+                  <button type="button" onClick={() => handleSort('scorm')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                    SCORM
+                    {sortKey === 'scorm' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                  </button>
+                </th>
+              )}
               <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Действия</th>
             </tr>
           </thead>
           <tbody>
-            {[...courses].sort((a, b) => a.sort_order - b.sort_order).map((c) => (
+            {(() => {
+              const total = sortedCourses.length;
+              const totalPages = Math.max(1, Math.ceil(total / pageSize));
+              const currentPage = Math.min(page, totalPages - 1);
+              const pageCourses = sortedCourses.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
+              return pageCourses.map((c) => (
               <tr key={c.id} className="border-b border-[#E2E8F0] hover:bg-[#F8FAFC]">
                 <td className="px-2 py-2">
                   <button type="button" onClick={() => toggleSelect(c.id)} className="p-1">
@@ -507,23 +634,35 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                     </button>
                   </div>
                 </td>
-                <td className="px-4 py-2">
-                  <Link
-                    href={`/portal/admin/courses/${c.id}`}
-                    className="font-medium text-[#6366F1] hover:underline"
-                  >
-                    {c.title}
-                  </Link>
-                </td>
-                <td className="px-4 py-2 text-[var(--portal-text-muted)] whitespace-nowrap">
-                  {c.starts_at ? formatDateTime(c.starts_at) : '—'}
-                </td>
-                <td className="px-4 py-2 text-[var(--portal-text-muted)] whitespace-nowrap">
-                  {c.ends_at ? formatDateTime(c.ends_at) : '—'}
-                </td>
-                <td className="px-4 py-2 text-[var(--portal-text-muted)]">{getCourseStatusLabel(c.status)}</td>
-                <td className="px-4 py-2 text-[var(--portal-text-muted)]">{c.price != null ? `${c.price} ₽` : '—'}</td>
-                <td className="px-4 py-2 text-[var(--portal-text-muted)]">{c.scorm_path ? 'Загружен' : '—'}</td>
+                {visibleColumnIds.includes('title') && (
+                  <td className="px-4 py-2">
+                    <Link
+                      href={`/portal/admin/courses/${c.id}`}
+                      className="font-medium text-[#6366F1] hover:underline"
+                    >
+                      {c.title}
+                    </Link>
+                  </td>
+                )}
+                {visibleColumnIds.includes('starts_at') && (
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)] whitespace-nowrap">
+                    {c.starts_at ? formatDateTime(c.starts_at) : '—'}
+                  </td>
+                )}
+                {visibleColumnIds.includes('ends_at') && (
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)] whitespace-nowrap">
+                    {c.ends_at ? formatDateTime(c.ends_at) : '—'}
+                  </td>
+                )}
+                {visibleColumnIds.includes('status') && (
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)]">{getCourseStatusLabel(c.status)}</td>
+                )}
+                {visibleColumnIds.includes('price') && (
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)]">{c.price != null ? `${c.price} ₽` : '—'}</td>
+                )}
+                {visibleColumnIds.includes('scorm') && (
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)]">{c.scorm_path ? 'Загружен' : '—'}</td>
+                )}
                 <td className="px-4 py-2">
                   <div className="flex flex-wrap items-center gap-1">
                     {c.scorm_path && (
@@ -601,10 +740,27 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                   </div>
                 </td>
               </tr>
-            ))}
+            ));
+            })()}
           </tbody>
         </table>
       </div>
+      {sortedCourses.length > 0 && (
+          <TablePagination
+            currentPage={Math.min(page, Math.max(0, Math.ceil(sortedCourses.length / pageSize) - 1))}
+            totalPages={Math.max(1, Math.ceil(sortedCourses.length / pageSize))}
+            total={sortedCourses.length}
+            pageSize={pageSize}
+            pageSizeOptions={STANDARD_PAGE_SIZES}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+            columnConfig={COURSES_TABLE_COLUMNS}
+            visibleColumnIds={visibleColumnIds}
+            onVisibleColumnIdsChange={setVisibleColumnIds}
+            onExportExcel={handleExportExcel}
+            exportLabel="Excel"
+          />
+      )}
       {courses.length === 0 && (
         <EmptyState
           className="mt-6"
@@ -676,6 +832,7 @@ function EditCourseDialog({
 }) {
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description ?? '');
+  const [aiLoading, setAiLoading] = useState(false);
   const [startsAt, setStartsAt] = useState(toDatetimeLocal(course.starts_at));
   const [endsAt, setEndsAt] = useState(toDatetimeLocal(course.ends_at));
   const [price, setPrice] = useState(course.price ?? '');
@@ -699,7 +856,39 @@ function EditCourseDialog({
             />
           </div>
           <div>
-            <Label htmlFor="edit-desc">Описание</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="edit-desc">Описание</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                disabled={aiLoading}
+                onClick={async () => {
+                  setAiLoading(true);
+                  try {
+                    const res = await fetch('/api/portal/admin/ai-settings/generate-text', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        instruction: 'Сгенерируй краткое описание курса (2-4 предложения) для лендинга. Только текст, без заголовков.',
+                        context: `Название курса: ${title}`,
+                        maxTokens: 300,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+                    setDescription(data.content ?? '');
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : 'Не удалось сгенерировать');
+                  } finally {
+                    setAiLoading(false);
+                  }
+                }}
+              >
+                <Sparkles className="h-3.5 w-3.5" /> {aiLoading ? 'Генерация…' : 'AI описание'}
+              </Button>
+            </div>
             <textarea
               id="edit-desc"
               value={description}

@@ -136,6 +136,31 @@ async function main() {
     }
   }
 
+  // ——— Для первых курсов: scormManifest и scormPath (для проверки прогресса и плеера) ———
+  const scormLessonIds = ['lesson-1', 'lesson-2', 'lesson-3'];
+  const scormManifestJson = JSON.stringify({
+    version: '1.2',
+    title: 'Тестовый курс',
+    items: [
+      { identifier: 'lesson-1', title: 'Урок 1. Введение', href: 'lesson1.html' },
+      { identifier: 'lesson-2', title: 'Урок 2. Практика', href: 'lesson2.html' },
+      { identifier: 'lesson-3', title: 'Урок 3. Итоги', href: 'lesson3.html' },
+    ],
+  });
+  const publishedCourses = courses.filter((_, i) => statuses[i % statuses.length] === 'published');
+  for (let i = 0; i < Math.min(5, publishedCourses.length); i++) {
+    const c = publishedCourses[i];
+    if (!c) continue;
+    await prisma.course.update({
+      where: { id: c.id },
+      data: {
+        scormPath: `courses-${c.id}/index.html`,
+        scormVersion: '1.2',
+        scormManifest: scormManifestJson,
+      },
+    }).catch(() => {});
+  }
+
   // Связка курсов с группами курсов
   for (let i = 0; i < courses.length; i++) {
     const group = courseGroups[i % courseGroups.length];
@@ -209,7 +234,7 @@ async function main() {
     }).catch(() => {});
   }
 
-  // ——— Лиды: 50+ ———
+  // ——— Лиды: 50+; у части — lastOrderNumber (связь с оплаченным заказом) ———
   const leadCount = await prisma.lead.count();
   const firstNames = ['Анна', 'Петр', 'Мария', 'Иван', 'Елена', 'Сергей', 'Ольга', 'Дмитрий', 'Наталья', 'Алексей'];
   const lastNames = ['Иванова', 'Сидоров', 'Козлова', 'Петров', 'Смирнова', 'Кузнецов', 'Попова', 'Васильева', 'Михайлова', 'Новикова'];
@@ -267,6 +292,16 @@ async function main() {
         paidAt: status === 'paid' || status === 'refunded' ? new Date(Date.now() - i * 86400000) : null,
         userId: userId ?? null,
       },
+    }).catch(() => {});
+  }
+
+  // Привязка lastOrderNumber к части лидов (по оплаченным заказам)
+  const paidOrdersForLeads = await prisma.order.findMany({ where: { status: 'paid' }, select: { orderNumber: true }, take: 10 });
+  const leadsToLink = await prisma.lead.findMany({ orderBy: { id: 'asc' }, take: 10 });
+  for (let i = 0; i < Math.min(paidOrdersForLeads.length, leadsToLink.length); i++) {
+    await prisma.lead.update({
+      where: { id: leadsToLink[i].id },
+      data: { lastOrderNumber: paidOrdersForLeads[i].orderNumber },
     }).catch(() => {});
   }
 
@@ -364,17 +399,23 @@ async function main() {
     }).catch(() => {});
   }
 
-  // ——— Тикеты: 50+, связка студент + менеджер ———
+  // ——— Тикеты: 50+, связка студент + менеджер; у части — привязка заказа (orderNumber) ———
   const ticketStatuses = ['open', 'in_progress', 'resolved', 'closed'] as const;
-  const ticketSubjects = ['Доступ к уроку', 'Сертификат', 'Оплата', 'Технический вопрос', 'Перенос срока'];
+  const ticketSubjects = ['Доступ к уроку', 'Сертификат', 'Оплата', 'Технический вопрос', 'Перенос срока', 'Не приходит доступ', 'Проблема с прохождением курса'];
+  const paidOrderNumbers = await prisma.order.findMany({ where: { status: 'paid' }, select: { orderNumber: true }, take: 15 });
   for (let i = 0; i < N; i++) {
     const managerId = i % 2 === 0 ? manager1.id : manager2.id;
+    const subjectIdx = i % ticketSubjects.length;
+    const subject = subjectIdx === 5 && paidOrderNumbers[i % paidOrderNumbers.length]
+      ? `Не приходит доступ — заказ ${paidOrderNumbers[i % paidOrderNumbers.length].orderNumber}`
+      : `${ticketSubjects[subjectIdx]} — тикет ${i + 1}`;
     await prisma.ticket.create({
       data: {
         userId: students[i % students.length].id,
         managerId: i % 3 !== 0 ? managerId : null,
-        subject: `${ticketSubjects[i % ticketSubjects.length]} — тикет ${i + 1}`,
+        subject,
         status: ticketStatuses[i % ticketStatuses.length],
+        orderNumber: i < 15 && paidOrderNumbers[i % paidOrderNumbers.length] ? paidOrderNumbers[i % paidOrderNumbers.length].orderNumber : null,
         messages: JSON.stringify([
           { role: 'user', content: `Сообщение пользователя ${i + 1}`, at: new Date().toISOString() },
           ...(i % 3 !== 0 ? [{ role: 'manager', content: `Ответ поддержки ${i + 1}`, at: new Date().toISOString() }] : []),
@@ -383,47 +424,109 @@ async function main() {
     }).catch(() => {});
   }
 
-  // ——— Сертификаты: часть студентов по части курсов ———
-  const certTemplates = await prisma.certificateTemplate.findMany({ take: 5 });
-  const templateId = certTemplates[0]?.id ?? null;
-  for (let i = 0; i < Math.min(40, students.length); i++) {
-    for (let j = 0; j < 2; j++) {
-      const course = courses[(i + j * 7) % courses.length];
+  // ——— Шаблоны сертификатов (если нет) ———
+  let certTemplates = await prisma.certificateTemplate.findMany({ take: 5 });
+  if (certTemplates.length === 0) {
+    for (let i = 0; i < 3; i++) {
+      const t = await prisma.certificateTemplate.create({
+        data: {
+          name: `Шаблон сертификата ${i + 1}`,
+          minScore: i === 0 ? 70 : null,
+          requiredStatus: 'completed',
+          validityDays: 365,
+          numberingFormat: 'CERT-YYYY-NNNN',
+          allowUserDownload: true,
+          courseId: courses[i % courses.length]?.id ?? null,
+        },
+      });
+      certTemplates.push(t);
+    }
+  }
+
+  // ——— Сертификаты: 50+ записей, формат ALT-XXXXXXXX, привязка к шаблонам ———
+  const certPairs = new Set<string>();
+  for (let i = 0; i < Math.min(55, students.length); i++) {
+    for (let j = 0; j < 3; j++) {
+      const course = courses[(i * 3 + j * 11) % courses.length];
       if (!course) continue;
+      const key = `${students[i].id}:${course.id}`;
+      if (certPairs.has(key)) continue;
+      certPairs.add(key);
+      const template = certTemplates[j % certTemplates.length] ?? certTemplates[0];
       await prisma.certificate.create({
         data: {
           userId: students[i].id,
           courseId: course.id,
-          templateId,
-          certNumber: `CERT-${nanoid(8).toUpperCase()}`,
-          issuedAt: new Date(Date.now() - (i + j) * 86400000),
-          expiryDate: new Date(Date.now() + 365 * 86400000),
+          templateId: template?.id ?? null,
+          certNumber: `ALT-${nanoid(8).toUpperCase()}`,
+          issuedAt: new Date(Date.now() - (i + j) * 86400 * 1000),
+          expiryDate: j % 4 === 0 ? new Date(Date.now() - 86400000) : new Date(Date.now() + 365 * 86400000),
         },
       }).catch(() => {});
     }
   }
 
-  // ——— ScormProgress: по урокам для части записей ———
-  const enrollments = await prisma.enrollment.findMany({ take: 80 });
-  const lessonIds = ['main', 'lesson-1', 'lesson-2', 'lesson-3', 'intro'];
-  for (let e = 0; e < Math.min(60, enrollments.length); e++) {
+  // ——— ScormProgress: прогресс по урокам (lesson-1, lesson-2, lesson-3) для проверки прохождения и сертификатов ———
+  const enrollments = await prisma.enrollment.findMany({
+    where: { course: { status: 'published' } },
+    take: 120,
+  });
+  const publishedCourseIds = new Set(publishedCourses.map((c) => c.id));
+  for (let e = 0; e < enrollments.length; e++) {
     const en = enrollments[e];
-    for (let l = 0; l < 3; l++) {
+    if (!publishedCourseIds.has(en.courseId)) continue;
+    const allCompleted = e < 35; // первые 35 записей — все уроки пройдены (для теста сертификатов)
+    for (let l = 0; l < scormLessonIds.length; l++) {
+      const lessonId = scormLessonIds[l];
+      const completed = allCompleted || l < 2 || (e + l) % 3 === 0;
       await prisma.scormProgress.upsert({
         where: {
-          userId_courseId_lessonId: { userId: en.userId, courseId: en.courseId, lessonId: lessonIds[l] },
+          userId_courseId_lessonId: { userId: en.userId, courseId: en.courseId, lessonId },
         },
         create: {
           userId: en.userId,
           courseId: en.courseId,
-          lessonId: lessonIds[l],
-          completionStatus: l < 2 ? 'completed' : 'incomplete',
-          score: 70 + Math.floor(Math.random() * 30),
-          timeSpent: 300 + l * 600,
+          lessonId,
+          cmiData: '{}',
+          completionStatus: completed ? (l % 2 === 0 ? 'completed' : 'passed') : 'incomplete',
+          score: 60 + Math.floor(Math.random() * 40),
+          timeSpent: 120 + l * 300 + Math.floor(Math.random() * 200),
         },
         update: {},
       }).catch(() => {});
     }
+  }
+  // Доп. прогресс для курсов без manifest (main / intro) — чтобы не ломать существующие данные
+  const lessonIdsLegacy = ['main', 'lesson-1', 'lesson-2', 'intro'];
+  for (let e = enrollments.length - 40; e < enrollments.length; e++) {
+    if (e < 0) continue;
+    const en = enrollments[e];
+    if (publishedCourseIds.has(en.courseId)) continue;
+    for (let l = 0; l < 2; l++) {
+      await prisma.scormProgress.upsert({
+        where: {
+          userId_courseId_lessonId: { userId: en.userId, courseId: en.courseId, lessonId: lessonIdsLegacy[l] },
+        },
+        create: {
+          userId: en.userId,
+          courseId: en.courseId,
+          lessonId: lessonIdsLegacy[l],
+          completionStatus: l === 0 ? 'completed' : 'incomplete',
+          score: 75,
+          timeSpent: 600,
+        },
+        update: {},
+      }).catch(() => {});
+    }
+  }
+
+  // ——— Завершённые записи (completedAt) для записей с полным прогрессом ———
+  const fullProgressEnrollments = enrollments.slice(0, 35);
+  for (const en of fullProgressEnrollments) {
+    await prisma.enrollment.updateMany({
+      where: { userId: en.userId, courseId: en.courseId },
+      data: { completedAt: new Date(Date.now() - 7 * 86400000) },
+    }).catch(() => {});
   }
 
   // ——— PhygitalVerification: часть пользователей по курсам ———
@@ -433,7 +536,7 @@ async function main() {
         userId: students[i % students.length].id,
         courseId: courses[i % courses.length].id,
         lessonId: `lesson-${(i % 3) + 1}`,
-        videoUrl: `https://example.com/video/${i + 1}`,
+        videoUrl: `/portal/manager/verifications#video-${i + 1}`,
         status: ['pending', 'approved', 'rejected'][i % 3],
         reviewedBy: i % 3 !== 0 ? manager1.id : null,
         reviewedAt: i % 3 !== 0 ? new Date() : null,
@@ -546,7 +649,41 @@ async function main() {
     update: {},
   });
 
-  console.log('Seed done: 50+ users, courses, enrollments, groups (course/media/user), media, leads, orders, mailings, mailing logs, unsubscribed, publications+comments, notifications, notification logs, tickets, certificates, scorm progress, phygital verifications, visit logs, audit logs, comms sends, user energy; links preserved.');
+  // ——— PasswordToken: тестовые токены для проверки /set-password (валидный и истёкший) ———
+  const student1 = students[0];
+  if (student1) {
+    const validExpiry = new Date(Date.now() + 48 * 60 * 60 * 1000);
+    const expiredExpiry = new Date(Date.now() - 60 * 60 * 1000);
+    await prisma.passwordToken.upsert({
+      where: { token: 'seedvalidtoken1234567890123456789012' },
+      create: { userId: student1.id, token: 'seedvalidtoken1234567890123456789012', expiresAt: validExpiry },
+      update: { expiresAt: validExpiry },
+    }).catch(() => {});
+    await prisma.passwordToken.upsert({
+      where: { token: 'seedexpiredtoken12345678901234567890' },
+      create: { userId: student1.id, token: 'seedexpiredtoken12345678901234567890', expiresAt: expiredExpiry },
+      update: { expiresAt: expiredExpiry },
+    }).catch(() => {});
+  }
+
+  // ——— SystemSetting: базовые настройки для локальной разработки ———
+  const systemSettings: { key: string; value: string; category: string | null }[] = [
+    { key: 'site_url', value: 'http://localhost:3000', category: 'general' },
+    { key: 'portal_title', value: 'AVATERRA', category: 'general' },
+    { key: 'contact_phone', value: '+7 (999) 123-45-67', category: 'general' },
+    { key: 'scorm_max_size_mb', value: '200', category: 'general' },
+    { key: 'resend_from', value: 'notifications@avaterra.pro', category: 'email' },
+    { key: 'resend_notify_email', value: 'admin@test.local', category: 'email' },
+  ];
+  for (const s of systemSettings) {
+    await prisma.systemSetting.upsert({
+      where: { key: s.key },
+      create: s,
+      update: { value: s.value, category: s.category },
+    }).catch(() => {});
+  }
+
+  console.log('Seed done: 50+ users, courses (первые 5 с scormManifest/scormPath), enrollments (часть completedAt), groups, media, leads, orders, mailings, tickets, 50+ certificates (ALT-xxx, шаблоны), scorm progress (lesson-1/2/3, часть полное прохождение), phygital, visit/audit logs, user energy, password tokens, system settings (в т.ч. scorm_max_size_mb).');
 }
 
 main()

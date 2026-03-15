@@ -1,7 +1,11 @@
 /**
  * Админ: страница «Помощь».
  */
+import type { Metadata } from 'next';
 import { PageHeader } from '@/components/portal/PageHeader';
+
+export const metadata: Metadata = { title: 'Помощь' };
+
 import { HelpContent } from '@/components/portal/HelpContent';
 
 export default function AdminHelpPage() {

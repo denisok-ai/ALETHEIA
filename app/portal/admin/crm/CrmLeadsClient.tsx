@@ -12,6 +12,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
 import {
   Dialog,
   DialogContent,
@@ -20,8 +22,9 @@ import {
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { TablePagination } from '@/components/ui/TablePagination';
-import { Pencil, Users } from 'lucide-react';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { downloadXlsx } from '@/lib/export-xlsx';
+import { Pencil, Users, Sparkles } from 'lucide-react';
 
 interface Lead {
   id: number;
@@ -38,7 +41,18 @@ interface Lead {
 }
 
 const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'lost'] as const;
-const PAGE_SIZES = [10, 25, 50];
+
+const LEADS_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'num', label: '№' },
+  { id: 'date', label: 'Дата' },
+  { id: 'name', label: 'Имя' },
+  { id: 'source', label: 'Источник' },
+  { id: 'phone', label: 'Телефон' },
+  { id: 'email', label: 'Email' },
+  { id: 'status', label: 'Статус' },
+  { id: 'message', label: 'Сообщение' },
+  { id: 'notes', label: 'Заметки' },
+];
 
 export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
   const [leads, setLeads] = useState(initialLeads);
@@ -56,6 +70,16 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [convertConfirmLead, setConvertConfirmLead] = useState<Lead | null>(null);
+  const [aiSummaryLoading, setAiSummaryLoading] = useState<number | null>(null);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => LEADS_TABLE_COLUMNS.map((c) => c.id));
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
 
   async function handleConvert(leadId: number) {
     setConvertConfirmLead(null);
@@ -134,9 +158,22 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
             (l.email?.toLowerCase().includes(searchLower) ?? false) ||
             l.phone.includes(search)
         );
-  const totalPages = Math.max(1, Math.ceil(searched.length / pageSize));
+  const leadSortGetters: Record<string, (l: Lead) => unknown> = {
+    date: (l) => l.created_at,
+    name: (l) => l.name,
+    source: (l) => l.source ?? '',
+    phone: (l) => l.phone,
+    email: (l) => l.email ?? '',
+    status: (l) => l.status,
+    message: (l) => l.message ?? '',
+    notes: (l) => l.notes ?? '',
+  };
+  const sorted = sortKey && leadSortGetters[sortKey]
+    ? sortTableBy(searched, leadSortGetters[sortKey], sortDir)
+    : searched;
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const pageIndex = Math.min(page, totalPages - 1);
-  const pageLeads = searched.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+  const pageLeads = sorted.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
 
   const sources = Array.from(new Set(leads.map((l) => l.source).filter(Boolean))) as string[];
 
@@ -164,20 +201,49 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
   }
 
   function handleExportCsv() {
-    const headers = ['name', 'phone', 'email', 'status', 'source', 'last_order_number', 'notes', 'created_at'];
-    const escape = (s: string) => (/[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
-    const rows = searched.map((l) =>
-      [l.name, l.phone, l.email ?? '', l.status, l.source ?? '', l.last_order_number ?? '', l.notes ?? '', new Date(l.created_at).toISOString().slice(0, 10)].map(escape)
-    );
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `leads-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadXlsx(sorted, [
+      { key: 'name', header: 'Имя' },
+      { key: 'phone', header: 'Телефон' },
+      { key: 'email', header: 'Email' },
+      { key: 'status', header: 'Статус' },
+      { key: 'source', header: 'Источник' },
+      { key: 'last_order_number', header: '№ заказа' },
+      { key: 'notes', header: 'Заметки' },
+      { key: (l) => new Date(l.created_at).toISOString().slice(0, 10), header: 'Дата' },
+    ], `leads-${new Date().toISOString().slice(0, 10)}`);
     toast.success('Экспорт выполнен');
+  }
+
+  async function handleAiSummary(lead: Lead) {
+    setAiSummaryLoading(lead.id);
+    setAiSummary(null);
+    try {
+      const context = [
+        `Имя: ${lead.name}`,
+        `Телефон: ${lead.phone}`,
+        lead.email ? `Email: ${lead.email}` : null,
+        lead.message ? `Сообщение: ${lead.message}` : null,
+        lead.notes ? `Заметки: ${lead.notes}` : null,
+        `Статус: ${lead.status}`,
+        lead.source ? `Источник: ${lead.source}` : null,
+      ].filter(Boolean).join('\n');
+      const res = await fetch('/api/portal/admin/ai-settings/generate-text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          instruction: 'Сделай краткое резюме этого лида (2-3 предложения) и предложи следующий шаг для менеджера.',
+          context,
+          maxTokens: 300,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+      setAiSummary(data.content ?? '');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Не удалось сгенерировать');
+    } finally {
+      setAiSummaryLoading(null);
+    }
   }
 
   function toggleSelect(id: number) {
@@ -234,27 +300,43 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         </div>
       )}
       <div className="portal-card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-10"></TableHead>
-              <TableHead className="w-10">№</TableHead>
-              <TableHead>Дата</TableHead>
-              <TableHead>Имя</TableHead>
-              <TableHead>Источник</TableHead>
-              <TableHead>Телефон</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Статус</TableHead>
-              <TableHead>Сообщение</TableHead>
-              <TableHead>Заметки</TableHead>
+              {visibleColumnIds.includes('num') && <TableHead className="w-10">№</TableHead>}
+              {visibleColumnIds.includes('date') && (
+                <SortableTableHead sortKey="date" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Дата</SortableTableHead>
+              )}
+              {visibleColumnIds.includes('name') && (
+                <SortableTableHead sortKey="name" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Имя</SortableTableHead>
+              )}
+              {visibleColumnIds.includes('source') && (
+                <SortableTableHead sortKey="source" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Источник</SortableTableHead>
+              )}
+              {visibleColumnIds.includes('phone') && (
+                <SortableTableHead sortKey="phone" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Телефон</SortableTableHead>
+              )}
+              {visibleColumnIds.includes('email') && (
+                <SortableTableHead sortKey="email" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Email</SortableTableHead>
+              )}
+              {visibleColumnIds.includes('status') && (
+                <SortableTableHead sortKey="status" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Статус</SortableTableHead>
+              )}
+              {visibleColumnIds.includes('message') && (
+                <SortableTableHead sortKey="message" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Сообщение</SortableTableHead>
+              )}
+              {visibleColumnIds.includes('notes') && (
+                <SortableTableHead sortKey="notes" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Заметки</SortableTableHead>
+              )}
               <TableHead>Действия</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {pageLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={10} className="p-0">
+                <TableCell colSpan={2 + visibleColumnIds.length} className="p-0">
                   <EmptyState
                     title="Нет лидов"
                     description="Измените фильтры или добавьте лиды через форму обратной связи"
@@ -273,16 +355,21 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
                       className="rounded border-[#E2E8F0]"
                     />
                   </TableCell>
+                  {visibleColumnIds.includes('num') && (
                   <TableCell className="text-[var(--portal-text-muted)]">
                     {pageIndex * pageSize + idx + 1}
                   </TableCell>
+                  )}
+                  {visibleColumnIds.includes('date') && (
                   <TableCell className="text-[var(--portal-text-muted)]">
                     {new Date(l.created_at).toLocaleDateString('ru')}
                   </TableCell>
-                  <TableCell className="font-medium text-[var(--portal-text)]">{l.name}</TableCell>
-                  <TableCell className="text-[var(--portal-text-muted)]">{l.source ?? '—'}</TableCell>
-                  <TableCell className="text-[var(--portal-text-muted)]">{l.phone}</TableCell>
-                  <TableCell className="text-[var(--portal-text-muted)]">{l.email ?? '—'}</TableCell>
+                  )}
+                  {visibleColumnIds.includes('name') && <TableCell className="font-medium text-[var(--portal-text)]">{l.name}</TableCell>}
+                  {visibleColumnIds.includes('source') && <TableCell className="text-[var(--portal-text-muted)]">{l.source ?? '—'}</TableCell>}
+                  {visibleColumnIds.includes('phone') && <TableCell className="text-[var(--portal-text-muted)]">{l.phone}</TableCell>}
+                  {visibleColumnIds.includes('email') && <TableCell className="text-[var(--portal-text-muted)]">{l.email ?? '—'}</TableCell>}
+                  {visibleColumnIds.includes('status') && (
                   <TableCell>
                     <select
                       value={l.status}
@@ -295,9 +382,13 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
                       ))}
                     </select>
                   </TableCell>
+                  )}
+                  {visibleColumnIds.includes('message') && (
                   <TableCell className="max-w-[180px] truncate text-[var(--portal-text-muted)]">
                     {l.message ?? '—'}
                   </TableCell>
+                  )}
+                  {visibleColumnIds.includes('notes') && (
                   <TableCell className="max-w-[120px]">
                     <span className="truncate block text-[var(--portal-text-muted)] text-xs">
                       {l.notes ? (l.notes.length > 40 ? l.notes.slice(0, 40) + '…' : l.notes) : '—'}
@@ -316,6 +407,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
                       <Pencil className="h-3 w-3" />
                     </Button>
                   </TableCell>
+                  )}
                   <TableCell>
                     {l.converted_to_user_id ? (
                       <span className="text-xs text-green-600">Конвертирован</span>
@@ -338,25 +430,26 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
           </TableBody>
         </Table>
         </div>
-      {searched.length > 0 && (
-        <div className="px-4 pb-3 pt-1 border-t border-[#E2E8F0]">
-          <TablePagination
-            currentPage={pageIndex}
-            totalPages={totalPages}
-            total={searched.length}
-            pageSize={pageSize}
-            pageSizeOptions={PAGE_SIZES}
-            onPageChange={setPage}
-            onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
-            onExportExcel={handleExportCsv}
-            exportLabel="Excel"
-          />
-        </div>
+      {sorted.length > 0 && (
+        <TablePagination
+          currentPage={pageIndex}
+          totalPages={totalPages}
+          total={sorted.length}
+          pageSize={pageSize}
+          pageSizeOptions={STANDARD_PAGE_SIZES}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+          onExportExcel={handleExportCsv}
+          exportLabel="Excel"
+          columnConfig={LEADS_TABLE_COLUMNS}
+          visibleColumnIds={visibleColumnIds}
+          onVisibleColumnIdsChange={setVisibleColumnIds}
+        />
       )}
       </div>
 
       {detailLead && (
-        <Dialog open onOpenChange={(open) => !open && setDetailLead(null)}>
+        <Dialog open onOpenChange={(open) => { if (!open) { setDetailLead(null); setAiSummary(null); } }}>
           <DialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
             <DialogHeader>
               <DialogTitle>Лид: {detailLead.name}</DialogTitle>
@@ -373,7 +466,23 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
               {detailLead.message && <div><dt className="text-[var(--portal-text-muted)] inline">Сообщение: </dt><dd className="inline break-words">{detailLead.message}</dd></div>}
               {detailLead.notes && <div><dt className="text-[var(--portal-text-muted)] inline">Заметки: </dt><dd className="inline break-words">{detailLead.notes}</dd></div>}
             </dl>
-            <div className="mt-4 flex gap-2">
+            {aiSummary && (
+              <div className="mt-4 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-sm text-[var(--portal-text)] whitespace-pre-wrap">
+                <p className="font-medium text-[var(--portal-text-muted)] mb-1">AI резюме</p>
+                {aiSummary}
+              </div>
+            )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => handleAiSummary(detailLead)}
+                disabled={aiSummaryLoading === detailLead.id}
+                className="gap-1"
+              >
+                <Sparkles className="h-4 w-4" />
+                {aiSummaryLoading === detailLead.id ? 'Генерация…' : 'AI резюме'}
+              </Button>
               <select
                 value={detailLead.status}
                 onChange={(e) => { handleStatusChange(detailLead.id, e.target.value); setDetailLead((p) => p ? { ...p, status: e.target.value } : null); }}

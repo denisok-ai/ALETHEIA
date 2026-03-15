@@ -1,7 +1,12 @@
 /**
  * Manager dashboard: tickets and verifications. Portal design.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+import { notFound } from 'next/navigation';
+
+export const metadata: Metadata = { title: 'Дашборд' };
+
 import Link from 'next/link';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -17,6 +22,8 @@ export default async function ManagerDashboardPage() {
       </div>
     );
   }
+  const role = (session.user as { role?: string })?.role;
+  if (role !== 'manager' && role !== 'admin') notFound();
 
   const [openTickets, pendingVerifications, recentTickets] = await Promise.all([
     prisma.ticket.count({ where: { status: { in: ['open', 'in_progress'] } } }),

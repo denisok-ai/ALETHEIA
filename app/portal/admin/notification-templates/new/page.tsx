@@ -1,7 +1,11 @@
 /**
  * Admin: создание шаблона уведомления.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Новый шаблон уведомления' };
+
 import { authOptions } from '@/lib/auth';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { NotificationTemplateForm } from '../NotificationTemplateForm';

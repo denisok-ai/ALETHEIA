@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
 import {
   Dialog,
   DialogContent,
@@ -25,8 +27,8 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { StatusBadge } from '@/components/ui/StatusBadge';
 import { Check, FileText, Ban, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
-import { TablePagination } from '@/components/ui/TablePagination';
-import { buildCsv, downloadCsv } from '@/lib/export-csv';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { downloadXlsx } from '@/lib/export-xlsx';
 
 export interface OrderRow {
   id: number;
@@ -40,7 +42,16 @@ export interface OrderRow {
   userId?: string | null;
 }
 
-const PAGE_SIZES = [15, 30, 50];
+
+const PAYMENTS_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'num', label: '№' },
+  { id: 'orderNumber', label: '№ заказа' },
+  { id: 'tariffId', label: 'Тариф' },
+  { id: 'amount', label: 'Сумма' },
+  { id: 'clientEmail', label: 'Email' },
+  { id: 'status', label: 'Статус' },
+  { id: 'date', label: 'Дата' },
+];
 
 export function PaymentsTableClient({
   initialOrders,
@@ -62,6 +73,14 @@ export function PaymentsTableClient({
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [refunding, setRefunding] = useState(false);
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => PAYMENTS_TABLE_COLUMNS.map((c) => c.id));
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
 
   const tariffIds = Array.from(new Set(orders.map((o) => o.tariffId))).sort();
   const [tariffFilter, setTariffFilter] = useState<string>('all');
@@ -149,12 +168,24 @@ export function PaymentsTableClient({
     });
   }
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const orderSortGetters: Record<string, (o: OrderRow) => unknown> = {
+    orderNumber: (o) => o.orderNumber,
+    tariffId: (o) => o.tariffId,
+    amount: (o) => o.amount,
+    clientEmail: (o) => o.clientEmail,
+    status: (o) => o.status,
+    date: (o) => o.paidAt ?? o.createdAt,
+  };
+  const sorted = sortKey && orderSortGetters[sortKey]
+    ? sortTableBy(filtered, orderSortGetters[sortKey], sortDir)
+    : filtered;
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
   const pageIndex = Math.min(page, totalPages - 1);
-  const pageOrders = filtered.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
+  const pageOrders = sorted.slice(pageIndex * pageSize, (pageIndex + 1) * pageSize);
 
   const handleExportExcel = () => {
-    const csv = buildCsv(filtered, [
+    downloadXlsx(sorted, [
       { key: 'orderNumber', header: '№ заказа' },
       { key: 'tariffId', header: 'Тариф' },
       { key: 'amount', header: 'Сумма' },
@@ -162,8 +193,7 @@ export function PaymentsTableClient({
       { key: 'status', header: 'Статус' },
       { key: 'paidAt', header: 'Оплачен' },
       { key: 'createdAt', header: 'Создан' },
-    ]);
-    downloadCsv(csv, `payments-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    ], `payments-${format(new Date(), 'yyyy-MM-dd')}`);
   };
 
   return (
@@ -204,25 +234,37 @@ export function PaymentsTableClient({
       </div>
 
       <div className="portal-card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
         <Table>
           <TableHeader>
               <TableRow>
-                <TableHead className="w-10">№</TableHead>
-                <TableHead></TableHead>
-                <TableHead>№ заказа</TableHead>
-                <TableHead>Тариф</TableHead>
-                <TableHead>Сумма</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead>Дата</TableHead>
+                {visibleColumnIds.includes('num') && <TableHead className="w-10">№</TableHead>}
+                <TableHead className="w-8"></TableHead>
+                {visibleColumnIds.includes('orderNumber') && (
+                  <SortableTableHead sortKey="orderNumber" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>№ заказа</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('tariffId') && (
+                  <SortableTableHead sortKey="tariffId" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Тариф</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('amount') && (
+                  <SortableTableHead sortKey="amount" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Сумма</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('clientEmail') && (
+                  <SortableTableHead sortKey="clientEmail" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Email</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('status') && (
+                  <SortableTableHead sortKey="status" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Статус</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('date') && (
+                  <SortableTableHead sortKey="date" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Дата</SortableTableHead>
+                )}
                 <TableHead>Действия</TableHead>
               </TableRow>
           </TableHeader>
           <TableBody>
             {pageOrders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="p-0">
+                <TableCell colSpan={2 + visibleColumnIds.length} className="p-0">
                   <EmptyState
                     title="Нет заказов"
                     description="Измените фильтры или период"
@@ -237,16 +279,17 @@ export function PaymentsTableClient({
                   className="cursor-pointer hover:bg-[#F8FAFC]"
                   onClick={() => setDetailOrder(o)}
                 >
-                  <TableCell className="text-[var(--portal-text-muted)]">{pageIndex * pageSize + idx + 1}</TableCell>
+                  {visibleColumnIds.includes('num') && <TableCell className="text-[var(--portal-text-muted)]">{pageIndex * pageSize + idx + 1}</TableCell>}
                   <TableCell className="w-8" onClick={(e) => e.stopPropagation()}>
                     <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setDetailOrder(o)} title="Подробнее" aria-label="Подробнее о заказе">
                       <FileText className="h-4 w-4" />
                     </Button>
                   </TableCell>
-                  <TableCell className="font-mono text-sm text-[var(--portal-text)]">{o.orderNumber}</TableCell>
-                  <TableCell className="text-[var(--portal-text-muted)]">{o.tariffId}</TableCell>
-                  <TableCell className="font-medium text-[var(--portal-text)]">{o.amount} ₽</TableCell>
-                  <TableCell className="text-[var(--portal-text-muted)]">{o.clientEmail}</TableCell>
+                  {visibleColumnIds.includes('orderNumber') && <TableCell className="font-mono text-sm text-[var(--portal-text)]">{o.orderNumber}</TableCell>}
+                  {visibleColumnIds.includes('tariffId') && <TableCell className="text-[var(--portal-text-muted)]">{o.tariffId}</TableCell>}
+                  {visibleColumnIds.includes('amount') && <TableCell className="font-medium text-[var(--portal-text)]">{o.amount} ₽</TableCell>}
+                  {visibleColumnIds.includes('clientEmail') && <TableCell className="text-[var(--portal-text-muted)]">{o.clientEmail}</TableCell>}
+                    {visibleColumnIds.includes('status') && (
                     <TableCell>
                       <StatusBadge
                         variant={
@@ -263,9 +306,12 @@ export function PaymentsTableClient({
                         }
                       />
                     </TableCell>
+                    )}
+                  {visibleColumnIds.includes('date') && (
                   <TableCell className="text-[var(--portal-text-muted)]">
                     {o.paidAt ? format(new Date(o.paidAt), 'dd.MM.yyyy HH:mm') : format(new Date(o.createdAt), 'dd.MM.yyyy HH:mm')}
                   </TableCell>
+                  )}
                   <TableCell onClick={(e) => e.stopPropagation()} className="space-x-1">
                     {o.status !== 'paid' && o.status !== 'cancelled' && o.status !== 'refunded' && (
                       <Button
@@ -360,17 +406,20 @@ export function PaymentsTableClient({
         onConfirm={() => { if (refundTarget) void handleRefund(refundTarget); }}
       />
 
-      {filtered.length > 0 && (
+      {sorted.length > 0 && (
         <TablePagination
           currentPage={pageIndex}
           totalPages={totalPages}
-          total={filtered.length}
+          total={sorted.length}
           pageSize={pageSize}
-          pageSizeOptions={PAGE_SIZES}
+          pageSizeOptions={STANDARD_PAGE_SIZES}
           onPageChange={setPage}
           onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
           onExportExcel={handleExportExcel}
           exportLabel="Excel"
+          columnConfig={PAYMENTS_TABLE_COLUMNS}
+          visibleColumnIds={visibleColumnIds}
+          onVisibleColumnIdsChange={setVisibleColumnIds}
         />
       )}
     </div>

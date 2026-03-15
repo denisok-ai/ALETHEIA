@@ -21,8 +21,21 @@ import {
 } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { TablePagination } from '@/components/ui/TablePagination';
-import { buildCsv, downloadCsv } from '@/lib/export-csv';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+
+const LEARNING_RESULTS_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'user', label: 'Участник' },
+  { id: 'attempts', label: 'Попыток' },
+  { id: 'firstActivityAt', label: 'Первый запуск' },
+  { id: 'lastActivityAt', label: 'Окончание' },
+  { id: 'totalTimeSeconds', label: 'Затрачено времени' },
+  { id: 'percent', label: 'Пройдено' },
+  { id: 'avgScore', label: 'Баллов' },
+  { id: 'status', label: 'Статус прохождения' },
+];
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
+import { downloadXlsx } from '@/lib/export-xlsx';
 
 type EnrollmentRow = {
   id: string;
@@ -64,8 +77,6 @@ function formatTime(seconds: number): string {
   return `${seconds} сек`;
 }
 
-const PAGE_SIZES = [5, 10, 50];
-
 export function CourseLearningResults({
   courseId,
   courseTitle,
@@ -80,8 +91,16 @@ export function CourseLearningResults({
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => LEARNING_RESULTS_TABLE_COLUMNS.map((c) => c.id));
   const [bulkOpen, setBulkOpen] = useState(false);
   const [certGenerating, setCertGenerating] = useState(false);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
   const bulkRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -123,14 +142,27 @@ export function CourseLearningResults({
     return name.includes(q) || email.includes(q);
   });
 
-  const total = filtered.length;
+  const resultsSortGetters: Record<string, (r: EnrollmentRow) => unknown> = {
+    user: (r) => r.user.displayName ?? r.user.email,
+    attempts: (r) => r.attempts,
+    firstActivityAt: (r) => r.firstActivityAt ?? '',
+    lastActivityAt: (r) => r.lastActivityAt ?? '',
+    totalTimeSeconds: (r) => r.progress.totalTimeSeconds,
+    percent: (r) => r.progress.percent,
+    avgScore: (r) => r.progress.avgScore ?? -1,
+    status: (r) => r.status,
+  };
+  const sorted = sortKey && resultsSortGetters[sortKey]
+    ? sortTableBy(filtered, resultsSortGetters[sortKey], sortDir)
+    : filtered;
+  const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
   const start = currentPage * pageSize;
-  const pageRows = filtered.slice(start, start + pageSize);
+  const pageRows = sorted.slice(start, start + pageSize);
 
   const handleExportExcel = () => {
-    const csv = buildCsv(filtered, [
+    downloadXlsx(sorted, [
       { key: (r) => r.user.email, header: 'Email' },
       { key: (r) => r.user.displayName, header: 'Имя' },
       { key: 'status', header: 'Статус' },
@@ -138,8 +170,7 @@ export function CourseLearningResults({
       { key: (r) => r.progress.completedLessons, header: 'Уроков' },
       { key: (r) => r.progress.totalLessons, header: 'Всего' },
       { key: (r) => r.certificate?.certNumber ?? '', header: 'Сертификат' },
-    ]);
-    downloadCsv(csv, `results-${courseId}-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    ], `results-${courseId}-${format(new Date(), 'yyyy-MM-dd')}`);
   };
 
   const toggleSelectAll = () => {
@@ -279,7 +310,7 @@ export function CourseLearningResults({
         />
       ) : (
         <>
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -292,17 +323,17 @@ export function CourseLearningResults({
                       aria-label="Выбрать все на странице"
                     />
                   </TableHead>
-                  <TableHead>Участник</TableHead>
-                  <TableHead>Попыток</TableHead>
-                  <TableHead>Первый запуск</TableHead>
-                  <TableHead>Окончание</TableHead>
-                  <TableHead>Затрачено времени</TableHead>
+                  {visibleColumnIds.includes('user') && <SortableTableHead sortKey="user" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Участник</SortableTableHead>}
+                  {visibleColumnIds.includes('attempts') && <SortableTableHead sortKey="attempts" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Попыток</SortableTableHead>}
+                  {visibleColumnIds.includes('firstActivityAt') && <SortableTableHead sortKey="firstActivityAt" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Первый запуск</SortableTableHead>}
+                  {visibleColumnIds.includes('lastActivityAt') && <SortableTableHead sortKey="lastActivityAt" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Окончание</SortableTableHead>}
+                  {visibleColumnIds.includes('totalTimeSeconds') && <SortableTableHead sortKey="totalTimeSeconds" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Затрачено времени</SortableTableHead>}
                   <TableHead>Последнее обращение</TableHead>
-                  <TableHead>Пройдено</TableHead>
-                  <TableHead>Баллов</TableHead>
+                  {visibleColumnIds.includes('percent') && <SortableTableHead sortKey="percent" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Пройдено</SortableTableHead>}
+                  {visibleColumnIds.includes('avgScore') && <SortableTableHead sortKey="avgScore" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Баллов</SortableTableHead>}
                   <TableHead>Оценка в %</TableHead>
                   <TableHead>Проходной балл</TableHead>
-                  <TableHead>Статус прохождения</TableHead>
+                  {visibleColumnIds.includes('status') && <SortableTableHead sortKey="status" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Статус прохождения</SortableTableHead>}
                   <TableHead>Завершение</TableHead>
                   <TableHead className="w-32">Действия</TableHead>
                 </TableRow>
@@ -319,50 +350,63 @@ export function CourseLearningResults({
                         aria-label={`Выбрать ${row.user.displayName || row.user.email}`}
                       />
                     </TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/portal/admin/users/${row.userId}`}
-                        className="font-medium text-[#6366F1] hover:underline"
-                      >
-                        {row.user.displayName || row.user.email}
-                      </Link>
-                      {row.user.displayName && (
-                        <span className="ml-1 block text-xs text-[var(--portal-text-muted)]">{row.user.email}</span>
-                      )}
-                    </TableCell>
-                    <TableCell>{row.attempts}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)] text-sm">
-                      {row.firstActivityAt
-                        ? format(new Date(row.firstActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })
-                        : '—'}
-                    </TableCell>
+                    {visibleColumnIds.includes('user') && (
+                      <TableCell>
+                        <Link
+                          href={`/portal/admin/users/${row.userId}`}
+                          className="font-medium text-[#6366F1] hover:underline"
+                        >
+                          {row.user.displayName || row.user.email}
+                        </Link>
+                        {row.user.displayName && (
+                          <span className="ml-1 block text-xs text-[var(--portal-text-muted)]">{row.user.email}</span>
+                        )}
+                      </TableCell>
+                    )}
+                    {visibleColumnIds.includes('attempts') && <TableCell>{row.attempts}</TableCell>}
+                    {visibleColumnIds.includes('firstActivityAt') && (
+                      <TableCell className="text-[var(--portal-text-muted)] text-sm">
+                        {row.firstActivityAt
+                          ? format(new Date(row.firstActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })
+                          : '—'}
+                      </TableCell>
+                    )}
+                    {visibleColumnIds.includes('lastActivityAt') && (
+                      <TableCell className="text-[var(--portal-text-muted)] text-sm">
+                        {row.lastActivityAt
+                          ? format(new Date(row.lastActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })
+                          : '—'}
+                      </TableCell>
+                    )}
+                    {visibleColumnIds.includes('totalTimeSeconds') && (
+                      <TableCell className="text-[var(--portal-text-muted)]">
+                        {row.progress.totalTimeSeconds > 0
+                          ? formatTime(row.progress.totalTimeSeconds)
+                          : '—'}
+                      </TableCell>
+                    )}
                     <TableCell className="text-[var(--portal-text-muted)] text-sm">
                       {row.lastActivityAt
                         ? format(new Date(row.lastActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })
                         : '—'}
                     </TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">
-                      {row.progress.totalTimeSeconds > 0
-                        ? formatTime(row.progress.totalTimeSeconds)
-                        : '—'}
-                    </TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)] text-sm">
-                      {row.lastActivityAt
-                        ? format(new Date(row.lastActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })
-                        : '—'}
-                    </TableCell>
-                    <TableCell>
-                      {row.progress.totalLessons > 0 ? `${row.progress.percent}%` : '—'}
-                    </TableCell>
-                    <TableCell>
-                      {row.progress.avgScore != null ? String(row.progress.avgScore) : '—'}
-                    </TableCell>
+                    {visibleColumnIds.includes('percent') && (
+                      <TableCell>
+                        {row.progress.totalLessons > 0 ? `${row.progress.percent}%` : '—'}
+                      </TableCell>
+                    )}
+                    {visibleColumnIds.includes('avgScore') && (
+                      <TableCell>
+                        {row.progress.avgScore != null ? String(row.progress.avgScore) : '—'}
+                      </TableCell>
+                    )}
                     <TableCell>
                       {row.progress.avgScore != null ? `${row.progress.avgScore}%` : 'Неопределено'}
                     </TableCell>
                     <TableCell className="text-[var(--portal-text-muted)]">—</TableCell>
-                    <TableCell>
-                      <span
+                    {visibleColumnIds.includes('status') && (
+                      <TableCell>
+                        <span
                         className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${
                           row.status === 'completed'
                             ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
@@ -374,6 +418,7 @@ export function CourseLearningResults({
                         {STATUS_LABELS[row.status] ?? row.status}
                       </span>
                     </TableCell>
+                    )}
                     <TableCell>
                       {row.status === 'completed' ? 'Завершено' : 'Не завершено'}
                     </TableCell>
@@ -391,19 +436,22 @@ export function CourseLearningResults({
             </Table>
           </div>
 
-          <div className="mt-4 border-t border-[#E2E8F0] pt-3">
+          {total > 0 && (
             <TablePagination
               currentPage={currentPage}
               totalPages={totalPages}
               total={total}
               pageSize={pageSize}
-              pageSizeOptions={PAGE_SIZES}
+              pageSizeOptions={STANDARD_PAGE_SIZES}
               onPageChange={setPage}
               onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+              columnConfig={LEARNING_RESULTS_TABLE_COLUMNS}
+              visibleColumnIds={visibleColumnIds}
+              onVisibleColumnIdsChange={setVisibleColumnIds}
               onExportExcel={handleExportExcel}
               exportLabel="Excel"
             />
-          </div>
+          )}
         </>
       )}
     </div>

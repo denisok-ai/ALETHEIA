@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export function PaymentsExportButton() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error(e);
+      toast.error('Ошибка экспорта');
     }
     setLoading(false);
   }

@@ -23,8 +23,20 @@ import { SearchInput } from '@/components/ui/SearchInput';
 import { Download, FileText, Ban, ExternalLink, Award, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
 import { CERTIFICATE_TEMPLATE_LABELS, type CertificateTemplateId } from '@/lib/certificates-constants';
-import { TablePagination } from '@/components/ui/TablePagination';
-import { buildCsv, downloadCsv } from '@/lib/export-csv';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
+import { downloadXlsx } from '@/lib/export-xlsx';
+
+const CERT_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'num', label: '№' },
+  { id: 'certNumber', label: 'Номер' },
+  { id: 'courseTitle', label: 'Курс' },
+  { id: 'user', label: 'Пользователь' },
+  { id: 'issuedAt', label: 'Дата' },
+  { id: 'status', label: 'Статус' },
+  { id: 'download', label: 'Скачать' },
+];
 
 export interface CertRow {
   id: string;
@@ -128,19 +140,37 @@ export function CertificatesAdminClient({
   const total = filtered.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
-  const pageCerts = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-  const PAGE_SIZES = [5, 10, 50];
+
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => CERT_TABLE_COLUMNS.map((c) => c.id));
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
+  const certSortGetters: Record<string, (c: CertRow) => unknown> = {
+    certNumber: (c) => c.certNumber,
+    courseTitle: (c) => c.courseTitle ?? '',
+    user: (c) => c.displayName ?? c.userEmail ?? c.userId,
+    issuedAt: (c) => c.issuedAt,
+    status: (c) => c.revokedAt ? 1 : 0,
+    download: (c) => c.revokedAt ? 1 : 0,
+  };
+  const sorted = sortKey && certSortGetters[sortKey]
+    ? sortTableBy(filtered, certSortGetters[sortKey], sortDir)
+    : filtered;
+  const pageCerts = sorted.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   const handleExportExcel = () => {
-    const csv = buildCsv(filtered, [
+    downloadXlsx(sorted, [
       { key: 'certNumber', header: 'Номер' },
       { key: 'courseTitle', header: 'Курс' },
       { key: 'displayName', header: 'Имя' },
       { key: 'userEmail', header: 'Email' },
       { key: 'issuedAt', header: 'Дата выдачи' },
       { key: 'revokedAt', header: 'Аннулирован' },
-    ]);
-    downloadCsv(csv, `certificates-${format(new Date(), 'yyyy-MM-dd')}.csv`);
+    ], `certificates-${format(new Date(), 'yyyy-MM-dd')}`);
   };
 
   async function refetch() {
@@ -202,26 +232,7 @@ export function CertificatesAdminClient({
   }
 
   function handleExportCsv() {
-    const headers = ['certNumber', 'courseTitle', 'userEmail', 'displayName', 'issuedAt', 'revokedAt'];
-    const escape = (s: string) => (/[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
-    const rows = filtered.map((c) =>
-      [
-        c.certNumber,
-        c.courseTitle ?? '',
-        c.userEmail ?? '',
-        c.displayName ?? '',
-        format(new Date(c.issuedAt), 'yyyy-MM-dd'),
-        c.revokedAt ? format(new Date(c.revokedAt), 'yyyy-MM-dd') : '',
-      ].map(escape)
-    );
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `certificates-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    handleExportExcel();
     toast.success('Экспорт выполнен');
   }
 
@@ -248,28 +259,38 @@ export function CertificatesAdminClient({
           </select>
           <Button variant="secondary" size="sm" onClick={handleExportCsv} disabled={filtered.length === 0}>
             <Download className="mr-2 h-4 w-4" />
-            Экспорт CSV
+            Экспорт Excel
           </Button>
         </div>
         <div className="portal-card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10">№</TableHead>
-                <TableHead>Номер сертификата</TableHead>
-                <TableHead>Курс</TableHead>
-                <TableHead>Пользователь</TableHead>
-                <TableHead>Дата</TableHead>
-                <TableHead>Статус</TableHead>
-                <TableHead className="w-24">Скачать</TableHead>
+                {visibleColumnIds.includes('num') && <TableHead className="w-10">№</TableHead>}
+                {visibleColumnIds.includes('certNumber') && (
+                  <SortableTableHead sortKey="certNumber" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Номер сертификата</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('courseTitle') && (
+                  <SortableTableHead sortKey="courseTitle" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Курс</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('user') && (
+                  <SortableTableHead sortKey="user" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Пользователь</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('issuedAt') && (
+                  <SortableTableHead sortKey="issuedAt" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Дата</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('status') && (
+                  <SortableTableHead sortKey="status" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Статус</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('download') && <TableHead className="w-24">Скачать</TableHead>}
                 <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pageCerts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="p-0">
+                  <TableCell colSpan={1 + visibleColumnIds.length} className="p-0">
                     <EmptyState
                       title="Нет сертификатов"
                       description="Сгенерируйте сертификаты по курсу выше или измените фильтры"
@@ -280,13 +301,16 @@ export function CertificatesAdminClient({
               ) : (
                 pageCerts.map((c, idx) => (
                   <TableRow key={c.id} className={c.revokedAt ? 'opacity-60' : ''}>
-                    <TableCell className="text-[var(--portal-text-muted)]">{currentPage * pageSize + idx + 1}</TableCell>
-                    <TableCell className="font-mono text-[var(--portal-text)]">{c.certNumber}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{c.courseTitle ?? '—'}</TableCell>
+                    {visibleColumnIds.includes('num') && <TableCell className="text-[var(--portal-text-muted)]">{currentPage * pageSize + idx + 1}</TableCell>}
+                    {visibleColumnIds.includes('certNumber') && <TableCell className="font-mono text-[var(--portal-text)]">{c.certNumber}</TableCell>}
+                    {visibleColumnIds.includes('courseTitle') && <TableCell className="text-[var(--portal-text-muted)]">{c.courseTitle ?? '—'}</TableCell>}
+                    {visibleColumnIds.includes('user') && (
                     <TableCell className="text-[var(--portal-text-muted)]">
                       {c.displayName ?? c.userEmail ?? c.userId.slice(0, 8)}
                     </TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{format(new Date(c.issuedAt), 'dd.MM.yyyy')}</TableCell>
+                    )}
+                    {visibleColumnIds.includes('issuedAt') && <TableCell className="text-[var(--portal-text-muted)]">{format(new Date(c.issuedAt), 'dd.MM.yyyy')}</TableCell>}
+                    {visibleColumnIds.includes('status') && (
                     <TableCell>
                       {c.revokedAt ? (
                         <span className="text-red-600 font-medium">Аннулирован</span>
@@ -294,6 +318,8 @@ export function CertificatesAdminClient({
                         <span className="text-green-600">Действителен</span>
                       )}
                     </TableCell>
+                    )}
+                    {visibleColumnIds.includes('download') && (
                     <TableCell>
                       {!c.revokedAt && (
                         <a
@@ -307,6 +333,7 @@ export function CertificatesAdminClient({
                         </a>
                       )}
                     </TableCell>
+                    )}
                     <TableCell>
                       <Button variant="ghost" size="sm" onClick={() => setDetailCert(c)} title="Подробнее" aria-label="Подробнее о сертификате">
                         <FileText className="h-4 w-4" />
@@ -322,13 +349,16 @@ export function CertificatesAdminClient({
           <TablePagination
             currentPage={currentPage}
             totalPages={totalPages}
-            total={total}
+            total={sorted.length}
             pageSize={pageSize}
-            pageSizeOptions={PAGE_SIZES}
+            pageSizeOptions={STANDARD_PAGE_SIZES}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
             onExportExcel={handleExportExcel}
             exportLabel="Excel"
+            columnConfig={CERT_TABLE_COLUMNS}
+            visibleColumnIds={visibleColumnIds}
+            onVisibleColumnIdsChange={setVisibleColumnIds}
           />
         )}
       </div>

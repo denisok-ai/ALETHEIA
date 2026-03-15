@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getSystemSettings, getKnowledgeBase } from '@/lib/settings';
 import { getLlmApiKey } from '@/lib/llm';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { logLlmRequest } from '@/lib/llm-request-log';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEFAULT_MODEL = 'deepseek-chat';
 
 export async function POST(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) {
+    return NextResponse.json({ error: 'Войдите в аккаунт для использования чата.' }, { status: 401 });
+  }
+
+  const rateLimitRes = checkRateLimit(request, 'chat', 10);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const apiKey = await getLlmApiKey('chatbot');
     if (!apiKey) {
@@ -66,6 +78,7 @@ export async function POST(request: NextRequest) {
     }
 
     const fullSystemContent = systemPrompt + systemContent;
+    const startMs = Date.now();
 
     const response = await fetch(DEEPSEEK_API_URL, {
       method: 'POST',
@@ -109,6 +122,16 @@ export async function POST(request: NextRequest) {
         },
       }).catch(() => {});
     }
+
+    logLlmRequest({
+      source: 'chatbot',
+      model,
+      promptChars: fullSystemContent.length + message.length,
+      responseChars: answer.length,
+      durationMs: Date.now() - startMs,
+      userId: (session?.user as { id?: string })?.id,
+      role: (session?.user as { role?: string })?.role,
+    });
 
     return NextResponse.json({ answer });
   } catch (error) {

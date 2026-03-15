@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       status: 'active',
       email: user.email,
       displayName: lead.name,
+      emailVerifiedAt: new Date(),
     },
   });
 

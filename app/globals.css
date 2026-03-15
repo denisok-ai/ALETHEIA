@@ -2,8 +2,15 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Шрифты: загрузка в браузере через @import — без таймаутов next/font на сервере */
+@import url('https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,100..900;1,7..72,100..900&family=Outfit:wght@100..900&display=swap');
+
 /* ─── Публичный сайт ─── */
 :root {
+  /* Шрифты (загружаются через link в layout — Literata, Outfit с Google Fonts) */
+  --font-literata: 'Literata', Georgia, serif;
+  --font-outfit: 'Outfit', system-ui, sans-serif;
+
   --bg: #fffefb;
   --bg-soft: #faf8f5;
   --bg-cream: #f5f2ec;
@@ -27,6 +34,28 @@
   --card-radius: 1.25rem;
   --shadow-soft: 0 4px 24px -4px rgba(44, 42, 40, 0.06), 0 8px 32px -8px rgba(44, 42, 40, 0.04);
   --shadow-card: 0 8px 32px -8px rgba(44, 42, 40, 0.08), 0 16px 48px -16px rgba(166, 139, 91, 0.08);
+}
+
+/* Текст хедера поверх героя: читаем и на синем, и на светлом фоне */
+.header-overlay-text {
+  color: #fff;
+  text-shadow:
+    0 0 1px var(--dark),
+    0 0 2px var(--dark),
+    0 1px 2px var(--dark),
+    0 -1px 1px var(--dark),
+    1px 0 1px var(--dark),
+    -1px 0 1px var(--dark);
+}
+.header-overlay-text-strong {
+  color: #fff;
+  text-shadow:
+    0 0 2px var(--dark),
+    0 0 4px var(--dark),
+    0 1px 3px var(--dark),
+    0 -1px 2px var(--dark),
+    1px 0 2px var(--dark),
+    -1px 0 2px var(--dark);
 }
 
 /* ─── Портал (LMS) — Modern Light 2026 ─── */

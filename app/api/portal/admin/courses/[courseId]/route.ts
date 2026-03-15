@@ -42,6 +42,11 @@ export async function PATCH(
   if (parsed.data.aiTutorEnabled !== undefined) data.aiTutorEnabled = parsed.data.aiTutorEnabled;
   if (parsed.data.startsAt !== undefined) data.startsAt = parsed.data.startsAt ? new Date(parsed.data.startsAt) : null;
   if (parsed.data.endsAt !== undefined) data.endsAt = parsed.data.endsAt ? new Date(parsed.data.endsAt) : null;
+  if (parsed.data.verificationRequiredLessonIds !== undefined) {
+    data.verificationRequiredLessonIds = Array.isArray(parsed.data.verificationRequiredLessonIds) && parsed.data.verificationRequiredLessonIds.length > 0
+      ? JSON.stringify(parsed.data.verificationRequiredLessonIds)
+      : null;
+  }
 
   const course = await prisma.course.update({
     where: { id: courseId },
@@ -69,6 +74,7 @@ export async function PATCH(
       price: course.price,
       sort_order: course.sortOrder,
       ai_tutor_enabled: course.aiTutorEnabled,
+      verification_required_lesson_ids: course.verificationRequiredLessonIds,
       created_at: course.createdAt.toISOString(),
     },
   });

@@ -1,6 +1,7 @@
 /**
  * Admin: mailing detail and results (logs).
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -9,7 +10,19 @@ import Link from 'next/link';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { MailingDetailClient } from './MailingDetailClient';
 
-export default async function AdminMailingDetailPage({ params }: { params: Promise<{ id: string }> }) {
+type Props = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const mailing = await prisma.mailing.findUnique({
+    where: { id },
+    select: { internalTitle: true },
+  });
+  if (!mailing) return { title: 'Рассылка' };
+  return { title: (mailing.internalTitle ?? 'Рассылка').slice(0, 60) };
+}
+
+export default async function AdminMailingDetailPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   if (!session?.user) notFound();
 

@@ -351,3 +351,34 @@ sudo npm run build
   `sudo systemctl restart avaterra` (или как назван ваш сервис).
 
 Готово. Проверьте сайт в браузере по IP или домену.
+
+---
+
+## Скрипты деплоя на сервере
+
+В папке `scripts/` есть скрипты для автоматизации обновления на сервере.
+
+### Выгрузка с гита (pull + build + restart)
+
+```bash
+cd /opt/ALETHEIA   # или /var/www/AVATERRA
+bash scripts/deploy-pull.sh
+```
+
+Скрипт выполняет: `git pull` → `npm install` → `prisma generate` → `prisma migrate deploy` → `npm run build` → `pm2 restart`.
+
+Переменные окружения (опционально):
+- `DEPLOY_ROOT` — путь к проекту (по умолчанию `/opt/ALETHEIA`)
+- `PM2_NAME` — имя процесса PM2 (по умолчанию `aletheia`)
+- `GIT_BRANCH` — ветка для pull (по умолчанию `main`)
+
+### Загрузка на гит (push с сервера)
+
+Если на сервере внесены изменения и нужно отправить их в репозиторий:
+
+```bash
+cd /opt/ALETHEIA
+bash scripts/deploy-push.sh "Описание изменений"
+```
+
+Скрипт выполняет: `git add -A` → `git commit` → `git push origin main`.

@@ -27,6 +27,7 @@ export async function GET(request: NextRequest) {
   const activeSessions = await prisma.visitLog.findMany({
     where: whereActive,
     orderBy: { lastActivityAt: 'desc' },
+    take: 500,
     include: {
       user: {
         select: {

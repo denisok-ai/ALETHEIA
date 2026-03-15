@@ -102,7 +102,7 @@
 | Задача | Приоритет | Статус | Описание |
 |--------|-----------|--------|----------|
 | Подготовка к релизу (CHANGELOG, чек-лист, predeploy) | Высокий | Завершена | CHANGELOG дополнен; Deploy.md — чек-лист, проверка после деплоя; npm run predeploy (lint+build) |
-| Деплой на прод | Критический | В процессе | Vercel + GitHub или VPS (docs/Deploy.md). После настройки env и БД — тег v3.0.0 и push |
+| Деплой на прод | Критический | В процессе | Vercel + GitHub или VPS (docs/Deploy.md). predeploy проходит; после коммита и настройки env/БД на сервере — тег v3.0.0 и push |
 | Документация для поддержки | Низкий | Завершена | docs/Support.md, docs/Local-Prisma.md |
 
 ---
@@ -113,7 +113,7 @@
 |--------|-----------|--------|----------|
 | Фаза 1: PageHeader и единая навигация | Высокий | Завершена | Компонент PageHeader (Breadcrumbs + H1 + описание + действия); «К списку» на users/[id], courses/[courseId], notification-sets/[id], enrollments/[userId] |
 | Фаза 2: Единые карточки и табы в карточке пользователя | Высокий | Завершена | Компонент Card (components/portal/Card.tsx), табы на users/[id] (UserDetailTabs), Card на dashboard и audit |
-| Фаза 3: Таблицы, пагинация, поиск, ConfirmDialog | Средний | Завершена | Колонка № (UsersTable, Media, Audit, Certificates, CRM, Communications, Payments); пагинация +5/+10/+50 и «Страница N из M» в media, audit, certificates; поиск «Найти в списке» в media и communications (шаблоны); ConfirmDialog при конвертации лида в CRM |
+| Фаза 3: Таблицы, пагинация, поиск, ConfirmDialog | Средний | Завершена | Колонка № (UsersTable, Media, Audit, Certificates, CRM, Communications, Payments); единая пагинация STANDARD_PAGE_SIZES [10, 25, 50, 100] и «Страница N из M» на всех страницах (media, courses, audit, certificates, payments, CRM, communications, mailings, мониторинг, тикеты и др.); поиск «Найти в списке» в media и communications (шаблоны); ConfirmDialog при конвертации лида в CRM |
 | Фаза 4: EmptyState и индикация загрузки | Средний | Завершена | EmptyState во всех таблицах и табах (пользователи, медиа, аудит, сертификаты, CRM, коммуникации, оплаты, курсы, участники/результаты/уведомления курса, табы пользователя); TableSkeleton при асинхронной загрузке (аудит, участники, результаты, уведомления) |
 | Фаза 5: Недостающий функционал | Низкий | Завершена | Карточка заказа в модалке оплат; каталог /portal/admin/notification-sets; форма «Добавить пользователя» (кнопка в шапке раздела Пользователи, модалка: email, пароль, имя, роль), API POST /api/portal/admin/users |
 | Фаза 6: Доступность и документация | Низкий | Завершена | Добавлены aria-label у кнопок «Подробнее», доступа, завершения, пагинации; в docs/Support.md — раздел «Админ-панель: разделы и типовые действия» |

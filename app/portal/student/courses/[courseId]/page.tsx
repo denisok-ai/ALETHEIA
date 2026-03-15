@@ -1,6 +1,7 @@
 /**
  * Student: course detail — cover, progress, launch button. Portal design.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -9,6 +10,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { CourseCoverPlaceholder } from '@/components/portal/CourseCoverPlaceholder';
+import { CourseVerificationBlock } from './CourseVerificationBlock';
 import { Button } from '@/components/ui/button';
 import { Play, CheckCircle2, ArrowLeft, Settings } from 'lucide-react';
 
@@ -20,11 +22,32 @@ function totalLessons(manifest: string | null): number {
   } catch { return 1; }
 }
 
-export default async function StudentCourseDetailPage({
-  params,
-}: {
-  params: Promise<{ courseId: string }>;
-}) {
+function lessonOptionsFromManifest(manifest: string | null): { id: string; title?: string }[] {
+  if (!manifest) return [];
+  try {
+    const p = JSON.parse(manifest) as { items?: { identifier?: string; title?: string }[] };
+    const items = p?.items;
+    if (!Array.isArray(items) || items.length === 0) return [];
+    return items.map((it) => ({
+      id: typeof it.identifier === 'string' ? it.identifier : 'main',
+      title: typeof it.title === 'string' ? it.title : undefined,
+    }));
+  } catch { return []; }
+}
+
+type Props = { params: Promise<{ courseId: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { courseId } = await params;
+  const course = await prisma.course.findUnique({
+    where: { id: courseId },
+    select: { title: true },
+  });
+  if (!course) return { title: 'Курс' };
+  return { title: course.title.slice(0, 60) };
+}
+
+export default async function StudentCourseDetailPage({ params }: Props) {
   const { courseId } = await params;
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
@@ -90,8 +113,18 @@ export default async function StudentCourseDetailPage({
   const isCompleted = total > 0 && completed >= total;
   const hasProgress = completed > 0 || progressByLesson.length > 0;
 
+  const verificationLessonOptions = lessonOptionsFromManifest(course.scormManifest);
+  const verificationRequiredIds: string[] = (() => {
+    const raw = (course as { verificationRequiredLessonIds?: string | null }).verificationRequiredLessonIds;
+    if (!raw?.trim()) return [];
+    try {
+      const arr = JSON.parse(raw) as unknown;
+      return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
+    } catch { return []; }
+  })();
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full max-w-5xl">
       <PageHeader
         items={[
           { href: '/portal/student/dashboard', label: 'Дашборд' },
@@ -185,6 +218,12 @@ export default async function StudentCourseDetailPage({
           <p className="text-sm text-[var(--portal-text-muted)] whitespace-pre-wrap">{course.description}</p>
         </div>
       )}
+
+      <CourseVerificationBlock
+        courseId={courseId}
+        lessonOptions={verificationLessonOptions}
+        requiredLessonIds={verificationRequiredIds}
+      />
     </div>
   );
 }

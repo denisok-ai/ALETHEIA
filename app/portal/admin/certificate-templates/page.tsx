@@ -1,21 +1,18 @@
 /**
  * Admin: certificate templates catalog — list and link to create/edit.
  */
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Шаблоны сертификатов' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { Card } from '@/components/portal/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { CertificateTemplatesTableClient } from './CertificateTemplatesTableClient';
 import { Button } from '@/components/ui/button';
 import { LayoutTemplate, Plus } from 'lucide-react';
 
@@ -37,6 +34,16 @@ export default async function AdminCertificateTemplatesPage() {
       _count: { select: { certificates: true } },
     },
   });
+
+  const templatesData = templates.map((t) => ({
+    id: t.id,
+    name: t.name,
+    courseTitle: t.course?.title ?? null,
+    backgroundImageUrl: t.backgroundImageUrl,
+    minScore: t.minScore,
+    allowUserDownload: t.allowUserDownload,
+    certificatesCount: t._count.certificates,
+  }));
 
   return (
     <div className="space-y-6 w-full">
@@ -71,44 +78,7 @@ export default async function AdminCertificateTemplatesPage() {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-10">№</TableHead>
-                  <TableHead>Название</TableHead>
-                  <TableHead>Курс</TableHead>
-                  <TableHead>Подложка</TableHead>
-                  <TableHead className="text-center">minScore</TableHead>
-                  <TableHead className="text-center">Скачивание</TableHead>
-                  <TableHead className="text-center">Сертификатов</TableHead>
-                  <TableHead className="w-28"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {templates.map((t, idx) => (
-                  <TableRow key={t.id}>
-                    <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
-                    <TableCell className="font-medium text-[var(--portal-text)]">
-                      <Link href={`/portal/admin/certificate-templates/${t.id}`} className="text-[#6366F1] hover:underline">
-                        {t.name}
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)] text-sm">{t.course?.title ?? '—'}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)] text-sm">{t.backgroundImageUrl ? 'Да' : '—'}</TableCell>
-                    <TableCell className="text-center text-[var(--portal-text-muted)]">{t.minScore ?? '—'}</TableCell>
-                    <TableCell className="text-center text-[var(--portal-text)]">{t.allowUserDownload ? 'Да' : 'Нет'}</TableCell>
-                    <TableCell className="text-center text-[var(--portal-text-muted)]">{t._count.certificates}</TableCell>
-                    <TableCell>
-                      <Link href={`/portal/admin/certificate-templates/${t.id}`}>
-                        <Button variant="secondary" size="sm">Изменить</Button>
-                      </Link>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
+          <CertificateTemplatesTableClient templates={templatesData} />
         )}
       </Card>
     </div>

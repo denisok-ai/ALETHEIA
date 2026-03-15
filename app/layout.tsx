@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import dynamic from 'next/dynamic';
-import { Literata, Outfit } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
 import { Header } from '@/components/sections/Header';
@@ -14,17 +13,6 @@ const ChatBot = dynamic(
   { ssr: false }
 );
 
-const literata = Literata({
-  subsets: ['latin', 'cyrillic'],
-  variable: '--font-literata',
-  display: 'swap',
-});
-
-const outfit = Outfit({
-  subsets: ['latin', 'latin-ext'],
-  variable: '--font-outfit',
-  display: 'swap',
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -54,7 +42,7 @@ export default async function RootLayout({
 }>) {
   const settings = await getSystemSettings();
   return (
-    <html lang="ru" className={`${literata.variable} ${outfit.variable}`}>
+    <html lang="ru">
       <body className="min-h-screen font-body bg-[#F8FAFC] text-[var(--portal-text)]">
         <SessionProvider>
           <Header />

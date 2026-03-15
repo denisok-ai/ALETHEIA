@@ -21,6 +21,18 @@ export default function RegisterPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (password.length < 8) {
+      setError('Пароль не менее 8 символов');
+      return;
+    }
+    if (!/\d/.test(password)) {
+      setError('Пароль должен содержать хотя бы одну цифру');
+      return;
+    }
+    if (!/[a-zA-Zа-яА-ЯёЁ]/.test(password)) {
+      setError('Пароль должен содержать хотя бы одну букву');
+      return;
+    }
     setLoading(true);
     try {
       const res = await fetch('/api/auth/register', {
@@ -79,10 +91,10 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            minLength={6}
+            minLength={8}
             className="mt-1"
           />
-          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Не менее 6 символов</p>
+          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Не менее 8 символов, цифра и буква</p>
         </div>
         {error && (
           <p className="text-sm text-red-600" role="alert">

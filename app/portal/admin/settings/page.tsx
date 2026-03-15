@@ -1,7 +1,11 @@
 /**
  * Admin: global settings — editable (DB) + env indicators, doc links, version.
  */
+import type { Metadata } from 'next';
 import { PageHeader } from '@/components/portal/PageHeader';
+
+export const metadata: Metadata = { title: 'Настройки' };
+
 import { SettingsEnvIndicators } from './SettingsEnvIndicators';
 import { SettingsForms } from './SettingsForms';
 import { HealthStatus } from './HealthStatus';

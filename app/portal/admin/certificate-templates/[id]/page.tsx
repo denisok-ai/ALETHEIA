@@ -1,6 +1,7 @@
 /**
  * Admin: edit certificate template or delete.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -9,11 +10,19 @@ import { PageHeader } from '@/components/portal/PageHeader';
 import { CertificateTemplateForm } from '../CertificateTemplateForm';
 import { CertificateTemplateDelete } from '../CertificateTemplateDelete';
 
-export default async function CertificateTemplateEditPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type Props = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const template = await prisma.certificateTemplate.findUnique({
+    where: { id },
+    select: { name: true },
+  });
+  if (!template) return { title: 'Шаблон сертификата' };
+  return { title: template.name.slice(0, 60) };
+}
+
+export default async function CertificateTemplateEditPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || role !== 'admin') {

@@ -3,6 +3,7 @@ import { createPayKeeperInvoice } from '@/lib/paykeeper';
 import { prisma } from '@/lib/db';
 import { getSystemSettings } from '@/lib/settings';
 import { nanoid } from 'nanoid';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const TARIFFS: Record<string, { name: string; price: number }> = {
   consult: { name: 'Индивидуальная консультация', price: 5000 },
@@ -12,6 +13,9 @@ const TARIFFS: Record<string, { name: string; price: number }> = {
 };
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = checkRateLimit(request, 'payment-create', 10);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const body = await request.json();
     const { tariffId, serviceSlug, email, name, phone } = body;
@@ -98,6 +102,7 @@ export async function POST(request: NextRequest) {
       success: true,
       paymentUrl,
       orderNumber,
+      amount,
     });
   } catch (error) {
     console.error('Payment create error:', error);

@@ -1,7 +1,11 @@
 /**
  * Student: mediatheque — list with cards, view link, download (if allowed), rating.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Медиатека' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
@@ -28,8 +32,31 @@ export default async function StudentMediaPage() {
     );
   }
 
-  const list = await prisma.media.findMany({
-    orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+  const [enrollments, userGroups, allMedia] = await Promise.all([
+    prisma.enrollment.findMany({
+      where: { userId, accessClosed: false },
+      select: { courseId: true },
+    }),
+    prisma.userGroup.findMany({
+      where: { userId },
+      select: { groupId: true },
+    }),
+    prisma.media.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+      include: { mediaGroups: { select: { groupId: true } } },
+    }),
+  ]);
+
+  const enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
+  const userGroupIds = new Set(userGroups.map((ug) => ug.groupId));
+
+  const list = allMedia.filter((m) => {
+    if (m.courseId && enrolledCourseIds.has(m.courseId)) return true;
+    const mediaGroupIds = m.mediaGroups.map((mg) => mg.groupId);
+    if (mediaGroupIds.length > 0) {
+      return mediaGroupIds.some((gid) => userGroupIds.has(gid));
+    }
+    return true;
   });
 
   const items: MediaListItem[] = list.map((m) => ({

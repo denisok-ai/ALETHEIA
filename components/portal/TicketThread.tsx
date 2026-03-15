@@ -1,14 +1,15 @@
 'use client';
 
 /**
- * Shared ticket thread: messages list, reply form. Optional: status change, assign manager (for manager view).
+ * Shared ticket thread: messages list, reply form. Optional: status change, assign manager (for manager view), add to KB (admin).
  */
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { format } from 'date-fns';
+import { Sparkles, Loader2, BookOpen } from 'lucide-react';
 
 export interface TicketMessage {
   role: string;
@@ -38,6 +39,8 @@ export interface TicketThreadProps {
   canLinkOrderToPayments?: boolean;
   canChangeStatus?: boolean;
   canAssign?: boolean;
+  /** Показывать блок «Добавить в базу типовых ответов» (только для админа при статусе Решён/Закрыт) */
+  canAddToKb?: boolean;
   managers?: { id: string; label: string }[];
   backHref: string;
   backLabel: string;
@@ -55,6 +58,7 @@ export function TicketThread({
   canLinkOrderToPayments = false,
   canChangeStatus,
   canAssign,
+  canAddToKb = false,
   managers = [],
   backHref,
   backLabel,
@@ -65,6 +69,66 @@ export function TicketThread({
   const [status, setStatus] = useState(initialStatus);
   const [managerId, setManagerId] = useState(initialManagerId);
   const [updatingMeta, setUpdatingMeta] = useState(false);
+  const [suggestingReply, setSuggestingReply] = useState(false);
+  const [kbFragment, setKbFragment] = useState('');
+  const [addingToKb, setAddingToKb] = useState(false);
+  const [kbAdded, setKbAdded] = useState(false);
+
+  const defaultKbSnippet = useMemo(() => {
+    if (!canAddToKb || (status !== 'resolved' && status !== 'closed') || messages.length === 0) return '';
+    const firstUser = messages.find((m) => m.role === 'user')?.content ?? '';
+    const lastManager = [...messages].reverse().find((m) => m.role === 'manager')?.content ?? '';
+    return `## Тема: ${subject}\n\n**Вопрос:**\n${firstUser}\n\n**Ответ:**\n${lastManager}`;
+  }, [canAddToKb, status, subject, messages]);
+
+  useEffect(() => {
+    if (defaultKbSnippet && !kbFragment) setKbFragment(defaultKbSnippet);
+  }, [defaultKbSnippet]);
+
+  const canUseAiReply = canChangeStatus || canAssign;
+
+  const currentManagerDisplayName =
+    managerId && managers.length > 0
+      ? (managers.find((m) => m.id === managerId)?.label ?? initialManagerDisplayName ?? 'Менеджер')
+      : (initialManagerDisplayName ?? 'Менеджер');
+
+  async function handleAddToKb() {
+    if (!kbFragment.trim() || addingToKb || kbAdded) return;
+    setAddingToKb(true);
+    try {
+      const r = await fetch('/api/portal/admin/ai-settings/knowledge-base/append', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fragment: kbFragment.trim() }),
+      });
+      if (!r.ok) {
+        const data = await r.json().catch(() => ({}));
+        throw new Error(data.error ?? 'Ошибка');
+      }
+      setKbAdded(true);
+      toast.success('Добавлено в базу знаний');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка');
+    } finally {
+      setAddingToKb(false);
+    }
+  }
+
+  async function handleSuggestReply() {
+    if (!canUseAiReply || suggestingReply) return;
+    setSuggestingReply(true);
+    try {
+      const r = await fetch(`/api/portal/tickets/${ticketId}/suggest-reply`, { method: 'POST' });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Ошибка');
+      if (data.content) setReply(data.content);
+      else toast.info('Не удалось сформировать ответ');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка');
+    } finally {
+      setSuggestingReply(false);
+    }
+  }
 
   async function handleSend() {
     const content = reply.trim();
@@ -131,7 +195,7 @@ export function TicketThread({
   return (
     <div className="space-y-6 max-w-3xl">
       <div>
-        <Link href={backHref} className="text-sm font-medium text-[#6366F1] hover:underline">
+        <Link href={backHref} className="text-sm font-medium text-[var(--portal-accent)] hover:underline">
           {backLabel}
         </Link>
         <h1 className="mt-2 text-xl font-bold text-[var(--portal-text)]" style={{ fontFamily: 'var(--font-heading, inherit)' }}>
@@ -144,7 +208,7 @@ export function TicketThread({
             canLinkOrderToPayments ? (
               <Link
                 href={`/portal/admin/payments?search=${encodeURIComponent(orderNumber)}`}
-                className="text-[#6366F1] hover:underline"
+                className="text-[var(--portal-accent)] hover:underline"
                 title="Открыть заказ в разделе Оплаты"
               >
                 Заказ: {orderNumber}
@@ -164,7 +228,7 @@ export function TicketThread({
                   value={status}
                   onChange={(e) => handleStatusChange(e.target.value)}
                   disabled={updatingMeta}
-                  className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+                  className="rounded-lg border border-[var(--portal-sidebar-border)] bg-white px-3 py-1.5 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
                 >
                   <option value="open">Открыт</option>
                   <option value="in_progress">В работе</option>
@@ -180,7 +244,7 @@ export function TicketThread({
                   value={managerId ?? ''}
                   onChange={(e) => handleAssign(e.target.value || null)}
                   disabled={updatingMeta}
-                  className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-sm min-w-[160px] text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+                  className="rounded-lg border border-[var(--portal-sidebar-border)] bg-white px-3 py-1.5 text-sm min-w-[160px] text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
                 >
                   <option value="">— Не назначен</option>
                   {managers.map((m) => (
@@ -193,6 +257,37 @@ export function TicketThread({
         )}
       </div>
 
+      {canAddToKb && (status === 'resolved' || status === 'closed') && messages.length > 0 && (
+        <div className="portal-card p-5">
+          <h2 className="text-base font-semibold text-[var(--portal-text)] flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Добавить в базу типовых ответов
+          </h2>
+          <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
+            Тема, вопрос и ответ будут использоваться AI при подсказке ответов по другим обращениям.
+          </p>
+          {kbAdded ? (
+            <p className="mt-3 text-sm text-green-600">Добавлено в базу знаний.</p>
+          ) : (
+            <>
+              <textarea
+                value={kbFragment}
+                onChange={(e) => setKbFragment(e.target.value)}
+                rows={8}
+                className="mt-3 w-full rounded-lg border border-[var(--portal-sidebar-border)] px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)] font-mono"
+                placeholder="Тема, вопрос, ответ..."
+              />
+              <div className="mt-2">
+                <Button variant="secondary" size="sm" onClick={handleAddToKb} disabled={!kbFragment.trim() || addingToKb}>
+                  {addingToKb ? <Loader2 className="h-4 w-4 animate-spin" /> : <BookOpen className="h-4 w-4" />}
+                  <span className="ml-2">{addingToKb ? 'Добавление…' : 'Добавить в базу знаний'}</span>
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       <div className="portal-card p-5">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Переписка</h2>
         <ul className="mt-3 space-y-3">
@@ -204,12 +299,12 @@ export function TicketThread({
                 key={`${m.at}-${i}`}
                 className={`rounded-lg p-3 ${
                   m.role === 'manager'
-                    ? 'ml-4 bg-[#EEF2FF] border-l-2 border-[#6366F1]'
-                    : 'mr-4 bg-[#F8FAFC] border-l-2 border-[#E2E8F0]'
+                    ? 'ml-4 bg-[var(--portal-accent-soft)] border-l-2 border-[var(--portal-accent)]'
+                    : 'mr-4 bg-[var(--portal-bg)] border-l-2 border-[var(--portal-sidebar-border)]'
                 }`}
               >
                 <p className="text-xs font-medium text-[var(--portal-text-muted)]">
-                  {m.role === 'user' ? userDisplayName : (initialManagerDisplayName ?? 'Менеджер')} · {format(new Date(m.at), 'dd.MM.yyyy HH:mm')}
+                  {m.role === 'user' ? userDisplayName : currentManagerDisplayName} · {format(new Date(m.at), 'dd.MM.yyyy HH:mm')}
                 </p>
                 <p className="mt-1 text-sm text-[var(--portal-text)] whitespace-pre-wrap">{m.content}</p>
               </li>
@@ -223,7 +318,7 @@ export function TicketThread({
               <Label htmlFor="quick-reply" className="text-sm font-medium text-[var(--portal-text-muted)]">Шаблон ответа</Label>
               <select
                 id="quick-reply"
-                className="mt-1 rounded-lg border border-[#E2E8F0] bg-white px-3 py-1.5 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1] min-w-[280px]"
+                className="mt-1 rounded-lg border border-[var(--portal-sidebar-border)] bg-white px-3 py-1.5 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)] min-w-[280px]"
                 value=""
                 onChange={(e) => {
                   const opt = e.target.selectedIndex;
@@ -239,18 +334,34 @@ export function TicketThread({
               </select>
             </div>
           )}
-          <Label htmlFor="reply" className="text-sm font-medium text-[var(--portal-text)]">Ответ</Label>
+          <Label htmlFor="reply" className="text-sm font-medium text-[var(--portal-text)]">
+            {canChangeStatus || canAssign ? 'Ответ' : 'Ваше сообщение'}
+          </Label>
           <textarea
             id="reply"
             value={reply}
             onChange={(e) => setReply(e.target.value)}
-            placeholder="Введите сообщение..."
+            placeholder={canChangeStatus || canAssign ? 'Введите сообщение...' : 'Добавьте сообщение в обращение (ответьте на вопрос поддержки)...'}
             rows={3}
-            className="mt-2 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+            className="mt-2 w-full rounded-lg border border-[var(--portal-sidebar-border)] px-3 py-2 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
           />
-          <Button variant="primary" className="mt-2" onClick={handleSend} disabled={sending || !reply.trim()}>
-            {sending ? 'Отправка…' : 'Отправить'}
-          </Button>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Button variant="primary" onClick={handleSend} disabled={sending || !reply.trim()}>
+              {sending ? 'Отправка…' : 'Отправить'}
+            </Button>
+            {canUseAiReply && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleSuggestReply}
+                disabled={sending || suggestingReply}
+              >
+                {suggestingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                <span className="ml-2">{suggestingReply ? 'Генерация…' : 'AI предложить ответ'}</span>
+              </Button>
+            )}
+          </div>
         </div>
       </div>
     </div>

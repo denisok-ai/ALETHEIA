@@ -1,13 +1,18 @@
 /**
  * Admin: payments — orders table with filters, search, pagination, manual confirm; revenue stats, CSV export.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Оплаты' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { PaymentsExportButton } from './PaymentsExportButton';
 import { PaymentsTableClient } from './PaymentsTableClient';
 import { ServicesAdminBlock } from './ServicesAdminBlock';
+import { SimulatePaymentBlock } from './SimulatePaymentBlock';
 
 export default async function AdminPaymentsPage({
   searchParams,
@@ -73,6 +78,8 @@ export default async function AdminPaymentsPage({
       </div>
 
       <ServicesAdminBlock />
+
+      <SimulatePaymentBlock />
 
       <div>
         <PaymentsTableClient initialOrders={initialOrders} initialSearch={initialSearch} />

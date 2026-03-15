@@ -28,28 +28,22 @@ export function getClientInfo(req: NextRequest | Request): ClientInfo {
 
 /**
  * Создать новую запись посещения или обновить lastActivityAt у текущей открытой сессии.
- * Вызывается из /api/portal/ping и при первом запросе после входа.
+ * Оптимизировано: один updateMany вместо findFirst + update (меньше нагрузка при 300+ пользователях).
  */
 export async function recordVisitOrUpdate(
   userId: string,
   client: ClientInfo
 ): Promise<void> {
   const now = new Date();
-  const open = await prisma.visitLog.findFirst({
+  const updated = await prisma.visitLog.updateMany({
     where: { userId, logoutAt: null },
-    orderBy: { loginAt: 'desc' },
+    data: {
+      lastActivityAt: now,
+      ipAddress: client.ipAddress ?? undefined,
+      userAgent: client.userAgent ?? undefined,
+    },
   });
-  if (open) {
-    await prisma.visitLog.update({
-      where: { id: open.id },
-      data: {
-        lastActivityAt: now,
-        ipAddress: client.ipAddress ?? undefined,
-        userAgent: client.userAgent ?? undefined,
-      },
-    });
-    return;
-  }
+  if (updated.count > 0) return;
   await prisma.visitLog.create({
     data: {
       userId,

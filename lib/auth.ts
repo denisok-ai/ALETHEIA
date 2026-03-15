@@ -2,6 +2,10 @@
  * NextAuth — локальная аутентификация (credentials).
  */
 import type { NextAuthOptions } from 'next-auth';
+
+if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET?.trim()) {
+  throw new Error('NEXTAUTH_SECRET must be set in production. Do not use dev fallback.');
+}
 import { getServerSession } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
@@ -65,7 +69,7 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   secret:
     process.env.NODE_ENV === 'production'
-      ? process.env.NEXTAUTH_SECRET
+      ? process.env.NEXTAUTH_SECRET!
       : process.env.NEXTAUTH_SECRET ?? 'avaterra-dev-secret',
 };
 
@@ -99,5 +103,18 @@ export async function requireAdminSession(): Promise<
   const session = await getServerSession(authOptions);
   const user = session?.user as SessionUser | undefined;
   if (!session?.user || !user?.id || user.role !== 'admin') return null;
+  return { session, userId: user.id, role: user.role };
+}
+
+/**
+ * Проверка сессии и роли manager или admin для API. Возвращает данные сессии или null.
+ */
+export async function requireManagerSession(): Promise<
+  { session: Awaited<ReturnType<typeof getServerSession>>; userId: string; role: string } | null
+> {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as SessionUser | undefined;
+  if (!session?.user || !user?.id) return null;
+  if (user.role !== 'manager' && user.role !== 'admin') return null;
   return { session, userId: user.id, role: user.role };
 }

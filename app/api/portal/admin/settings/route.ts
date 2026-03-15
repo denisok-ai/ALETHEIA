@@ -31,8 +31,11 @@ const ALLOWED_KEYS = [
   'paykeeper_test_secret',
   'resend_api_key',
   'telegram_bot_token',
+  'telegram_webhook_secret',
   'cron_secret',
   'nextauth_url',
+  'openai_api_key',
+  'deepseek_api_key',
 ] as const;
 
 const KEY_CATEGORY: Record<(typeof ALLOWED_KEYS)[number], string> = {
@@ -56,8 +59,11 @@ const KEY_CATEGORY: Record<(typeof ALLOWED_KEYS)[number], string> = {
   paykeeper_test_secret: 'payments',
   resend_api_key: 'env',
   telegram_bot_token: 'env',
+  telegram_webhook_secret: 'env',
   cron_secret: 'env',
   nextauth_url: 'env',
+  openai_api_key: 'env',
+  deepseek_api_key: 'env',
 };
 
 const PAYKEEPER_SENSITIVE = new Set([
@@ -70,12 +76,16 @@ const PAYKEEPER_SENSITIVE = new Set([
 const ENV_SENSITIVE = new Set([
   'resend_api_key',
   'telegram_bot_token',
+  'telegram_webhook_secret',
   'cron_secret',
+  'openai_api_key',
+  'deepseek_api_key',
 ]);
 
 const SENSITIVE_KEYS = new Set([
   'paykeeper_password', 'paykeeper_secret', 'paykeeper_test_password', 'paykeeper_test_secret',
-  'resend_api_key', 'telegram_bot_token', 'cron_secret',
+  'resend_api_key', 'telegram_bot_token', 'telegram_webhook_secret', 'cron_secret',
+  'openai_api_key', 'deepseek_api_key',
 ]);
 
 export async function GET() {
@@ -103,8 +113,11 @@ export async function GET() {
     paykeeper_test_secret: process.env.PAYKEEPER_TEST_SECRET ?? '',
     resend_api_key: process.env.RESEND_API_KEY ?? '',
     telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN ?? '',
+    telegram_webhook_secret: process.env.TELEGRAM_WEBHOOK_SECRET ?? '',
     cron_secret: process.env.CRON_SECRET ?? '',
     nextauth_url: process.env.NEXTAUTH_URL ?? '',
+    openai_api_key: process.env.OPENAI_API_KEY ?? '',
+    deepseek_api_key: process.env.DEEPSEEK_API_KEY ?? '',
     email_payment_course_subject: '',
     email_payment_course_body: '',
     email_payment_generic_subject: '',

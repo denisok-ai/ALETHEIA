@@ -1,7 +1,11 @@
 /**
  * Student: profile — view and edit displayName. Portal design.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Профиль' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
@@ -19,19 +23,21 @@ export default async function StudentProfilePage() {
     );
   }
 
-  const profile = await prisma.profile.findUnique({
-    where: { userId },
-    select: { displayName: true, email: true },
-  });
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { email: true },
-  });
+  const [profile, user] = await Promise.all([
+    prisma.profile.findUnique({
+      where: { userId },
+      select: { displayName: true, email: true },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    }),
+  ]);
   const email = profile?.email ?? user?.email ?? null;
   const displayName = profile?.displayName ?? null;
 
   return (
-    <div className="space-y-6 max-w-xl">
+    <div className="w-full space-y-6">
       <PageHeader
         items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Профиль' }]}
         title="Профиль"

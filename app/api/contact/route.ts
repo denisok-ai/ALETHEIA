@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { prisma } from '@/lib/db';
 import { getSystemSettings, getEnvOverrides } from '@/lib/settings';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = checkRateLimit(request, 'contact', 5);
+  if (rateLimitRes) return rateLimitRes;
+
   try {
     const settings = await getSystemSettings();
     const fromEmail = settings.resend_from || process.env.RESEND_FROM || 'onboarding@resend.dev';

@@ -34,7 +34,8 @@ model User {
   notificationLogs NotificationLog[]
   visitLogs       VisitLog[]
   userGroups      UserGroup[]
-  passwordTokens  PasswordToken[]
+  passwordTokens         PasswordToken[]
+  emailVerificationTokens EmailVerificationToken[]
 }
 
 // Иерархические группы для модулей Курсы, Медиатека, Пользователи
@@ -111,20 +112,25 @@ model VisitLog {
   @@index([userId])
   @@index([loginAt])
   @@index([lastActivityAt])
+  @@index([logoutAt])
 }
 
 model Profile {
-  id          String   @id
-  userId      String   @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role        String   @default("user") // user, manager, admin
-  status      String   @default("active") // active, archived
-  displayName String?
-  email       String?
-  avatarUrl   String?
-  telegramId  Int?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              String    @id
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role            String    @default("user") // user, manager, admin
+  status          String    @default("active") // active, archived
+  displayName     String?
+  email           String?
+  avatarUrl       String?
+  telegramId      Int?
+  emailVerifiedAt DateTime? // null = не верифицирован
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([role])
+  @@index([status])
 }
 
 model Course {
@@ -142,6 +148,7 @@ model Course {
   status         String   @default("published") // draft=В разработке, published=Действительно, cancelled=Отменено, archived=В архиве
   price          Int?
   sortOrder      Int      @default(0)
+  verificationRequiredLessonIds String? // JSON array of lesson identifiers that require phygital verification, e.g. ["lesson-1","lesson-2"]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -168,6 +175,8 @@ model Enrollment {
   completedAt  DateTime? // если задано — участие Завершено
 
   @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([enrolledAt])
 }
 
 model ScormProgress {
@@ -219,12 +228,15 @@ model Certificate {
   expiryDate DateTime?
 
   @@unique([userId, courseId])
+  @@index([courseId])
+  @@index([issuedAt])
 }
 
 model Media {
   id            String   @id @default(cuid())
   title         String
   fileUrl       String   // для type=link — внешний URL
+  thumbnailUrl  String?  // обложка/превью (для видео и ссылок)
   mimeType      String?
   category      String?
   description   String?
@@ -241,6 +253,8 @@ model Media {
   updatedAt     DateTime @updatedAt
 
   mediaGroups   MediaGroup[]
+  @@index([courseId])
+  @@index([category])
 }
 
 model Notification {
@@ -251,6 +265,9 @@ model Notification {
   content   String   @default("{}")
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Ticket {
@@ -265,6 +282,10 @@ model Ticket {
   orderNumber String?  // при обращении «Нет доступа» — заказ для аналитики (7.4)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
 }
 
 model PhygitalVerification {
@@ -290,6 +311,9 @@ model AuditLog {
   entityId  String?
   diff      String?
   createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
 }
 
 model NotificationTemplate {
@@ -451,6 +475,9 @@ model Lead {
   lastOrderNumber    String?  // при оплате заказа с email лида — для аналитики (1.3)
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  @@index([status])
+  @@index([createdAt])
 }
 
 model Order {
@@ -466,10 +493,27 @@ model Order {
   user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([paidAt])
+  @@index([createdAt])
 }
 
 /// Одноразовый токен для установки/сброса пароля (конвертация лида, восстановление пароля).
 model PasswordToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  @@index([token])
+  @@index([expiresAt])
+}
+
+/// Токен верификации email (48 ч).
+model EmailVerificationToken {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -542,6 +586,8 @@ model Publication {
   updatedAt       DateTime @updatedAt
 
   comments        PublicationComment[]
+  @@index([status])
+  @@index([publishAt])
 }
 
 model PublicationComment {

@@ -26,8 +26,10 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { TablePagination } from '@/components/ui/TablePagination';
-import { buildCsv, downloadCsv } from '@/lib/export-csv';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
+import { downloadXlsx } from '@/lib/export-xlsx';
 import { getNotificationSetEventLabel } from '@/lib/notification-set-events';
 
 type AttachedSet = {
@@ -44,7 +46,10 @@ type CatalogSet = {
   isDefault: boolean;
 };
 
-const PAGE_SIZES = [5, 10, 50];
+const NOTIFICATIONS_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'eventType', label: 'Тип события' },
+  { id: 'name', label: 'Название' },
+];
 
 export function CourseNotificationsBlock({
   courseId,
@@ -66,7 +71,15 @@ export function CourseNotificationsBlock({
   const [excluding, setExcluding] = useState(false);
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => NOTIFICATIONS_TABLE_COLUMNS.map((c) => c.id));
   const [addDropdownOpen, setAddDropdownOpen] = useState(false);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
   const addRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async () => {
@@ -124,19 +137,25 @@ export function CourseNotificationsBlock({
     );
   });
 
-  const total = filtered.length;
+  const notifSortGetters: Record<string, (s: AttachedSet) => unknown> = {
+    eventType: (s) => s.eventType,
+    name: (s) => s.name,
+  };
+  const sorted = sortKey && notifSortGetters[sortKey]
+    ? sortTableBy(filtered, notifSortGetters[sortKey], sortDir)
+    : filtered;
+  const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
   const start = currentPage * pageSize;
-  const pageRows = filtered.slice(start, start + pageSize);
+  const pageRows = sorted.slice(start, start + pageSize);
 
   const handleExportExcel = () => {
-    const csv = buildCsv(filtered, [
+    downloadXlsx(sorted, [
       { key: 'name', header: 'Название' },
       { key: 'eventType', header: 'Событие' },
       { key: 'notificationSetId', header: 'ID набора' },
-    ]);
-    downloadCsv(csv, `notifications-${courseId}-${new Date().toISOString().slice(0, 10)}.csv`);
+    ], `notifications-${courseId}-${new Date().toISOString().slice(0, 10)}`);
   };
 
   const handleAddSets = async () => {
@@ -284,13 +303,21 @@ export function CourseNotificationsBlock({
         />
       ) : (
         <>
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-10">№</TableHead>
-                  <TableHead>Тип события</TableHead>
-                  <TableHead>Название</TableHead>
+                  {visibleColumnIds.includes('eventType') && (
+                    <SortableTableHead sortKey="eventType" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>
+                      Тип события
+                    </SortableTableHead>
+                  )}
+                  {visibleColumnIds.includes('name') && (
+                    <SortableTableHead sortKey="name" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>
+                      Название
+                    </SortableTableHead>
+                  )}
                   <TableHead className="w-32">Действия</TableHead>
                 </TableRow>
               </TableHeader>
@@ -298,15 +325,19 @@ export function CourseNotificationsBlock({
                 {pageRows.map((row, idx) => (
                   <TableRow key={row.id}>
                     <TableCell className="text-[var(--portal-text-muted)]">{start + idx + 1}</TableCell>
-                    <TableCell>{getNotificationSetEventLabel(row.eventType)}</TableCell>
-                    <TableCell>
-                      <Link
-                        href={`/portal/admin/notification-sets/${row.notificationSetId}`}
-                        className="font-medium text-[#6366F1] hover:underline"
-                      >
-                        {row.name}
-                      </Link>
-                    </TableCell>
+                    {visibleColumnIds.includes('eventType') && (
+                      <TableCell>{getNotificationSetEventLabel(row.eventType)}</TableCell>
+                    )}
+                    {visibleColumnIds.includes('name') && (
+                      <TableCell>
+                        <Link
+                          href={`/portal/admin/notification-sets/${row.notificationSetId}`}
+                          className="font-medium text-[#6366F1] hover:underline"
+                        >
+                          {row.name}
+                        </Link>
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <Link
@@ -331,19 +362,22 @@ export function CourseNotificationsBlock({
             </Table>
           </div>
 
-          <div className="mt-4 border-t border-[#E2E8F0] pt-3">
+          {total > 0 && (
             <TablePagination
               currentPage={currentPage}
               totalPages={totalPages}
               total={total}
               pageSize={pageSize}
-              pageSizeOptions={PAGE_SIZES}
+              pageSizeOptions={STANDARD_PAGE_SIZES}
               onPageChange={setPage}
               onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+              columnConfig={NOTIFICATIONS_TABLE_COLUMNS}
+              visibleColumnIds={visibleColumnIds}
+              onVisibleColumnIdsChange={setVisibleColumnIds}
               onExportExcel={handleExportExcel}
               exportLabel="Excel"
             />
-          </div>
+          )}
         </>
       )}
 

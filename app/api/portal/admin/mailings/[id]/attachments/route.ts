@@ -54,11 +54,14 @@ export async function POST(
     );
   }
 
-  const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(0, 200) || 'file';
-  const storedName = `${nanoid(10)}_${safeName}`;
+  const baseName = path.basename(file.name).replace(/[^\w.\-]+/g, '_').slice(0, 200) || 'file';
+  const storedName = `${nanoid(10)}_${baseName}`;
   const relPath = path.join('mailings', mailingId, storedName);
-  const uploadDir = path.join(process.cwd(), 'uploads', 'mailings', mailingId);
-  const fullPath = path.join(process.cwd(), 'uploads', relPath);
+  const uploadDir = path.resolve(process.cwd(), 'uploads', 'mailings', mailingId);
+  const fullPath = path.resolve(process.cwd(), 'uploads', relPath);
+  if (!fullPath.startsWith(path.resolve(process.cwd(), 'uploads'))) {
+    return NextResponse.json({ error: 'Недопустимое имя файла' }, { status: 400 });
+  }
 
   await mkdir(uploadDir, { recursive: true });
   const buf = Buffer.from(await file.arrayBuffer());
@@ -106,7 +109,11 @@ export async function DELETE(
     return NextResponse.json({ error: 'Вложение не найдено' }, { status: 404 });
   }
 
-  const fullPath = path.join(process.cwd(), 'uploads', pathOrKey);
+  const uploadsRoot = path.resolve(process.cwd(), 'uploads');
+  const fullPath = path.resolve(process.cwd(), 'uploads', pathOrKey);
+  if (!fullPath.startsWith(uploadsRoot)) {
+    return NextResponse.json({ error: 'Недопустимый путь' }, { status: 400 });
+  }
   try {
     await unlink(fullPath);
   } catch {

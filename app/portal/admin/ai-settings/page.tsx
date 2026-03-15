@@ -1,7 +1,11 @@
 /**
  * Admin: AI settings — one scroll (main), merged LLM + chatbot block, prompt templates, knowledge base, test chat.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Настройки AI' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
@@ -9,7 +13,9 @@ import { Card } from '@/components/portal/Card';
 import { LlmAndChatbotBlock } from './LlmAndChatbotBlock';
 import { PromptTemplatesBlock } from './PromptTemplatesBlock';
 import { KnowledgeBaseBlock } from './KnowledgeBaseBlock';
+import { TicketAutoReplyBlock } from './TicketAutoReplyBlock';
 import { AiTestChat } from './AiTestChat';
+import { LlmRequestLogBlock } from './LlmRequestLogBlock';
 
 export default async function AdminAiSettingsPage() {
   const session = await getServerSession(authOptions);
@@ -79,13 +85,13 @@ export default async function AdminAiSettingsPage() {
 
         <KnowledgeBaseBlock />
 
+        <TicketAutoReplyBlock />
+
         <Card title="Тест чат-бота" description="Проверка ответов с текущими настройками (активный шаблон промпта + база знаний).">
           <AiTestChat />
         </Card>
 
-        <Card title="Лог запросов к AI" description="Логирование запросов планируется в следующих версиях.">
-          <p className="text-sm text-[var(--portal-text-muted)]">—</p>
-        </Card>
+        <LlmRequestLogBlock />
       </div>
     </div>
   );

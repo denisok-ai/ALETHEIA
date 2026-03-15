@@ -31,6 +31,7 @@ export async function GET(request: NextRequest) {
       loginAt: { gte: dateFrom, lte: dateTo },
     },
     select: { userId: true },
+    take: 50000,
   });
 
   const countByUser: Record<string, number> = {};

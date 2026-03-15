@@ -1,7 +1,12 @@
 /**
  * Manager: Phygital homework verification queue. Portal design.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+import { notFound } from 'next/navigation';
+
+export const metadata: Metadata = { title: 'Верификация заданий' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
@@ -17,8 +22,12 @@ export default async function ManagerVerificationsPage() {
     );
   }
 
+  const role = (session.user as { role?: string })?.role;
+  if (role !== 'manager' && role !== 'admin') notFound();
+
   const items = await prisma.phygitalVerification.findMany({
     where: { status: 'pending' },
+    include: { course: { select: { id: true, title: true } } },
     orderBy: { createdAt: 'asc' },
   });
 
@@ -36,6 +45,7 @@ export default async function ManagerVerificationsPage() {
     id: i.id,
     user_id: i.userId,
     course_id: i.courseId,
+    course_title: i.course?.title ?? '',
     lesson_id: i.lessonId,
     video_url: i.videoUrl,
     status: i.status,
@@ -43,13 +53,17 @@ export default async function ManagerVerificationsPage() {
   }));
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="w-full space-y-6">
       <PageHeader
         items={[{ href: '/portal/manager/dashboard', label: 'Дашборд' }, { label: 'Верификация заданий' }]}
         title="Верификация заданий"
         description="Очередь видео на проверку, одобрить / отклонить"
       />
-      <VerificationsList items={list} profileMap={profileMap} />
+      <VerificationsList
+        items={list}
+        profileMap={profileMap}
+        userHrefPrefix={role === 'admin' ? '/portal/admin/users' : '/portal/manager/users'}
+      />
     </div>
   );
 }

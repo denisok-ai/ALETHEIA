@@ -1,7 +1,11 @@
 /**
  * Admin: mediatheque — list and upload.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Медиатека' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
@@ -26,6 +30,7 @@ export default async function AdminMediaPage() {
     id: m.id,
     title: m.title,
     file_url: m.fileUrl,
+    thumbnail_url: m.thumbnailUrl ?? null,
     mime_type: m.mimeType,
     category: m.category,
     description: m.description,

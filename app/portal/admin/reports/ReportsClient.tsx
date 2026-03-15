@@ -14,8 +14,10 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { BarChart3, BookOpen, Users, Calendar, Download, List } from 'lucide-react';
+import { BarChart3, BookOpen, Users, Calendar, Download, List, FileSpreadsheet } from 'lucide-react';
 import { format } from 'date-fns';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 
 type ReportType = 'summary' | 'by-course' | 'by-learner' | 'by-period' | 'course-learners';
 
@@ -235,6 +237,79 @@ export function ReportsClient() {
     }
   }, [reportType, byCourse, byLearner, byPeriod, summary, courseLearners, dateFrom, dateTo]);
 
+  const exportXlsx = useCallback(() => {
+    if (reportType === 'by-course' && byCourse?.rows?.length) {
+      const header = ['Курс', 'Статус', 'Зачислено', 'Доступ открыт', 'Завершило', '% завершения', 'Сертификатов', 'Средний балл', 'Время (мин)'];
+      const cols = ['title', 'status', 'enrolled', 'accessOpen', 'completed', 'completionRatePercent', 'certificates', 'avgScore', 'timeSpentMinutes'];
+      const rows: (string | number | null | undefined)[][] = byCourse.rows.map((row) =>
+        cols.map((c) => {
+          const v = (row as Record<string, unknown>)[c];
+          return v == null ? '' : (typeof v === 'number' ? v : String(v));
+        })
+      );
+      downloadXlsxFromArrays(header, rows, `report-by-course-${dateFrom}-${dateTo}.xlsx`);
+    } else if (reportType === 'by-learner' && byLearner?.rows?.length) {
+      const header = ['Слушатель', 'Email', 'Роль', 'Зачислено', 'В процессе', 'Завершено', 'Сертификатов', 'Последняя активность', 'Время (мин)'];
+      const cols = ['displayName', 'email', 'role', 'enrolled', 'inProgress', 'completed', 'certificates', 'lastActivity', 'timeSpentMinutes'];
+      const rows: (string | number | null | undefined)[][] = byLearner.rows.map((row) =>
+        cols.map((c) => {
+          const v = (row as Record<string, unknown>)[c];
+          return v == null ? '' : (typeof v === 'number' ? v : String(v));
+        })
+      );
+      downloadXlsxFromArrays(header, rows, `report-by-learner-${dateFrom}-${dateTo}.xlsx`);
+    } else if (reportType === 'by-period' && byPeriod?.rows?.length) {
+      const header = ['Дата', 'Зачислений', 'Завершений', 'Сертификатов', 'Оплат', 'Сумма (₽)'];
+      const rows: (string | number | null | undefined)[][] = byPeriod.rows.map((r) => {
+        const row = r as Record<string, unknown>;
+        return [
+          String(row.date ?? ''),
+          Number(row.enrollments ?? 0),
+          Number(row.completions ?? 0),
+          Number(row.certificates ?? 0),
+          Number(row.ordersCount ?? 0),
+          Number(row.revenue ?? 0),
+        ];
+      });
+      downloadXlsxFromArrays(header, rows, `report-by-period-${dateFrom}-${dateTo}.xlsx`);
+    } else if (reportType === 'summary' && summary?.summary) {
+      const s = summary.summary as Record<string, unknown>;
+      const header = ['Показатель', 'Значение'];
+      const labels: Record<string, string> = {
+        usersActive: 'Активных пользователей',
+        coursesTotal: 'Курсов всего',
+        coursesPublished: 'Курсов опубликовано',
+        enrollmentsTotal: 'Зачислений всего',
+        enrollmentsCompletedTotal: 'Завершило обучение',
+        completionRatePercent: '% завершения',
+        certificatesTotal: 'Сертификатов выдано',
+        enrollmentsInPeriod: 'За период: зачислений',
+        completedInPeriod: 'За период: завершений',
+        revenueInPeriod: 'За период: выручка (₽)',
+      };
+      const rowNames = [
+        'usersActive', 'coursesTotal', 'coursesPublished', 'enrollmentsTotal', 'enrollmentsCompletedTotal',
+        'completionRatePercent', 'certificatesTotal', 'enrollmentsInPeriod', 'completedInPeriod', 'revenueInPeriod',
+      ];
+      const rows = rowNames.map((k) => [labels[k] ?? k, String(s[k] ?? '')]);
+      downloadXlsxFromArrays(header, rows, `report-summary-${dateFrom}-${dateTo}.xlsx`);
+    } else if (reportType === 'course-learners' && courseLearners?.rows?.length) {
+      const header = ['Слушатель', 'Email', 'Зачислен', 'Доступ', 'Завершён', 'Прогресс %', 'Балл', 'Время (мин)', 'Сертификат'];
+      const rows = courseLearners.rows.map((r) => [
+        r.displayName,
+        r.email,
+        r.enrolledAt.slice(0, 10),
+        r.accessClosed ? 'Закрыт' : 'Открыт',
+        r.completedAt ? r.completedAt.slice(0, 10) : '—',
+        r.progressPercent,
+        r.avgScore ?? '—',
+        r.timeSpentMinutes,
+        r.hasCertificate ? 'Да' : 'Нет',
+      ]);
+      downloadXlsxFromArrays(header, rows, `report-course-learners-${courseLearners.courseId}-${dateToParam(new Date())}.xlsx`);
+    }
+  }, [reportType, byCourse, byLearner, byPeriod, summary, courseLearners, dateFrom, dateTo]);
+
   const tabs = [
     { id: 'summary' as const, label: 'Сводка', icon: <BarChart3 className="h-4 w-4" /> },
     { id: 'by-course' as const, label: 'По курсам', icon: <BookOpen className="h-4 w-4" /> },
@@ -327,10 +402,16 @@ export function ReportsClient() {
               (reportType === 'by-learner' && byLearner?.rows?.length) ||
               (reportType === 'by-period' && byPeriod?.rows?.length) ||
               (reportType === 'course-learners' && courseLearners?.rows?.length)) && (
-              <Button variant="secondary" onClick={exportCsv}>
-                <Download className="mr-2 h-4 w-4" />
-                Экспорт CSV
-              </Button>
+              <>
+                <Button variant="secondary" onClick={exportCsv}>
+                  <Download className="mr-2 h-4 w-4" />
+                  CSV
+                </Button>
+                <Button variant="secondary" onClick={exportXlsx}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  XLSX
+                </Button>
+              </>
             )}
           </div>
         </div>
@@ -462,13 +543,40 @@ export function ReportsClient() {
       )}
 
       {byPeriod?.rows && byPeriod.rows.length > 0 && (
-        <Card className="overflow-hidden p-0">
-          {byPeriod.totals && (
-            <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[var(--portal-text)]">
-              Итого за период: зачислений {byPeriod.totals.enrollments}, завершений {byPeriod.totals.completions}, сертификатов {byPeriod.totals.certificates}, оплат {byPeriod.totals.ordersCount}, выручка {byPeriod.totals.revenue} ₽
+        <>
+          <Card className="p-6">
+            <h3 className="mb-4 font-heading text-lg font-semibold text-[var(--portal-text)]">Динамика по дням</h3>
+            <div className="h-64 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={byPeriod.rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => (v as string).slice(5)} />
+                  <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
+                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => `${Number(v ?? 0)} ₽`} />
+                  <Tooltip
+                    labelFormatter={(label) => label}
+                    formatter={(value, name) => [
+                      name === 'revenue' ? `${Number(value ?? 0).toLocaleString('ru')} ₽` : (value ?? 0),
+                      name === 'enrollments' ? 'Зачислений' : name === 'completions' ? 'Завершений' : name === 'certificates' ? 'Сертификатов' : name === 'ordersCount' ? 'Оплат' : 'Выручка (₽)',
+                    ]}
+                  />
+                  <Legend />
+                  <Line yAxisId="left" type="monotone" dataKey="enrollments" stroke="#2D1B4E" name="Зачислений" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="completions" stroke="#6366F1" name="Завершений" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="certificates" stroke="#D4AF37" name="Сертификатов" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="ordersCount" stroke="#10B981" name="Оплат" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#F59E0B" name="Выручка (₽)" strokeWidth={2} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-          )}
-          <div className="overflow-x-auto">
+          </Card>
+          <Card className="overflow-hidden p-0">
+            {byPeriod.totals && (
+              <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[var(--portal-text)]">
+                Итого за период: зачислений {byPeriod.totals.enrollments}, завершений {byPeriod.totals.completions}, сертификатов {byPeriod.totals.certificates}, оплат {byPeriod.totals.ordersCount}, выручка {byPeriod.totals.revenue} ₽
+              </div>
+            )}
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -495,6 +603,7 @@ export function ReportsClient() {
             </Table>
           </div>
         </Card>
+        </>
       )}
 
       {courseLearners && (

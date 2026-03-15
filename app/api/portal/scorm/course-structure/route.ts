@@ -19,11 +19,11 @@ export async function GET(request: NextRequest) {
   const courseId = searchParams.get('courseId');
   if (!courseId) return NextResponse.json({ error: 'Missing courseId' }, { status: 400 });
 
-  if (role !== 'admin') {
+  if (role !== 'admin' && role !== 'manager') {
     const enrollment = await prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
     });
-    if (!enrollment) return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
+    if (!enrollment || enrollment.accessClosed) return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
   }
 
   const course = await prisma.course.findUnique({

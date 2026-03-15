@@ -116,7 +116,12 @@ export async function runMailingSend(
   });
 
   const settings = await getSystemSettings();
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+  const baseUrl =
+    settings.site_url?.replace(/\/$/, '') ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : '') ||
+    process.env.NEXT_PUBLIC_URL ||
+    'http://localhost:3000';
   const unsubscribeUrl = `${baseUrl}/unsubscribe`;
 
   await prisma.mailing.update({

@@ -16,6 +16,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
 import {
   Dialog,
   DialogContent,
@@ -25,8 +27,19 @@ import {
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SearchInput } from '@/components/ui/SearchInput';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 import { Plus, Pencil, Trash2, ExternalLink, FileText } from 'lucide-react';
+
+const PUBLICATIONS_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'title', label: 'Название' },
+  { id: 'type', label: 'Тип' },
+  { id: 'status', label: 'Статус' },
+  { id: 'publishAt', label: 'Публикация' },
+  { id: 'viewsCount', label: 'Просмотры' },
+];
 import { format } from 'date-fns';
+
 
 export interface PubRow {
   id: string;
@@ -65,6 +78,27 @@ export function PublicationsAdminClient({
   const [formKeywords, setFormKeywords] = useState('');
   const [formAllowComments, setFormAllowComments] = useState(true);
   const [formAllowRating, setFormAllowRating] = useState(true);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => PUBLICATIONS_TABLE_COLUMNS.map((c) => c.id));
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const handleExportExcel = () => {
+    const headers = ['Название', 'Тип', 'Статус', 'Публикация', 'Просмотры'];
+    const rows = filtered.map((p) => [
+      p.title,
+      p.type,
+      p.status,
+      format(new Date(p.publishAt), 'dd.MM.yyyy'),
+      String(p.viewsCount),
+    ]);
+    downloadXlsxFromArrays(headers, rows, `publications-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  };
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
 
   const filtered = useMemo(() => {
     let list = items;
@@ -75,6 +109,24 @@ export function PublicationsAdminClient({
     }
     return list;
   }, [items, typeFilter, search]);
+
+  const pubSortGetters: Record<string, (p: PubRow) => unknown> = {
+    title: (p) => p.title,
+    type: (p) => p.type,
+    publishAt: (p) => p.publishAt,
+    status: (p) => p.status,
+    views: (p) => p.viewsCount,
+  };
+  const sorted = useMemo(() => {
+    if (!sortKey || !pubSortGetters[sortKey]) return filtered;
+    return sortTableBy(filtered, pubSortGetters[sortKey], sortDir);
+  }, [filtered, sortKey, sortDir]);
+
+  const pubTotal = sorted.length;
+  const pubTotalPages = Math.max(1, Math.ceil(pubTotal / pageSize));
+  const pubCurrentPage = Math.min(page, pubTotalPages - 1);
+  const pubStart = pubCurrentPage * pageSize;
+  const pubPageRows = sorted.slice(pubStart, pubStart + pageSize);
 
   async function loadList() {
     const r = await fetch('/api/portal/admin/publications');
@@ -209,17 +261,16 @@ export function PublicationsAdminClient({
         </Button>
       </div>
 
-      <div className="portal-card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead className="w-10">№</TableHead>
-              <TableHead>Название</TableHead>
-              <TableHead>Тип</TableHead>
-              <TableHead>Дата размещения</TableHead>
-              <TableHead>Статус</TableHead>
-              <TableHead className="text-right">Просмотры</TableHead>
+              <SortableTableHead sortKey="title" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Название</SortableTableHead>
+              <SortableTableHead sortKey="type" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Тип</SortableTableHead>
+              <SortableTableHead sortKey="publishAt" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Дата размещения</SortableTableHead>
+              <SortableTableHead sortKey="status" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Статус</SortableTableHead>
+              <SortableTableHead sortKey="views" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort} className="text-right">Просмотры</SortableTableHead>
               <TableHead className="w-32"></TableHead>
             </TableRow>
           </TableHeader>
@@ -235,9 +286,9 @@ export function PublicationsAdminClient({
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((p, idx) => (
+              pubPageRows.map((p, idx) => (
                 <TableRow key={p.id}>
-                  <TableCell className="text-[var(--portal-text-muted)]">{idx + 1}</TableCell>
+                  <TableCell className="text-[var(--portal-text-muted)]">{pubStart + idx + 1}</TableCell>
                   <TableCell className="font-medium text-[var(--portal-text)]">{p.title}</TableCell>
                   <TableCell className="text-[var(--portal-text-muted)]">
                     {p.type === 'news' ? 'Новость' : 'Объявление'}
@@ -287,8 +338,23 @@ export function PublicationsAdminClient({
             )}
           </TableBody>
         </Table>
-        </div>
       </div>
+      {filtered.length > 0 && (
+        <TablePagination
+          currentPage={Math.min(page, Math.max(0, Math.ceil(filtered.length / pageSize) - 1))}
+          totalPages={Math.max(1, Math.ceil(filtered.length / pageSize))}
+          total={filtered.length}
+          pageSize={pageSize}
+          pageSizeOptions={STANDARD_PAGE_SIZES}
+          onPageChange={setPage}
+          onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+          columnConfig={PUBLICATIONS_TABLE_COLUMNS}
+          visibleColumnIds={visibleColumnIds}
+          onVisibleColumnIdsChange={setVisibleColumnIds}
+          onExportExcel={handleExportExcel}
+          exportLabel="Excel"
+        />
+      )}
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
         <DialogContent className="max-h-[90vh] overflow-y-auto max-w-2xl">

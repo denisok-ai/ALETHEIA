@@ -60,8 +60,23 @@ export function clearSettingsCache(): void {
   paymentTemplatesCache = null;
 }
 
-const ENV_OVERRIDE_KEYS = ['resend_api_key', 'telegram_bot_token', 'cron_secret', 'nextauth_url'] as const;
-const ENV_OVERRIDE_SENSITIVE = new Set(['resend_api_key', 'telegram_bot_token', 'cron_secret']);
+const ENV_OVERRIDE_KEYS = [
+  'resend_api_key',
+  'telegram_bot_token',
+  'telegram_webhook_secret',
+  'cron_secret',
+  'nextauth_url',
+  'openai_api_key',
+  'deepseek_api_key',
+] as const;
+const ENV_OVERRIDE_SENSITIVE = new Set([
+  'resend_api_key',
+  'telegram_bot_token',
+  'telegram_webhook_secret',
+  'cron_secret',
+  'openai_api_key',
+  'deepseek_api_key',
+]);
 let envOverridesCache: { at: number; data: Record<string, string> } | null = null;
 
 /**

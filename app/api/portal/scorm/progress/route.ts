@@ -11,7 +11,7 @@ import { triggerNotification } from '@/lib/notifications';
 import { nanoid } from 'nanoid';
 
 /** SCORM 1.2/2004: "passed" и "completed" считаем завершённым уроком. */
-export function isLessonCompleted(status: string | null | undefined): boolean {
+function isLessonCompleted(status: string | null | undefined): boolean {
   return status === 'completed' || status === 'passed';
 }
 
@@ -66,7 +66,7 @@ async function maybeIssueCertificate(userId: string, courseId: string, lessonId:
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { title: true, scormManifest: true },
+    select: { title: true, scormManifest: true, verificationRequiredLessonIds: true },
   });
   if (!course) return;
 
@@ -99,6 +99,31 @@ async function maybeIssueCertificate(userId: string, courseId: string, lessonId:
   });
   if (completed.length < requiredLessonIds.length) return;
 
+  const verificationRequiredIds: string[] = (() => {
+    const raw = (course as { verificationRequiredLessonIds?: string | null }).verificationRequiredLessonIds;
+    if (!raw?.trim()) return [];
+    try {
+      const arr = JSON.parse(raw) as unknown;
+      return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  })();
+  if (verificationRequiredIds.length > 0) {
+    const approvedByLesson = await prisma.phygitalVerification.findMany({
+      where: {
+        userId,
+        courseId,
+        status: 'approved',
+        lessonId: { in: verificationRequiredIds },
+      },
+      select: { lessonId: true },
+    });
+    const approvedLessonIds = new Set(approvedByLesson.map((v) => v.lessonId).filter(Boolean));
+    const missing = verificationRequiredIds.filter((id) => !approvedLessonIds.has(id));
+    if (missing.length > 0) return;
+  }
+
   const profile = await prisma.profile.findUnique({ where: { userId }, select: { displayName: true } });
   const certNumber = `ALT-${nanoid(8).toUpperCase()}`;
 
@@ -120,12 +145,22 @@ async function maybeIssueCertificate(userId: string, courseId: string, lessonId:
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
+  const role = (session?.user as { role?: string })?.role;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(request.url);
   const courseId = searchParams.get('courseId');
   const lessonId = searchParams.get('lessonId');
   if (!courseId || !lessonId) return NextResponse.json({ error: 'Missing courseId or lessonId' }, { status: 400 });
+
+  if (role !== 'admin' && role !== 'manager') {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!enrollment || enrollment.accessClosed) {
+      return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
+    }
+  }
 
   const progress = await prisma.scormProgress.findUnique({
     where: {
@@ -164,6 +199,23 @@ export async function POST(request: NextRequest) {
 
   if (role === 'admin') {
     return NextResponse.json({ success: true });
+  }
+
+  if (role === 'manager') {
+    const managerEnrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!managerEnrollment) return NextResponse.json({ success: true });
+  }
+
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { userId_courseId: { userId, courseId } },
+  });
+  if (!enrollment) {
+    return NextResponse.json(
+      { error: 'Нет доступа к курсу. Запишитесь на курс для прохождения.' },
+      { status: 403 }
+    );
   }
 
   const cmi = body.cmi as Record<string, unknown> | undefined;

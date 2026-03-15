@@ -4,6 +4,7 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { prisma } from '@/lib/db';
+import { sanitizePublicationContent } from '@/lib/sanitize';
 import { PublicationViewClient } from './PublicationViewClient';
 
 export default async function NewsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -40,7 +41,7 @@ export default async function NewsPage({ params }: { params: Promise<{ id: strin
           </p>
           <div
             className="mt-4 prose prose-sm max-w-none text-[var(--portal-text)]"
-            dangerouslySetInnerHTML={{ __html: pub.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizePublicationContent(pub.content ?? '') }}
           />
           <PublicationViewClient
             publicationId={pub.id}

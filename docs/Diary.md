@@ -2,6 +2,241 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-03-15 — Устранение замечаний по тестированию UI
+
+**Задача:** устранить замечания из docs/Testing-Improvement-Plan.md по результатам тестирования MCP browser.
+
+**Редирект при выходе:** signOut вызывался с `callbackUrl: '/login'`, NextAuth использовал NEXTAUTH_URL (часто localhost:3000), из-за чего при работе на порту 3001 редирект уводил на 3000. Исправлено: в PortalHeader, PortalAccountBlock, verify-email-required передаётся `callbackUrl: window.location.origin + '/login'` — выход остаётся на текущем порту.
+
+**Уведомления — типы вместо сырого «mailing»:** добавлена `formatNotificationType()` в lib/notification-content.ts с маппингом (mailing→Рассылка, enrollment→Запись на курс и т.д.). На дашборде студента: заголовок — formatNotificationContent (или type label), подзаголовок — type label при наличии контента. В NotificationsList — type выводится через formatNotificationType.
+
+**Опечатка «проходеним» в тикетах:** в prisma/seed.ts добавлена тема «Проблема с прохождением курса» (правильное написание) в ticketSubjects. Новые seed-данные будут корректны.
+
+**Файлы:** lib/notification-content.ts, app/portal/student/dashboard/page.tsx, app/portal/student/notifications/NotificationsList.tsx, components/portal/PortalHeader.tsx, components/portal/PortalAccountBlock.tsx, app/verify-email-required/page.tsx, prisma/seed.ts, .env.example (комментарий NEXTAUTH_URL).
+
+**Продолжение:** Обновлена заметка в docs/Testing-Improvement-Plan.md (редирект при выходе исправлен). Выполнен `npx prisma db seed` — БД обновлена с новой темой тикетов «Проблема с прохождением курса». `npm run predeploy` проходит успешно.
+
+---
+
+## 2026-03-13 — План доработок портала (Portal improvements plan)
+
+**Задача:** реализовать план доработок портала — безопасность, баги UI/UX, навигация между ролями.
+
+**Безопасность:** Сертификаты — фильтр `revokedAt: null` в списке студента и в API download (отозванные не показываются и не скачиваются). Страницы менеджера — добавлена проверка роли `notFound()` в verifications, tickets, dashboard (defense-in-depth). Media-access — задокументировано: медиа без courseId и mediaGroups доступны любому авторизованному. Verifications/upload — проверка наличия enrollment (или admin) перед загрузкой.
+
+**Баги UI:** Ссылки на тикеты в UserDetailTabs (admin users/[id]) — исправлено на `/portal/manager/tickets/${t.id}`. VerificationsList — менеджерам ссылка `/portal/manager/users`, админам `/portal/admin/users`. PortalHeader — убраны невалидные `h-4.5 w-4.5`. PortalUIProvider — удалён дублирующий MobileMenuBar. UsersTable — реализована column visibility (columnVisibility в useReactTable). TicketThread — при смене менеджера используется `currentManagerDisplayName` из managers.
+
+**Навигация и UX:** Ссылки на пользователей в ManagerTicketsTableClient. В карточке пользователя менеджера — ссылки на курсы и сертификаты (для админа — скачать). Хардкод цветов заменён на CSS-переменные (TicketThread, HelpContent, TablePagination). Добавлен loading.tsx для SCORM player. Profile page — Promise.all для profile и user. Реальный счётчик непрочитанных уведомлений в header (студенты). TablePagination — «Нет записей» при totalPages === 0. UsersTable — локализованные роли (Студент, Менеджер, Администратор).
+
+**Верификация:** Проверены flow claim-orders, set-password, welcome, тикеты, сброс пароля — все реализованы. Admin/manager bypass в SCORM API подтверждён.
+
+**Файлы:** app/portal/student/certificates/page.tsx, app/api/portal/certificates/[certId]/download/route.ts, app/portal/manager/*, lib/media-access.ts, app/api/portal/verifications/upload/route.ts, app/portal/admin/users/[id]/UserDetailTabs.tsx, VerificationsList.tsx, PortalHeader.tsx, PortalUIProvider.tsx, UsersTable.tsx, TicketThread.tsx, ManagerTicketsTableClient.tsx, app/portal/manager/users/[id]/page.tsx, HelpContent.tsx, TablePagination.tsx, app/portal/student/profile/page.tsx, app/portal/layout.tsx, app/portal/student/courses/[courseId]/play/loading.tsx.
+
+---
+
+## 2026-03-18 — Доработки: тикеты, верификация, загрузка видео, база знаний
+
+**Тикеты:** при ответе менеджера в тикете (POST `/api/portal/tickets/[id]/messages` с ролью manager) студенту отправляется email «В вашем обращении появился новый ответ» с текстом ответа и ссылкой на обращение.
+
+**База знаний из тикетов:** для админа на странице тикета (менеджер/админ) при статусе «Решён» или «Закрыт» отображается блок «Добавить в базу типовых ответов». Тема, первый вопрос пользователя и последний ответ менеджера подставляются в текст; админ может отредактировать и отправить. API `POST /api/portal/admin/ai-settings/knowledge-base/append` дополняет текущую базу знаний фрагментом (используется в suggest-reply и чат-боте). Компонент: TicketThread (prop `canAddToKb`), страница тикета передаёт `canAddToKb={role === 'admin'}`.
+
+**Автоответ при создании тикета:** в Настройки AI добавлен блок «Автоответ при создании обращения» (чекбокс). При включённой настройке `ticket_auto_reply_enabled` после создания тикета вызывается LLM (lib/ticket-auto-reply.ts) по теме и первому сообщению с учётом базы знаний. Если ответ считается «уверенным» (нет дискалеймеров вроде «не уверен», «обратитесь к менеджеру»), он сохраняется как первое сообщение от менеджера и студенту отправляется email с ответом. API: GET/PATCH `/api/portal/admin/ai-settings/ticket-auto-reply`; компонент TicketAutoReplyBlock.
+
+**Отчётность: экспорт в XLSX.** На странице «Отчётность» добавлена кнопка «XLSX» рядом с «CSV»; выгрузка текущего отчёта (сводка, по курсам, по слушателям, по периоду, слушатели курса) через lib/export-xlsx (downloadXlsxFromArrays). CHANGELOG [Unreleased] дополнен записью о тикетах (автоответ, добавление в БЗ), верификации (загрузка видео), экспорте XLSX.
+
+**Верификация и сертификат:** при авто-выдаче и массовой выдаче сертификатов учитываются уроки с обязательной верификацией (`Course.verificationRequiredLessonIds`): сертификат выдаётся только если по каждому такому уроку есть одобренная запись `PhygitalVerification` (app/api/portal/scorm/progress/route.ts — maybeIssueCertificate; app/api/portal/admin/certificates/generate/route.ts).
+
+**Загрузка видео для верификации:** добавлен API `POST /api/portal/verifications/upload` (студент, видео до 200 МБ, сохранение в `public/uploads/verifications/`). На странице «Задания на проверку» и в блоке «Задания на проверку» на странице курса — кнопка «Загрузить видео»; в форме редактирования задания (pending) — тоже. API создания/редактирования верификации принимает URL вида `/uploads/...` в дополнение к http/https.
+
+**Единая пагинация таблиц:** во всех таблицах портала (Медиатека, Курсы, Пользователи, Оплаты, CRM, Аудит, Сертификаты, Коммуникации, Рассылки, Мониторинг, Тикеты менеджера и др.) пагинация приведена к одному виду: экспорт константы `STANDARD_PAGE_SIZES = [10, 25, 50, 100]` из `components/ui/TablePagination.tsx`, везде используются одни и те же кнопки размера страницы и блок «Записи X–Y из Z» + навигация. На странице «Курсы» убрана обёртка IIFE вокруг TablePagination. Tasktracker (Фаза 3) обновлён.
+
+**Лог запросов к AI:** на странице Настройки AI блок «Лог запросов к AI» реализован. In-memory хранилище (lib/llm-request-log.ts, до 100 записей), API GET /api/portal/admin/ai-settings/request-log (админ). В лог пишутся вызовы: чат-бот, подсказка ответа в тикете, автоответ при создании тикета, генерация текста (generate-text), генерация промпта (prompt-templates/generate). Компонент LlmRequestLogBlock выводит таблицу (дата, сценарий, модель, символы, время, роль). Лог сбрасывается при перезапуске процесса. Файлы: lib/llm-request-log.ts, app/api/portal/admin/ai-settings/request-log/route.ts, app/portal/admin/ai-settings/LlmRequestLogBlock.tsx, app/portal/admin/ai-settings/page.tsx, app/api/chat/route.ts, app/api/portal/tickets/[id]/suggest-reply/route.ts, lib/ticket-auto-reply.ts, app/api/portal/admin/ai-settings/generate-text/route.ts, app/api/portal/admin/ai-settings/prompt-templates/generate/route.ts.
+
+**Файлы:** app/api/portal/tickets/[id]/messages/route.ts, app/api/portal/admin/ai-settings/knowledge-base/append/route.ts, components/portal/TicketThread.tsx, app/portal/manager/tickets/[id]/page.tsx, app/api/portal/scorm/progress/route.ts, app/api/portal/admin/certificates/generate/route.ts, app/api/portal/verifications/upload/route.ts, app/api/portal/verifications/route.ts, app/api/portal/verifications/[id]/route.ts, app/portal/student/verifications/VerificationsPageClient.tsx, app/portal/student/courses/[courseId]/CourseVerificationBlock.tsx, docs/Verification-Module.md, docs/Support-Tickets-Audit.md; components/ui/TablePagination.tsx, все клиенты таблиц (Media, Courses, UsersTable, Payments, CRM, Audit, Certificates, Communications, Mailings, Monitoring, ManagerTickets и др.), docs/Tasktracker.md.
+
+---
+
+## 2026-03-12 — Тестовые данные в seed (сертификаты, прогресс, прочее)
+
+**Задача:** добавить тестовые данные для проверки функционала сертификатов, прогресса прохождения курсов и недостающих сущностей.
+
+**Изменения в prisma/seed.ts:**
+- **Курсы:** для первых 5 опубликованных курсов заданы `scormPath`, `scormVersion`, `scormManifest` (JSON с уроками `lesson-1`, `lesson-2`, `lesson-3`) — для проверки плеера и прогресса.
+- **Сертификаты:** 50+ записей с уникальными парами (userId, courseId), номер в формате `ALT-XXXXXXXX`, привязка к разным шаблонам; у части указан истёкший `expiryDate` для проверки отображения.
+- **ScormProgress:** для всех записей на опубликованные курсы добавлен прогресс по урокам `lesson-1`, `lesson-2`, `lesson-3` (completed/passed/incomplete, score, timeSpent); для первых 35 записей — полное прохождение (все уроки completed/passed); для курсов без manifest — доп. записи по `main`, `intro`.
+- **Enrollment:** у 35 записей с полным прогрессом проставлен `completedAt` для отображения «Завершён» в ЛК.
+- **SystemSetting:** добавлен ключ `scorm_max_size_mb` (200) в блок настроек по умолчанию.
+
+**Файл:** prisma/seed.ts.
+
+---
+
+## 2026-03-17 — Аудит производительности и безопасности (план доработок)
+
+**Задача:** реализовать план из аудита (поддержка 300+ онлайн пользователей, устранение уязвимостей).
+
+**Фаза 1 — Безопасность:**
+- **S1 Zip Slip:** в загрузке SCORM (upload/route.ts) проверка `path.resolve(fullPath).startsWith(resolvedPrefix)` перед записью каждого файла из ZIP.
+- **S2 Enrollment:** в POST `/api/portal/scorm/progress` проверка `enrollment` для userId+courseId (кроме admin); при отсутствии — 403.
+- **S5 Path traversal:** в рассылках (attachments) использование `path.basename(file.name)` и проверка `fullPath.startsWith(uploadsRoot)` при POST и DELETE.
+- **S3 /api/chat:** обязательная сессия `getServerSession`; без входа — 401.
+- **S4 Telegram webhook:** проверка заголовка `X-Telegram-Bot-Api-Secret-Token` при заданном `TELEGRAM_WEBHOOK_SECRET`.
+- **S6 Cron:** при отсутствии `CRON_SECRET` возврат 503 (рассылка не выполняется).
+- **S7 Media upload:** лимиты типа файла (ALLOWED_TYPES) и размера (50 МБ).
+- **S8 Rate limiting:** `lib/rate-limit.ts` (in-memory); лимиты на register (3/мин), forgot-password (5/мин), contact (5/мин), chat (10/мин), payment/create (10/мин).
+- **S9 XSS:** санитизация контента публикаций через `sanitize-html` (lib/sanitize.ts), использование в app/news/[id]/page.tsx.
+- **S10 NEXTAUTH_SECRET:** в production при отсутствии секрета — throw в lib/auth.ts и 500 в middleware.
+
+**Фаза 2 — Масштабируемость:**
+- **P2 Индексы:** добавлены индексы в schema и миграция `20260317100000_add_perf_indexes` (VisitLog, Profile, Enrollment, Certificate, Media, Notification, Ticket, AuditLog, Lead, Order, Publication).
+- **P5 Ping:** интервал 120 с (PortalUIProvider); в `recordVisitOrUpdate` один `updateMany` вместо findFirst + update.
+- **P6 SCORM progress:** интервал опроса 45 с (play/page.tsx).
+- **P4 claim-orders:** cookie `avaterra_claim_checked` (1 день) — вызов только при первом заходе в портал за сессию; батч: один findMany по сервисам и один по курсам вместо N findFirst.
+- **P3 take-лимиты:** добавлены разумные `take` в admin payments export (10000), monitoring online (500), visits (50000), admin users (2000), courses (1000), student courses enrollments (500), allCourses (500).
+- **P1 PostgreSQL:** в проде по-прежнему рекомендуется сменить provider в schema и задать DATABASE_URL (см. docs/Deploy.md).
+
+**Фаза 3 — Производительность:**
+- **P10 Шрифты:** в globals.css уже используется `display=swap` в URL Google Fonts.
+- **P8 Кеш PDF:** при скачивании сертификата (admin и portal) — если есть `pdfUrl` и файл в хранилище, отдача из кеша; иначе генерация, сохранение в `uploads/certificates/{certId}.pdf`, обновление `certificate.pdfUrl`.
+- **P7 Рассылки:** POST send возвращает 202 и запускает `runMailingSend` в фоне; клиент показывает тост и опрашивает список каждые 5 с в течение 1 мин.
+- **Лимит SCORM:** размер архива до 200 МБ (upload/route.ts).
+- **P9 Хранилище:** `lib/storage.ts` — абстракция storageWrite/storageRead/storageExists для последующей замены на S3/R2.
+
+**Файлы:** app/api/portal/admin/courses/upload/route.ts, app/api/portal/scorm/progress/route.ts, app/api/portal/admin/mailings/[id]/attachments/route.ts, app/api/chat/route.ts, app/api/portal/telegram/webhook/route.ts, app/api/cron/mailings-send/route.ts, app/api/portal/admin/media/upload/route.ts, lib/rate-limit.ts, app/api/auth/register/route.ts, app/api/auth/forgot-password/route.ts, app/api/contact/route.ts, app/api/payment/create/route.ts, lib/sanitize.ts, app/news/[id]/page.tsx, lib/auth.ts, middleware.ts, prisma/schema.prisma, prisma/migrations/20260317100000_add_perf_indexes/migration.sql, components/portal/PortalUIProvider.tsx, lib/visits.ts, app/portal/student/courses/[courseId]/play/page.tsx, lib/claim-orders.ts, app/portal/layout.tsx, app/api/portal/admin/mailings/[id]/send/route.ts, app/portal/admin/mailings/MailingsAdminClient.tsx, lib/storage.ts, app/api/portal/admin/certificates/[certId]/download/route.ts, app/api/portal/certificates/[certId]/download/route.ts, и страницы/API с take-лимитами.
+
+---
+
+## 2026-03-12 — AI-помощники: тикеты, шаблоны, рассылки
+
+**Задача:** добавить кнопки генерации/подсказок текста в тикетах поддержки, шаблонах коммуникаций и уведомлений, форме рассылок (по аудиту docs/AI-Assistants-Audit.md).
+
+**Что сделано:**
+- **Общий API генерации текста:** POST `/api/portal/admin/ai-settings/generate-text` — тело `{ instruction, context?, systemPrompt?, maxTokens? }`, ключ LlmSetting `chatbot`, ответ `{ content }`. Для черновиков в админке.
+- **Тикеты:** POST `/api/portal/tickets/[id]/suggest-reply` (доступ менеджеру и админу). В форме ответа в TicketThread при `canChangeStatus || canAssign` добавлена кнопка «AI предложить ответ» — подставляет черновик в поле ответа.
+- **Шаблоны коммуникаций:** в форме шаблона (TemplateForm в CommunicationsClient) — кнопка «AI сгенерировать» рядом с полем «Тема»; заполняет тему и тело по названию и каналу (парсинг ответа «Тема: … Тело: …»).
+- **Шаблоны уведомлений:** в NotificationTemplateForm — кнопка «AI сгенерировать» для темы и текста по названию и типу канала.
+- **Рассылки:** в форме создания/редактирования рассылки (MailingsAdminClient) — кнопка «AI предложить тему и текст» по внутреннему названию; заполняет тему письма и HTML-тело.
+
+**Файлы:** app/api/portal/admin/ai-settings/generate-text/route.ts (новый), app/api/portal/tickets/[id]/suggest-reply/route.ts (новый), components/portal/TicketThread.tsx, app/portal/admin/communications/CommunicationsClient.tsx, app/portal/admin/notification-templates/NotificationTemplateForm.tsx, app/portal/admin/mailings/MailingsAdminClient.tsx. Исправлен variant кнопки (outline → secondary) в TicketThread и CourseCoverBlock для соответствия компоненту Button.
+
+---
+
+## 2026-03-12 — Сортировка по колонкам на всех таблицах админки
+
+**Задача:** сделать сортировку по клику на заголовок колонки на всех таблицах, как на странице «Медиатека».
+
+**Что сделано:**
+- Добавлены **SortableTableHead**, состояние sortKey/sortDir, **sortTableBy** и геттеры для колонок в клиентских таблицах:
+  - **Журнал уведомлений** (NotificationLogsClient): Дата, Получатель, Событие, Тема, Канал, Контент.
+  - **Рассылки** (MailingsAdminClient): Название, Тема, Статус, Создана, Получателей.
+  - **Публикации** (PublicationsAdminClient): Название, Тип, Дата размещения, Статус, Просмотры.
+  - **Коммуникации** (CommunicationsClient): шаблоны — Название, Канал, Тема; последние отправки — Дата, Канал, Получатель, Статус.
+  - **Шаблоны уведомлений** (NotificationTemplatesTableClient): Название, Тема, Канал.
+  - **Шаблоны сертификатов** (CertificateTemplatesTableClient): Название, Курс, Подложка, minScore, Скачивание, Сертификатов.
+  - **Наборы уведомлений** (NotificationSetsTableClient): Тип события, Название, По умолчанию.
+  - **Курсы** (CoursesAdminClient): Название, Начало, Окончание, Статус, Цена, SCORM (кликабельные заголовки в нативной таблице).
+  - **Мониторинг** (MonitoringClient): вкладки «Пользователи Online» и «Посещения» — сортировка по пользователю, роли, времени входа, последнему запросу, IP; по пользователю и количеству посещений.
+- Таблицы **Медиатека**, **Аудит**, **Оплаты**, **CRM**, **Сертификаты** и **Пользователи** (UsersTable с TanStack Table) уже имели сортировку.
+
+**Файлы:** app/portal/admin/notification-logs/NotificationLogsClient.tsx, app/portal/admin/mailings/MailingsAdminClient.tsx, app/portal/admin/publications/PublicationsAdminClient.tsx, app/portal/admin/communications/CommunicationsClient.tsx, app/portal/admin/notification-templates/NotificationTemplatesTableClient.tsx, app/portal/admin/certificate-templates/CertificateTemplatesTableClient.tsx, app/portal/admin/notification-sets/NotificationSetsTableClient.tsx, app/portal/admin/courses/CoursesAdminClient.tsx, app/portal/admin/monitoring/MonitoringClient.tsx, docs/Diary.md.
+
+---
+
+## 2026-03-12 — Обложка курса и обложка в медиатеке
+
+**Задача:** в карточке курса (админка) — возможность прикрепить обложку; в карточке ресурса медиатеки — такая же настройка.
+
+**Что сделано:**
+- **Курс:** На странице карточки курса `/portal/admin/courses/[courseId]` (вкладка «Обзор») добавлен блок **«Обложка курса»** (компонент CourseCoverBlock): превью текущей обложки, кнопка «Загрузить файл» (JPEG, PNG, GIF, WebP до 5 МБ), поле «или URL обложки» и кнопка «Сохранить». API POST `/api/portal/admin/courses/[courseId]/cover` — приём multipart-файла, сохранение в `public/uploads/courses/`, обновление поля `Course.thumbnailUrl`.
+- **Медиатека:** В модель **Media** добавлено поле **thumbnailUrl** (обложка/превью). Миграция `20260316100000_media_thumbnail_url`. В форме редактирования ресурса (EditMediaDialog) добавлено поле «Обложка (превью)» — URL изображения для карточки ресурса. Валидация и PATCH API обновлены для `thumbnailUrl`.
+
+**Файлы:** app/api/portal/admin/courses/[courseId]/cover/route.ts (новый), app/portal/admin/courses/[courseId]/CourseCoverBlock.tsx (новый), app/portal/admin/courses/[courseId]/page.tsx, prisma/schema.prisma, prisma/migrations/20260316100000_media_thumbnail_url/migration.sql, lib/validations/media.ts, app/api/portal/admin/media/[id]/route.ts, app/portal/admin/media/MediaAdminClient.tsx, app/portal/admin/media/page.tsx, docs/Diary.md.
+
+---
+
+## 2026-03-12 — Исправление предупреждений ESLint (build без warnings)
+
+**Задача:** убрать предупреждения линтера, выводимые при `npm run build`.
+
+**Что сделано:**
+- **AuditLogClient.tsx:** объект `auditSortGetters` вынесен в `useMemo` с пустым массивом зависимостей и добавлен в зависимости `useMemo` для `sorted`, чтобы удовлетворить react-hooks/exhaustive-deps.
+- **SortableTableHead.tsx:** атрибут `aria-sort` перенесён с кнопки на элемент `<th>` (TableHead), так как aria-sort поддерживается ролью columnheader (у ячейки th в таблице), а не role button. Добавлен `scope="col"` для доступности.
+
+**Файлы:** app/portal/admin/audit/AuditLogClient.tsx, components/ui/SortableTableHead.tsx, docs/Diary.md.
+
+---
+
+## 2026-03-12 — Метаданные для оставшихся страниц портала и плеера
+
+**Задача:** закрыть метаданные на всех страницах портала (динамические маршруты, страницы «new», плеер).
+
+**Что сделано:**
+- **generateMetadata** добавлен на: группа `/portal/admin/groups/[id]` (имя группы); шаблон уведомления `/portal/admin/notification-templates/[id]` (имя шаблона); шаблон сертификата `/portal/admin/certificate-templates/[id]` (имя шаблона); посещения пользователя `/portal/admin/monitoring/visits/user/[userId]` (title «Посещения: {displayName/email}»).
+- **Статический metadata** на страницы создания: «Новый шаблон сертификата» (`certificate-templates/new`), «Новый шаблон уведомления» (`notification-templates/new`).
+- Для клиентской страницы SCORM-плеера добавлен **layout.tsx** в `app/portal/student/courses/[courseId]/play/` с `metadata: { title: 'Плеер' }`, чтобы во вкладке при воспроизведении курса отображался заголовок «Плеер».
+
+**Файлы:** app/portal/admin/groups/[id]/page.tsx, app/portal/admin/notification-templates/[id]/page.tsx, app/portal/admin/certificate-templates/[id]/page.tsx, app/portal/admin/certificate-templates/new/page.tsx, app/portal/admin/notification-templates/new/page.tsx, app/portal/admin/monitoring/visits/user/[userId]/page.tsx, app/portal/student/courses/[courseId]/play/layout.tsx, docs/Diary.md.
+
+---
+
+## 2026-03-12 — Динамические метаданные (generateMetadata) для страниц с [id] / [courseId]
+
+**Задача:** во вкладке браузера показывать осмысленный заголовок на страницах тикета, курса, пользователя, рассылки и т.д.
+
+**Что сделано:**
+- **generateMetadata** добавлен на динамические маршруты портала:
+  - Менеджер: тикет `/portal/manager/tickets/[id]` — title = тема тикета (до 50 символов).
+  - Студент: обращение `/portal/student/support/[id]` — title = тема тикета (с проверкой userId, без утечки чужих данных).
+  - Студент: курс `/portal/student/courses/[courseId]` — title = название курса.
+  - Студент: медиа `/portal/student/media/[id]` — title = название ресурса.
+  - Админ: пользователь `/portal/admin/users/[id]` — title = displayName/email.
+  - Админ: курс `/portal/admin/courses/[courseId]` — title = название курса.
+  - Админ: прогресс участника `/portal/admin/courses/[courseId]/enrollments/[userId]` — title = «Прогресс: {курс} — {участник}».
+  - Админ: набор уведомлений `/portal/admin/notification-sets/[id]` — title = имя набора.
+  - Админ: рассылка `/portal/admin/mailings/[id]` — title = internalTitle рассылки.
+- При отсутствии сущности возвращается нейтральный title (например «Тикет», «Обращение», «Курс»).
+
+**Файлы:** app/portal/manager/tickets/[id]/page.tsx, app/portal/student/support/[id]/page.tsx, app/portal/student/courses/[courseId]/page.tsx, app/portal/student/media/[id]/page.tsx, app/portal/admin/users/[id]/page.tsx, app/portal/admin/courses/[courseId]/page.tsx, app/portal/admin/courses/[courseId]/enrollments/[userId]/page.tsx, app/portal/admin/notification-sets/[id]/page.tsx, app/portal/admin/mailings/[id]/page.tsx, docs/Diary.md.
+
+---
+
+## 2026-03-12 — Метаданные (title) для всех основных страниц портала
+
+**Задача:** во вкладке браузера отображать осмысленные заголовки на всех ключевых страницах портала.
+
+**Что сделано:**
+- Экспорт **metadata: { title: '…' }** добавлен на страницы: студент — Мои курсы, Профиль, Поддержка, Сертификаты, Уведомления, Медиатека, Помощь; менеджер — Тикеты, Пользователи, Верификация заданий, Помощь; админ — Пользователи, Курсы, Настройки, Помощь, Оплаты, CRM, Медиатека, Сертификаты, Коммуникации, Рассылки, Аудит, Отчёты, Группы, Публикации, Мониторинг, Журнал уведомлений, Наборы уведомлений, Шаблоны уведомлений, Шаблоны сертификатов, Настройки AI. Итог: во вкладке «Название страницы | AVATERRA» (или portal_title из настроек).
+- В **CHANGELOG.md** [Unreleased] добавлена сводка по портальному UX и метаданным (header, редирект по роли, переключатель ролей, иконка уведомлений, loading, title для страниц).
+
+**Файлы:** app/portal/student/*/page.tsx, app/portal/manager/*/page.tsx, app/portal/admin/*/page.tsx (перечисленные разделы), CHANGELOG.md, docs/Diary.md.
+
+---
+
+## 2026-03-12 — Загрузка портала и метаданные вкладок
+
+**Задача:** улучшить UX при переходе в портал и отображение заголовков во вкладке браузера.
+
+**Что сделано:**
+- Добавлен **app/portal/loading.tsx**: при загрузке сегмента /portal показывается индикатор «Загрузка…» (спиннер и текст на фоне portal-bg), пока не выполнится редирект по роли или не отрисуется дочерний layout.
+- В **app/portal/layout.tsx** добавлен **generateMetadata()**: заголовок по умолчанию «Портал {portal_title}», шаблон «%s | {portal_title}» для дочерних страниц (portal_title из SystemSetting).
+- На страницах дашбордов (student, admin, manager) экспортирован **metadata: { title: 'Дашборд' }**, чтобы во вкладке отображалось «Дашборд | AVATERRA» (или иное значение portal_title).
+
+**Файлы:** app/portal/loading.tsx, app/portal/layout.tsx, app/portal/student/dashboard/page.tsx, app/portal/admin/dashboard/page.tsx, app/portal/manager/dashboard/page.tsx, docs/Diary.md.
+
+---
+
+## 2026-03-12 — Шапка портала и ссылка «уведомлений» по ролям
+
+**Задача:** довести портальный shell до вида «header + sidebar» и сделать иконку колокольчика полезной для всех ролей.
+
+**Что сделано:**
+- В **app/portal/layout.tsx** добавлен рендер **PortalHeader**: шапка портала (логотип/название, иконка уведомлений/тикетов/журнала, аватар и дропдаун с профилем и выходом) отображается над контентом (сайдбар + main). Раньше PortalHeader был описан в документации, но не подключался в layout.
+- **PortalHeader:** иконка колокольчика ведёт по ролям: студент — «Уведомления» (/portal/student/notifications), менеджер — «Тикеты» (/portal/manager/tickets), админ — «Журнал уведомлений» (/portal/admin/notification-logs). aria-label для иконки задаётся в зависимости от роли.
+
+**Файлы:** app/portal/layout.tsx, components/portal/PortalHeader.tsx, docs/Diary.md.
+
+---
+
 ## 2026-03-10 — Документация и UX после аудита пути
 
 **Задача:** актуализировать справочники и улучшить переход из тикета к заказу.

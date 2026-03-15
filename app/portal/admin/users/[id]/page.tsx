@@ -1,6 +1,7 @@
 /**
  * Admin: user detail — profile, enrollments, certificates, orders, tickets; tabs like course card.
  */
+import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
@@ -10,11 +11,20 @@ import { ArrowLeft } from 'lucide-react';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { UserDetailTabs } from './UserDetailTabs';
 
-export default async function AdminUserDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+type PageProps = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { id: userId } = await params;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    include: { profile: { select: { displayName: true } } },
+  });
+  if (!user) return { title: 'Пользователь' };
+  const displayName = user.profile?.displayName ?? user.displayName ?? user.email ?? 'Пользователь';
+  return { title: String(displayName).slice(0, 60) };
+}
+
+export default async function AdminUserDetailPage({ params }: PageProps) {
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || role !== 'admin') {

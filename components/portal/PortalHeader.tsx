@@ -15,6 +15,8 @@ interface PortalHeaderProps {
   user: { email?: string | null };
   profile: Profile | null;
   portalTitle?: string;
+  /** Unread notification count (students only); dot shown when > 0 */
+  unreadNotificationCount?: number;
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -43,7 +45,7 @@ function AvatarCircle({ name }: { name: string }) {
   );
 }
 
-export function PortalHeader({ user, profile, portalTitle = 'AVATERRA' }: PortalHeaderProps) {
+export function PortalHeader({ user, profile, portalTitle = 'AVATERRA', unreadNotificationCount = 0 }: PortalHeaderProps) {
   const [open, setOpen] = useState(false);
   const ref        = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -87,7 +89,8 @@ export function PortalHeader({ user, profile, portalTitle = 'AVATERRA' }: Portal
 
   async function handleLogout() {
     setOpen(false);
-    await signOut({ callbackUrl: '/login' });
+    const url = typeof window !== 'undefined' ? `${window.location.origin}/login` : '/login';
+    await signOut({ callbackUrl: url });
   }
 
   return (
@@ -122,18 +125,19 @@ export function PortalHeader({ user, profile, portalTitle = 'AVATERRA' }: Portal
       {/* Right: notifications + user */}
       <div className="flex items-center gap-1.5">
 
-        {/* Уведомления */}
+        {/* Уведомления / Тикеты / Журнал */}
         <Link
-          href={role === 'user' ? '/portal/student/notifications' : '#'}
+          href={role === 'admin' ? '/portal/admin/notification-logs' : role === 'manager' ? '/portal/manager/tickets' : '/portal/student/notifications'}
           className="relative flex h-9 w-9 items-center justify-center rounded-lg
             text-[var(--portal-text-muted)]
             hover:bg-[var(--portal-surface-hover)] hover:text-[var(--portal-accent)]
             transition"
-          aria-label="Уведомления"
+          aria-label={role === 'admin' ? 'Журнал уведомлений' : role === 'manager' ? 'Тикеты' : 'Уведомления'}
         >
-          <Bell className="h-4.5 w-4.5 h-5 w-5" />
-          <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--portal-accent)]
-            ring-2 ring-white" aria-hidden />
+          <Bell className="h-5 w-5" />
+          {role === 'user' && unreadNotificationCount > 0 && (
+            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-[var(--portal-accent)] ring-2 ring-white" aria-hidden />
+          )}
         </Link>
 
         {/* Аватар + дропдаун */}

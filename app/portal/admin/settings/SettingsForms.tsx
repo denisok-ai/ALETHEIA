@@ -35,8 +35,11 @@ interface SettingsKeys {
   paykeeper_test_secret: boolean;
   resend_api_key: boolean;
   telegram_bot_token: boolean;
+  telegram_webhook_secret?: boolean;
   cron_secret: boolean;
   nextauth_url: string;
+  openai_api_key?: boolean;
+  deepseek_api_key?: boolean;
 }
 
 export function SettingsForms() {
@@ -70,8 +73,11 @@ export function SettingsForms() {
   const [envVars, setEnvVars] = useState({
     resend_api_key: '',
     telegram_bot_token: '',
+    telegram_webhook_secret: '',
     cron_secret: '',
     nextauth_url: '',
+    openai_api_key: '',
+    deepseek_api_key: '',
   });
   const [savingPaykeeper, setSavingPaykeeper] = useState(false);
   const [testingPaykeeper, setTestingPaykeeper] = useState(false);
@@ -109,14 +115,20 @@ export function SettingsForms() {
           paykeeper_test_secret: k.paykeeper_test_secret === true,
           resend_api_key: k.resend_api_key === true,
           telegram_bot_token: k.telegram_bot_token === true,
+          telegram_webhook_secret: k.telegram_webhook_secret === true,
           cron_secret: k.cron_secret === true,
           nextauth_url: typeof k.nextauth_url === 'string' ? k.nextauth_url : '',
+          openai_api_key: k.openai_api_key === true,
+          deepseek_api_key: k.deepseek_api_key === true,
         });
         setEnvVars({
           resend_api_key: '',
           telegram_bot_token: '',
+          telegram_webhook_secret: '',
           cron_secret: '',
           nextauth_url: typeof k.nextauth_url === 'string' ? k.nextauth_url : '',
+          openai_api_key: '',
+          deepseek_api_key: '',
         });
         setGeneral({
           site_url: k.site_url ?? '',
@@ -264,8 +276,9 @@ export function SettingsForms() {
 
   if (loading) {
     return (
-      <div className="mt-4 portal-card p-6">
-        <p className="text-sm text-[var(--portal-text-muted)]>Загрузка настроек…</p>
+      <div className="mt-4 portal-card p-10 flex flex-col items-center justify-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-[var(--portal-accent)] border-t-transparent" aria-hidden />
+        <p className="text-sm text-[var(--portal-text-muted)]">Загрузка настроек…</p>
       </div>
     );
   }
@@ -323,7 +336,7 @@ export function SettingsForms() {
 
       <div className="portal-card p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Почта (уведомления)</h2>
-        <p className="mt-1 text-sm text-[var(--portal-text-muted)]>Email отправителя и получателя уведомлений. API-ключ Resend — в блоке «Переменные окружения» ниже или в .env (RESEND_API_KEY).</p>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Email отправителя и получателя уведомлений. API-ключ Resend — в блоке «Переменные окружения» ниже или в .env (RESEND_API_KEY).</p>
         <form onSubmit={saveEmail} className="mt-4 space-y-4 max-w-xl">
           <div>
             <Label htmlFor="resend_from">Email отправителя</Label>
@@ -405,7 +418,7 @@ export function SettingsForms() {
 
       <div className="portal-card p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Платежи (PayKeeper)</h2>
-        <p className="mt-1 text-sm text-[var(--portal-text-muted)]>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
           Параметры для создания счетов и приёма уведомлений. Секретные поля хранятся в зашифрованном виде. Пустые поля пароля и секрета — не менять текущее значение.
         </p>
         <form
@@ -623,7 +636,7 @@ export function SettingsForms() {
 
       <div className="mt-6 portal-card p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Переменные окружения</h2>
-        <p className="mt-1 text-sm text-[var(--portal-text-muted)]>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
           Значения сохраняются в БД и используются с приоритетом над <code className="rounded bg-[#F1F5F9] px-1.5">.env</code>. Секреты хранятся в зашифрованном виде. Пустые поля секретов — не менять текущее значение. NEXTAUTH_SECRET и DATABASE_URL задаются только в .env.
         </p>
         <form
@@ -636,7 +649,10 @@ export function SettingsForms() {
               };
               if (envVars.resend_api_key.trim()) body.resend_api_key = envVars.resend_api_key;
               if (envVars.telegram_bot_token.trim()) body.telegram_bot_token = envVars.telegram_bot_token;
+              if (envVars.telegram_webhook_secret.trim()) body.telegram_webhook_secret = envVars.telegram_webhook_secret;
               if (envVars.cron_secret.trim()) body.cron_secret = envVars.cron_secret;
+              if (envVars.openai_api_key.trim()) body.openai_api_key = envVars.openai_api_key;
+              if (envVars.deepseek_api_key.trim()) body.deepseek_api_key = envVars.deepseek_api_key;
               const res = await fetch('/api/portal/admin/settings', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
@@ -649,14 +665,20 @@ export function SettingsForms() {
                       ...prev,
                       resend_api_key: !!body.resend_api_key || prev.resend_api_key,
                       telegram_bot_token: !!body.telegram_bot_token || prev.telegram_bot_token,
+                      telegram_webhook_secret: !!body.telegram_webhook_secret || prev.telegram_webhook_secret,
                       cron_secret: !!body.cron_secret || prev.cron_secret,
                       nextauth_url: body.nextauth_url ?? prev.nextauth_url,
+                      openai_api_key: !!body.openai_api_key || prev.openai_api_key,
+                      deepseek_api_key: !!body.deepseek_api_key || prev.deepseek_api_key,
                     }
                   : null
               );
               if (body.resend_api_key) setEnvVars((p) => ({ ...p, resend_api_key: '' }));
               if (body.telegram_bot_token) setEnvVars((p) => ({ ...p, telegram_bot_token: '' }));
+              if (body.telegram_webhook_secret) setEnvVars((p) => ({ ...p, telegram_webhook_secret: '' }));
               if (body.cron_secret) setEnvVars((p) => ({ ...p, cron_secret: '' }));
+              if (body.openai_api_key) setEnvVars((p) => ({ ...p, openai_api_key: '' }));
+              if (body.deepseek_api_key) setEnvVars((p) => ({ ...p, deepseek_api_key: '' }));
               toast.success('Переменные окружения сохранены');
             } catch {
               toast.error('Ошибка сохранения');
@@ -690,6 +712,19 @@ export function SettingsForms() {
             />
           </div>
           <div>
+            <Label htmlFor="env_telegram_webhook_secret">Telegram Webhook Secret</Label>
+            <Input
+              id="env_telegram_webhook_secret"
+              type="password"
+              value={envVars.telegram_webhook_secret}
+              onChange={(e) => setEnvVars((p) => ({ ...p, telegram_webhook_secret: e.target.value }))}
+              placeholder={keys?.telegram_webhook_secret ? 'Оставьте пустым, чтобы не менять' : 'X-Telegram-Bot-Api-Secret-Token'}
+              className="mt-1"
+              autoComplete="new-password"
+            />
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Секрет для проверки webhook Telegram (заголовок X-Telegram-Bot-Api-Secret-Token).</p>
+          </div>
+          <div>
             <Label htmlFor="env_cron_secret">Cron secret (для запланированных рассылок)</Label>
             <Input
               id="env_cron_secret"
@@ -700,6 +735,31 @@ export function SettingsForms() {
               className="mt-1"
               autoComplete="new-password"
             />
+          </div>
+          <div>
+            <Label htmlFor="env_openai_api_key">OpenAI API ключ (генерация обложек курсов, DALL·E)</Label>
+            <Input
+              id="env_openai_api_key"
+              type="password"
+              value={envVars.openai_api_key}
+              onChange={(e) => setEnvVars((p) => ({ ...p, openai_api_key: e.target.value }))}
+              placeholder={keys?.openai_api_key ? 'Оставьте пустым, чтобы не менять' : 'sk-...'}
+              className="mt-1"
+              autoComplete="new-password"
+            />
+          </div>
+          <div>
+            <Label htmlFor="env_deepseek_api_key">DeepSeek API ключ (запасной для чата и тьютора)</Label>
+            <Input
+              id="env_deepseek_api_key"
+              type="password"
+              value={envVars.deepseek_api_key}
+              onChange={(e) => setEnvVars((p) => ({ ...p, deepseek_api_key: e.target.value }))}
+              placeholder={keys?.deepseek_api_key ? 'Оставьте пустым, чтобы не менять' : 'Основные ключи — в Настройки AI'}
+              className="mt-1"
+              autoComplete="new-password"
+            />
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Используется, если в Настройки AI не заданы сохранённые ключи.</p>
           </div>
           <div>
             <Label htmlFor="env_nextauth_url">NEXTAUTH_URL (URL для NextAuth)</Label>

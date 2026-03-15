@@ -45,7 +45,9 @@ export function Header() {
           href="#hero"
           className={cn(
             'flex items-center gap-2.5 font-heading text-xl font-bold tracking-tight transition-colors',
-            scrolled ? 'text-gray-900 hover:text-gray-700' : 'text-gray-900 hover:opacity-90'
+            scrolled
+              ? 'text-gray-900 hover:text-gray-700'
+              : 'header-overlay-text-strong hover:opacity-90'
           )}
         >
           <Image
@@ -68,7 +70,7 @@ export function Header() {
                 'text-sm font-medium transition-colors',
                 scrolled
                   ? 'text-gray-600 hover:text-gray-900'
-                  : 'text-gray-900 hover:text-violet-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]'
+                  : 'header-overlay-text hover:text-white/90'
               )}
             >
               {link.label}
@@ -80,7 +82,7 @@ export function Header() {
               'text-sm font-medium transition-colors',
               scrolled
                 ? 'text-gray-600 hover:text-gray-900'
-                : 'text-gray-900 hover:text-violet-800 drop-shadow-[0_1px_1px_rgba(255,255,255,0.8)]'
+                : 'header-overlay-text hover:text-white/90'
             )}
           >
             Вход
@@ -95,10 +97,15 @@ export function Header() {
           </Link>
         </nav>
 
-        <button
-          type="button"
-          className={cn('md:hidden p-2 transition-colors', scrolled ? 'text-gray-900' : 'text-gray-900')}
-          aria-label="Меню"
+<button
+        type="button"
+        className={cn(
+          'md:hidden p-2 transition-colors',
+          scrolled
+            ? 'text-gray-900'
+            : 'header-overlay-text'
+        )}
+        aria-label="Меню"
           aria-expanded={open}
           onClick={() => setOpen(!open)}
         >

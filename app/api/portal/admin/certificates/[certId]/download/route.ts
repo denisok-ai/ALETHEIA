@@ -1,12 +1,13 @@
 /**
  * Admin: download any certificate PDF.
- * Если у сертификата есть шаблон с подложкой (backgroundImageUrl) — PDF по подложке и textMapping; иначе — макет default/minimal/elegant.
+ * Если у сертификата есть pdfUrl и файл в кеше — отдаём из кеша; иначе генерируем, кешируем и отдаём.
  * Query: ?template=default|minimal|elegant — шаблон в стиле сайта (если образ не задан).
  */
 import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { storageRead, storageWrite, storageExists } from '@/lib/storage';
 import {
   generateCertificatePdf,
   generateCertificatePdfWithImage,
@@ -37,6 +38,19 @@ export async function GET(
   });
   if (!cert) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   if (cert.revokedAt) return NextResponse.json({ error: 'Сертификат аннулирован' }, { status: 403 });
+
+  const cachePath = cert.pdfUrl && !cert.pdfUrl.startsWith('http') ? cert.pdfUrl : null;
+  if (cachePath && storageExists(cachePath)) {
+    const cached = await storageRead(cachePath);
+    if (cached) {
+      return new NextResponse(new Uint8Array(cached), {
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="certificate-${cert.certNumber}.pdf"`,
+        },
+      });
+    }
+  }
 
   const profile = await prisma.profile.findUnique({
     where: { userId: cert.userId },
@@ -71,6 +85,17 @@ export async function GET(
         ? (templateParam as CertificateTemplateId)
         : 'default';
     buffer = await generateCertificatePdf(data, template);
+  }
+
+  const certCachePath = `uploads/certificates/${certId}.pdf`;
+  try {
+    await storageWrite(certCachePath, buffer);
+    await prisma.certificate.update({
+      where: { id: certId },
+      data: { pdfUrl: certCachePath },
+    });
+  } catch {
+    // кеш не критичен, отдаём сгенерированный PDF
   }
 
   return new NextResponse(new Uint8Array(buffer), {

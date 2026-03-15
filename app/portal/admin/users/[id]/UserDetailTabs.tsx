@@ -228,7 +228,7 @@ export function UserDetailTabs({
             <ul className="space-y-1">
               {tickets.map((t) => (
                 <li key={t.id}>
-                  <Link href="/portal/manager/tickets" className="text-[#6366F1] hover:underline">
+                  <Link href={`/portal/manager/tickets/${t.id}`} className="text-[#6366F1] hover:underline">
                     {t.subject}
                   </Link>
                   <span className="ml-2 text-xs text-[var(--portal-text-muted)]">{t.status}</span>

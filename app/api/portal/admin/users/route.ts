@@ -5,9 +5,9 @@ import { NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { validatePassword } from '@/lib/password-validation';
 
 const ALLOWED_ROLES = ['user', 'manager', 'admin'];
-const MIN_PASSWORD_LENGTH = 6;
 const MAX_EMAIL = 255;
 const MAX_DISPLAY_NAME = 200;
 
@@ -30,8 +30,9 @@ export async function POST(req: Request) {
   if (!email) {
     return NextResponse.json({ error: 'Email обязателен' }, { status: 400 });
   }
-  if (!password || password.length < MIN_PASSWORD_LENGTH) {
-    return NextResponse.json({ error: 'Пароль не менее 6 символов' }, { status: 400 });
+  const pwCheck = validatePassword(password);
+  if (!pwCheck.ok) {
+    return NextResponse.json({ error: pwCheck.error }, { status: 400 });
   }
 
   const existing = await prisma.user.findUnique({ where: { email } });
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
       status: 'active',
       email: user.email,
       displayName: user.displayName,
+      emailVerifiedAt: new Date(),
     },
   });
 

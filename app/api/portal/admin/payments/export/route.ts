@@ -11,6 +11,7 @@ export async function GET(request: NextRequest) {
 
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: 'desc' },
+    take: 10000,
   });
 
   const allCols = ['orderNumber', 'tariffId', 'amount', 'clientEmail', 'clientPhone', 'status', 'paidAt', 'createdAt'];

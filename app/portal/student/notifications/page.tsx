@@ -1,7 +1,11 @@
 /**
  * Student: full list of notifications, mark as read. Portal design.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Уведомления' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
@@ -33,7 +37,7 @@ export default async function StudentNotificationsPage() {
   }));
 
   return (
-    <div className="space-y-4 max-w-2xl">
+    <div className="w-full space-y-4">
       <PageHeader
         items={[{ href: '/portal/student/dashboard', label: 'Дашборд' }, { label: 'Уведомления' }]}
         title="Уведомления"

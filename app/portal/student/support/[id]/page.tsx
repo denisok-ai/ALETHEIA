@@ -1,13 +1,30 @@
 /**
  * Student: ticket thread — view messages, reply.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { notFound } from 'next/navigation';
 import { TicketThread } from '@/components/portal/TicketThread';
 
-export default async function StudentSupportTicketPage({ params }: { params: Promise<{ id: string }> }) {
+type Props = { params: Promise<{ id: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const session = await getServerSession(authOptions);
+  const userId = (session?.user as { id?: string })?.id;
+  const { id } = await params;
+  if (!userId) return { title: 'Обращение' };
+  const ticket = await prisma.ticket.findUnique({
+    where: { id, userId },
+    select: { subject: true },
+  });
+  if (!ticket) return { title: 'Обращение' };
+  const title = ticket.subject?.trim() || 'Обращение';
+  return { title: title.length > 50 ? title.slice(0, 47) + '…' : title };
+}
+
+export default async function StudentSupportTicketPage({ params }: Props) {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
   if (!userId) notFound();

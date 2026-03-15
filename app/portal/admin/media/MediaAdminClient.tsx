@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
 import {
   Dialog,
   DialogContent,
@@ -22,9 +24,10 @@ import {
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Pencil, Trash2, ExternalLink, Image as ImageIcon, Search, FolderOpen, CheckSquare, Square, FolderPlus, FolderMinus, Upload } from 'lucide-react';
-import { TablePagination } from '@/components/ui/TablePagination';
-import { buildCsv, downloadCsv } from '@/lib/export-csv';
+import { Pencil, Trash2, ExternalLink, Image as ImageIcon, Search, FolderOpen, CheckSquare, Square, FolderPlus, FolderMinus, Upload, Sparkles } from 'lucide-react';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { downloadXlsx } from '@/lib/export-xlsx';
+import { isPlaceholderOrExampleUrl } from '@/lib/placeholder-url';
 import { MediaItemGroupsBlock } from './MediaItemGroupsBlock';
 import { GroupPickerModal } from '@/components/portal/GroupPickerModal';
 
@@ -32,6 +35,7 @@ interface MediaItem {
   id: string;
   title: string;
   file_url: string;
+  thumbnail_url?: string | null;
   mime_type: string | null;
   category: string | null;
   description?: string | null;
@@ -57,6 +61,18 @@ const RESOURCE_TYPE_FILTERS: { value: string; label: string }[] = [
 ];
 
 const CATEGORY_SUGGESTIONS = ['video', 'pdf', 'image'];
+
+const MEDIA_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'num', label: '№' },
+  { id: 'title', label: 'Название' },
+  { id: 'category', label: 'Категория' },
+  { id: 'type', label: 'Тип' },
+  { id: 'mime', label: 'MIME' },
+  { id: 'views', label: 'Просмотры' },
+  { id: 'rating', label: 'Рейтинг' },
+  { id: 'download', label: 'Скачивание' },
+  { id: 'usage', label: 'Использование' },
+];
 
 interface MediaAdminClientProps {
   initialItems: MediaItem[];
@@ -92,6 +108,14 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
   const [groupPickerOpen, setGroupPickerOpen] = useState(false);
   const [groupActionLoading, setGroupActionLoading] = useState(false);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => MEDIA_TABLE_COLUMNS.map((c) => c.id));
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles((prev) => [...prev, ...acceptedFiles]);
@@ -194,7 +218,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
     setAddingLink(false);
   }
 
-  async function handleUpdate(id: string, data: { title: string; category: string | null; description?: string | null; allow_download?: boolean }) {
+  async function handleUpdate(id: string, data: { title: string; category: string | null; description?: string | null; allow_download?: boolean; thumbnail_url?: string | null }) {
     const r = await fetch(`/api/portal/admin/media/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -203,6 +227,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
         category: data.category,
         description: data.description,
         allowDownload: data.allow_download,
+        thumbnailUrl: data.thumbnail_url,
       }),
     });
     if (!r.ok) throw new Error('Ошибка');
@@ -215,7 +240,8 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
               title: json.media.title,
               category: json.media.category,
               description: json.media.description,
-              allow_download: json.media.allow_download,
+              allow_download: json.media.allowDownload,
+              thumbnail_url: json.media.thumbnailUrl ?? null,
             }
           : m
       )
@@ -242,15 +268,27 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
   }
   const q = searchQuery.trim().toLowerCase();
   if (q) filteredItems = filteredItems.filter((m) => m.title.toLowerCase().includes(q));
-  const total = filteredItems.length;
+  const mediaSortGetters: Record<string, (m: MediaItem) => unknown> = {
+    title: (m) => m.title,
+    category: (m) => m.category ?? '',
+    type: (m) => m.type ?? 'file',
+    mime: (m) => m.mime_type ?? '',
+    views: (m) => m.views_count ?? 0,
+    rating: (m) => (m.rating_count ?? 0) > 0 ? (m.rating_sum ?? 0) / (m.rating_count ?? 1) : 0,
+    download: (m) => (m.allow_download ?? true) ? 1 : 0,
+    usage: (m) => m.course_title ?? '',
+  };
+  const sortedItems = sortKey && mediaSortGetters[sortKey]
+    ? sortTableBy(filteredItems, mediaSortGetters[sortKey], sortDir)
+    : filteredItems;
+  const total = sortedItems.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
   const start = currentPage * pageSize;
-  const pageItems = filteredItems.slice(start, start + pageSize);
-  const PAGE_SIZES = [5, 10, 50];
+  const pageItems = sortedItems.slice(start, start + pageSize);
 
   const handleExportExcel = () => {
-    const csv = buildCsv(filteredItems, [
+    downloadXlsx(sortedItems, [
       { key: 'title', header: 'Название' },
       { key: 'category', header: 'Категория' },
       { key: 'type', header: 'Тип' },
@@ -258,8 +296,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
       { key: 'views_count', header: 'Просмотры' },
       { key: 'course_title', header: 'Курс' },
       { key: 'created_at', header: 'Создан' },
-    ]);
-    downloadCsv(csv, `media-${new Date().toISOString().slice(0, 10)}.csv`);
+    ], `media-${new Date().toISOString().slice(0, 10)}`);
   };
 
   function toggleSelect(id: string) {
@@ -491,22 +528,54 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                     )}
                   </button>
                 </TableHead>
-                <TableHead className="w-10">№</TableHead>
-                <TableHead>Название</TableHead>
-                <TableHead>Категория</TableHead>
-                <TableHead>Тип</TableHead>
-                <TableHead>MIME</TableHead>
-                <TableHead className="w-20">Просмотры</TableHead>
-                <TableHead className="w-20">Рейтинг</TableHead>
-                <TableHead className="w-24">Скачивание</TableHead>
-                <TableHead>Использование</TableHead>
+                {visibleColumnIds.includes('num') && <TableHead className="w-10">№</TableHead>}
+                {visibleColumnIds.includes('title') && (
+                  <SortableTableHead sortKey="title" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>
+                    Название
+                  </SortableTableHead>
+                )}
+                {visibleColumnIds.includes('category') && (
+                  <SortableTableHead sortKey="category" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>
+                    Категория
+                  </SortableTableHead>
+                )}
+                {visibleColumnIds.includes('type') && (
+                  <SortableTableHead sortKey="type" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>
+                    Тип
+                  </SortableTableHead>
+                )}
+                {visibleColumnIds.includes('mime') && (
+                  <SortableTableHead sortKey="mime" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>
+                    MIME
+                  </SortableTableHead>
+                )}
+                {visibleColumnIds.includes('views') && (
+                  <SortableTableHead sortKey="views" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort} className="w-20">
+                    Просмотры
+                  </SortableTableHead>
+                )}
+                {visibleColumnIds.includes('rating') && (
+                  <SortableTableHead sortKey="rating" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort} className="w-20">
+                    Рейтинг
+                  </SortableTableHead>
+                )}
+                {visibleColumnIds.includes('download') && (
+                  <SortableTableHead sortKey="download" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort} className="w-24">
+                    Скачивание
+                  </SortableTableHead>
+                )}
+                {visibleColumnIds.includes('usage') && (
+                  <SortableTableHead sortKey="usage" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>
+                    Использование
+                  </SortableTableHead>
+                )}
                 <TableHead>Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="p-0">
+                  <TableCell colSpan={2 + visibleColumnIds.length} className="p-0">
                     <EmptyState
                       title="Нет файлов"
                       description="Нажмите «Загрузить файл» или измените фильтры"
@@ -527,21 +596,23 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                         {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
                       </button>
                     </TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{start + idx + 1}</TableCell>
-                    <TableCell className="font-medium text-[var(--portal-text)]">{m.title}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{m.category ?? '—'}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{resType === 'link' ? 'Ссылка' : 'Файл'}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)] text-xs max-w-[100px] truncate" title={m.mime_type ?? ''}>{m.mime_type ?? '—'}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{m.views_count ?? 0}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{rating}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{(m.allow_download ?? true) ? 'Да' : 'Нет'}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)] text-sm">
-                      {m.course_title ? (
-                        <a href={`/portal/admin/courses/${m.course_id}`} className="text-[#6366F1] hover:underline">{m.course_title}</a>
-                      ) : (
-                        '—'
-                      )}
-                    </TableCell>
+                    {visibleColumnIds.includes('num') && <TableCell className="text-[var(--portal-text-muted)]">{start + idx + 1}</TableCell>}
+                    {visibleColumnIds.includes('title') && <TableCell className="font-medium text-[var(--portal-text)]">{m.title}</TableCell>}
+                    {visibleColumnIds.includes('category') && <TableCell className="text-[var(--portal-text-muted)]">{m.category ?? '—'}</TableCell>}
+                    {visibleColumnIds.includes('type') && <TableCell className="text-[var(--portal-text-muted)]">{resType === 'link' ? 'Ссылка' : 'Файл'}</TableCell>}
+                    {visibleColumnIds.includes('mime') && <TableCell className="text-[var(--portal-text-muted)] text-xs max-w-[100px] truncate" title={m.mime_type ?? ''}>{m.mime_type ?? '—'}</TableCell>}
+                    {visibleColumnIds.includes('views') && <TableCell className="text-[var(--portal-text-muted)]">{m.views_count ?? 0}</TableCell>}
+                    {visibleColumnIds.includes('rating') && <TableCell className="text-[var(--portal-text-muted)]">{rating}</TableCell>}
+                    {visibleColumnIds.includes('download') && <TableCell className="text-[var(--portal-text-muted)]">{(m.allow_download ?? true) ? 'Да' : 'Нет'}</TableCell>}
+                    {visibleColumnIds.includes('usage') && (
+                      <TableCell className="text-[var(--portal-text-muted)] text-sm">
+                        {m.course_title ? (
+                          <a href={`/portal/admin/courses/${m.course_id}`} className="text-[#6366F1] hover:underline">{m.course_title}</a>
+                        ) : (
+                          '—'
+                        )}
+                      </TableCell>
+                    )}
                     <TableCell>
                       <div className="flex items-center gap-1">
                         <Button
@@ -553,15 +624,25 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                         >
                           <ImageIcon className="h-4 w-4" />
                         </Button>
-                        <a
-                          href={m.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
-                          aria-label="Открыть"
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
+                        {isPlaceholderOrExampleUrl(m.file_url) ? (
+                          <span
+                            className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)]"
+                            title="Тестовая ссылка"
+                            aria-label="Ссылка (тест)"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </span>
+                        ) : (
+                          <a
+                            href={m.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                            aria-label="Открыть"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        )}
                         <Button
                           variant="ghost"
                           size="sm"
@@ -595,11 +676,14 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
             totalPages={totalPages}
             total={total}
             pageSize={pageSize}
-            pageSizeOptions={PAGE_SIZES}
+            pageSizeOptions={STANDARD_PAGE_SIZES}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
             onExportExcel={handleExportExcel}
             exportLabel="Excel"
+            columnConfig={MEDIA_TABLE_COLUMNS}
+            visibleColumnIds={visibleColumnIds}
+            onVisibleColumnIdsChange={setVisibleColumnIds}
           />
         )}
       </section>
@@ -609,6 +693,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
           item={editing}
           onClose={() => setEditing(null)}
           onSave={(data) => handleUpdate(editing.id, data)}
+          onThumbnailUploaded={(url) => setItems((prev) => prev.map((m) => (m.id === editing.id ? { ...m, thumbnail_url: url } : m)))}
         />
       )}
       {previewItem && (
@@ -719,6 +804,7 @@ function PreviewDialog({ item, onClose }: { item: MediaItem; onClose: () => void
   const isAudio = AUDIO_MIMES.some((a) => mime.startsWith('audio/')) || mime.startsWith('audio/');
   const isPdf = PDF_MIMES.includes(mime) || mime.includes('pdf');
   const src = item.file_url;
+  const isPlaceholder = isPlaceholderOrExampleUrl(src);
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -727,30 +813,38 @@ function PreviewDialog({ item, onClose }: { item: MediaItem; onClose: () => void
           <DialogTitle>{item.title}</DialogTitle>
         </DialogHeader>
         <div className="mt-2">
-          {isImage && (
-            // eslint-disable-next-line @next/next/no-img-element -- preview URL dynamic
-            <img src={src} alt={item.title} className="max-h-[70vh] w-full object-contain rounded-lg" />
-          )}
-          {isVideo && !isImage && (
-            <video controls className="w-full max-h-[70vh] rounded-lg" src={src}>
-              Ваш браузер не поддерживает видео.
-            </video>
-          )}
-          {isAudio && !isVideo && (
-            <audio controls className="w-full" src={src}>
-              Ваш браузер не поддерживает аудио.
-            </audio>
-          )}
-          {isPdf && !isVideo && !isAudio && (
-            <iframe title={item.title} src={src} className="w-full h-[70vh] rounded-lg border border-[#E2E8F0]" />
-          )}
-          {!isImage && !isVideo && !isAudio && !isPdf && (
-            <div className="space-y-2">
-              <p className="text-sm text-[var(--portal-text-muted)]">Предпросмотр недоступен. Доступно только скачивание.</p>
-              <a href={src} target="_blank" rel="noopener noreferrer" className="text-[#6366F1] hover:underline inline-flex items-center gap-1">
-                <ExternalLink className="h-4 w-4" /> Открыть / Скачать
-              </a>
-            </div>
+          {isPlaceholder ? (
+            <p className="text-sm text-[var(--portal-text-muted)] py-4">
+              Тестовый ресурс. Ссылка не ведёт на реальный файл (example.com или пусто).
+            </p>
+          ) : (
+            <>
+              {isImage && (
+                // eslint-disable-next-line @next/next/no-img-element -- preview URL dynamic
+                <img src={src} alt={item.title} className="max-h-[70vh] w-full object-contain rounded-lg" />
+              )}
+              {isVideo && !isImage && (
+                <video controls className="w-full max-h-[70vh] rounded-lg" src={src}>
+                  Ваш браузер не поддерживает видео.
+                </video>
+              )}
+              {isAudio && !isVideo && (
+                <audio controls className="w-full" src={src}>
+                  Ваш браузер не поддерживает аудио.
+                </audio>
+              )}
+              {isPdf && !isVideo && !isAudio && (
+                <iframe title={item.title} src={src} className="w-full h-[70vh] rounded-lg border border-[#E2E8F0]" />
+              )}
+              {!isImage && !isVideo && !isAudio && !isPdf && (
+                <div className="space-y-2">
+                  <p className="text-sm text-[var(--portal-text-muted)]">Предпросмотр недоступен. Доступно только скачивание.</p>
+                  <a href={src} target="_blank" rel="noopener noreferrer" className="text-[#6366F1] hover:underline inline-flex items-center gap-1">
+                    <ExternalLink className="h-4 w-4" /> Открыть / Скачать
+                  </a>
+                </div>
+              )}
+            </>
           )}
         </div>
       </DialogContent>
@@ -762,15 +856,43 @@ function EditMediaDialog({
   item,
   onClose,
   onSave,
+  onThumbnailUploaded,
 }: {
   item: MediaItem;
   onClose: () => void;
-  onSave: (data: { title: string; category: string | null; description?: string | null; allow_download?: boolean }) => void;
+  onSave: (data: { title: string; category: string | null; description?: string | null; allow_download?: boolean; thumbnail_url?: string | null }) => void;
+  onThumbnailUploaded?: (url: string) => void;
 }) {
   const [title, setTitle] = useState(item.title);
   const [category, setCategory] = useState(item.category ?? '');
   const [description, setDescription] = useState(item.description ?? '');
   const [allowDownload, setAllowDownload] = useState(item.allow_download !== false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [thumbnailUrl, setThumbnailUrl] = useState(item.thumbnail_url ?? '');
+  const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  async function handleThumbnailUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    setUploadingThumbnail(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch(`/api/portal/admin/media/${item.id}/thumbnail`, { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Ошибка загрузки');
+      if (data.thumbnailUrl) {
+        setThumbnailUrl(data.thumbnailUrl);
+        onThumbnailUploaded?.(data.thumbnailUrl);
+        toast.success('Обложка загружена');
+      }
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка загрузки обложки');
+    }
+    setUploadingThumbnail(false);
+  }
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -784,7 +906,52 @@ function EditMediaDialog({
             <Input id="edit-title" value={title} onChange={(e) => setTitle(e.target.value)} className="mt-1" />
           </div>
           <div>
-            <Label htmlFor="edit-category">Категория</Label>
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="edit-category">Категория</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-8 gap-1 text-xs"
+                disabled={aiLoading}
+                onClick={async () => {
+                  setAiLoading(true);
+                  try {
+                    const context = `Название: ${title}${item.mime_type ? `\nТип файла: ${item.mime_type}` : ''}`;
+                    const res = await fetch('/api/portal/admin/ai-settings/generate-text', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        instruction: 'Ответь в формате JSON: {"category": "одно слово - категория (video/pdf/image/другое)", "description": "краткое описание 1-2 предложения"}. Только JSON, без markdown.',
+                        context,
+                        maxTokens: 200,
+                      }),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+                    const text = (data.content ?? '').trim();
+                    const jsonMatch = text.match(/\{[\s\S]*\}/);
+                    if (jsonMatch) {
+                      try {
+                        const parsed = JSON.parse(jsonMatch[0]) as { category?: string; description?: string };
+                        if (parsed.category) setCategory(parsed.category);
+                        if (parsed.description) setDescription(parsed.description);
+                      } catch {
+                        setDescription(text);
+                      }
+                    } else {
+                      setDescription(text);
+                    }
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : 'Не удалось сгенерировать');
+                  } finally {
+                    setAiLoading(false);
+                  }
+                }}
+              >
+                <Sparkles className="h-3.5 w-3.5" /> {aiLoading ? 'Генерация…' : 'AI описание и теги'}
+              </Button>
+            </div>
             <Input
               id="edit-category"
               value={category}
@@ -809,6 +976,36 @@ function EditMediaDialog({
               className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
             />
           </div>
+          <div>
+            <Label htmlFor="edit-thumbnail">Обложка (превью)</Label>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <Input
+                id="edit-thumbnail"
+                type="url"
+                value={thumbnailUrl}
+                onChange={(e) => setThumbnailUrl(e.target.value)}
+                placeholder="/uploads/... или https://..."
+                className="flex-1 min-w-0"
+              />
+              <input
+                ref={thumbnailInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                className="hidden"
+                onChange={handleThumbnailUpload}
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                disabled={uploadingThumbnail}
+                onClick={() => thumbnailInputRef.current?.click()}
+              >
+                {uploadingThumbnail ? 'Загрузка…' : 'Загрузить файл'}
+              </Button>
+            </div>
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">URL или загрузите изображение (JPEG, PNG, GIF, WebP до 5 МБ)</p>
+          </div>
           <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -820,7 +1017,7 @@ function EditMediaDialog({
           </label>
           <MediaItemGroupsBlock mediaId={item.id} />
           <div className="flex gap-2 pt-2">
-            <Button onClick={() => onSave({ title, category: category.trim() || null, description: description.trim() || null, allow_download: allowDownload })} disabled={!title.trim()}>
+            <Button onClick={() => onSave({ title, category: category.trim() || null, description: description.trim() || null, allow_download: allowDownload, thumbnail_url: thumbnailUrl.trim() || null })} disabled={!title.trim()}>
               Сохранить
             </Button>
             <Button type="button" variant="ghost" onClick={onClose}>

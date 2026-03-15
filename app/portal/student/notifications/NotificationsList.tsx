@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 import { Trash2 } from 'lucide-react';
+import { formatNotificationContent, formatNotificationType } from '@/lib/notification-content';
 
 interface Notif {
   id: string;
@@ -15,23 +16,6 @@ interface Notif {
   content: unknown;
   is_read: boolean;
   created_at: string;
-}
-
-function formatNotificationContent(type: string, content: unknown): string {
-  if (typeof content === 'string') {
-    try {
-      const parsed = JSON.parse(content) as Record<string, unknown>;
-      if (parsed.subject && typeof parsed.subject === 'string') return parsed.subject;
-      if (parsed.course_id && type === 'enrollment') return 'Запись на курс';
-      if (parsed.cert_number && type === 'certificate_issued') return `Сертификат № ${parsed.cert_number}`;
-      return String(parsed.text ?? parsed.body ?? content);
-    } catch {
-      return content;
-    }
-  }
-  const o = content as Record<string, unknown> | null;
-  const val = o?.subject ?? o?.text ?? o?.body;
-  return val != null ? String(val) : '';
 }
 
 export function NotificationsList({ initialItems }: { initialItems: Notif[] }) {
@@ -68,42 +52,46 @@ export function NotificationsList({ initialItems }: { initialItems: Notif[] }) {
 
   if (items.length === 0) {
     return (
-      <div className="portal-card p-10 text-center mt-4">
+      <div className="portal-card p-8 md:p-10 text-center">
         <p className="text-[var(--portal-text-muted)]">Нет уведомлений</p>
       </div>
     );
   }
 
   return (
-    <ul className="space-y-2 mt-4">
+    <ul className="grid grid-cols-1 lg:grid-cols-2 gap-2 md:gap-3 mt-4">
       {items.map((n) => (
         <li
           key={n.id}
           className={[
-            'portal-card flex items-start gap-3 p-4 transition-all',
-            n.is_read ? 'opacity-70' : 'border-l-4 border-l-[#6366F1]',
+            'portal-card flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 transition-all min-w-0',
+            n.is_read ? 'opacity-75' : 'border-l-4 border-l-[#6366F1]',
           ].join(' ')}
         >
-          {/* Dot */}
-          {!n.is_read && (
-            <span className="mt-1 flex h-2 w-2 shrink-0 rounded-full bg-[#6366F1]" />
-          )}
-          <div className="min-w-0 flex-1">
-            <span className="text-sm font-semibold text-[var(--portal-text)]">{n.type}</span>
-            <p className="mt-0.5 text-sm text-[var(--portal-text-muted)]">
-              {formatNotificationContent(n.type, n.content)}
-            </p>
-            <time className="mt-1 block text-xs text-[var(--portal-text-soft)]">
-              {format(new Date(n.created_at), 'dd.MM.yyyy HH:mm')}
-            </time>
+          <div className="min-w-0 flex-1 flex items-start gap-2 sm:gap-3">
+            {!n.is_read && (
+              <span className="mt-1.5 sm:mt-0 flex h-2 w-2 shrink-0 rounded-full bg-[#6366F1]" aria-hidden />
+            )}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+                <span className="text-xs font-medium text-[var(--portal-text-soft)] uppercase tracking-wide">{formatNotificationType(n.type) || n.type}</span>
+                <time className="text-xs text-[var(--portal-text-soft)]">
+                  {format(new Date(n.created_at), 'dd.MM.yy HH:mm')}
+                </time>
+              </div>
+              <p className="mt-0.5 text-sm text-[var(--portal-text)] line-clamp-2">
+                {formatNotificationContent(typeof n.content === 'string' ? n.content : String(n.content ?? ''), n.type)}
+              </p>
+            </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-1 shrink-0 self-end sm:self-center pl-5 sm:pl-0">
             {!n.is_read && (
               <Button
                 variant="secondary"
                 size="sm"
                 onClick={() => handleMarkRead(n)}
                 disabled={markingId === n.id}
+                className="min-h-9 touch-manipulation"
               >
                 {markingId === n.id ? '…' : 'Прочитано'}
               </Button>
@@ -113,7 +101,7 @@ export function NotificationsList({ initialItems }: { initialItems: Notif[] }) {
               size="sm"
               onClick={() => handleDelete(n)}
               disabled={deletingId === n.id}
-              className="text-[var(--portal-text-soft)] hover:text-red-500 hover:bg-red-50"
+              className="text-[var(--portal-text-soft)] hover:text-red-500 hover:bg-red-50 min-h-9 min-w-9 p-0 touch-manipulation"
               aria-label="Удалить"
             >
               <Trash2 className="h-4 w-4" />

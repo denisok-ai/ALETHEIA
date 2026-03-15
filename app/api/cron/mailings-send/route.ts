@@ -14,12 +14,16 @@ export const maxDuration = 60;
 export async function GET(request: NextRequest) {
   const overrides = await getEnvOverrides();
   const secret = overrides.cron_secret || process.env.CRON_SECRET;
-  if (secret) {
-    const authHeader = request.headers.get('authorization');
-    const token = authHeader?.replace(/^Bearer\s+/i, '').trim();
-    if (token !== secret) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+  if (!secret) {
+    return NextResponse.json(
+      { error: 'Cron secret not configured. Set CRON_SECRET.' },
+      { status: 503 }
+    );
+  }
+  const authHeader = request.headers.get('authorization');
+  const token = authHeader?.replace(/^Bearer\s+/i, '').trim();
+  if (token !== secret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   const now = new Date();

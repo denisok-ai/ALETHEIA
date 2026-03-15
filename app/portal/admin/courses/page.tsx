@@ -1,7 +1,11 @@
 /**
  * Admin: course catalog, create course, upload SCORM.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Курсы' };
+
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
@@ -19,6 +23,7 @@ export default async function AdminCoursesPage() {
 
   const courses = await prisma.course.findMany({
     orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+    take: 1000,
   });
 
   const initialCourses = courses.map((c) => ({

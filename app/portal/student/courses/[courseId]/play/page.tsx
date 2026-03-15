@@ -191,7 +191,7 @@ export default function ScormPlayPage() {
 
   useEffect(() => {
     if (!structure || !scormUrl) return;
-    const t = setInterval(refreshProgress, 15000);
+    const t = setInterval(refreshProgress, 45000);
     return () => clearInterval(t);
   }, [structure, scormUrl, refreshProgress]);
 

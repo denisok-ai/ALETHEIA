@@ -30,6 +30,9 @@ export function DashboardCharts({
   const period = Math.min(90, Math.max(7, Number(searchParams.get('period')) || 30));
   const periodParam = PERIODS.includes(period as 7 | 30 | 90) ? period : 30;
 
+  const hasRevenue = revenueData.some((d) => d.revenue > 0 || d.count > 0);
+  const hasActivity = activityData.some((d) => d.enrollments > 0 || d.certificates > 0);
+
   function setPeriod(p: number) {
     const next = new URLSearchParams(searchParams.toString());
     next.set('period', String(p));
@@ -77,9 +80,9 @@ export function DashboardCharts({
             ))}
           </div>
         </div>
-        {revenueData.length > 0 ? (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+        {revenueData.length > 0 && hasRevenue ? (
+          <div className="h-64 w-full min-h-[256px]" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
               <BarChart data={revenueData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
@@ -93,15 +96,22 @@ export function DashboardCharts({
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-[var(--portal-text-muted)]">Нет данных за период</p>
+          <div className="py-12 text-center">
+            <p className="text-sm text-[var(--portal-text-muted)]">
+              {revenueData.length === 0 ? 'Нет данных за период' : 'Нет оплат за выбранный период'}
+            </p>
+            <p className="mt-1 text-xs text-[var(--portal-text-soft)]">
+              Оплаты появятся после приёма платежей через PayKeeper
+            </p>
+          </div>
         )}
       </div>
 
       <div className="mt-6 portal-card p-6">
         <h2 className="mb-3 text-lg font-semibold text-[var(--portal-text)]">Активность по дням (записи и сертификаты)</h2>
-        {activityData.length > 0 ? (
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
+        {activityData.length > 0 && hasActivity ? (
+          <div className="h-64 w-full min-h-[256px]" style={{ minWidth: 0 }}>
+            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
               <LineChart data={activityData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
@@ -114,7 +124,14 @@ export function DashboardCharts({
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="py-8 text-center text-sm text-[var(--portal-text-muted)]">Нет данных за период</p>
+          <div className="py-12 text-center">
+            <p className="text-sm text-[var(--portal-text-muted)]">
+              {activityData.length === 0 ? 'Нет данных за период' : 'Нет записей и сертификатов за выбранный период'}
+            </p>
+            <p className="mt-1 text-xs text-[var(--portal-text-soft)]">
+              Записи на курсы и выдача сертификатов появятся по мере активности слушателей
+            </p>
+          </div>
         )}
       </div>
     </>

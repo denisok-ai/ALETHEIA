@@ -1,10 +1,13 @@
 /**
  * Admin: send mailing now (POST). Only once per mailing; status must be planned.
+ * Запускает отправку в фоне и сразу возвращает 202 — статус можно смотреть по polling.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { runMailingSend } from '@/lib/mailing-send';
+
+export const maxDuration = 60;
 
 export async function POST(
   _req: NextRequest,
@@ -20,15 +23,12 @@ export async function POST(
     return NextResponse.json({ error: 'Отправка возможна только для рассылки со статусом «Запланирована». Для повтора используйте «Копировать».' }, { status: 400 });
   }
 
-  const result = await runMailingSend(id, auth.userId);
-  if (!result) {
-    return NextResponse.json({ error: 'Рассылка не найдена или уже отправлена' }, { status: 400 });
-  }
-
-  return NextResponse.json({
-    success: true,
-    sent: result.sent,
-    failed: result.failed,
-    total: result.total,
+  runMailingSend(id, auth.userId).catch((e) => {
+    console.error('Mailing send background error:', e);
   });
+
+  return NextResponse.json(
+    { started: true, message: 'Рассылка запущена. Обновите страницу для просмотра статуса.' },
+    { status: 202 }
+  );
 }

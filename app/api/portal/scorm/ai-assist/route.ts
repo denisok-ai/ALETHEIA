@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   }
 
   const role = (session?.user as { role?: string })?.role;
-  if (role !== 'admin') {
+  if (role !== 'admin' && role !== 'manager') {
     const enrollment = await prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
     });

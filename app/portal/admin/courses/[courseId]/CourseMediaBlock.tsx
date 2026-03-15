@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Link2, Unlink } from 'lucide-react';
+import { isPlaceholderOrExampleUrl } from '@/lib/placeholder-url';
 
 interface MediaItem {
   id: string;
@@ -78,9 +79,13 @@ export function CourseMediaBlock({
         <ul className="mt-3 space-y-2">
           {attached.map((m) => (
             <li key={m.id} className="flex items-center justify-between rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-sm">
-              <a href={m.file_url.startsWith('/') ? m.file_url : `/${m.file_url}`} target="_blank" rel="noopener noreferrer" className="text-[#6366F1] hover:underline">
-                {m.title}
-              </a>
+              {isPlaceholderOrExampleUrl(m.file_url) ? (
+                <span className="text-[var(--portal-text-muted)]" title="Тестовая ссылка">{m.title}</span>
+              ) : (
+                <a href={m.file_url.startsWith('/') ? m.file_url : `/${m.file_url}`} target="_blank" rel="noopener noreferrer" className="text-[#6366F1] hover:underline">
+                  {m.title}
+                </a>
+              )}
               <Button
                 variant="ghost"
                 size="sm"

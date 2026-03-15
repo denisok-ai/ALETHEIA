@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Download, ArrowLeft } from 'lucide-react';
+import { isPlaceholderOrExampleUrl } from '@/lib/placeholder-url';
 
 const IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
 const VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv'];
@@ -46,6 +47,7 @@ export function MediaViewClient({
   const src = viewRecord?.file_url ?? media.fileUrl;
   const mime = viewRecord?.mime_type ?? media.mimeType ?? '';
   const allowDownload = viewRecord?.allow_download ?? media.allowDownload;
+  const isPlaceholder = isPlaceholderOrExampleUrl(src);
 
   const isImage = IMAGE_MIMES.includes(mime);
   const isVideo = mime.startsWith('video/');
@@ -65,6 +67,12 @@ export function MediaViewClient({
   return (
     <div className="space-y-4">
       <div className="portal-card p-4">
+        {isPlaceholder ? (
+          <p className="text-sm text-[var(--portal-text-muted)] py-4">
+            Тестовый ресурс. Ссылка не ведёт на реальный файл (example.com или пусто).
+          </p>
+        ) : (
+        <>
         {isImage && (
           // eslint-disable-next-line @next/next/no-img-element -- dynamic media URL
           <img src={src} alt={media.title} className="max-h-[70vh] w-full object-contain rounded-lg" />
@@ -97,10 +105,12 @@ export function MediaViewClient({
             )}
           </div>
         )}
+        </>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {allowDownload && (
+        {allowDownload && !isPlaceholder && (
           <a href={downloadUrl} download target="_blank" rel="noopener noreferrer">
             <Button variant="primary" size="sm">
               <Download className="h-4 w-4 mr-2" /> Скачать

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { profilePatchSchema } from '@/lib/validations/profile';
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -30,14 +31,25 @@ export async function PATCH(request: NextRequest) {
   const userId = (session?.user as { id?: string })?.id;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  let body: { displayName?: string | null };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const displayName = body.displayName === undefined ? undefined : (body.displayName === '' || body.displayName === null ? null : String(body.displayName).trim());
+  const parsed = profilePatchSchema.safeParse(body);
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? 'Неверные данные';
+    return NextResponse.json({ error: msg }, { status: 400 });
+  }
+
+  const displayName =
+    parsed.data.displayName === undefined
+      ? undefined
+      : parsed.data.displayName === '' || parsed.data.displayName === null
+        ? null
+        : String(parsed.data.displayName).trim();
 
   await prisma.profile.upsert({
     where: { userId },

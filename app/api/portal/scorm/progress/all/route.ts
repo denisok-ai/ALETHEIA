@@ -19,6 +19,20 @@ export async function GET(request: NextRequest) {
   if (role === 'admin') {
     return NextResponse.json({ progress: [] });
   }
+  if (role === 'manager') {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!enrollment) return NextResponse.json({ progress: [] });
+  }
+  if (role === 'user') {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!enrollment || enrollment.accessClosed) {
+      return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
+    }
+  }
 
   const list = await prisma.scormProgress.findMany({
     where: { userId, courseId },

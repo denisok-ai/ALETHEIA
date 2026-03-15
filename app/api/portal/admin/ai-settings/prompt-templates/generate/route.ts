@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { getLlmApiKey } from '@/lib/llm';
 import { prisma } from '@/lib/db';
+import { logLlmRequest } from '@/lib/llm-request-log';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
   const model = settings?.model ?? 'deepseek-chat';
   const sys = 'Ты помогаешь создавать system prompt для консультанта курса «Тело не врёт» (школа мышечного тестирования). Ответь только текстом самого промпта, без пояснений и кавычек.';
 
+  const startMs = Date.now();
   const response = await fetch(DEEPSEEK_API_URL, {
     method: 'POST',
     headers: {
@@ -60,6 +62,16 @@ export async function POST(request: NextRequest) {
 
   const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
   const content = data?.choices?.[0]?.message?.content?.trim() ?? '';
+
+  logLlmRequest({
+    source: 'prompt-generate',
+    model,
+    promptChars: sys.length + instruction.length,
+    responseChars: content.length,
+    durationMs: Date.now() - startMs,
+    userId: auth?.userId,
+    role: 'admin',
+  });
 
   return NextResponse.json({ content });
 }

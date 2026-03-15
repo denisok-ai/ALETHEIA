@@ -1,10 +1,17 @@
 /**
  * POST: add a message to the ticket thread. Role = user if ticket owner, else manager.
+ * When manager posts, student receives an email about the new reply.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { sendEmail } from '@/lib/email';
+import { getSystemSettings } from '@/lib/settings';
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 
 interface MessageItem {
   role: 'user' | 'manager';
@@ -62,6 +69,32 @@ export async function POST(
     where: { id },
     data: { messages: JSON.stringify(messages), updatedAt: new Date() },
   });
+
+  if (messageRole === 'manager') {
+    const user = await prisma.user.findUnique({
+      where: { id: ticket.userId },
+      select: { email: true, profile: { select: { displayName: true } } },
+    });
+    if (user?.email) {
+      try {
+        const settings = await getSystemSettings();
+        const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
+        const displayName = user.profile?.displayName ?? user.email;
+        const ticketUrl = siteUrl ? `${siteUrl}/portal/student/support/${id}` : '';
+        const html = `
+          <p>Здравствуйте, ${escapeHtml(displayName)}!</p>
+          <p>В вашем обращении «${escapeHtml(ticket.subject)}» появился новый ответ от поддержки.</p>
+          <p><strong>Ответ:</strong></p>
+          <p>${escapeHtml(content).replace(/\n/g, '<br/>')}</p>
+          ${ticketUrl ? `<p><a href="${escapeHtml(ticketUrl)}">Открыть обращение</a></p>` : ''}
+          <p>— ${escapeHtml(settings.portal_title || 'AVATERRA')}</p>
+        `;
+        await sendEmail(user.email, `Ответ по обращению: ${ticket.subject.slice(0, 50)}`, html);
+      } catch (e) {
+        console.error('Ticket: notify student of manager reply', e);
+      }
+    }
+  }
 
   return NextResponse.json({
     message: { role: messageRole, content, at: messages[messages.length - 1].at },

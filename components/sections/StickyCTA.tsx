@@ -12,13 +12,17 @@ export function StickyCTA() {
     const onScroll = () => {
       const hero = document.getElementById('hero');
       const footer = document.getElementById('footer');
+      const contact = document.getElementById('contact');
       if (!hero) return;
       const heroRect = hero.getBoundingClientRect();
       const heroScrolledPast = heroRect.bottom < 0;
       const footerInView = footer
         ? footer.getBoundingClientRect().top < window.innerHeight - 120
         : false;
-      setVisible(heroScrolledPast && !footerInView);
+      const contactInView = contact
+        ? contact.getBoundingClientRect().top < window.innerHeight - 120
+        : false;
+      setVisible(heroScrolledPast && !footerInView && !contactInView);
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     onScroll();

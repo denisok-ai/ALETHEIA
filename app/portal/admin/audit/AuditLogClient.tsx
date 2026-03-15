@@ -20,9 +20,21 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { TablePagination } from '@/components/ui/TablePagination';
+import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
+import { SortableTableHead } from '@/components/ui/SortableTableHead';
+import { sortTableBy, type SortDir } from '@/lib/table-sort';
+import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 import { FileText, Inbox } from 'lucide-react';
 import { format } from 'date-fns';
+
+const AUDIT_TABLE_COLUMNS: ColumnConfigItem[] = [
+  { id: 'num', label: '№' },
+  { id: 'date', label: 'Дата' },
+  { id: 'action', label: 'Действие' },
+  { id: 'entity', label: 'Сущность' },
+  { id: 'entityId', label: 'ID' },
+  { id: 'actor', label: 'Актор' },
+];
 
 interface AuditLogRow {
   id: number;
@@ -47,6 +59,14 @@ export function AuditLogClient() {
   const [users, setUsers] = useState<{ id: string; email: string | null }[]>([]);
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => AUDIT_TABLE_COLUMNS.map((c) => c.id));
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const handleSort = (columnId: string) => {
+    setPage(0);
+    if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(columnId); setSortDir('asc'); }
+  };
 
   useEffect(() => {
     fetch('/api/portal/admin/audit/actors')
@@ -101,26 +121,37 @@ export function AuditLogClient() {
 
   const distinctActions = useMemo(() => Array.from(new Set(logs.map((l) => l.action))).sort(), [logs]);
   const distinctEntities = useMemo(() => Array.from(new Set(logs.map((l) => l.entity))).sort(), [logs]);
-  const total = filtered.length;
+  const auditSortGetters = useMemo<Record<string, (l: AuditLogRow) => unknown>>(
+    () => ({
+      num: () => 0,
+      date: (l) => l.createdAt,
+      action: (l) => l.action,
+      entity: (l) => l.entity,
+      entityId: (l) => l.entityId ?? '',
+      actor: (l) => l.actorId ?? '',
+    }),
+    []
+  );
+  const sorted = useMemo(() => {
+    if (!sortKey || !auditSortGetters[sortKey]) return filtered;
+    return sortTableBy(filtered, auditSortGetters[sortKey], sortDir);
+  }, [filtered, sortKey, sortDir, auditSortGetters]);
+  const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
-  const pageRows = filtered.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
-  const PAGE_SIZES = [5, 10, 50];
+  const pageRows = sorted.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
   function handleExportCsv() {
-    const headers = ['id', 'action', 'entity', 'entityId', 'actorId', 'createdAt'];
-    const escape = (s: string) => (/[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s);
-    const rows = filtered.map((l) =>
-      [l.id, l.action, l.entity, l.entityId ?? '', l.actorId ?? '', l.createdAt].map((v) => escape(String(v)))
-    );
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
-    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `audit-${format(new Date(), 'yyyy-MM-dd')}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    const headers = ['№', 'Дата', 'Действие', 'Сущность', 'ID', 'Актор'];
+    const rows = sorted.map((l, i) => [
+      i + 1,
+      format(new Date(l.createdAt), 'dd.MM.yyyy HH:mm'),
+      l.action,
+      l.entity,
+      l.entityId ?? '',
+      l.actorId ?? '',
+    ]);
+    downloadXlsxFromArrays(headers, rows, `audit-${format(new Date(), 'yyyy-MM-dd')}`);
   }
 
   return (
@@ -177,19 +208,29 @@ export function AuditLogClient() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-10">№</TableHead>
-                <TableHead>Дата</TableHead>
-                <TableHead>Действие</TableHead>
-                <TableHead>Сущность</TableHead>
-                <TableHead>ID</TableHead>
-                <TableHead>Актор</TableHead>
+                {visibleColumnIds.includes('num') && <TableHead className="w-10">№</TableHead>}
+                {visibleColumnIds.includes('date') && (
+                  <SortableTableHead sortKey="date" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Дата</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('action') && (
+                  <SortableTableHead sortKey="action" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Действие</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('entity') && (
+                  <SortableTableHead sortKey="entity" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Сущность</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('entityId') && (
+                  <SortableTableHead sortKey="entityId" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>ID</SortableTableHead>
+                )}
+                {visibleColumnIds.includes('actor') && (
+                  <SortableTableHead sortKey="actor" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Актор</SortableTableHead>
+                )}
                 <TableHead className="w-20"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pageRows.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="p-0">
+                  <TableCell colSpan={1 + visibleColumnIds.length} className="p-0">
                     <EmptyState
                       title="Записей нет"
                       description="Измените фильтры или период"
@@ -200,16 +241,20 @@ export function AuditLogClient() {
               ) : (
                 pageRows.map((l, idx) => (
                   <TableRow key={l.id}>
+                    {visibleColumnIds.includes('num') && (
                     <TableCell className="text-[var(--portal-text-muted)] text-xs">
                       {currentPage * pageSize + idx + 1}
                     </TableCell>
+                    )}
+                    {visibleColumnIds.includes('date') && (
                     <TableCell className="text-[var(--portal-text-muted)] text-xs">
                       {format(new Date(l.createdAt), 'dd.MM.yyyy HH:mm')}
                     </TableCell>
-                    <TableCell className="font-medium text-[var(--portal-text)]">{l.action}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{l.entity}</TableCell>
-                    <TableCell className="font-mono text-xs text-[var(--portal-text-muted)]">{l.entityId ?? '—'}</TableCell>
-                    <TableCell className="font-mono text-xs text-[var(--portal-text-muted)]">{l.actorId?.slice(0, 8) ?? '—'}</TableCell>
+                    )}
+                    {visibleColumnIds.includes('action') && <TableCell className="font-medium text-[var(--portal-text)]">{l.action}</TableCell>}
+                    {visibleColumnIds.includes('entity') && <TableCell className="text-[var(--portal-text-muted)]">{l.entity}</TableCell>}
+                    {visibleColumnIds.includes('entityId') && <TableCell className="font-mono text-xs text-[var(--portal-text-muted)]">{l.entityId ?? '—'}</TableCell>}
+                    {visibleColumnIds.includes('actor') && <TableCell className="font-mono text-xs text-[var(--portal-text-muted)]">{l.actorId?.slice(0, 8) ?? '—'}</TableCell>}
                     <TableCell>
                       <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setDetailLog(l)} title="Подробнее" aria-label="Подробнее о записи журнала">
                         <FileText className="h-4 w-4" />
@@ -227,11 +272,14 @@ export function AuditLogClient() {
             totalPages={totalPages}
             total={total}
             pageSize={pageSize}
-            pageSizeOptions={PAGE_SIZES}
+            pageSizeOptions={STANDARD_PAGE_SIZES}
             onPageChange={setPage}
             onPageSizeChange={setPageSize}
             onExportExcel={handleExportCsv}
             exportLabel="Excel"
+            columnConfig={AUDIT_TABLE_COLUMNS}
+            visibleColumnIds={visibleColumnIds}
+            onVisibleColumnIdsChange={setVisibleColumnIds}
           />
         )}
         </>

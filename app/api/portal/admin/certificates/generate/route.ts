@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { title: true, scormManifest: true },
+    select: { title: true, scormManifest: true, verificationRequiredLessonIds: true },
   });
   if (!course) return NextResponse.json({ error: 'Course not found' }, { status: 404 });
 
@@ -78,7 +78,43 @@ export async function POST(request: NextRequest) {
     select: { userId: true },
   });
   const existingUserIds = new Set(existingCerts.map((c) => c.userId));
-  const toIssue = userIdsCompleted.filter((id) => !existingUserIds.has(id));
+  let toIssue = userIdsCompleted.filter((id) => !existingUserIds.has(id));
+
+  const verificationRequiredIds: string[] = (() => {
+    const raw = course.verificationRequiredLessonIds;
+    if (!raw?.trim()) return [];
+    try {
+      const arr = JSON.parse(raw) as unknown;
+      return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
+    } catch {
+      return [];
+    }
+  })();
+  if (verificationRequiredIds.length > 0 && toIssue.length > 0) {
+    const approvedByUserLesson = await prisma.phygitalVerification.findMany({
+      where: {
+        courseId,
+        userId: { in: toIssue },
+        status: 'approved',
+        lessonId: { in: verificationRequiredIds },
+      },
+      select: { userId: true, lessonId: true },
+    });
+    const approvedPerUser = new Map<string, Set<string>>();
+    for (const v of approvedByUserLesson) {
+      if (!v.lessonId) continue;
+      let set = approvedPerUser.get(v.userId);
+      if (!set) {
+        set = new Set();
+        approvedPerUser.set(v.userId, set);
+      }
+      set.add(v.lessonId);
+    }
+    toIssue = toIssue.filter((userId) => {
+      const set = approvedPerUser.get(userId);
+      return set && verificationRequiredIds.every((id) => set.has(id));
+    });
+  }
 
   const taskId = nanoid();
   const total = toIssue.length;

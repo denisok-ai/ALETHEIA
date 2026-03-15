@@ -25,6 +25,7 @@ export async function GET(
       id: media.id,
       title: media.title,
       fileUrl: media.fileUrl,
+      thumbnailUrl: media.thumbnailUrl,
       mimeType: media.mimeType,
       category: media.category,
       description: media.description,
@@ -63,12 +64,13 @@ export async function PATCH(
     return NextResponse.json({ error: 'Validation failed', issues: parsed.error.issues }, { status: 400 });
   }
 
-  const data: { title?: string; category?: string | null; description?: string | null; courseId?: string | null; allowDownload?: boolean } = {};
+  const data: { title?: string; category?: string | null; description?: string | null; courseId?: string | null; allowDownload?: boolean; thumbnailUrl?: string | null } = {};
   if (parsed.data.title !== undefined) data.title = parsed.data.title;
   if (parsed.data.category !== undefined) data.category = parsed.data.category;
   if (parsed.data.description !== undefined) data.description = parsed.data.description;
   if (parsed.data.courseId !== undefined) data.courseId = parsed.data.courseId;
   if (parsed.data.allowDownload !== undefined) data.allowDownload = parsed.data.allowDownload;
+  if (parsed.data.thumbnailUrl !== undefined) data.thumbnailUrl = parsed.data.thumbnailUrl?.trim() || null;
 
   const media = await prisma.media.update({
     where: { id },
@@ -88,6 +90,7 @@ export async function PATCH(
       id: media.id,
       title: media.title,
       file_url: media.fileUrl,
+      thumbnail_url: media.thumbnailUrl ?? null,
       mime_type: media.mimeType,
       category: media.category,
       description: media.description,

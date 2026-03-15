@@ -1,7 +1,11 @@
 /**
  * Student: enrolled courses — new design with CourseCard grid.
  */
+import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
+
+export const metadata: Metadata = { title: 'Мои курсы' };
+
 import Link from 'next/link';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -38,6 +42,7 @@ export default async function StudentCoursesPage() {
       },
     },
     orderBy: { enrolledAt: 'desc' },
+    take: 500,
   });
 
   type CourseItem = {
@@ -53,6 +58,7 @@ export default async function StudentCoursesPage() {
       where: { status: 'published' },
       select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true },
       orderBy: { sortOrder: 'asc' },
+      take: 500,
     });
     list = allCourses.map((c) => ({ enrollId: `admin-${c.id}`, course: c }));
   } else {
