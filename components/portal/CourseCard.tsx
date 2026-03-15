@@ -116,10 +116,11 @@ export function CourseCard({
           </span>
         </div>
 
-        {/* Play-кнопка (button, не Link — нельзя вкладывать <a> в кликабельный div) */}
+        {/* Play-кнопка: overlay с pointer-events-none, кнопка — pointer-events-auto.
+            Иначе overlay перехватывает клики по обложке и блокирует переход на страницу курса. */}
         {!accessClosed && (
           <div className={cn(
-            'absolute inset-0 flex items-center justify-center',
+            'absolute inset-0 flex items-center justify-center pointer-events-none',
             'bg-black/0 group-hover:bg-[#6366F1]/20 transition-all duration-200'
           )}>
             <button
@@ -127,7 +128,7 @@ export function CourseCard({
               onClick={handlePlayClick}
               aria-label={`Запустить курс "${title}"`}
               className={cn(
-                'flex h-12 w-12 items-center justify-center rounded-full',
+                'flex h-12 w-12 items-center justify-center rounded-full pointer-events-auto',
                 'bg-white text-[#4F46E5] shadow-lg',
                 'scale-0 group-hover:scale-100 transition-transform duration-200'
               )}

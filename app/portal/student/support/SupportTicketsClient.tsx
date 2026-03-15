@@ -1,12 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ticketCreateSchema } from '@/lib/validations/ticket';
+
+const PAGE_SIZES = [10, 25, 50];
 
 interface Ticket {
   id: string;
@@ -21,6 +24,15 @@ export function SupportTicketsClient({ initialTickets }: { initialTickets: Ticke
   const [message, setMessage] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+
+  const totalPages = Math.max(1, Math.ceil(tickets.length / pageSize));
+  const currentPage = Math.min(page, totalPages - 1);
+  const paginatedTickets = useMemo(() => {
+    const start = currentPage * pageSize;
+    return tickets.slice(start, start + pageSize);
+  }, [tickets, currentPage, pageSize]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -45,6 +57,7 @@ export function SupportTicketsClient({ initialTickets }: { initialTickets: Ticke
         setTickets((prev) => [data.ticket, ...prev]);
         setSubject('');
         setMessage('');
+        setPage(0);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка создания');
@@ -105,14 +118,35 @@ export function SupportTicketsClient({ initialTickets }: { initialTickets: Ticke
 
       {/* Блок «Мои обращения» — под формой */}
       <section className="w-full min-w-0">
-        <h2 className="text-base font-semibold text-[var(--portal-text)] mb-2 md:mb-3">Мои обращения</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2 md:mb-3">
+          <h2 className="text-base font-semibold text-[var(--portal-text)]">Мои обращения</h2>
+          {tickets.length > 0 && (
+            <div className="flex items-center gap-2">
+              {PAGE_SIZES.map((size) => (
+                <button
+                  key={size}
+                  type="button"
+                  onClick={() => { setPageSize(size); setPage(0); }}
+                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-[#EEF2FF] text-[#4F46E5] font-medium' : 'text-[var(--portal-text-muted)] hover:bg-[#F1F5F9]'}`}
+                  aria-label={`Показать по ${size}`}
+                >
+                  {size}
+                </button>
+              ))}
+              <span className="text-sm text-[var(--portal-text-muted)] ml-2">
+                {tickets.length} {tickets.length === 1 ? 'обращение' : tickets.length < 5 ? 'обращения' : 'обращений'}
+              </span>
+            </div>
+          )}
+        </div>
         {tickets.length === 0 ? (
           <div className="portal-card p-6 md:p-8 text-center">
             <p className="text-sm text-[var(--portal-text-muted)]">Нет обращений</p>
           </div>
         ) : (
+          <>
           <ul className="grid grid-cols-1 xl:grid-cols-2 gap-2 md:gap-3">
-            {tickets.map((t) => {
+            {paginatedTickets.map((t) => {
               const s = STATUS_MAP[t.status] ?? { label: t.status, cls: 'badge-neutral' };
               return (
                 <li
@@ -145,6 +179,34 @@ export function SupportTicketsClient({ initialTickets }: { initialTickets: Ticke
               );
             })}
           </ul>
+          {totalPages > 1 && (
+            <div className="mt-3 flex items-center justify-between gap-2">
+              <span className="text-sm text-[var(--portal-text-muted)]">
+                Страница {currentPage + 1} из {totalPages}
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={currentPage === 0}
+                  className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC]"
+                  aria-label="Предыдущая"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={currentPage >= totalPages - 1}
+                  className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC]"
+                  aria-label="Следующая"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </section>
     </div>

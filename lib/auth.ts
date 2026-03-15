@@ -59,6 +59,7 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/login',
+    signOut: '/signout',
   },
   events: {
     signOut: async ({ token }) => {

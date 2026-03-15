@@ -12,11 +12,8 @@ const DEFAULT_MODEL = 'deepseek-chat';
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return NextResponse.json({ error: 'Войдите в аккаунт для использования чата.' }, { status: 401 });
-  }
-
-  const rateLimitRes = checkRateLimit(request, 'chat', 10);
+  // Гости (без входа) могут использовать чат — ограничение по rate limit
+  const rateLimitRes = checkRateLimit(request, 'chat', session?.user ? 10 : 5);
   if (rateLimitRes) return rateLimitRes;
 
   try {
@@ -123,15 +120,17 @@ export async function POST(request: NextRequest) {
       }).catch(() => {});
     }
 
-    logLlmRequest({
-      source: 'chatbot',
-      model,
-      promptChars: fullSystemContent.length + message.length,
-      responseChars: answer.length,
-      durationMs: Date.now() - startMs,
-      userId: (session?.user as { id?: string })?.id,
-      role: (session?.user as { role?: string })?.role,
-    });
+    if (session?.user) {
+      logLlmRequest({
+        source: 'chatbot',
+        model,
+        promptChars: fullSystemContent.length + message.length,
+        responseChars: answer.length,
+        durationMs: Date.now() - startMs,
+        userId: (session.user as { id?: string })?.id,
+        role: (session.user as { role?: string })?.role,
+      });
+    }
 
     return NextResponse.json({ answer });
   } catch (error) {

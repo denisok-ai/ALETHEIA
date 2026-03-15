@@ -6,7 +6,14 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
-export function Contact() {
+interface ContactProps {
+  /** Из настроек (БД). Если не задан — заглушка. */
+  contactPhone?: string | null;
+}
+
+export function Contact({ contactPhone }: ContactProps = {}) {
+  const phone = contactPhone?.trim() || '+7 (495) 123-45-67';
+  const phoneHref = phone.replace(/\D/g, '').length >= 10 ? `tel:${phone.replace(/\D/g, '')}` : '#';
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
@@ -88,8 +95,8 @@ export function Contact() {
               </p>
               <ul className="mt-2 space-y-1 text-[var(--portal-text-muted)]">
                 <li>
-                  <a href="tel:+74951234567" className="hover:text-accent transition-colors">
-                    +7 (495) 123-45-67
+                  <a href={phoneHref} className="hover:text-accent transition-colors">
+                    {phone}
                   </a>
                 </li>
                 <li>

@@ -1,8 +1,22 @@
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
+import { writeFile, mkdir } from 'fs/promises';
+import path from 'path';
 
 const prisma = new PrismaClient();
+
+/** Минимальный HTML для SCORM-урока (совместим с scorm-again) */
+function scormLessonHtml(title: string, body: string): string {
+  return `<!DOCTYPE html>
+<html lang="ru">
+<head><meta charset="utf-8"><title>${title}</title></head>
+<body style="font-family:system-ui;padding:2rem;max-width:720px;margin:0 auto;">
+<h1>${title}</h1>
+<p>${body}</p>
+</body>
+</html>`;
+}
 
 const N = 50; // минимум 50 объектов где по смыслу
 
@@ -22,7 +36,7 @@ async function main() {
   });
   await prisma.profile.upsert({
     where: { userId: admin.id },
-    create: { id: `p-${admin.id}`, userId: admin.id, role: 'admin', status: 'active', displayName: 'Администратор', email: admin.email },
+    create: { id: `p-${admin.id}`, userId: admin.id, role: 'admin', status: 'active', displayName: 'Администратор', email: admin.email, emailVerifiedAt: new Date(), avatarUrl: '/avatars/admin.jpg' },
     update: { role: 'admin' },
   });
 
@@ -33,7 +47,7 @@ async function main() {
   });
   await prisma.profile.upsert({
     where: { userId: manager1.id },
-    create: { id: `p-${manager1.id}`, userId: manager1.id, role: 'manager', status: 'active', displayName: 'Менеджер', email: manager1.email },
+    create: { id: `p-${manager1.id}`, userId: manager1.id, role: 'manager', status: 'active', displayName: 'Менеджер', email: manager1.email, emailVerifiedAt: new Date(), avatarUrl: '/avatars/manager1.jpg', telegramId: 100000001 },
     update: { role: 'manager' },
   });
 
@@ -44,7 +58,7 @@ async function main() {
   });
   await prisma.profile.upsert({
     where: { userId: manager2.id },
-    create: { id: `p-${manager2.id}`, userId: manager2.id, role: 'manager', status: 'active', displayName: 'Менеджер 2', email: manager2.email },
+    create: { id: `p-${manager2.id}`, userId: manager2.id, role: 'manager', status: 'active', displayName: 'Менеджер 2', email: manager2.email, emailVerifiedAt: new Date(), telegramId: 100000002 },
     update: { role: 'manager' },
   });
 
@@ -60,7 +74,7 @@ async function main() {
     });
     await prisma.profile.upsert({
       where: { userId: u.id },
-      create: { id: `p-${u.id}`, userId: u.id, role: 'user', status: i < 3 ? 'archived' : 'active', displayName: name, email: u.email },
+      create: { id: `p-${u.id}`, userId: u.id, role: 'user', status: i < 3 ? 'archived' : 'active', displayName: name, email: u.email, emailVerifiedAt: new Date(), avatarUrl: i % 5 === 0 ? `/avatars/user-${i + 1}.jpg` : null, telegramId: i % 7 === 0 ? 100000000 + i : null },
       update: {},
     });
     students.push({ id: u.id, email: u.email });
@@ -81,6 +95,12 @@ async function main() {
         status: statuses[i % statuses.length],
         price: [25000, 5000, 15000, 8000, 32000][i % 5],
         sortOrder: i + 1,
+        startsAt: i % 4 !== 0 ? new Date(Date.now() + (i - 10) * 86400000) : null,
+        endsAt: i % 4 !== 0 ? new Date(Date.now() + (i + 90) * 86400000) : null,
+        aiContext: i % 3 === 0 ? JSON.stringify({ 'lesson-1': 'Введение в мышечное тестирование.', 'lesson-2': 'Практические упражнения.', 'lesson-3': 'Итоги и сертификация.' }) : null,
+        aiTutorEnabled: i % 5 !== 0,
+        thumbnailUrl: i % 2 === 0 ? `/covers/course-${i + 1}.jpg` : null,
+        verificationRequiredLessonIds: i % 4 === 0 ? JSON.stringify(['lesson-1', 'lesson-2']) : null,
       },
       update: {},
     });
@@ -115,6 +135,11 @@ async function main() {
           name: `Медиатека: ${['Видео', 'Документы', 'Презентации', 'Аудио', 'Справочники'][i % 5]} ${Math.floor(i / 5) + 1}`,
           moduleType: 'media',
           displayOrder: i,
+          description: i % 2 === 0 ? `Подборка материалов по тематике ${i + 1}` : null,
+          smallIcon: i % 3 === 0 ? `/icons/media-small-${i + 1}.svg` : null,
+          largeIcon: i % 4 === 0 ? `/icons/media-large-${i + 1}.svg` : null,
+          showSubgroupsMode: i % 5 === 0 ? 'icons' : i % 5 === 1 ? 'list' : null,
+          sourceCourseId: i < 3 && courses[i] ? courses[i].id : null,
         },
       });
       mediaGroups.push({ id: g.id, name: g.name });
@@ -130,6 +155,7 @@ async function main() {
           name: `Участники: ${['Новички', 'Практики', 'Выпускники', 'Корпоративные', 'VIP'][i % 5]} ${Math.floor(i / 5) + 1}`,
           moduleType: 'user',
           displayOrder: i,
+          description: i % 4 === 0 ? `Группа участников уровня ${i + 1}` : null,
         },
       });
       userGroups.push({ id: g.id, name: g.name });
@@ -148,6 +174,7 @@ async function main() {
     ],
   });
   const publishedCourses = courses.filter((_, i) => statuses[i % statuses.length] === 'published');
+  const scormCourseIds: string[] = [];
   for (let i = 0; i < Math.min(5, publishedCourses.length); i++) {
     const c = publishedCourses[i];
     if (!c) continue;
@@ -159,6 +186,28 @@ async function main() {
         scormManifest: scormManifestJson,
       },
     }).catch(() => {});
+    scormCourseIds.push(c.id);
+  }
+
+  // Минимальный SCORM-контент для демо (course-seed-1, course-seed-2)
+  const scormDir = path.join(process.cwd(), 'public', 'uploads', 'scorm');
+  const lessons = [
+    { id: 'lesson-1', title: 'Урок 1. Введение', file: 'lesson1.html', body: 'Добро пожаловать в тестовый курс. Это минимальный SCORM-контент для проверки плеера.' },
+    { id: 'lesson-2', title: 'Урок 2. Практика', file: 'lesson2.html', body: 'Практическая часть курса. Изучите материалы и перейдите к следующему уроку.' },
+    { id: 'lesson-3', title: 'Урок 3. Итоги', file: 'lesson3.html', body: 'Поздравляем с завершением курса! Прогресс будет сохранён автоматически.' },
+  ];
+  const indexHtml = scormLessonHtml('Тестовый курс', 'Выберите урок в навигации слева или начните с первого урока.');
+  for (const courseId of scormCourseIds.slice(0, 2)) {
+    const dir = path.join(scormDir, `courses-${courseId}`);
+    try {
+      await mkdir(dir, { recursive: true });
+      await writeFile(path.join(dir, 'index.html'), indexHtml);
+      for (const l of lessons) {
+        await writeFile(path.join(dir, l.file), scormLessonHtml(l.title, l.body));
+      }
+    } catch (e) {
+      console.warn(`Seed: не удалось создать SCORM для ${courseId}:`, e);
+    }
   }
 
   // Связка курсов с группами курсов
@@ -188,6 +237,7 @@ async function main() {
             courseId: course.id,
             accessClosed: e % 5 === 0,
             completedAt: e % 4 === 0 ? new Date() : null,
+            expiresAt: e % 6 === 0 ? new Date(Date.now() + 180 * 86400000) : null,
           },
           update: {},
         }).catch(() => {});
@@ -213,6 +263,8 @@ async function main() {
         ratingCount: i % 5,
         courseId,
         sortOrder: i,
+        description: `Описание медиаресурса ${i + 1}. Полезный материал для изучения.`,
+        thumbnailUrl: i % 3 === 0 ? `/thumbnails/media-${i + 1}.jpg` : null,
       },
     });
     mediaList.push({ id: m.id, title: m.title, courseId: m.courseId });
@@ -255,19 +307,44 @@ async function main() {
     }).catch(() => {});
   }
 
-  // ——— Услуги (Service): привязка к курсам ———
-  const existingService = await prisma.service.findFirst();
+  // ——— Услуги (Service): 4 основных тарифа (витрина) + доп. ———
+  const mainTariffs = [
+    { slug: 'consult', name: 'Индивидуальная консультация', price: 5000, paykeeperTariffId: 'consult', desc: 'Диагностика и коррекция через мышечное тестирование.' },
+    { slug: 'group', name: 'Групповой тренинг', price: 3000, paykeeperTariffId: 'group', desc: 'Психосоматика и работа с подсознанием в группе.' },
+    { slug: 'course', name: 'Курс AVATERRA', price: 25000, paykeeperTariffId: 'course', desc: '10 занятий: основы кинезиологии и мышечного тестирования.' },
+    { slug: 'online', name: 'Онлайн-консультация', price: 3500, paykeeperTariffId: 'online', desc: 'Удалённая сессия с мастером школы.' },
+  ];
+  const publishedIds = courses.filter((_, i) => statuses[i % statuses.length] === 'published').map((c) => c.id);
+  const defaultCourseId = publishedIds[0] ?? courses[0]?.id;
+  for (const t of mainTariffs) {
+    await prisma.service.upsert({
+      where: { slug: t.slug },
+      create: {
+        slug: t.slug,
+        name: t.name,
+        price: t.price,
+        paykeeperTariffId: t.paykeeperTariffId,
+        courseId: defaultCourseId,
+        isActive: true,
+      },
+      update: { name: t.name, price: t.price, paykeeperTariffId: t.paykeeperTariffId, isActive: true },
+    }).catch(() => {});
+  }
+  const existingService = await prisma.service.findFirst({ where: { slug: { startsWith: 'course-' } } });
   if (!existingService) {
-    for (let i = 0; i < Math.min(15, courses.length); i++) {
-      await prisma.service.create({
-        data: {
-          slug: `course-${i + 1}`,
+    for (let i = 0; i < Math.min(11, courses.length); i++) {
+      const slug = `course-${i + 1}`;
+      await prisma.service.upsert({
+        where: { slug },
+        create: {
+          slug,
           name: `Тариф «${courses[i].title.slice(0, 30)}»`,
           price: 5000 + i * 1000,
-          paykeeperTariffId: `tariff-${i + 1}`,
+          paykeeperTariffId: slug,
           courseId: courses[i].id,
-          isActive: i < 12,
+          isActive: i < 8,
         },
+        update: {},
       }).catch(() => {});
     }
   }
@@ -317,6 +394,10 @@ async function main() {
         scheduleMode: 'manual',
         createdById: admin.id,
         recipientConfig: JSON.stringify({ type: 'all' }),
+        senderName: i % 2 === 0 ? 'AVATERRA' : null,
+        senderEmail: i % 2 === 0 ? 'noreply@avaterra.pro' : null,
+        scheduledAt: i % 4 === 0 ? new Date(Date.now() + (i + 1) * 86400000) : null,
+        attachments: i % 5 === 0 ? JSON.stringify([{ name: 'attachment.pdf', pathOrKey: '/attachments/1.pdf', size: 102400 }]) : null,
       },
     });
     mailings.push({ id: m.id });
@@ -346,10 +427,11 @@ async function main() {
 
   // ——— Публикации: 50+ и комментарии ———
   const pubTypes = ['news', 'announcement'] as const;
+  const pubTitles = ['Новость', 'Анонс', 'Итоги', 'Приглашение', 'Обновление', 'Событие', 'Результаты', 'Анонс курса'];
   for (let i = 0; i < N; i++) {
     const pub = await prisma.publication.create({
       data: {
-        title: `Публикация «${['Новость', 'Анонс', 'Итоги', 'Приглашение', 'Обновление'][i % 5]}» ${i + 1}`,
+        title: `${pubTitles[i % pubTitles.length]} №${i + 1}: ${['Старт потока', 'Запись открыта', 'Подведение итогов', 'Новый модуль', 'Расписание'][i % 5]}`,
         type: pubTypes[i % 2],
         status: i % 5 === 0 ? 'closed' : 'active',
         publishAt: new Date(Date.now() - i * 86400000),
@@ -358,6 +440,7 @@ async function main() {
         allowComments: i % 3 !== 0,
         allowRating: true,
         viewsCount: Math.floor(Math.random() * 200),
+        keywords: `avaterra, курс, мышечное тестирование, публикация ${i + 1}`,
       },
     });
     for (let c = 0; c < (i % 4); c++) {
@@ -373,14 +456,23 @@ async function main() {
   }
 
   // ——— Уведомления пользователям и журнал ———
+  const notifTypes = ['enrollment', 'certificate_issued', 'system', 'mailing', 'access_opened'] as const;
+  const notifTitles: Record<string, string> = {
+    enrollment: 'Запись на курс подтверждена',
+    certificate_issued: 'Сертификат готов к скачиванию',
+    system: 'Обновление платформы',
+    mailing: 'Новая рассылка от школы',
+    access_opened: 'Доступ к курсу открыт',
+  };
   for (let i = 0; i < N; i++) {
     const uid = students[i % students.length]?.id;
     if (!uid) continue;
+    const type = notifTypes[i % notifTypes.length];
     await prisma.notification.create({
       data: {
         userId: uid,
-        type: ['enrollment', 'certificate_issued', 'system', 'mailing'][i % 4],
-        content: JSON.stringify({ title: `Уведомление ${i + 1}`, ref: `ref-${i}` }),
+        type,
+        content: JSON.stringify({ title: notifTitles[type] ?? `Уведомление ${i + 1}`, ref: `ref-${i}` }),
         isRead: i % 3 === 0,
       },
     }).catch(() => {});
@@ -403,6 +495,27 @@ async function main() {
   const ticketStatuses = ['open', 'in_progress', 'resolved', 'closed'] as const;
   const ticketSubjects = ['Доступ к уроку', 'Сертификат', 'Оплата', 'Технический вопрос', 'Перенос срока', 'Не приходит доступ', 'Проблема с прохождением курса'];
   const paidOrderNumbers = await prisma.order.findMany({ where: { status: 'paid' }, select: { orderNumber: true }, take: 15 });
+  // Дополнительные тикеты для первых 20 студентов (по 2 шт.) — разнообразие тем
+  for (let s = 0; s < Math.min(20, students.length); s++) {
+    for (let t = 0; t < 2; t++) {
+      const i = N + s * 2 + t;
+      const managerId = s % 2 === 0 ? manager1.id : manager2.id;
+      const subjectIdx = (s + t) % ticketSubjects.length;
+      const subject = subjectIdx === 5 && paidOrderNumbers[s % paidOrderNumbers.length]
+        ? `Не приходит доступ — заказ ${paidOrderNumbers[s % paidOrderNumbers.length].orderNumber}`
+        : `${ticketSubjects[subjectIdx]} — студент ${s + 1}, обращение ${t + 2}`;
+      await prisma.ticket.create({
+        data: {
+          userId: students[s].id,
+          managerId: t === 0 ? managerId : null,
+          subject,
+          status: ticketStatuses[(s + t) % ticketStatuses.length],
+          orderNumber: null,
+          messages: JSON.stringify([{ role: 'user', content: `Доп. обращение ${t + 2}`, at: new Date().toISOString() }]),
+        },
+      }).catch(() => {});
+    }
+  }
   for (let i = 0; i < N; i++) {
     const managerId = i % 2 === 0 ? manager1.id : manager2.id;
     const subjectIdx = i % ticketSubjects.length;
@@ -437,6 +550,8 @@ async function main() {
           numberingFormat: 'CERT-YYYY-NNNN',
           allowUserDownload: true,
           courseId: courses[i % courses.length]?.id ?? null,
+          backgroundImageUrl: `/cert-templates/bg-${i + 1}.png`,
+          textMapping: JSON.stringify({ name: { x: 100, y: 200 }, date: { x: 100, y: 250 }, courseTitle: { x: 100, y: 300 }, certNumber: { x: 100, y: 350 } }),
         },
       });
       certTemplates.push(t);
@@ -461,6 +576,8 @@ async function main() {
           certNumber: `ALT-${nanoid(8).toUpperCase()}`,
           issuedAt: new Date(Date.now() - (i + j) * 86400 * 1000),
           expiryDate: j % 4 === 0 ? new Date(Date.now() - 86400000) : new Date(Date.now() + 365 * 86400000),
+          pdfUrl: j % 3 !== 0 ? `/certificates/ALT-${i}-${j}.pdf` : null,
+          revokedAt: j % 7 === 0 ? new Date() : null,
         },
       }).catch(() => {});
     }
@@ -680,6 +797,18 @@ async function main() {
       where: { key: s.key },
       create: s,
       update: { value: s.value, category: s.category },
+    }).catch(() => {});
+  }
+
+  // ——— Исправление опечатки «Тело не врем» → «Тело не врет» в существующих курсах ———
+  const typoCourses = await prisma.course.findMany({
+    where: { title: { contains: 'Тело не врем' } },
+    select: { id: true, title: true },
+  });
+  for (const c of typoCourses) {
+    await prisma.course.update({
+      where: { id: c.id },
+      data: { title: c.title.replace(/Тело не врем/g, 'Тело не врет') },
     }).catch(() => {});
   }
 

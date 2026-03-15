@@ -1,19 +1,15 @@
 /**
  * Portal shell: header + role-specific sidebar. PortalUIProvider for mobile menu state.
- * Для студента при первом входе в сессию привязываем оплаченные заказы по email (cookie ограничивает частоту вызова).
+ * Для студента при первом входе в сессию привязываем оплаченные заказы по email (через API + cookie).
  */
 import { redirect } from 'next/navigation';
-import { cookies } from 'next/headers';
 import { getUser } from '@/lib/auth';
 import { getSystemSettings } from '@/lib/settings';
-import { claimPaidOrdersForUser } from '@/lib/claim-orders';
 import { PortalUIProvider } from '@/components/portal/PortalUIProvider';
 import { PortalHeader } from '@/components/portal/PortalHeader';
+import { ClaimOrdersTrigger } from '@/components/portal/ClaimOrdersTrigger';
 import { prisma } from '@/lib/db';
 import type { Metadata } from 'next';
-
-const CLAIM_COOKIE = 'avaterra_claim_checked';
-const CLAIM_COOKIE_MAX_AGE = 86400; // 1 day
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -28,11 +24,11 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [{ user, profile }, settings, cookieStore] = await Promise.all([
+  const [session, settings] = await Promise.all([
     getUser(),
     getSystemSettings(),
-    cookies(),
   ]);
+  const { user, profile } = session;
   const unreadCount =
     user?.id && profile?.role === 'user'
       ? await prisma.notification.count({ where: { userId: user.id, isRead: false } })
@@ -49,21 +45,11 @@ export default async function PortalLayout({
     }
   }
 
-  const email = user.email;
-  if (profile?.role === 'user' && user.id && email && !cookieStore.get(CLAIM_COOKIE)) {
-    try {
-      const emailNorm = email.trim().toLowerCase();
-      await claimPaidOrdersForUser(user.id, emailNorm);
-      cookieStore.set(CLAIM_COOKIE, '1', { maxAge: CLAIM_COOKIE_MAX_AGE, path: '/portal' });
-    } catch (e) {
-      console.error('Portal: claim orders', e);
-    }
-  }
-
   const portalTitle = settings.portal_title || 'AVATERRA';
 
   return (
     <PortalUIProvider user={user} profile={profile} portalTitle={portalTitle}>
+      {profile?.role === 'user' && <ClaimOrdersTrigger />}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <PortalHeader user={user} profile={profile} portalTitle={portalTitle} unreadNotificationCount={unreadCount} />
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>

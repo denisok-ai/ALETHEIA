@@ -1,5 +1,6 @@
 import dynamic from 'next/dynamic';
 import { Hero } from '@/components/sections/Hero';
+import { getSystemSettings } from '@/lib/settings';
 
 // Секции ниже первого экрана — отдельные чанки (дизайн не меняется, SSR сохранён)
 const About = dynamic(() => import('@/components/sections/About').then((m) => m.About), { ssr: true });
@@ -11,7 +12,9 @@ const FAQ = dynamic(() => import('@/components/sections/FAQ').then((m) => m.FAQ)
 const Contact = dynamic(() => import('@/components/sections/Contact').then((m) => m.Contact), { ssr: true });
 const NewsWidget = dynamic(() => import('@/components/sections/NewsWidget').then((m) => m.NewsWidget), { ssr: true });
 
-export default function HomePage() {
+export default async function HomePage() {
+  const settings = await getSystemSettings();
+  const contactPhone = settings.contact_phone?.trim() || null;
   return (
     <>
       <Hero />
@@ -22,7 +25,7 @@ export default function HomePage() {
       <Testimonials />
       <Pricing />
       <FAQ />
-      <Contact />
+      <Contact contactPhone={contactPhone} />
     </>
   );
 }

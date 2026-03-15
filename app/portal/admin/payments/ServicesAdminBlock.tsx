@@ -102,6 +102,10 @@ export function ServicesAdminBlock() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (form.courseId.trim() && !form.paykeeperTariffId.trim()) {
+      alert('Укажите ID тарифа PayKeeper — без него оплаченные заказы не привяжутся к курсу.');
+      return;
+    }
     setSaving(true);
     try {
       const payload = {
@@ -276,7 +280,7 @@ export function ServicesAdminBlock() {
               />
             </div>
             <div>
-              <Label htmlFor="svc-tariff">ID тарифа PayKeeper</Label>
+              <Label htmlFor="svc-tariff">ID тарифа PayKeeper *</Label>
               <Input
                 id="svc-tariff"
                 value={form.paykeeperTariffId}
@@ -284,6 +288,11 @@ export function ServicesAdminBlock() {
                 placeholder="course (как в ЛК PayKeeper)"
                 className="mt-1"
               />
+              {form.courseId && !form.paykeeperTariffId.trim() && (
+                <p className="mt-1 text-sm text-amber-600" role="alert">
+                  При привязанном курсе укажите ID тарифа PayKeeper — иначе оплаченные заказы не привяжутся к курсу и зачисление не создастся.
+                </p>
+              )}
             </div>
             <div>
               <Label htmlFor="svc-course">Курс (для зачисления после оплаты)</Label>

@@ -46,7 +46,7 @@ export default function RegisterPage() {
         setLoading(false);
         return;
       }
-      router.push('/login');
+      router.push('/login?registered=1');
       router.refresh();
     } catch {
       setError('Ошибка регистрации');

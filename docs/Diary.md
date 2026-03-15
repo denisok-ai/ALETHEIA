@@ -2,6 +2,158 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-03-15 — Исправление падающих E2E-тестов
+
+**Задача:** устранить падения guest-тестов после доработок.
+
+**Исправления:**
+1. **Навигация главной:** селекторы приведены к фактическим ссылкам (Тарифы, FAQ, #contact). Проверка #contact вместо ссылки «Запишись».
+2. **Модалка покупки:** ожидание анимации useInView (800ms), селектор `#pricing` для кнопки «Купить», scope dialog для полей (избежание strict mode).
+3. **Новости:** `article.first()` вместо `main, article` (strict mode).
+4. **Валидация логина:** regex `/неверный email|ошибка входа/i` для сообщения об ошибке.
+5. **Логин:** опрос getSession до 5 сек, `window.location.href` для редиректа, порядок тестов (student → manager → admin) для прогрева сервера.
+6. **Playwright:** workers: 1, fullyParallel: false для стабильности с SQLite; timeout auth setup 15 сек.
+
+**Файлы:** tests/e2e/guest/public-pages.spec.ts, tests/e2e/guest/auth-login-redirect.spec.ts, app/(auth)/login/page.tsx, playwright.config.ts, tests/e2e/auth.setup.ts.
+
+---
+
+## 2026-03-15 — Доработка автотестов (E2E)
+
+**Задача:** расширить E2E-тесты по плану доработок.
+
+**Добавленные тесты:**
+1. `guest/auth-login-redirect.spec.ts` — редирект после логина по роли (admin → /portal/admin/dashboard, manager → /portal/manager/dashboard, student → /portal/student/dashboard).
+2. `guest/public-pages.spec.ts` — валидация формы заявки (пустая форма не отправляется), валидация логина (неверный пароль → сообщение).
+3. `student/dashboard.spec.ts` — клик по ссылке курса ведёт на страницу курса.
+4. `cross-role/scorm-seed-content.spec.ts` — студент открывает плеер с контентом из seed (course-seed-1) без загрузки ZIP.
+
+**Файлы:** tests/e2e/guest/auth-login-redirect.spec.ts (новый), tests/e2e/guest/public-pages.spec.ts, tests/e2e/student/dashboard.spec.ts, tests/e2e/cross-role/scorm-seed-content.spec.ts (новый), docs/Testing-Improvement-Plan.md.
+
+---
+
+## 2026-03-15 — SCORM-контент для тестовых курсов
+
+**Задача:** docs/Browser-Test-Remediation-Plan.md — добавить минимальный SCORM для демо.
+
+**Решение:** В prisma/seed.ts после обновления курсов (scormPath, scormManifest) добавлено создание HTML-файлов для course-seed-1 и course-seed-2: index.html, lesson1.html, lesson2.html, lesson3.html в `public/uploads/scorm/courses-{id}/`. Минимальный контент (заголовок + текст) совместим с scorm-again. После `npx prisma db seed` плеер показывает 3 урока без загрузки ZIP.
+
+**Файлы:** prisma/seed.ts, docs/Support.md, docs/Browser-Test-Remediation-Plan.md.
+
+---
+
+## 2026-03-15 — Доработки по плану тестирования (Browser-Test-Remediation-Plan)
+
+**Задача:** реализовать пункты из docs/Browser-Test-Remediation-Plan.md.
+
+**1. 404 на /portal при первом редиректе:** Исправлено. После signIn вызывается getSession(), по роли определяется дашборд (admin/manager/student), редирект идёт сразу на `/portal/*/dashboard`, минуя `/portal`. Файл: app/(auth)/login/page.tsx.
+
+**2. Редирект signOut:** Проверено — PortalHeader, PortalAccountBlock, signout используют `callbackUrl: window.location.origin + '/login'`. Редирект остаётся на текущем хосте/порту.
+
+**3. Клик по карточке курса:** Исправлено. Overlay с play-кнопкой имел `inset-0` и перехватывал все клики. Добавлен `pointer-events-none` на overlay и `pointer-events-auto` на кнопку — клики по обложке проходят к cover div (переход на страницу курса), клики по кнопке — на плеер. Файл: components/portal/CourseCard.tsx.
+
+**4. SCORM:** В docs/Support.md добавлен раздел «Проверка SCORM-плеера» — как загрузить контент, какие курсы использовать.
+
+**Файлы:** app/(auth)/login/page.tsx, components/portal/CourseCard.tsx, docs/Support.md, docs/Browser-Test-Remediation-Plan.md.
+
+---
+
+## 2026-03-15 — Браузерное тестирование и план доработки
+
+**Задача:** полное тестирование сайта на http://localhost:3001 под всеми ролями (гость, студент, менеджер, админ).
+
+**Выполнено:** автоматизированное тестирование через browser MCP. Проверены: публичные страницы, модалка покупки, форма контактов, FAQ, логин, ЛК студента (дашборд, курсы, поддержка, тикеты), кабинет менеджера (тикеты, пользователи, верификация), админка (дашборд, курсы, пользователи, CRM, оплаты, медиа, рассылки, настройки). Сквозной сценарий: студент создал тикет → тикет отображается у менеджера. Защита /portal без авторизации — редирект на логин.
+
+**Результаты:** отчёт `docs/Browser-Test-Report-2025-03-15.md`, план доработки `docs/Browser-Test-Remediation-Plan.md`.
+
+**Найденные проблемы:** 404 на /portal при первом редиректе студента; редирект signOut на другой порт (проверить callbackUrl); SCORM-плеер без контента для части курсов; клик по карточке курса не всегда срабатывает.
+
+---
+
+## 2026-03-15 — Исправление сборки (MODULE_NOT_FOUND) и продолжение плана
+
+**Задача:** устранить ошибку `npm run build` (MODULE_NOT_FOUND ./1682.js), выполнить оставшиеся пункты плана.
+
+**Build:**
+- Ошибка возникала при «грязном» кэше .next (частичная пересборка). Решение: `rm -rf .next && npm run build` или `npm run build:clean`.
+- В `app/api/auth/[...nextauth]/route.ts` добавлен `export const dynamic = 'force-dynamic'` — улучшает стабильность сбора страниц.
+- Сборка проходит успешно.
+
+**План (Testing-Improvement-Plan):**
+- Задача 5 (data-cursor-ref): отмечена выполненной — production-сборка работает.
+- Задача 8 (NEXTAUTH_URL): дополнена инструкциями в плане.
+- Задача 9 (админ-настройки): добавлен чек-лист для ручной проверки.
+- Чек-лист релиза: build отмечен выполненным.
+
+**Файлы:** app/api/auth/[...nextauth]/route.ts, docs/Testing-Improvement-Plan.md.
+
+---
+
+## 2026-03-15 — Обновление плана доработок (Testing-Improvement-Plan)
+
+**Задача:** отметить выполненные пункты плана, актуализировать чек-лист.
+
+**Изменения в docs/Testing-Improvement-Plan.md:**
+- Задачи 2, 3, 4, 6, 7 — статус «выполнено» (чат, toast PayKeeper, валидация, контакты, документация ID публикаций).
+- Чек-лист: отмечены выполненные пункты (модалка, контакты, валидация, E2E).
+- Оставшиеся: чат (настройка ключа), build (MODULE_NOT_FOUND), консоль, data-cursor-ref, NEXTAUTH_URL.
+
+**Изменения в .env.example:**
+- Добавлен комментарий про DEEPSEEK_API_KEY для чат-бота: где задать ключ и что показывается без него.
+
+**Файлы:** docs/Testing-Improvement-Plan.md, .env.example.
+
+---
+
+## 2026-03-15 — Исправление ошибки Cookies в PortalLayout
+
+**Задача:** продолжить по docs/Testing-Improvement-Plan.md. Ошибка «Cookies can only be modified in a Server Action or Route Handler» при claim orders в app/portal/layout.tsx.
+
+**Решение:** Логика привязки заказов вынесена в Route Handler `GET /api/portal/claim-orders`. Layout больше не вызывает `cookies().set()`. Добавлен клиентский компонент `ClaimOrdersTrigger`, который при входе студента в портал вызывает API; API проверяет cookie, при отсутствии выполняет claim и устанавливает cookie в ответе. Частота ограничена 1 раз в день (cookie avaterra_claim_checked).
+
+**Файлы:** app/api/portal/claim-orders/route.ts (новый), components/portal/ClaimOrdersTrigger.tsx (новый), app/portal/layout.tsx.
+
+---
+
+## 2026-03-15 — Унификация контактов и документация
+
+**Задача:** продолжить разработку по docs/Testing-Improvement-Plan.md.
+
+**Унификация контактов (телефон):** Секция Contact на главной использовала хардкод +7 (495) 123-45-67, тогда как Footer и seed — +7 (999) 123-45-67 из SystemSetting.contact_phone. Исправлено: app/page.tsx получает settings через getSystemSettings(), передаёт contactPhone в Contact; Contact принимает проп contactPhone и использует его (fallback +7 (495) 123-45-67). Теперь блок «Оставьте заявку» и футер показывают один номер из настроек.
+
+**Документация ID публикаций:** В docs/Support.md добавлен раздел «Новости и публикации» — указано, что ID строковые (nanoid), пример ссылки, пояснение про /news/1 → 404.
+
+**Чат-бот:** API уже поддерживает гостей (без 401), rate limit 5 req для гостей vs 10 для авторизованных. Сообщение 503: «Настройте API-ключ в Настройки AI» — уже информативно.
+
+**PaymentModal:** Обработка ошибок и toast уже реализованы (A.1 в Diary). При ошибке PayKeeper API возвращает «Ошибка создания платежа. Проверьте настройки PayKeeper.» — клиент отображает через data?.error.
+
+**Файлы:** app/page.tsx, components/sections/Contact.tsx, docs/Support.md.
+
+---
+
+## 2026-03-15 — Доработки по плану тестирования (авторежим)
+
+**Задача:** реализовать пункты из docs/Testing-Improvement-Plan.md по результатам комплексного browser-тестирования.
+
+**A.1 Ошибка при неудачном создании платежа:** PaymentModal — заменён alert на toast.error; добавлена обработка ошибок сети и невалидного JSON; сообщения «Не удалось создать платёж. Попробуйте позже или свяжитесь с нами», «Ошибка сети. Проверьте подключение…».
+
+**A.2 Подсказка на /success:** для гостя с orderInfo — выделенный блок (border, bg) с текстом «Чтобы получить доступ к курсу, зарегистрируйтесь с тем же email…».
+
+**B.1 Сообщение после регистрации:** register → redirect на `/login?registered=1`; на странице входа — зелёный блок «Аккаунт создан. Войдите, используя email и пароль.»
+
+**C.2 Пагинация тикетов студента:** SupportTicketsClient — размер страницы 10/25/50, навигация «Предыдущая/Следующая», счётчик «Страница X из Y», счётчик обращений. При создании нового тикета — сброс на страницу 0.
+
+**Seed-данные:** уведомления — разнообразные типы (enrollment, certificate_issued, system, mailing, access_opened) и заголовки; тикеты — доп. 2 тикета на каждого из первых 20 студентов с разными темами; публикации — уникальные заголовки (Новость №1, Анонс №2, Итоги №3…); опечатка «Тело не врем» — в конце seed блок updateMany для исправления в существующих курсах.
+
+**Продолжение (оставшиеся пункты плана):**
+- **Витрина 4+ сервисов:** в seed добавлены 4 основных тарифа (consult, group, course, online) с paykeeperTariffId и привязкой к опубликованному курсу; upsert по slug.
+- **Валидация paykeeperTariffId:** в ServicesAdminBlock — предупреждение при courseId без paykeeperTariffId; блокировка submit.
+- **Страница signout (русский):** app/signout/page.tsx с текстом «Выход», «Вы уверены?», кнопками «Выйти»/«Остаться»; lib/auth.ts pages.signOut: '/signout'.
+
+**Файлы:** components/PaymentModal.tsx, app/success/page.tsx, app/(auth)/register/page.tsx, app/(auth)/login/page.tsx, app/portal/student/support/SupportTicketsClient.tsx, prisma/seed.ts, app/portal/admin/payments/ServicesAdminBlock.tsx, app/signout/page.tsx, lib/auth.ts, docs/Testing-Improvement-Plan.md.
+
+---
+
 ## 2026-03-15 — Устранение замечаний по тестированию UI
 
 **Задача:** устранить замечания из docs/Testing-Improvement-Plan.md по результатам тестирования MCP browser.

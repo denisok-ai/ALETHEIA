@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { formatPersonName } from '@/lib/format-person-name';
 
 export type EventItem =
   | { type: 'payment'; id: number; orderNumber: string; amount: number; email: string; at: string }
@@ -49,7 +50,7 @@ export function RecentEvents({ events }: { events: EventItem[] }) {
                   )}
                   {e.type === 'lead' && (
                     <Link href="/portal/admin/crm" className="text-[#6366F1] hover:underline">
-                      {e.name} · {e.phone}
+                      {formatPersonName(e.name)} · {e.phone}
                     </Link>
                   )}
                   {e.type === 'user' && (

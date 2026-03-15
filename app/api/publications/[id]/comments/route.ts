@@ -21,7 +21,7 @@ export async function GET(
   const comments = await prisma.publicationComment.findMany({
     where: { publicationId: id },
     orderBy: { createdAt: 'asc' },
-    include: { user: { select: { displayName: true }, include: { profile: { select: { displayName: true } } } } },
+    include: { user: { select: { displayName: true, profile: { select: { displayName: true } } } } },
   });
 
   return NextResponse.json({

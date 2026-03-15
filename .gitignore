@@ -31,6 +31,15 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Playwright
+tests/.auth/
+test-results/
+playwright-report/
+playwright/.cache/
+
+# SQLite dev DB (локальная копия)
+prisma/dev.db
+
 # IDE
 .idea/
 .vscode/

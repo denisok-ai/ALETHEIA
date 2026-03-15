@@ -24,6 +24,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsx } from '@/lib/export-xlsx';
+import { formatPersonName } from '@/lib/format-person-name';
 import { Pencil, Users, Sparkles } from 'lucide-react';
 
 interface Lead {
@@ -365,7 +366,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
                     {new Date(l.created_at).toLocaleDateString('ru')}
                   </TableCell>
                   )}
-                  {visibleColumnIds.includes('name') && <TableCell className="font-medium text-[var(--portal-text)]">{l.name}</TableCell>}
+                  {visibleColumnIds.includes('name') && <TableCell className="font-medium text-[var(--portal-text)]">{formatPersonName(l.name)}</TableCell>}
                   {visibleColumnIds.includes('source') && <TableCell className="text-[var(--portal-text-muted)]">{l.source ?? '—'}</TableCell>}
                   {visibleColumnIds.includes('phone') && <TableCell className="text-[var(--portal-text-muted)]">{l.phone}</TableCell>}
                   {visibleColumnIds.includes('email') && <TableCell className="text-[var(--portal-text-muted)]">{l.email ?? '—'}</TableCell>}
@@ -452,7 +453,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         <Dialog open onOpenChange={(open) => { if (!open) { setDetailLead(null); setAiSummary(null); } }}>
           <DialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
             <DialogHeader>
-              <DialogTitle>Лид: {detailLead.name}</DialogTitle>
+              <DialogTitle>Лид: {formatPersonName(detailLead.name)}</DialogTitle>
             </DialogHeader>
             <dl className="mt-2 space-y-1 text-sm">
               <div><dt className="text-[var(--portal-text-muted)] inline">Телефон: </dt><dd className="inline">{detailLead.phone}</dd></div>
@@ -508,7 +509,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         open={!!convertConfirmLead}
         onOpenChange={(open) => !open && setConvertConfirmLead(null)}
         title="Конвертировать лида в пользователя?"
-        description={convertConfirmLead ? `Будет создан аккаунт для «${convertConfirmLead.name}» (${convertConfirmLead.email}). Лид получит статус «Конвертирован».` : ''}
+        description={convertConfirmLead ? `Будет создан аккаунт для «${formatPersonName(convertConfirmLead.name)}» (${convertConfirmLead.email}). Лид получит статус «Конвертирован».` : ''}
         confirmLabel="Конвертировать"
         variant="primary"
         onConfirm={() => { if (convertConfirmLead) void handleConvert(convertConfirmLead.id); }}
@@ -518,7 +519,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         <Dialog open onOpenChange={(open) => !open && setNotesEditing(null)}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle>Заметки: {notesEditing.name}</DialogTitle>
+              <DialogTitle>Заметки: {formatPersonName(notesEditing.name)}</DialogTitle>
             </DialogHeader>
             <textarea
               value={notesValue}

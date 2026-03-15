@@ -12,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { TariffItem } from '@/components/sections/Pricing';
 import { Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -47,15 +48,23 @@ export function PaymentModal({ isOpen, onClose, tariff }: PaymentModalProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
+      let data: { success?: boolean; paymentUrl?: string; error?: string };
+      try {
+        const text = await res.text();
+        data = text ? (JSON.parse(text) as { success?: boolean; paymentUrl?: string; error?: string }) : {};
+      } catch {
+        toast.error('Не удалось создать платёж. Попробуйте позже или свяжитесь с нами.');
+        return;
+      }
       if (data.success && data.paymentUrl) {
         window.location.href = data.paymentUrl;
       } else {
-        alert(data.error || 'Ошибка создания платежа');
+        const msg = data?.error || (res.ok ? '' : 'Ошибка сервера. Попробуйте позже или свяжитесь с нами.');
+        toast.error(msg || 'Не удалось создать платёж. Попробуйте позже или свяжитесь с нами.');
       }
     } catch (err) {
       console.error(err);
-      alert('Произошла ошибка. Попробуйте снова.');
+      toast.error('Ошибка сети. Проверьте подключение и попробуйте снова. Или свяжитесь с нами.');
     } finally {
       setLoading(false);
     }

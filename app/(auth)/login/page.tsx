@@ -2,14 +2,21 @@
 
 /**
  * Login — NextAuth credentials.
+ * После входа редирект сразу на дашборд по роли (минуя /portal), чтобы избежать 404 при race condition.
  */
 import { useState, Suspense } from 'react';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+
+function getDashboardByRole(role: string): string {
+  if (role === 'admin') return '/portal/admin/dashboard';
+  if (role === 'manager') return '/portal/manager/dashboard';
+  return '/portal/student/dashboard';
+}
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -18,9 +25,10 @@ function LoginForm() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirect = searchParams.get('redirect') ?? '/portal';
+  const redirectParam = searchParams.get('redirect') ?? '/portal';
   const justSetPassword = searchParams.get('set') === '1';
   const justVerified = searchParams.get('verified') === '1';
+  const justRegistered = searchParams.get('registered') === '1';
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -37,8 +45,18 @@ function LoginForm() {
         setLoading(false);
         return;
       }
-      router.push(redirect);
-      router.refresh();
+      // Редирект сразу на дашборд по роли — избегаем 404 на /portal при первом входе
+      // Сессия может появиться с задержкой — опрашиваем до 5 сек
+      let session = await getSession();
+      for (let i = 0; i < 25 && !session?.user; i++) {
+        await new Promise((r) => setTimeout(r, 200));
+        session = await getSession();
+      }
+      const role = (session?.user as { role?: string })?.role ?? 'user';
+      const target = redirectParam === '/portal' ? getDashboardByRole(role) : redirectParam;
+      // Небольшая задержка, чтобы cookie успел установиться перед навигацией
+      await new Promise((r) => setTimeout(r, 100));
+      window.location.href = target;
     } catch {
       setError('Ошибка входа');
     }
@@ -54,6 +72,9 @@ function LoginForm() {
       )}
       {justVerified && (
         <p className="mt-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">Email подтверждён. Войдите в личный кабинет.</p>
+      )}
+      {justRegistered && (
+        <p className="mt-3 rounded-lg bg-green-50 text-green-800 text-sm p-3">Аккаунт создан. Войдите, используя email и пароль.</p>
       )}
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>

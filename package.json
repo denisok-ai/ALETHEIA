@@ -16,7 +16,9 @@
     "start": "next start",
     "start:debug": "NODE_OPTIONS='--inspect' next start",
     "lint": "next lint",
-    "predeploy": "npm run lint && npm run build"
+    "predeploy": "npm run lint && npm run build",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.24",
@@ -67,6 +69,7 @@
     "seed": "npx tsx prisma/seed.ts"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.9.0",
     "@types/react": "^18.3.12",

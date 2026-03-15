@@ -38,6 +38,11 @@
 - Секции: `components/sections/` (Hero, About, Pricing, Contact и т.д.)
 - Контент: `docs/Content.md` (референс)
 
+### Новости и публикации
+
+- **ID публикаций** — строковые (nanoid), не числа. Ссылки формируются из API `GET /api/publications`; пример: `/news/cmmroxynh00fk9t6ozd3patpt`. `/news/1` даёт 404.
+- **Карточка:** `app/news/[id]/page.tsx`.
+
 ### Оферта и политика конфиденциальности
 
 - Тексты: `app/oferta/page.tsx`, `app/privacy/page.tsx`. Метаданные (title, description) заданы в тех же файлах. Sitemap и robots: `app/sitemap.ts`, `app/robots.ts` (базовый URL из NEXT_PUBLIC_URL).
@@ -142,6 +147,14 @@
 ### Прогресс SCORM
 
 Прогресс прохождения курсов сохраняется в таблице `ScormProgress` (поля: lessonId, completionStatus, score, timeSpent, cmiData). API: GET/POST `/api/portal/scorm/progress` (один урок), GET `/api/portal/scorm/progress/all?courseId=` (все уроки курса). Статусы «completed» и «passed» считаются завершением урока; при 100% завершения по курсу автоматически выставляется сертификат. На карточке курса и на странице курса студента отображаются: процент, «X из Y уроков», время, средний балл (если пакет передаёт score). В плеере прогресс обновляется после каждого успешного коммита и раз в 15 сек.
+
+### Проверка SCORM-плеера
+
+Курсы без загруженного SCORM показывают «У этого курса пока нет загруженного SCORM-контента». Для проверки плеера:
+
+1. **После seed:** `npx prisma db seed` создаёт минимальный SCORM-контент (index.html, lesson1–3.html) для `course-seed-1` и `course-seed-2` в `public/uploads/scorm/courses-{id}/`. Студент с доступом к курсу увидит 3 урока.
+2. **Загрузить SCORM через админку:** Курсы → выбрать курс → «Загрузить SCORM». Загрузить ZIP (например, `docs/Agile (7).zip` для E2E).
+3. **E2E-тесты:** используют `course-seed-2` и `docs/Agile (7).zip` — загрузка через админку перезаписывает минимальный контент из seed.
 
 ### Помощь в портале
 

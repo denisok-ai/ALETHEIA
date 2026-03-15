@@ -56,9 +56,17 @@ export default async function SuccessPage({
             )}
           </p>
         ) : orderInfo ? (
-          <p className="mt-4 text-white/80">
-            Заказ № {orderInfo.orderNumber} оплачен. Войдите или зарегистрируйтесь с тем же email, что указали при оплате ({orderInfo.maskedEmail}).
-          </p>
+          <div className="mt-4 rounded-xl border-2 border-accent/50 bg-accent/10 p-6 text-left">
+            <p className="text-white font-semibold">
+              Заказ № {orderInfo.orderNumber} оплачен.
+            </p>
+            <p className="mt-3 text-white/90">
+              Чтобы получить доступ к курсу, <strong>зарегистрируйтесь</strong> с тем же email, что указали при оплате ({orderInfo.maskedEmail}).
+            </p>
+            <p className="mt-1 text-white/70 text-sm">
+              Если аккаунт уже есть — войдите.
+            </p>
+          </div>
         ) : (
           <p className="mt-4 text-white/80">
             Доступ к курсу открывается автоматически по указанному при оплате email.
@@ -73,11 +81,11 @@ export default async function SuccessPage({
             </Link>
           ) : (
             <>
-              <Link href="/login">
-                <Button variant="primary">Войти</Button>
-              </Link>
               <Link href="/register">
-                <Button variant="secondary">Зарегистрироваться</Button>
+                <Button variant="primary">Зарегистрироваться</Button>
+              </Link>
+              <Link href="/login">
+                <Button variant="secondary">Войти</Button>
               </Link>
             </>
           )}
