@@ -10,7 +10,7 @@ export async function POST() {
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const overrides = await getEnvOverrides();
-  const token = overrides.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN;
+  const token = overrides.telegram_bot_token;
   if (!token) {
     return NextResponse.json(
       { error: 'Не задан Telegram Bot Token (Переменные окружения или .env)' },

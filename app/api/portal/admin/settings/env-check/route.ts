@@ -1,5 +1,6 @@
 /**
- * Admin: return which env vars are set (no values). Учитываются и .env, и значения из БД (Переменные окружения).
+ * Admin: проверка наличия настроек. Настройки — из БД (Портал → Настройки).
+ * DATABASE_URL и NEXTAUTH_SECRET — только из .env (не переносятся в админку).
  */
 import { NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
@@ -14,14 +15,14 @@ export async function GET() {
   const pkConfig = await getPayKeeperConfigFromSettings();
 
   return NextResponse.json({
-    RESEND_API_KEY: !!(overrides.resend_api_key || process.env.RESEND_API_KEY),
-    TELEGRAM_BOT_TOKEN: !!(overrides.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN),
-    TELEGRAM_WEBHOOK_SECRET: !!(overrides.telegram_webhook_secret || process.env.TELEGRAM_WEBHOOK_SECRET),
-    DEEPSEEK_API_KEY: !!(overrides.deepseek_api_key || process.env.DEEPSEEK_API_KEY),
-    OPENAI_API_KEY: !!(overrides.openai_api_key || process.env.OPENAI_API_KEY),
-    PAYKEEPER_SERVER: !!(pkConfig?.server || process.env.PAYKEEPER_SERVER),
+    RESEND_API_KEY: !!overrides.resend_api_key,
+    TELEGRAM_BOT_TOKEN: !!overrides.telegram_bot_token,
+    TELEGRAM_WEBHOOK_SECRET: !!overrides.telegram_webhook_secret,
+    DEEPSEEK_API_KEY: !!overrides.deepseek_api_key,
+    OPENAI_API_KEY: !!overrides.openai_api_key,
+    PAYKEEPER_SERVER: !!pkConfig?.server,
     NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
     DATABASE_URL: !!process.env.DATABASE_URL,
-    CRON_SECRET: !!(overrides.cron_secret || process.env.CRON_SECRET),
+    CRON_SECRET: !!overrides.cron_secret,
   });
 }

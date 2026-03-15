@@ -1,6 +1,7 @@
 /**
- * System settings: read from DB with fallback to env.
- * Used server-side for site_url, email sender/recipient, etc.
+ * System settings: читаются из БД (Портал → Настройки).
+ * Используются server-side: site_url, email sender/recipient и т.д.
+ * Переменные окружения (.env) не используются — настройки вынесены в админку.
  */
 import { prisma } from './db';
 import { decrypt } from './encrypt';
@@ -16,11 +17,12 @@ export interface SystemSettings {
   contact_phone: string;
 }
 
+/** Значения по умолчанию при отсутствии в БД. Настройки задаются в Портал → Настройки. */
 const ENV_FALLBACK: Record<keyof SystemSettings, string> = {
-  site_url: process.env.NEXT_PUBLIC_URL ?? '',
+  site_url: '',
   portal_title: 'AVATERRA',
-  resend_from: process.env.RESEND_FROM ?? '',
-  resend_notify_email: process.env.RESEND_NOTIFY_EMAIL ?? '',
+  resend_from: '',
+  resend_notify_email: '',
   contact_phone: '',
 };
 

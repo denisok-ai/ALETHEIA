@@ -31,10 +31,17 @@ export async function GET(request: NextRequest) {
   });
   if (!course?.scormPath) return NextResponse.json({ error: 'No SCORM content' }, { status: 404 });
 
-  const requestUrl = new URL(request.url);
-  const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+  let baseUrl: string;
+  try {
+    const requestUrl = new URL(request.url);
+    baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+    if (!requestUrl.host) baseUrl = 'https://avaterra.pro';
+  } catch {
+    baseUrl = 'https://avaterra.pro';
+  }
+  const pathPrefix = '/uploads/scorm/';
   const lessonId = searchParams.get('lessonId');
-  let url = `${baseUrl}/uploads/scorm/${course.scormPath}`;
+  let url = `${baseUrl.replace(/\/+$/, '')}${pathPrefix}${course.scormPath.replace(/^\/+/, '')}`;
 
   if (lessonId && lessonId !== 'main' && course.scormManifest) {
     try {
@@ -42,7 +49,8 @@ export async function GET(request: NextRequest) {
       const item = manifest.items?.find((i) => i.identifier === lessonId);
       if (item?.href) {
         const basePath = course.scormPath.replace(/\/[^/]+$/, '');
-        url = `${baseUrl}/uploads/scorm/${basePath}/${item.href}`;
+        const pathPart = `${basePath}/${item.href}`.replace(/^\/+/, '');
+        url = `${baseUrl.replace(/\/+$/, '')}${pathPrefix}${pathPart}`;
       }
     } catch {
       // use default url

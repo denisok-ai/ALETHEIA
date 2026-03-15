@@ -10,8 +10,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const settings = await getSystemSettings();
-    const fromEmail = settings.resend_from || process.env.RESEND_FROM || 'onboarding@resend.dev';
-    const notifyEmail = settings.resend_notify_email || settings.resend_from || process.env.RESEND_NOTIFY_EMAIL || process.env.RESEND_FROM;
+    const fromEmail = settings.resend_from || 'onboarding@resend.dev';
+    const notifyEmail = settings.resend_notify_email || settings.resend_from;
     const body = await request.json();
     const { name, phone, email, message, website } = body;
     // Защита от спама: honeypot-поле должно быть пустым
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     const overrides = await getEnvOverrides();
-    const apiKey = overrides.resend_api_key || process.env.RESEND_API_KEY;
+    const apiKey = overrides.resend_api_key;
     if (apiKey) {
       const resend = new Resend(apiKey);
       if (notifyEmail) {

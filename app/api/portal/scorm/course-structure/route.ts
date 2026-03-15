@@ -42,10 +42,16 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const requestUrl = new URL(request.url);
-  const baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+  let baseUrl = 'https://avaterra.pro';
+  try {
+    const requestUrl = new URL(request.url);
+    if (requestUrl.host) baseUrl = `${requestUrl.protocol}//${requestUrl.host}`.replace(/\/+$/, '');
+  } catch {
+    // use default when request.url is malformed (e.g. behind proxy)
+  }
+  const pathPrefix = '/uploads/scorm/';
   const basePath = course.scormPath.replace(/\/[^/]+$/, ''); // dir part e.g. "courses-xxx"
-  const defaultEntryUrl = `${baseUrl}/uploads/scorm/${course.scormPath}`;
+  const defaultEntryUrl = `${baseUrl}${pathPrefix}${course.scormPath.replace(/^\/+/, '')}`;
 
   let items: { identifier: string; title?: string; url: string }[] = [];
   let isMultiSco = false;
@@ -60,7 +66,7 @@ export async function GET(request: NextRequest) {
           identifier: it.identifier,
           title: it.title,
           url: it.href
-            ? `${baseUrl}/uploads/scorm/${basePath}/${it.href}`
+            ? `${baseUrl}${pathPrefix}${basePath}/${it.href}`.replace(/\/+/g, '/')
             : defaultEntryUrl,
         }));
       } else if (rawItems.length === 1) {
@@ -68,7 +74,7 @@ export async function GET(request: NextRequest) {
           identifier: rawItems[0].identifier,
           title: rawItems[0].title,
           url: rawItems[0].href
-            ? `${baseUrl}/uploads/scorm/${basePath}/${rawItems[0].href}`
+            ? `${baseUrl}${pathPrefix}${basePath}/${rawItems[0].href}`.replace(/\/+/g, '/')
             : defaultEntryUrl,
         }];
       }

@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       try {
         const token = await createEmailVerificationToken(user.id);
         const settings = await getSystemSettings();
-        const siteUrl = settings.site_url?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_URL?.replace(/\/$/, '') || '';
+        const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
         const verifyUrl = siteUrl
           ? `${siteUrl}/verify-email?token=${encodeURIComponent(token)}`
           : `/verify-email?token=${encodeURIComponent(token)}`;

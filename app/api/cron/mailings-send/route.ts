@@ -1,7 +1,7 @@
 /**
  * Cron: запуск запланированных рассылок (scheduleMode=scheduled, status=planned, scheduledAt <= now).
  * Вызывать по расписанию (например Vercel Cron) или вручную с заголовком Authorization: Bearer <CRON_SECRET>.
- * Секрет: из БД (настройки → Переменные окружения) или process.env.CRON_SECRET.
+ * Секрет: из БД (Портал → Настройки → Переменные окружения). Настройки вынесены в админку.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
@@ -13,7 +13,7 @@ export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
   const overrides = await getEnvOverrides();
-  const secret = overrides.cron_secret || process.env.CRON_SECRET;
+  const secret = overrides.cron_secret;
   if (!secret) {
     return NextResponse.json(
       { error: 'Cron secret not configured. Set CRON_SECRET.' },

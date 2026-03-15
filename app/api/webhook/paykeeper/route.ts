@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     });
 
     const config = await getPayKeeperConfigFromSettings();
-    const secret = config?.secret ?? process.env.PAYKEEPER_SECRET;
+    const secret = config?.secret;
     if (!secret) {
       return NextResponse.json({ error: 'Config error' }, { status: 500 });
     }

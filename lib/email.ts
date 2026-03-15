@@ -1,6 +1,6 @@
 /**
  * Email helpers: Resend wrapper and template rendering.
- * API-ключ: из БД (настройки → Переменные окружения) или из process.env.RESEND_API_KEY.
+ * API-ключ и from: из БД (Портал → Настройки). Настройки вынесены в админку.
  */
 import { Resend } from 'resend';
 import { getEnvOverrides } from './settings';
@@ -18,11 +18,11 @@ export async function sendEmail(
   opts?: { from?: string; attachments?: EmailAttachment[] }
 ): Promise<boolean> {
   const overrides = await getEnvOverrides();
-  const apiKey = overrides.resend_api_key || process.env.RESEND_API_KEY;
+  const apiKey = overrides.resend_api_key;
   if (!apiKey) return false;
   const resend = new Resend(apiKey);
   const settings = await getSystemSettings();
-  const from = opts?.from || settings.resend_from || process.env.RESEND_FROM || 'onboarding@resend.dev';
+  const from = opts?.from || settings.resend_from || 'onboarding@resend.dev';
   try {
     const { error } = await resend.emails.send({
       from,

@@ -8,10 +8,10 @@ import { sendTelegramMessage } from '@/lib/telegram';
 
 export async function POST(request: NextRequest) {
   const overrides = await getEnvOverrides();
-  const token = overrides.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN;
+  const token = overrides.telegram_bot_token;
   if (!token) return NextResponse.json({ ok: false }, { status: 503 });
 
-  const webhookSecret = overrides.telegram_webhook_secret ?? process.env.TELEGRAM_WEBHOOK_SECRET;
+  const webhookSecret = overrides.telegram_webhook_secret;
   if (webhookSecret) {
     const headerSecret = request.headers.get('x-telegram-bot-api-secret-token');
     if (headerSecret !== webhookSecret) {

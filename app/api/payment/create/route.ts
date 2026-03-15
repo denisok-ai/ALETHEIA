@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const baseUrl = (await getSystemSettings()).site_url?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_URL?.replace(/\/$/, '') || '';
+    const baseUrl = (await getSystemSettings()).site_url?.replace(/\/$/, '') || '';
 
     let paymentUrl: string;
     try {

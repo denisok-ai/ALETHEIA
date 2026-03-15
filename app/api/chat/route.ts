@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     const systemSettings = await getSystemSettings();
-    const baseUrl = systemSettings.site_url || process.env.NEXT_PUBLIC_URL || '';
+    const baseUrl = systemSettings.site_url || '';
     const courseUrl = baseUrl ? baseUrl.replace(/\/$/, '') + '/#pricing' : '/#pricing';
 
     const knowledgeBase = await getKnowledgeBase();

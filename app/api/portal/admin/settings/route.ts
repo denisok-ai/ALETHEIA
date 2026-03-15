@@ -96,6 +96,8 @@ export async function GET() {
     where: { key: { in: [...ALLOWED_KEYS] } },
   });
 
+  // Начальные значения из .env для отображения в форме при первой настройке.
+  // После сохранения в БД — используются только значения из БД. Настройки вынесены в админку.
   const envFallback: Record<string, string> = {
     site_url: process.env.NEXT_PUBLIC_URL ?? '',
     portal_title: 'AVATERRA',

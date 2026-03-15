@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
 
     const token = await createPasswordToken(user.id);
     const settings = await getSystemSettings();
-    const siteUrl = settings.site_url?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_URL?.replace(/\/$/, '') || '';
+    const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
     const setPasswordUrl = siteUrl
       ? `${siteUrl}/set-password?token=${encodeURIComponent(token)}`
       : `/set-password?token=${encodeURIComponent(token)}`;

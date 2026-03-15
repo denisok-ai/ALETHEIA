@@ -1,6 +1,6 @@
 /**
  * LLM: get API key from DB (decrypt) — from saved LlmApiKey or inline apiKeyEncrypted. Used by chat and ai-assist.
- * Fallback: Настройки → Переменные окружения (DeepSeek API ключ) или DEEPSEEK_API_KEY в .env.
+ * Fallback: Настройки → Переменные окружения (DeepSeek API ключ). Настройки вынесены в админку.
  */
 import { prisma } from './db';
 import { decrypt } from './encrypt';
@@ -14,7 +14,7 @@ export async function getLlmApiKey(llmKey: string): Promise<string | null> {
 
   const envFallback = async (): Promise<string | null> => {
     const overrides = await getEnvOverrides();
-    return overrides.deepseek_api_key ?? process.env.DEEPSEEK_API_KEY ?? null;
+    return overrides.deepseek_api_key ?? null;
   };
 
   if (!row) return envFallback();

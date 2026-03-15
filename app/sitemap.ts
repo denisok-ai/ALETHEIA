@@ -1,11 +1,13 @@
 import type { MetadataRoute } from 'next';
+import { getSystemSettings } from '@/lib/settings';
 
 /**
  * Генерирует sitemap.xml для поисковых систем.
- * Базовый URL из NEXT_PUBLIC_URL или avaterra.pro.
+ * Базовый URL из БД (Портал → Настройки). Настройки вынесены в админку.
  */
-export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://avaterra.pro';
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const settings = await getSystemSettings();
+  const baseUrl = settings.site_url || 'https://avaterra.pro';
   const publicPaths = [
     '',
     '/oferta',

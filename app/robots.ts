@@ -1,11 +1,13 @@
 import type { MetadataRoute } from 'next';
+import { getSystemSettings } from '@/lib/settings';
 
 /**
  * Генерирует robots.txt. Разрешена индексация публичных страниц.
- * /portal/* защищён middleware и не индексируется по смыслу (требует авторизации).
+ * Базовый URL из БД (Портал → Настройки). Настройки вынесены в админку.
  */
-export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_URL || 'https://avaterra.pro';
+export default async function robots(): Promise<MetadataRoute.Robots> {
+  const settings = await getSystemSettings();
+  const baseUrl = settings.site_url || 'https://avaterra.pro';
   return {
     rules: [
       {

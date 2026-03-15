@@ -1,6 +1,6 @@
 /**
  * Admin: generate course cover image via OpenAI DALL-E 3, save to uploads, update course.
- * API ключ: Настройки → Переменные окружения (OpenAI API ключ) или OPENAI_API_KEY в .env.
+ * API ключ: из БД (Портал → Настройки → Переменные окружения). Настройки вынесены в админку.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
@@ -20,10 +20,10 @@ export async function POST(
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   const overrides = await getEnvOverrides();
-  const apiKey = (overrides.openai_api_key ?? process.env.OPENAI_API_KEY)?.trim();
+  const apiKey = overrides.openai_api_key?.trim();
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'Задайте OpenAI API ключ в Настройки → Переменные окружения или в .env (OPENAI_API_KEY)' },
+      { error: 'Задайте OpenAI API ключ в Портал → Настройки → Переменные окружения' },
       { status: 503 }
     );
   }

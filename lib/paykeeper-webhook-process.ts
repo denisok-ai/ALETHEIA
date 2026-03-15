@@ -1,7 +1,7 @@
 /**
  * Обработка успешной оплаты (webhook PayKeeper): обновление заказа, лиды, запись на курс, письма.
  * Используется в POST /api/webhook/paykeeper и в симуляции оплаты из админки.
- * При оплате курса гостем: автосоздание User + Profile + Enrollment и отправка ссылки «Установить пароль».
+ * site_url и прочие настройки — из БД (Портал → Настройки). Настройки вынесены в админку.
  */
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
@@ -56,7 +56,7 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
     getSystemSettings(),
     getPaymentEmailTemplates(),
   ]);
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || process.env.NEXT_PUBLIC_URL?.replace(/\/$/, '') || '';
+  const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
   const portalTitle = settings.portal_title || 'AVATERRA';
   const loginUrl = siteUrl ? `${siteUrl}/login` : '/login';
   const registerUrl = siteUrl ? `${siteUrl}/register` : '/register';

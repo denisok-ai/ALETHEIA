@@ -1,12 +1,12 @@
 /**
  * Telegram bot helpers: send message, broadcast.
- * Токен: из БД (настройки → Переменные окружения) или process.env.TELEGRAM_BOT_TOKEN.
+ * Токен: из БД (Портал → Настройки → Переменные окружения). Настройки вынесены в админку.
  */
 import { getEnvOverrides } from './settings';
 
 export async function sendTelegramMessage(chatId: string | number, text: string): Promise<boolean> {
   const overrides = await getEnvOverrides();
-  const token = overrides.telegram_bot_token || process.env.TELEGRAM_BOT_TOKEN;
+  const token = overrides.telegram_bot_token;
   if (!token) return false;
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {

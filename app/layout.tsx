@@ -14,11 +14,24 @@ const ChatBot = dynamic(
 );
 
 
+function normalizeSiteUrl(raw: string): string {
+  const s = (raw || '').trim();
+  if (!s) return 'https://avaterra.pro';
+  if (!/^https?:\/\//i.test(s)) return `https://${s.replace(/^\/+/, '')}`;
+  return s.replace(/\/+$/, '');
+}
+
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
-  const siteUrl = settings.site_url || process.env.NEXT_PUBLIC_URL || 'https://avaterra.pro';
+  const siteUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
+  let metadataBase: URL;
+  try {
+    metadataBase = new URL(siteUrl);
+  } catch {
+    metadataBase = new URL('https://avaterra.pro');
+  }
   return {
-    metadataBase: new URL(siteUrl),
+    metadataBase,
     title: 'AVATERRA.PRO — Phygital школа мышечного тестирования',
     description:
       'AVATERRA — биохакинг через тело и AI. Курс «Тело не врет». Татьяна Стрельцова. Более 20 лет практики, 15 000+ человек.',

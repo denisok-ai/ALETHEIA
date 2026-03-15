@@ -1,7 +1,7 @@
 /**
  * PayKeeper API client.
  * Документация: https://help.paykeeper.ru/
- * Конфиг: из БД (настройки админки) с fallback на переменные окружения.
+ * Конфиг: из БД (Портал → Настройки → Платежи). Настройки вынесены в админку.
  */
 
 import crypto from 'crypto';
@@ -46,30 +46,10 @@ export function clearPayKeeperConfigCache(): void {
   configCache = null;
 }
 
-function getConfigFromEnv(useTest?: boolean): PayKeeperConfig {
-  if (useTest) {
-    const server = process.env.PAYKEEPER_TEST_SERVER;
-    const login = process.env.PAYKEEPER_TEST_LOGIN;
-    const password = process.env.PAYKEEPER_TEST_PASSWORD;
-    const secret = process.env.PAYKEEPER_TEST_SECRET;
-    if (server && login && password && secret) {
-      return { server, login, password, secret };
-    }
-  }
-  const server = process.env.PAYKEEPER_SERVER;
-  const login = process.env.PAYKEEPER_LOGIN;
-  const password = process.env.PAYKEEPER_PASSWORD;
-  const secret = process.env.PAYKEEPER_SECRET;
-  if (!server || !login || !password || !secret) {
-    throw new Error('PayKeeper env vars not set');
-  }
-  return { server, login, password, secret };
-}
-
 /**
- * Читает конфиг PayKeeper из БД (настройки админки). Секреты расшифровываются.
+ * Читает конфиг PayKeeper из БД (Портал → Настройки → Платежи). Секреты расшифровываются.
  * При paykeeper_use_test = 1/true используются тестовые поля (paykeeper_test_*).
- * При отсутствии данных в БД или ошибке — возвращает null (вызывающий код использует env).
+ * При отсутствии данных в БД — возвращает null.
  */
 export async function getPayKeeperConfigFromSettings(): Promise<PayKeeperConfig | null> {
   const now = Date.now();
@@ -93,41 +73,41 @@ export async function getPayKeeperConfigFromSettings(): Promise<PayKeeperConfig 
   let secret: string;
 
   if (useTest) {
-    server = (byKey.paykeeper_test_server || process.env.PAYKEEPER_TEST_SERVER || '').trim();
-    login = (byKey.paykeeper_test_login || process.env.PAYKEEPER_TEST_LOGIN || '').trim();
-    password = (process.env.PAYKEEPER_TEST_PASSWORD || '').trim();
-    secret = (process.env.PAYKEEPER_TEST_SECRET || '').trim();
+    server = (byKey.paykeeper_test_server || '').trim();
+    login = (byKey.paykeeper_test_login || '').trim();
+    password = '';
+    secret = '';
     if (byKey.paykeeper_test_password) {
       try {
         password = decrypt(byKey.paykeeper_test_password);
       } catch {
-        password = process.env.PAYKEEPER_TEST_PASSWORD || '';
+        password = '';
       }
     }
     if (byKey.paykeeper_test_secret) {
       try {
         secret = decrypt(byKey.paykeeper_test_secret);
       } catch {
-        secret = process.env.PAYKEEPER_TEST_SECRET || '';
+        secret = '';
       }
     }
   } else {
-    server = (byKey.paykeeper_server || process.env.PAYKEEPER_SERVER || '').trim();
-    login = (byKey.paykeeper_login || process.env.PAYKEEPER_LOGIN || '').trim();
-    password = (process.env.PAYKEEPER_PASSWORD || '').trim();
-    secret = (process.env.PAYKEEPER_SECRET || '').trim();
+    server = (byKey.paykeeper_server || '').trim();
+    login = (byKey.paykeeper_login || '').trim();
+    password = '';
+    secret = '';
     if (byKey.paykeeper_password) {
       try {
         password = decrypt(byKey.paykeeper_password);
       } catch {
-        password = process.env.PAYKEEPER_PASSWORD || '';
+        password = '';
       }
     }
     if (byKey.paykeeper_secret) {
       try {
         secret = decrypt(byKey.paykeeper_secret);
       } catch {
-        secret = process.env.PAYKEEPER_SECRET || '';
+        secret = '';
       }
     }
   }
@@ -141,13 +121,12 @@ export async function getPayKeeperConfigFromSettings(): Promise<PayKeeperConfig 
 }
 
 /**
- * Возвращает конфиг PayKeeper: сначала из БД, при отсутствии — из env.
+ * Возвращает конфиг PayKeeper из БД. Бросает, если не настроено.
  */
 async function getConfig(): Promise<PayKeeperConfig> {
   const fromSettings = await getPayKeeperConfigFromSettings();
   if (fromSettings) return fromSettings;
-  const useTest = process.env.PAYKEEPER_USE_TEST === '1' || process.env.PAYKEEPER_USE_TEST === 'true';
-  return getConfigFromEnv(useTest);
+  throw new Error('PayKeeper не настроен. Задайте параметры в Портал → Настройки → Платежи.');
 }
 
 /**
@@ -218,7 +197,7 @@ export async function createPayKeeperInvoice(
 
 /**
  * Проверка подписи webhook от PayKeeper.
- * secret можно получить через getPayKeeperConfigFromSettings() или env.
+ * secret получается через getPayKeeperConfigFromSettings() (БД).
  */
 export function validatePayKeeperWebhook(
   params: Record<string, unknown>,
