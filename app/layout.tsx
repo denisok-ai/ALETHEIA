@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import dynamic from 'next/dynamic';
+import nextDynamic from 'next/dynamic';
 import { Toaster } from 'sonner';
 import './globals.css';
 import { Header } from '@/components/sections/Header';
@@ -7,12 +7,18 @@ import { FooterOnPublicOnly } from '@/components/FooterOnPublicOnly';
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import { getSystemSettings } from '@/lib/settings';
 
-const StickyCTA = dynamic(() => import('@/components/sections/StickyCTA').then((m) => m.StickyCTA), { ssr: false });
-const ChatBot = dynamic(
+/** Без этого Next отдаёт главную и оболочку как «вечный» статический кеш (s-maxage=31536000) — после деплоя видна старая сборка. */
+export const dynamic = 'force-dynamic';
+
+const StickyCTA = nextDynamic(() => import('@/components/sections/StickyCTA').then((m) => m.StickyCTA), { ssr: false });
+const ChatBot = nextDynamic(
   () => import('@/components/ChatBot').then((m) => ({ default: m.ChatBot })),
   { ssr: false }
 );
 
+/** Google Fonts через <link>: без @import в CSS (Turbopack) и без next/font (баг Turbopack с внутренним резолвером шрифтов). */
+const GOOGLE_FONTS_STYLESHEET =
+  'https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,100..900;1,7..72,100..900&family=Outfit:wght@100..900&display=swap';
 
 function normalizeSiteUrl(raw: string): string {
   const s = (raw || '').trim();
@@ -56,6 +62,11 @@ export default async function RootLayout({
   const settings = await getSystemSettings();
   return (
     <html lang="ru">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href={GOOGLE_FONTS_STYLESHEET} rel="stylesheet" />
+      </head>
       <body className="min-h-screen font-body bg-[#F8FAFC] text-[var(--portal-text)]">
         <SessionProvider>
           <Header />
