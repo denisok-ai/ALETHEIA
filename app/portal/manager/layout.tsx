@@ -3,6 +3,7 @@
  */
 import { LayoutDashboard, MessageSquare, Users, CheckCircle, HelpCircle } from 'lucide-react';
 import { PortalSidebar } from '@/components/portal/PortalSidebar';
+import { PortalBuildBadge } from '@/components/portal/PortalBuildBadge';
 
 const managerNav = [
   { href: '/portal/manager/dashboard', label: 'Дашборд', icon: <LayoutDashboard className="h-4 w-4" /> },
@@ -19,11 +20,18 @@ export default function ManagerPortalLayout({
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1">
-      <PortalSidebar items={managerNav} />
+      <PortalSidebar
+        items={managerNav}
+        navFooter={({ collapsed }) => (
+          <PortalBuildBadge variant={collapsed ? 'sidebar-collapsed' : 'sidebar'} />
+        )}
+      />
       <main
         className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-5 md:p-7"
         style={{ background: 'var(--portal-bg)' }}
-      >{children}</main>
+      >
+        {children}
+      </main>
     </div>
   );
 }

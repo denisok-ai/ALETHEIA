@@ -68,6 +68,19 @@
 
 ---
 
+## Один каталог сборки и одна точка запуска
+
+Чтобы не крутилась **старая** админка при «успешном» деплое:
+
+1. **Один рабочий каталог** с актуальным кодом и `.next` — по документу это **`/opt/ALETHEIA`**. Не параллельно поднимайте второй экземпляр из `/var/www/...` или старой копии: nginx всегда должен проксировать на **тот** процесс, чей `WorkingDirectory` совпадает с каталогом, где выполняли `npm run build`.
+2. **systemd или PM2 — что-то одно** на порт `3000`. Если перешли на `aletheia.service`, отключите старый PM2-процесс (`pm2 delete aletheia`, `pm2 save`), чтобы не было двух Node с разными `cwd`.
+3. Пример unit для systemd: **`scripts/systemd/aletheia.service.example`** — поля `WorkingDirectory` и `ExecStart` должны указывать на **тот же** `/opt/ALETHEIA`.
+4. Версия на проде без гаданий по UI: **`curl -s https://avaterra.pro/api/health`** — поля `version` и `commit` (и заголовки `X-App-Version` / `X-Build-Commit`). В админке/менеджере версия также выводится **внизу бокового меню** после деплоя с актуальным `next build` (commit берётся из `git` при сборке или из `BUILD_COMMIT` / CI).
+
+Деплой: **`bash scripts/deploy-pull.sh`** (на сервере) или CI с переменной **`VPS_DEPLOY`** и секретом **`VPS_SSH_PRIVATE_KEY`** (см. `.github/workflows/build.yml`).
+
+---
+
 ## Полезные команды на сервере
 
 - Перезапуск приложения: `cd /opt/ALETHEIA && pm2 restart aletheia` (или имя из `pm2 list`)

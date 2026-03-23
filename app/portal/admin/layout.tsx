@@ -21,8 +21,12 @@ import {
   LayoutTemplate,
   HelpCircle,
   FolderTree,
+  Package,
 } from 'lucide-react';
 import { PortalSidebar } from '@/components/portal/PortalSidebar';
+import { AdminMobileMenuBar } from '@/components/portal/AdminMobileMenuBar';
+import { AdminCommandBar } from '@/components/portal/AdminCommandBar';
+import { PortalBuildBadge } from '@/components/portal/PortalBuildBadge';
 import type { NavSection } from '@/components/portal/PortalSidebar';
 
 const icon = (El: React.ComponentType<{ className?: string }>) => <El className="h-4 w-4" />;
@@ -47,6 +51,7 @@ const adminSections: NavSection[] = [
     items: [
       { href: '/portal/admin/users', label: 'Пользователи', icon: icon(Users) },
       { href: '/portal/admin/crm', label: 'CRM', icon: icon(MessageSquare) },
+      { href: '/portal/admin/shop', label: 'Товары', icon: icon(Package) },
       { href: '/portal/admin/payments', label: 'Оплаты', icon: icon(CreditCard) },
     ],
   },
@@ -85,12 +90,27 @@ export default function AdminPortalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-0 min-w-0 flex-1">
-      <PortalSidebar sections={adminSections} collapsible />
-      <main
-        className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-5 md:p-7"
-        style={{ background: 'var(--portal-bg)' }}
-      >{children}</main>
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <AdminMobileMenuBar />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <AdminCommandBar />
+        <div className="flex min-h-0 min-w-0 flex-1 overflow-hidden">
+        <PortalSidebar
+          sections={adminSections}
+          collapsible
+          collapsibleNavSections
+          navFooter={({ collapsed }) => (
+            <PortalBuildBadge variant={collapsed ? 'sidebar-collapsed' : 'sidebar'} />
+          )}
+        />
+        <main
+          className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden p-5 md:p-7"
+          style={{ background: 'var(--portal-bg)' }}
+        >
+          {children}
+        </main>
+        </div>
+      </div>
     </div>
   );
 }

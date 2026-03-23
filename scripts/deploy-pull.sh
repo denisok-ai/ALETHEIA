@@ -44,6 +44,9 @@ echo "4. Build..."
 # Полное удаление .next: иначе после прерванной/OOM-сборки или смены webpack-чанков
 # HTML может ссылаться на chunk (например 5878-*.js), а файл на диске отсутствует или битый —
 # браузер получает 400/ошибку загрузки чанка и ломается весь клиентский React.
+export BUILD_COMMIT
+BUILD_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || true)"
+echo "   BUILD_COMMIT=$BUILD_COMMIT (вшивается в NEXT_PUBLIC_BUILD_COMMIT при next build)"
 rm -rf .next
 npm run build:server 2>/dev/null || npm run build
 echo "   OK"
@@ -76,6 +79,8 @@ if command -v curl >/dev/null 2>&1; then
       echo "   ВНИМАНИЕ: чанк не отдаётся 200 — часто из-за кеша HTML или неполного деплоя .next/static. Сбросьте кеш прокси и убедитесь, что после build перезапущен next start."
     fi
   fi
+  echo "   /api/health (version, commit):"
+  curl -sS --max-time 10 "https://avaterra.pro/api/health" 2>/dev/null || echo "   (не удалось запросить)"
 else
   echo "   (curl нет — пропуск)"
 fi

@@ -5,11 +5,11 @@
  */
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { usePortalUI } from './PortalUIProvider';
 import { PortalAccountBlock } from './PortalAccountBlock';
-import { X, PanelLeftClose, PanelLeft } from 'lucide-react';
+import { X, PanelLeftClose, PanelLeft, ChevronDown } from 'lucide-react';
 
 export interface NavItem {
   href: string;
@@ -22,10 +22,16 @@ export interface NavSection {
   items: NavItem[];
 }
 
+export type NavFooterRender = (ctx: { collapsed: boolean }) => ReactNode;
+
 interface PortalSidebarProps {
   items?: NavItem[];
   sections?: NavSection[];
   collapsible?: boolean;
+  /** Секции с заголовком можно сворачивать (уменьшает скролл меню, состояние в localStorage) */
+  collapsibleNavSections?: boolean;
+  /** Блок под навигацией (например версия сборки); для collapsible — передавайте функцию с collapsed */
+  navFooter?: ReactNode | NavFooterRender;
 }
 
 const SIDEBAR_COLLAPSED_KEY = 'portal-sidebar-collapsed';
@@ -66,21 +72,48 @@ function SidebarLink({
 }
 
 /* ─── Навигация (секции или плоский список) ─── */
+const NAV_SECTIONS_FOLD_KEY = 'portal-admin-nav-sections';
+
 function SidebarNav({
   items: flatItems,
   sections,
   onLinkClick,
   collapsed,
   firstRowAction,
+  collapsibleNavSections,
 }: {
   items?: NavItem[];
   sections?: NavSection[];
   onLinkClick?: () => void;
   collapsed?: boolean;
   firstRowAction?: React.ReactNode;
+  collapsibleNavSections?: boolean;
 }) {
   const pathname = usePathname();
   const useSections = sections && sections.length > 0;
+  const [folded, setFolded] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    if (!collapsibleNavSections) return;
+    try {
+      const raw = localStorage.getItem(NAV_SECTIONS_FOLD_KEY);
+      if (raw) setFolded(JSON.parse(raw) as Record<string, boolean>);
+    } catch {
+      /* ignore */
+    }
+  }, [collapsibleNavSections]);
+
+  const toggleFold = (key: string) => {
+    setFolded((prev) => {
+      const next = { ...prev, [key]: !prev[key] };
+      try {
+        localStorage.setItem(NAV_SECTIONS_FOLD_KEY, JSON.stringify(next));
+      } catch {
+        /* ignore */
+      }
+      return next;
+    });
+  };
 
   return (
     <nav className="flex flex-col gap-0.5" aria-label="Разделы портала">
@@ -94,11 +127,32 @@ function SidebarNav({
           const isFirst = idx === 0;
           const [firstItem, ...restItems] = section.items;
           const showToggleInFirst = isFirst && firstItem && firstRowAction && !collapsed;
+          const foldKey = section.sectionLabel ? `lbl:${section.sectionLabel}` : `idx:${idx}`;
+          const canFold = Boolean(collapsibleNavSections && section.sectionLabel && !collapsed);
+          const isFolded = canFold && Boolean(folded[foldKey]);
 
           return (
             <div key={section.sectionLabel ?? idx} className={cn('flex flex-col gap-0.5', idx > 0 && 'mt-5')}>
-              {/* Заголовок секции */}
-              {section.sectionLabel && !collapsed && (
+              {section.sectionLabel && !collapsed && canFold && (
+                <button
+                  type="button"
+                  onClick={() => toggleFold(foldKey)}
+                  className="flex w-full items-center justify-between gap-1 px-2 pb-1 pt-1 text-left rounded-md hover:bg-[var(--portal-sidebar-item)] transition-colors"
+                  aria-expanded={!isFolded}
+                >
+                  <span
+                    className="text-[0.65rem] font-semibold uppercase tracking-widest"
+                    style={{ color: 'var(--portal-sidebar-label)' }}
+                  >
+                    {section.sectionLabel}
+                  </span>
+                  <ChevronDown
+                    className={cn('h-3.5 w-3.5 shrink-0 text-[var(--portal-sidebar-label)] transition-transform', isFolded && '-rotate-90')}
+                    aria-hidden
+                  />
+                </button>
+              )}
+              {section.sectionLabel && !collapsed && !canFold && (
                 <p
                   className="px-2 pb-1 pt-1 text-[0.65rem] font-semibold uppercase tracking-widest"
                   style={{ color: 'var(--portal-sidebar-label)' }}
@@ -108,47 +162,50 @@ function SidebarNav({
                 </p>
               )}
 
-              {/* Первый пункт с кнопкой toggle (если развёрнут) */}
-              {showToggleInFirst ? (
-                <div className="flex items-center gap-1">
-                  <Link
-                    href={firstItem.href}
-                    onClick={onLinkClick}
-                    aria-current={
-                      pathname === firstItem.href || pathname.startsWith(firstItem.href + '/')
-                        ? 'page'
-                        : undefined
-                    }
-                    className={cn(
-                      'portal-sidebar-link flex-1 min-w-0',
-                      (pathname === firstItem.href || pathname.startsWith(firstItem.href + '/')) && 'active'
-                    )}
-                  >
-                    {firstItem.icon && (
-                      <span className="shrink-0 w-5 h-5 flex items-center">{firstItem.icon}</span>
-                    )}
-                    <span className="truncate">{firstItem.label}</span>
-                  </Link>
-                  {firstRowAction}
-                </div>
-              ) : (
-                firstItem && (
-                  <SidebarLink
-                    item={firstItem}
-                    collapsed={collapsed}
-                    onClick={onLinkClick}
-                  />
-                )
-              )}
+              {!isFolded && (
+                <>
+                  {showToggleInFirst ? (
+                    <div className="flex items-center gap-1">
+                      <Link
+                        href={firstItem.href}
+                        onClick={onLinkClick}
+                        aria-current={
+                          pathname === firstItem.href || pathname.startsWith(firstItem.href + '/')
+                            ? 'page'
+                            : undefined
+                        }
+                        className={cn(
+                          'portal-sidebar-link flex-1 min-w-0',
+                          (pathname === firstItem.href || pathname.startsWith(firstItem.href + '/')) && 'active'
+                        )}
+                      >
+                        {firstItem.icon && (
+                          <span className="shrink-0 w-5 h-5 flex items-center">{firstItem.icon}</span>
+                        )}
+                        <span className="truncate">{firstItem.label}</span>
+                      </Link>
+                      {firstRowAction}
+                    </div>
+                  ) : (
+                    firstItem && (
+                      <SidebarLink
+                        item={firstItem}
+                        collapsed={collapsed}
+                        onClick={onLinkClick}
+                      />
+                    )
+                  )}
 
-              {restItems.map((item) => (
-                <SidebarLink
-                  key={item.href}
-                  item={item}
-                  collapsed={collapsed}
-                  onClick={onLinkClick}
-                />
-              ))}
+                  {restItems.map((item) => (
+                    <SidebarLink
+                      key={item.href}
+                      item={item}
+                      collapsed={collapsed}
+                      onClick={onLinkClick}
+                    />
+                  ))}
+                </>
+              )}
             </div>
           );
         })
@@ -234,19 +291,33 @@ function CollapseButton({ collapsed, onClick }: { collapsed: boolean; onClick: (
 }
 
 /* ─── Desktop sidebar shell ─── */
+function renderNavFooterSlot(
+  navFooter: ReactNode | NavFooterRender | undefined,
+  collapsed: boolean,
+): ReactNode {
+  if (navFooter == null) return null;
+  if (typeof navFooter === 'function') return navFooter({ collapsed });
+  return navFooter;
+}
+
 function DesktopSidebar({
   items,
   sections,
   collapsed,
   collapsible,
+  collapsibleNavSections,
   onToggle,
+  navFooter,
 }: {
   items?: NavItem[];
   sections?: NavSection[];
   collapsed: boolean;
   collapsible?: boolean;
+  collapsibleNavSections?: boolean;
   onToggle: () => void;
+  navFooter?: ReactNode | NavFooterRender;
 }) {
+  const footerSlot = renderNavFooterSlot(navFooter, collapsed);
   return (
     <aside
       style={{ width: collapsed ? 'var(--portal-sidebar-collapsed-w)' : 'var(--portal-sidebar-w)' }}
@@ -262,12 +333,18 @@ function DesktopSidebar({
           items={items}
           sections={sections}
           collapsed={collapsed}
+          collapsibleNavSections={collapsibleNavSections}
           firstRowAction={
             collapsible
               ? <CollapseButton collapsed={collapsed} onClick={onToggle} />
               : undefined
           }
         />
+        {footerSlot && (
+          <div className="mt-4 shrink-0 border-t border-[var(--portal-sidebar-border)] pt-3">
+            {footerSlot}
+          </div>
+        )}
       </div>
       <div className="px-3 pb-4 border-t border-[var(--portal-sidebar-border)]">
         <PortalAccountBlock collapsed={collapsed} />
@@ -281,11 +358,16 @@ function MobileSidebar({
   items,
   sections,
   onClose,
+  collapsibleNavSections,
+  navFooter,
 }: {
   items?: NavItem[];
   sections?: NavSection[];
   onClose: () => void;
+  collapsibleNavSections?: boolean;
+  navFooter?: ReactNode | NavFooterRender;
 }) {
+  const footerSlot = renderNavFooterSlot(navFooter, false);
   return (
     <div
       className="fixed inset-0 z-50 lg:hidden"
@@ -325,7 +407,11 @@ function MobileSidebar({
             sections={sections}
             onLinkClick={onClose}
             collapsed={false}
+            collapsibleNavSections={collapsibleNavSections}
           />
+          {footerSlot && (
+            <div className="mt-4 border-t border-[var(--portal-sidebar-border)] pt-3">{footerSlot}</div>
+          )}
         </div>
         <div className="px-3 pb-5 border-t border-[var(--portal-sidebar-border)]">
           <PortalAccountBlock collapsed={false} />
@@ -336,7 +422,13 @@ function MobileSidebar({
 }
 
 /* ─── Экспортируемый компонент ─── */
-export function PortalSidebar({ items = [], sections, collapsible }: PortalSidebarProps) {
+export function PortalSidebar({
+  items = [],
+  sections,
+  collapsible,
+  collapsibleNavSections,
+  navFooter,
+}: PortalSidebarProps) {
   const { mobileMenuOpen, setMobileMenuOpen } = usePortalUI();
   const [collapsed, setCollapsed] = useState(false);
 
@@ -358,13 +450,17 @@ export function PortalSidebar({ items = [], sections, collapsible }: PortalSideb
         sections={sections}
         collapsed={collapsed}
         collapsible={collapsible}
+        collapsibleNavSections={collapsibleNavSections}
         onToggle={() => setCollapsed((c) => !c)}
+        navFooter={navFooter}
       />
       {mobileMenuOpen && (
         <MobileSidebar
           items={items}
           sections={sections}
           onClose={() => setMobileMenuOpen(false)}
+          collapsibleNavSections={collapsibleNavSections}
+          navFooter={navFooter}
         />
       )}
     </>

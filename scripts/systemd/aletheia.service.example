@@ -1,0 +1,26 @@
+# Пример unit для единственного экземпляра Next.js на VPS.
+# Скопируйте в /etc/systemd/system/aletheia.service, поправьте пути и пользователя.
+#
+#   sudo cp scripts/systemd/aletheia.service.example /etc/systemd/system/aletheia.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now aletheia.service
+#
+# Важно: WorkingDirectory и префикс npm должны указывать на ОДИН каталог с актуальным .next
+# (не дублируйте проект в /var/www и /opt одновременно с двумя сервисами).
+
+[Unit]
+Description=AVATERRA Next.js (ALETHEIA)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/ALETHEIA
+Environment=NODE_ENV=production
+# Раскомментируйте при необходимости подхвата переменных из файла:
+# EnvironmentFile=-/opt/ALETHEIA/.env
+ExecStart=/usr/bin/npm run start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

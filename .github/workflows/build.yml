@@ -34,6 +34,7 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_URL: https://avaterra.pro
+          BUILD_COMMIT: ${{ github.sha }}
 
       - name: Pack .next for VPS deploy
         if: >
