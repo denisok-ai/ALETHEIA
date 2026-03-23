@@ -70,8 +70,33 @@
 
 ## Полезные команды на сервере
 
-- Перезапуск приложения: `cd /opt/ALETHEIA && pm2 restart <name>`
-- Логи: `pm2 logs <name>`
+- Перезапуск приложения: `cd /opt/ALETHEIA && pm2 restart aletheia` (или имя из `pm2 list`)
+- Логи: `pm2 logs aletheia`
 - Статус NGINX: `sudo systemctl status nginx`
 - Проверка конфига NGINX: `sudo nginx -t`
-- Обновление кода и пересборка: `git pull`, `npm install`, `npm run build`, `pm2 restart <name>`
+- **Полный деплой с Git** (миграции без сброса БД): `cd /opt/ALETHEIA && bash scripts/deploy-pull.sh`
+- **Деплой + сброс БД и тестовый seed** (только для стенда, см. `docs/Deploy.md`):  
+  `cd /opt/ALETHEIA && RESET_AND_SEED=1 bash scripts/deploy-pull.sh`
+
+### Если в консоли ChunkLoadError / `GET /_next/static/chunks/... 400`
+
+Обычно это **рассинхрон артефактов** после неполной сборки или **кеш nginx** со старыми ответами. Скрипт `deploy-pull.sh` перед сборкой удаляет каталог `.next` (чистая сборка).
+
+Если проблема уже на проде — по SSH:
+
+1. Очистить сборку и собрать заново, перезапустить приложение:
+   ```bash
+   cd /opt/ALETHEIA
+   git pull origin main
+   rm -rf .next
+   npm ci
+   npm run build:server
+   sudo systemctl restart aletheia.service
+   ```
+   (или `pm2 restart aletheia`, если без systemd.)
+
+2. **Сбросить proxy_cache nginx** (если в конфиге включён `proxy_cache` для прокси на Next): посмотреть путь в `sudo nginx -T | grep proxy_cache_path`, затем очистить этот каталог (например `sudo rm -rf /var/cache/nginx/next-static/*`) и выполнить `sudo nginx -s reload`.
+
+3. Проверка: `curl -sI https://avaterra.pro/ | head -1`, затем из HTML взять путь к любому `/_next/static/chunks/*.js` и убедиться, что `curl -sI` на него даёт **200**.
+
+Вход на сервер — по **SSH-ключу**; пароль root в открытом виде не хранить и не отправлять в мессенджеры.
