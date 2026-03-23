@@ -4,13 +4,13 @@ import { Toaster } from 'sonner';
 import './globals.css';
 import { Header } from '@/components/sections/Header';
 import { FooterOnPublicOnly } from '@/components/FooterOnPublicOnly';
+import { ChunkLoadRecovery } from '@/components/ChunkLoadRecovery';
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import { getSystemSettings } from '@/lib/settings';
 
 /** Без этого Next отдаёт главную и оболочку как «вечный» статический кеш (s-maxage=31536000) — после деплоя видна старая сборка. */
 export const dynamic = 'force-dynamic';
 
-const StickyCTA = nextDynamic(() => import('@/components/sections/StickyCTA').then((m) => m.StickyCTA), { ssr: false });
 const ChatBot = nextDynamic(
   () => import('@/components/ChatBot').then((m) => ({ default: m.ChatBot })),
   { ssr: false }
@@ -68,10 +68,10 @@ export default async function RootLayout({
         <link href={GOOGLE_FONTS_STYLESHEET} rel="stylesheet" />
       </head>
       <body className="min-h-screen font-body bg-[#F8FAFC] text-[var(--portal-text)]">
+        <ChunkLoadRecovery />
         <SessionProvider>
           <Header />
           <main>{children}</main>
-          <StickyCTA />
           <ChatBot />
           <FooterOnPublicOnly contactPhone={settings.contact_phone || undefined} />
           <Toaster richColors position="top-center" />

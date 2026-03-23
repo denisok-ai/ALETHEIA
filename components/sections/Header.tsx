@@ -15,7 +15,7 @@ const navLinks = [
   { href: '#master', label: 'О мастере' },
   { href: '#reviews', label: 'Отзывы' },
   { href: '#pricing', label: 'Тарифы' },
-  { href: '#faq', label: 'FAQ' },
+  { href: '#faq', label: 'Вопросы и ответы' },
 ];
 
 export function Header() {

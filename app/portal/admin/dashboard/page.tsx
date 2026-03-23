@@ -71,7 +71,12 @@ export default async function AdminDashboardPage({
     }),
     prisma.ticket.count({ where: { status: { in: ['open', 'in_progress'] } } }),
     prisma.lead.count({ where: { status: 'new' } }),
-    prisma.scormProgress.groupBy({ by: ['userId'], where: {} }).then((r) => r.length),
+    prisma.scormProgress
+      .groupBy({
+        by: ['userId'],
+        _count: { _all: true },
+      })
+      .then((r) => r.length),
     prisma.certificate.count(),
     prisma.scormProgress.aggregate({ _avg: { score: true }, where: { score: { not: null } } }),
     prisma.scormProgress.count(),

@@ -85,7 +85,7 @@ export function FAQ() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           className="block text-sm font-semibold uppercase tracking-widest text-accent"
         >
-          FAQ
+          Вопросы и ответы
         </motion.span>
         <motion.h2
           initial={{ opacity: 0, y: 20 }}
