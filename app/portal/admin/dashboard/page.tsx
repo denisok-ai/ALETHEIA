@@ -1,12 +1,14 @@
 /**
  * Admin dashboard: real metrics from DB, revenue and activity charts, quick actions, recent events.
  */
+import { Suspense } from 'react';
 import type { Metadata } from 'next';
-import { getServerSession } from 'next-auth';
 
 export const metadata: Metadata = { title: 'Дашборд' };
 
-import { authOptions } from '@/lib/auth';
+/** Не кешировать как статику: иначе возможен пустой/устаревший RSC при смене сессии. */
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { Card } from '@/components/portal/Card';
@@ -16,21 +18,21 @@ import { QuickAccessSection } from './QuickAccessSection';
 
 const PERIODS = [7, 30, 90] as const;
 
+function DashboardChartsFallback() {
+  return (
+    <div className="mt-6 space-y-6" aria-busy="true" aria-label="Загрузка графиков">
+      <div className="h-10 w-full max-w-xl animate-pulse rounded-lg bg-[#E2E8F0]" />
+      <div className="portal-card h-72 animate-pulse rounded-xl bg-[#F1F5F9] md:h-80" />
+      <div className="portal-card h-72 animate-pulse rounded-xl bg-[#F1F5F9] md:h-80" />
+    </div>
+  );
+}
+
 export default async function AdminDashboardPage({
   searchParams,
 }: {
   searchParams: Promise<{ period?: string }>;
 }) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) {
-    return (
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Дашборд администратора</h1>
-        <p className="mt-2 text-[var(--portal-text-muted)]">База данных недоступна.</p>
-      </div>
-    );
-  }
-
   const { period: periodStr } = await searchParams;
   const periodNum = Math.min(90, Math.max(7, Number(periodStr) || 30));
   const period = (PERIODS.includes(periodNum as 7 | 30 | 90) ? periodNum : 30) as 7 | 30 | 90;
@@ -252,7 +254,9 @@ export default async function AdminDashboardPage({
         </div>
       </div>
 
-      <DashboardCharts revenueData={chartData} activityData={activityData} />
+      <Suspense fallback={<DashboardChartsFallback />}>
+        <DashboardCharts revenueData={chartData} activityData={activityData} />
+      </Suspense>
       <RecentEvents events={events} />
     </div>
   );
