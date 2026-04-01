@@ -14,13 +14,55 @@ export type TariffItem = {
   description: string;
   features: string[];
   popular?: boolean;
+  /** Обложка с витрины (админка → Товары) */
+  imageUrl?: string | null;
 };
 
 const FALLBACK_TARIFFS: TariffItem[] = [
-  { id: 'consult', name: 'Индивидуальная консультация', price: 5000, description: 'Диагностика и коррекция через мышечное тестирование.', features: ['1 сессия', 'Кинезиология один на один'] },
-  { id: 'group', name: 'Групповой тренинг', price: 3000, description: 'Психосоматика и работа с подсознанием в группе.', features: ['1 занятие', 'В группе'] },
-  { id: 'course', name: 'Курс AVATERRA', price: 25000, description: '10 занятий: основы кинезиологии и мышечного тестирования.', features: ['10 занятий', 'Полное погружение', 'Поддержка на пути'], popular: true },
-  { id: 'online', name: 'Онлайн-консультация', price: 3500, description: 'Удалённая сессия с мастером школы.', features: ['1 сессия', 'Из любой точки мира'] },
+  {
+    id: 'kod-tela-start',
+    slug: 'kod-tela-start',
+    name: 'Код тела: введение в мышечное тестирование',
+    price: 0,
+    description:
+      'Бесплатный мини-курс для знакомства с методом: снять страх «не получится», дать быстрый «вау»-эффект и мягко подвести к платным тарифам.',
+    features: [
+      '3–4 коротких видео по 7–15 минут',
+      'Видео 1 — знакомство: кинезиология, стресс, скрытые эмоции',
+      'Видео 2 — демонстрация теста из практики',
+      'Видео 3 — практика: простой само-тест «Да/Нет» на вашем теле',
+      'Видео 4 — полный путь в школе и ограниченное предложение на «Профи» и «ВИП»',
+    ],
+  },
+  {
+    id: 'avaterra-praktik',
+    slug: 'avaterra-praktik',
+    name: 'AVATERRA: Практик',
+    price: 25_000,
+    description:
+      'Тариф «Профи»: фундаментальный навык мышечного тестирования — на себе, для близких или старта работы с клиентами.',
+    features: [
+      'Полный дистанционный курс: введение, основы тестирования, подсознание, практика и интеграция',
+      'Доп. видео: библиотека эмоций, ошибки новичков, скрипты и алгоритмы',
+      'Регулярные Zoom с сертифицированными кураторами школы',
+      'Q&A, отработка техники под наблюдением эксперта, разбор ваших ситуаций',
+    ],
+    popular: true,
+  },
+  {
+    id: 'avaterra-master-vip',
+    slug: 'avaterra-master-vip',
+    name: 'AVATERRA: Мастер. Менторство Татьяны Стрельцовой',
+    price: 69_000,
+    description:
+      'Тариф «ВИП»: глубокое погружение, авторские нюансы и личное время основателя с 22-летним опытом.',
+    features: [
+      'Всё из тарифа «Профи»: курс и базовые дополнительные материалы',
+      'Закрытые онлайн-встречи с Татьяной Стрельцовой для узкой группы',
+      'Супервизия и коррекция техники напрямую от автора методики',
+      'Секретный модуль: продвинутые техники, сложные кейсы, монетизация навыка',
+    ],
+  },
 ];
 
 export function Pricing() {
@@ -36,15 +78,25 @@ export function Pricing() {
         const list = d?.products;
         if (Array.isArray(list) && list.length > 0) {
           setProducts(
-            list.map((p: { slug: string; name: string; price: number; description: string; features?: string[] }) => ({
-              id: p.slug,
-              slug: p.slug,
-              name: p.name,
-              price: p.price,
-              description: p.description || p.name,
-              features: Array.isArray(p.features) ? p.features : [p.description || p.name],
-              popular: list.indexOf(p) === 0,
-            }))
+            list.map(
+              (p: {
+                slug: string;
+                name: string;
+                price: number;
+                description: string;
+                features?: string[];
+                imageUrl?: string | null;
+              }) => ({
+                id: p.slug,
+                slug: p.slug,
+                name: p.name,
+                price: p.price,
+                description: p.description || p.name,
+                features: Array.isArray(p.features) ? p.features : [p.description || p.name],
+                popular: p.slug === 'avaterra-praktik',
+                imageUrl: p.imageUrl ?? null,
+              })
+            )
           );
         }
       })
@@ -74,10 +126,10 @@ export function Pricing() {
             transition={{ delay: 0.05 }}
             className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl"
           >
-            Купить курс или записаться на консультацию
+            От бесплатного знакомства до менторства основателя
           </motion.h2>
 
-          <div className="mt-14 grid gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-10">
+          <div className="mt-14 grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
             {products.map((tariff, i) => (
               <motion.div
                 key={tariff.id}
@@ -104,6 +156,16 @@ export function Pricing() {
                         Хит продаж
                       </span>
                     )}
+                    {tariff.imageUrl ? (
+                      <div className="mb-4 aspect-[16/10] w-full overflow-hidden rounded-xl bg-[#F1F5F9]">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={tariff.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                    ) : null}
                     <h3 className="font-heading text-xl font-semibold text-[var(--portal-text)]">
                       {tariff.name}
                     </h3>
@@ -114,14 +176,14 @@ export function Pricing() {
                       ))}
                     </ul>
                     <p className="mt-6 text-3xl font-bold text-accent">
-                      {tariff.price.toLocaleString('ru-RU')} ₽
+                      {tariff.price <= 0 ? 'Бесплатно' : `${tariff.price.toLocaleString('ru-RU')} ₽`}
                     </p>
                     <Button
                       variant={tariff.popular ? 'primary' : 'secondary'}
                       className="mt-6 w-full shadow-[0_0_20px_rgba(166,139,91,0.25)] hover:shadow-[0_0_28px_rgba(166,139,91,0.35)]"
                       onClick={() => setModalTariff(tariff)}
                     >
-                      Купить
+                      {tariff.price <= 0 ? 'Получить бесплатно' : 'Купить'}
                     </Button>
                   </div>
                 </TiltCard>

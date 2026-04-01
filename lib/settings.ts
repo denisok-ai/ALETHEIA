@@ -1,13 +1,18 @@
 /**
  * System settings: читаются из БД (Портал → Настройки).
  * Используются server-side: site_url, email sender/recipient и т.д.
- * Переменные окружения (.env) не используются — настройки вынесены в админку.
+ * Публичные поля и секреты интеграций: основной источник — БД; при пустых значениях — fallback из process.env (см. docs/Env-Config.md).
  */
+import { cache } from 'react';
 import { prisma } from './db';
 import { decrypt } from './encrypt';
+import { applyNextAuthUrlToProcessEnv } from './site-url';
 
 const CACHE_TTL_MS = 60_000; // 1 min
-let cache: { at: number; data: SystemSettings } | null = null;
+/** Кросс-запросный TTL-кэш. */
+let settingsMemCache: { at: number; data: SystemSettings } | null = null;
+/** Схлопывает параллельные загрузки до первого ответа БД (гонка при холодном TTL). */
+let settingsInFlight: Promise<SystemSettings> | null = null;
 
 export interface SystemSettings {
   site_url: string;
@@ -15,6 +20,7 @@ export interface SystemSettings {
   resend_from: string;
   resend_notify_email: string;
   contact_phone: string;
+  company_legal_address: string;
 }
 
 /** Значения по умолчанию при отсутствии в БД. Настройки задаются в Портал → Настройки. */
@@ -24,42 +30,88 @@ const ENV_FALLBACK: Record<keyof SystemSettings, string> = {
   resend_from: '',
   resend_notify_email: '',
   contact_phone: '',
+  company_legal_address: '',
 };
 
-export async function getSystemSettings(): Promise<SystemSettings> {
+async function loadSystemSettingsImpl(): Promise<SystemSettings> {
   const now = Date.now();
-  if (cache && now - cache.at < CACHE_TTL_MS) {
-    return cache.data;
+  if (settingsMemCache && now - settingsMemCache.at < CACHE_TTL_MS) {
+    return settingsMemCache.data;
+  }
+  if (settingsInFlight) {
+    return settingsInFlight;
   }
 
-  const rows = await prisma.systemSetting.findMany({
-    where: {
-      key: {
-        in: ['site_url', 'portal_title', 'resend_from', 'resend_notify_email', 'contact_phone'],
-      },
-    },
-  });
+  settingsInFlight = (async () => {
+    try {
+      const rows = await prisma.systemSetting.findMany({
+        where: {
+          key: {
+            in: [
+              'site_url',
+              'portal_title',
+              'resend_from',
+              'resend_notify_email',
+              'contact_phone',
+              'company_legal_address',
+            ],
+          },
+        },
+      });
 
-  const byKey: Record<string, string> = {};
-  for (const r of rows) byKey[r.key] = r.value;
+      const byKey: Record<string, string> = {};
+      for (const r of rows) byKey[r.key] = r.value;
 
-  const data: SystemSettings = {
-    site_url: byKey.site_url || ENV_FALLBACK.site_url,
-    portal_title: byKey.portal_title || ENV_FALLBACK.portal_title,
-    resend_from: byKey.resend_from || ENV_FALLBACK.resend_from,
-    resend_notify_email: byKey.resend_notify_email || ENV_FALLBACK.resend_notify_email,
-    contact_phone: byKey.contact_phone || ENV_FALLBACK.contact_phone,
-  };
+      const data: SystemSettings = {
+        site_url: byKey.site_url || process.env.NEXT_PUBLIC_URL?.trim() || ENV_FALLBACK.site_url,
+        portal_title: byKey.portal_title || ENV_FALLBACK.portal_title,
+        resend_from: byKey.resend_from || process.env.RESEND_FROM?.trim() || ENV_FALLBACK.resend_from,
+        resend_notify_email:
+          byKey.resend_notify_email || process.env.RESEND_NOTIFY_EMAIL?.trim() || ENV_FALLBACK.resend_notify_email,
+        contact_phone: byKey.contact_phone || ENV_FALLBACK.contact_phone,
+        company_legal_address: byKey.company_legal_address || ENV_FALLBACK.company_legal_address,
+      };
 
-  cache = { at: now, data };
-  return data;
+      applyNextAuthUrlToProcessEnv({ siteUrl: data.site_url });
+
+      settingsMemCache = { at: Date.now(), data };
+      return data;
+    } finally {
+      settingsInFlight = null;
+    }
+  })();
+
+  return settingsInFlight;
+}
+
+/**
+ * Настройки сайта: один запрос к БД на RSC-запрос (React cache) + TTL между запросами.
+ */
+export const getSystemSettings = cache(loadSystemSettingsImpl);
+
+/**
+ * Только для instrumentation / старта процесса: без React cache() (иначе возможны сбои при register()).
+ */
+export async function applyNextAuthUrlFromDatabaseStartup(): Promise<void> {
+  try {
+    const row = await prisma.systemSetting.findUnique({
+      where: { key: 'site_url' },
+      select: { value: true },
+    });
+    const siteUrl = row?.value?.trim() || process.env.NEXT_PUBLIC_URL?.trim() || '';
+    applyNextAuthUrlToProcessEnv({ siteUrl: siteUrl || undefined });
+  } catch {
+    /* БД недоступна при старте */
+  }
 }
 
 /** Clear in-memory cache (e.g. after PATCH in admin). */
 export function clearSettingsCache(): void {
-  cache = null;
+  settingsMemCache = null;
+  settingsInFlight = null;
   envOverridesCache = null;
   paymentTemplatesCache = null;
+  scormMaxSizeCache = null;
 }
 
 const ENV_OVERRIDE_KEYS = [
@@ -81,8 +133,19 @@ const ENV_OVERRIDE_SENSITIVE = new Set([
 ]);
 let envOverridesCache: { at: number; data: Record<string, string> } | null = null;
 
+/** Имена переменных ОС для fallback, если в БД пусто (поэтапная миграция и аварийный запуск). */
+const ENV_OVERRIDE_PROCESS_NAMES: Record<(typeof ENV_OVERRIDE_KEYS)[number], string> = {
+  resend_api_key: 'RESEND_API_KEY',
+  telegram_bot_token: 'TELEGRAM_BOT_TOKEN',
+  telegram_webhook_secret: 'TELEGRAM_WEBHOOK_SECRET',
+  cron_secret: 'CRON_SECRET',
+  nextauth_url: 'NEXTAUTH_URL',
+  openai_api_key: 'OPENAI_API_KEY',
+  deepseek_api_key: 'DEEPSEEK_API_KEY',
+};
+
 /**
- * Переменные окружения из БД (с расшифровкой секретов). Используются с приоритетом над process.env.
+ * Секреты и URL интеграций: сначала БД (с расшифровкой), при отсутствии — process.env.
  */
 export async function getEnvOverrides(): Promise<Record<string, string>> {
   const now = Date.now();
@@ -96,17 +159,28 @@ export async function getEnvOverrides(): Promise<Record<string, string>> {
   const data: Record<string, string> = {};
   for (const k of ENV_OVERRIDE_KEYS) {
     const v = byKey[k];
-    if (!v) continue;
-    if (ENV_OVERRIDE_SENSITIVE.has(k)) {
-      try {
-        data[k] = decrypt(v);
-      } catch {
-        // ignore invalid/missing decryption
+    if (v) {
+      if (ENV_OVERRIDE_SENSITIVE.has(k)) {
+        try {
+          data[k] = decrypt(v);
+        } catch {
+          // ignore invalid/missing decryption
+        }
+      } else {
+        data[k] = v;
       }
-    } else {
-      data[k] = v;
     }
   }
+  for (const k of ENV_OVERRIDE_KEYS) {
+    if (data[k]) continue;
+    const envName = ENV_OVERRIDE_PROCESS_NAMES[k];
+    const fromOs = envName ? process.env[envName]?.trim() : '';
+    if (fromOs) data[k] = fromOs;
+  }
+  applyNextAuthUrlToProcessEnv({
+    explicitNextAuthUrl: data.nextauth_url,
+    siteUrl: settingsMemCache?.data?.site_url,
+  });
   envOverridesCache = { at: now, data };
   return data;
 }
@@ -155,19 +229,18 @@ const PAYMENT_EMAIL_KEYS = [
   'email_payment_generic_body',
 ] as const;
 
-const DEFAULT_PAYMENT_COURSE_SUBJECT = 'Оплата получена — доступ к курсу открыт';
-const DEFAULT_PAYMENT_COURSE_BODY = `<p>Здравствуйте!</p>
-<p>Оплата по заказу {{orderid}} получена. Доступ к курсу «{{courseTitle}}» открыт.</p>
-<p>Войдите в личный кабинет с тем же email, что указали при оплате: <a href="{{loginUrl}}">{{loginUrl}}</a></p>
-<p>После входа перейдите в раздел «Мои курсы».</p>
-<p>Если у вас ещё нет аккаунта — зарегистрируйтесь с этим email, и курс будет доступен.</p>
-<p><a href="{{successUrl}}">Подробнее на странице результата оплаты</a>.</p>
-<p>— {{portal_title}}</p>`;
+const DEFAULT_PAYMENT_COURSE_SUBJECT = '{{courseTitle}} — доступ открыт';
+const DEFAULT_PAYMENT_COURSE_BODY = `<p>Здравствуйте, {{userName}}!</p>
+<p>Спасибо за оплату — ваш доступ к материалам курса «{{courseTitle}}» открыт. Войдите в личный кабинет: <a href="{{portalUrl}}">{{portalUrl}}</a> → раздел «Мои курсы».</p>
+<p>Чтобы обучение принесло максимум пользы, рекомендуем проходить курс <strong>осознанно и последовательно</strong>: закладывайте регулярное время, следуйте структуре уроков, выполняйте практические задания. При технических вопросах пишите в поддержку: <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.</p>
+<p>Условия оплаты, доступа и возврата — на странице <a href="{{ofertaUrl}}#oplata">оферты</a> (разделы оплата, доступ, возврат). Сумма заказа: {{orderAmount}}.</p>
+<p>С уважением, команда {{portal_title}}</p>`;
 
 const DEFAULT_PAYMENT_GENERIC_SUBJECT = 'Оплата получена';
-const DEFAULT_PAYMENT_GENERIC_BODY = `<p>Здравствуйте!</p>
-<p>Оплата по заказу {{orderid}} получена. Спасибо за оплату!</p>
-<p>Мы свяжемся с вами в ближайшее время для согласования деталей.</p>
+const DEFAULT_PAYMENT_GENERIC_BODY = `<p>Здравствуйте, {{userName}}!</p>
+<p>Оплата по заказу {{orderid}} получена ({{orderAmount}}). Спасибо!</p>
+<p>Личный кабинет: <a href="{{portalUrl}}">{{portalUrl}}</a>. Вопросы: <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.</p>
+<p>Условия — в <a href="{{ofertaUrl}}#oplata">оферте</a> (оплата, доступ, возврат).</p>
 <p>— {{portal_title}}</p>`;
 
 export interface PaymentEmailTemplates {
@@ -200,10 +273,10 @@ export async function getPaymentEmailTemplates(): Promise<PaymentEmailTemplates>
   return data;
 }
 
-/** Подстановка переменных в шаблон письма об оплате. */
+/** Подстановка переменных в шаблон письма об оплате (плейсхолдеры {{ключ}}). */
 export function renderPaymentEmailTemplate(
   template: string,
-  vars: { orderid: string; courseTitle?: string; loginUrl: string; successUrl: string; portal_title: string }
+  vars: Record<string, string | undefined>
 ): string {
   let out = template;
   for (const [k, v] of Object.entries(vars)) {
@@ -216,4 +289,29 @@ export function renderPaymentEmailTemplate(
 /** Сбросить кэш шаблонов писем об оплате (после изменения в админке). */
 export function clearPaymentEmailTemplatesCache(): void {
   paymentTemplatesCache = null;
+}
+
+// —— Максимальный размер SCORM-пакета (МБ) ——
+const SCORM_MAX_SIZE_KEY = 'scorm_max_size_mb';
+const DEFAULT_SCORM_MAX_MB = 200;
+let scormMaxSizeCache: { at: number; value: number } | null = null;
+
+/** Максимальный размер SCORM ZIP в мегабайтах (из настроек). По умолчанию 200. */
+export async function getScormMaxSizeMb(): Promise<number> {
+  const now = Date.now();
+  if (scormMaxSizeCache && now - scormMaxSizeCache.at < CACHE_TTL_MS) {
+    return scormMaxSizeCache.value;
+  }
+  const row = await prisma.systemSetting.findUnique({
+    where: { key: SCORM_MAX_SIZE_KEY },
+  });
+  const parsed = row?.value ? parseInt(row.value, 10) : NaN;
+  const value = Number.isFinite(parsed) && parsed > 0 ? Math.min(parsed, 1000) : DEFAULT_SCORM_MAX_MB;
+  scormMaxSizeCache = { at: now, value };
+  return value;
+}
+
+/** Сбросить кэш scorm_max_size_mb (после изменения в админке). */
+export function clearScormMaxSizeCache(): void {
+  scormMaxSizeCache = null;
 }

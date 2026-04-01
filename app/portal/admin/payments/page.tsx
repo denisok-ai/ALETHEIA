@@ -11,7 +11,6 @@ import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { PaymentsExportButton } from './PaymentsExportButton';
 import { PaymentsTableClient } from './PaymentsTableClient';
-import { ServicesAdminBlock } from './ServicesAdminBlock';
 import { SimulatePaymentBlock } from './SimulatePaymentBlock';
 
 export default async function AdminPaymentsPage({
@@ -58,7 +57,7 @@ export default async function AdminPaymentsPage({
           { label: 'Оплаты' },
         ]}
         title="Оплаты"
-        description="Транзакции и дашборд выручки"
+        description="Заказы, симуляция оплаты, выручка. Товары для главной — в разделе «Товары»."
         actions={<PaymentsExportButton />}
       />
 
@@ -76,8 +75,6 @@ export default async function AdminPaymentsPage({
           <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{orders.length}</p>
         </div>
       </div>
-
-      <ServicesAdminBlock />
 
       <SimulatePaymentBlock />
 

@@ -70,6 +70,7 @@ export default async function ManagerTicketPage({ params }: Props) {
         managers={managers.map((p) => ({ id: p.userId, label: p.displayName ?? p.user.email ?? p.userId.slice(0, 8) }))}
         backHref="/portal/manager/tickets"
         backLabel="← К списку тикетов"
+        layout="wide"
       />
     </div>
   );

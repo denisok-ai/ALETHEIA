@@ -1,18 +1,24 @@
 /**
  * Admin: upload SCORM ZIP; extract, parse manifest, extract text for AI; store in public/uploads/scorm/.
+ * Creates ScormVersion record. Keeps last 5 versions on disk.
  * Expects multipart form with "file" (ZIP) and "courseId".
  */
 import { NextRequest, NextResponse } from 'next/server';
 import JSZip from 'jszip';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, rm } from 'fs/promises';
 import path from 'path';
-import { parseScormManifest } from '@/lib/scorm/manifest-parser';
+import { parseScormManifest, type ParsedManifest } from '@/lib/scorm/manifest-parser';
+import { pickScormEntryPath } from '@/lib/scorm/launch-path';
 import { extractCourseContent } from '@/lib/scorm/course-content-extractor';
 import { writeAuditLog } from '@/lib/audit';
+import { getScormMaxSizeMb } from '@/lib/settings';
 
-const MAX_SCORM_SIZE = 200 * 1024 * 1024; // 200 MB
+const MAX_VERSIONS_KEPT = 5;
+
+/** Долгая распаковка больших ZIP на VPS */
+export const maxDuration = 300;
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminSession();
@@ -25,9 +31,11 @@ export async function POST(request: NextRequest) {
     if (!file || !courseId) {
       return NextResponse.json({ error: 'Missing file or courseId' }, { status: 400 });
     }
-    if (file.size > MAX_SCORM_SIZE) {
+    const maxMb = await getScormMaxSizeMb();
+    const maxBytes = maxMb * 1024 * 1024;
+    if (file.size > maxBytes) {
       return NextResponse.json(
-        { error: `Размер архива не более ${MAX_SCORM_SIZE / 1024 / 1024} МБ` },
+        { error: `Размер архива не более ${maxMb} МБ` },
         { status: 400 }
       );
     }
@@ -40,19 +48,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid ZIP file' }, { status: 400 });
     }
 
-    const prefix = path.join(process.cwd(), 'public', 'uploads', 'scorm', `courses-${courseId}`);
+    const lastVersion = await prisma.scormVersion.findFirst({
+      where: { courseId },
+      orderBy: { version: 'desc' },
+      select: { version: true },
+    });
+    const nextVersion = (lastVersion?.version ?? 0) + 1;
+
+    const versionDir = `v${nextVersion}`;
+    const prefix = path.join(process.cwd(), 'public', 'uploads', 'scorm', `courses-${courseId}`, versionDir);
     await mkdir(prefix, { recursive: true });
 
     const resolvedPrefix = path.resolve(prefix);
 
-    // Extract all files (with path traversal protection — Zip Slip)
     const htmlEntries: { path: string; content: string }[] = [];
     for (const [filePath, entry] of Object.entries(zip.files)) {
       if (entry.dir) continue;
       const fullPath = path.join(prefix, filePath);
       const resolvedFull = path.resolve(fullPath);
       if (!resolvedFull.startsWith(resolvedPrefix)) {
-        continue; // skip path traversal attempt
+        continue;
       }
       const content = await entry.async('nodebuffer');
       const dir = path.dirname(fullPath);
@@ -65,20 +80,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Parse manifest
     const manifestEntry = Object.keys(zip.files).find(
       (p) => p.toLowerCase() === 'imsmanifest.xml' || p.toLowerCase().endsWith('/imsmanifest.xml')
     );
-    let scormVersion: string | null = null;
+    let scormVersionStr: string | null = null;
     let scormManifest: string | null = null;
     let aiContext: string | null = null;
+    let parsedManifest: ParsedManifest | null = null;
 
     if (manifestEntry) {
       try {
         const xmlContent = (await zip.files[manifestEntry].async('string')) as string;
         const parsed = parseScormManifest(xmlContent);
+        parsedManifest = parsed;
         if (parsed) {
-          scormVersion = parsed.version;
+          scormVersionStr = parsed.version;
           scormManifest = JSON.stringify({
             version: parsed.version,
             title: parsed.title,
@@ -87,11 +103,9 @@ export async function POST(request: NextRequest) {
         }
       } catch (e) {
         console.error('SCORM manifest parse error:', e);
-        // Continue without manifest; course still usable
       }
     }
 
-    // Extract text for AI context
     if (htmlEntries.length > 0) {
       const extracted = extractCourseContent(htmlEntries);
       if (extracted.length > 0) {
@@ -99,35 +113,73 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Entry point for iframe
-    const indexHtml = Object.keys(zip.files).find((p) => p.toLowerCase().endsWith('index.html'));
-    const firstHtml = Object.keys(zip.files).find((p) => p.toLowerCase().endsWith('.html'));
-    const entryPath = indexHtml ?? firstHtml ?? 'index.html';
-    const scormPath = `courses-${courseId}/${entryPath}`;
+    const entryPath = pickScormEntryPath(zip, manifestEntry, parsedManifest);
+    const scormPath = `courses-${courseId}/${versionDir}/${entryPath}`;
 
-    await prisma.course.update({
-      where: { id: courseId },
-      data: {
-        scormPath,
-        scormVersion,
-        scormManifest,
-        aiContext,
-      },
+    await prisma.$transaction(async (tx) => {
+      await tx.scormVersion.updateMany({
+        where: { courseId },
+        data: { isActive: false },
+      });
+
+      await tx.scormVersion.create({
+        data: {
+          courseId,
+          version: nextVersion,
+          scormPath,
+          scormVersion: scormVersionStr,
+          scormManifest,
+          aiContext,
+          fileSize: file.size,
+          isActive: true,
+          uploadedById: auth.userId,
+        },
+      });
+
+      await tx.course.update({
+        where: { id: courseId },
+        data: {
+          scormPath,
+          scormVersion: scormVersionStr,
+          scormManifest,
+          aiContext,
+        },
+      });
     });
+
+    const toRemove = await prisma.scormVersion.findMany({
+      where: { courseId },
+      orderBy: { version: 'desc' },
+      select: { id: true, version: true, scormPath: true },
+    });
+    const toDelete = toRemove.slice(MAX_VERSIONS_KEPT);
+    for (const v of toDelete) {
+      const dirPart = path.dirname(v.scormPath);
+      if (!/\/v\d+$/.test(dirPart)) continue;
+      const dirPath = path.join(process.cwd(), 'public', 'uploads', 'scorm', dirPart);
+      try {
+        await rm(dirPath, { recursive: true });
+      } catch (err) {
+        console.error('Failed to remove old SCORM version dir:', dirPath, err);
+      }
+      await prisma.scormVersion.delete({ where: { id: v.id } });
+    }
 
     await writeAuditLog({
       actorId: auth.userId,
       action: 'scorm_upload',
       entity: 'Course',
       entityId: courseId,
-      diff: { scormPath, scormVersion },
+      diff: { scormPath, scormVersion: scormVersionStr, version: nextVersion },
     });
 
-    return NextResponse.json({ success: true, courseId, scormPath });
+    return NextResponse.json({ success: true, courseId, scormPath, version: nextVersion });
   } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
     console.error('SCORM upload error:', e);
+    const maxMb = await getScormMaxSizeMb().catch(() => 200);
     return NextResponse.json(
-      { error: 'Ошибка загрузки SCORM. Проверьте файл и повторите попытку.' },
+      { error: `Ошибка загрузки SCORM: ${msg}. Проверьте файл (ZIP, до ${maxMb} МБ) и повторите.` },
       { status: 500 }
     );
   }

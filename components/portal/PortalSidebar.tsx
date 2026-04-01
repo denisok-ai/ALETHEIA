@@ -9,6 +9,7 @@ import { useState, useEffect, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { usePortalUI } from './PortalUIProvider';
 import { PortalAccountBlock } from './PortalAccountBlock';
+import { PortalBuildBadge } from './PortalBuildBadge';
 import { X, PanelLeftClose, PanelLeft, ChevronDown } from 'lucide-react';
 
 export interface NavItem {
@@ -22,16 +23,16 @@ export interface NavSection {
   items: NavItem[];
 }
 
-export type NavFooterRender = (ctx: { collapsed: boolean }) => ReactNode;
-
 interface PortalSidebarProps {
   items?: NavItem[];
   sections?: NavSection[];
   collapsible?: boolean;
   /** Секции с заголовком можно сворачивать (уменьшает скролл меню, состояние в localStorage) */
   collapsibleNavSections?: boolean;
-  /** Блок под навигацией (например версия сборки); для collapsible — передавайте функцию с collapsed */
-  navFooter?: ReactNode | NavFooterRender;
+  /** Доп. блок под навигацией (только ReactNode; из Server Component не передавать — только из клиентских оболочек). */
+  navFooter?: ReactNode;
+  /** Версия сборки в подвале сайдбара (рендерится на клиенте с учётом collapsed). */
+  footerBuildBadge?: boolean;
 }
 
 const SIDEBAR_COLLAPSED_KEY = 'portal-sidebar-collapsed';
@@ -292,12 +293,26 @@ function CollapseButton({ collapsed, onClick }: { collapsed: boolean; onClick: (
 
 /* ─── Desktop sidebar shell ─── */
 function renderNavFooterSlot(
-  navFooter: ReactNode | NavFooterRender | undefined,
+  navFooter: ReactNode | undefined,
+  footerBuildBadge: boolean | undefined,
   collapsed: boolean,
 ): ReactNode {
-  if (navFooter == null) return null;
-  if (typeof navFooter === 'function') return navFooter({ collapsed });
-  return navFooter;
+  const extra: ReactNode[] = [];
+  if (footerBuildBadge) {
+    extra.push(
+      <PortalBuildBadge key="portal-build" variant={collapsed ? 'sidebar-collapsed' : 'sidebar'} />
+    );
+  }
+  if (navFooter == null) {
+    return extra.length ? <>{extra}</> : null;
+  }
+  if (extra.length === 0) return navFooter;
+  return (
+    <>
+      {extra}
+      {navFooter}
+    </>
+  );
 }
 
 function DesktopSidebar({
@@ -308,6 +323,7 @@ function DesktopSidebar({
   collapsibleNavSections,
   onToggle,
   navFooter,
+  footerBuildBadge,
 }: {
   items?: NavItem[];
   sections?: NavSection[];
@@ -315,9 +331,10 @@ function DesktopSidebar({
   collapsible?: boolean;
   collapsibleNavSections?: boolean;
   onToggle: () => void;
-  navFooter?: ReactNode | NavFooterRender;
+  navFooter?: ReactNode;
+  footerBuildBadge?: boolean;
 }) {
-  const footerSlot = renderNavFooterSlot(navFooter, collapsed);
+  const footerSlot = renderNavFooterSlot(navFooter, footerBuildBadge, collapsed);
   return (
     <aside
       style={{ width: collapsed ? 'var(--portal-sidebar-collapsed-w)' : 'var(--portal-sidebar-w)' }}
@@ -360,14 +377,16 @@ function MobileSidebar({
   onClose,
   collapsibleNavSections,
   navFooter,
+  footerBuildBadge,
 }: {
   items?: NavItem[];
   sections?: NavSection[];
   onClose: () => void;
   collapsibleNavSections?: boolean;
-  navFooter?: ReactNode | NavFooterRender;
+  navFooter?: ReactNode;
+  footerBuildBadge?: boolean;
 }) {
-  const footerSlot = renderNavFooterSlot(navFooter, false);
+  const footerSlot = renderNavFooterSlot(navFooter, footerBuildBadge, false);
   return (
     <div
       className="fixed inset-0 z-50 lg:hidden"
@@ -428,6 +447,7 @@ export function PortalSidebar({
   collapsible,
   collapsibleNavSections,
   navFooter,
+  footerBuildBadge,
 }: PortalSidebarProps) {
   const { mobileMenuOpen, setMobileMenuOpen } = usePortalUI();
   const [collapsed, setCollapsed] = useState(false);
@@ -453,6 +473,7 @@ export function PortalSidebar({
         collapsibleNavSections={collapsibleNavSections}
         onToggle={() => setCollapsed((c) => !c)}
         navFooter={navFooter}
+        footerBuildBadge={footerBuildBadge}
       />
       {mobileMenuOpen && (
         <MobileSidebar
@@ -461,6 +482,7 @@ export function PortalSidebar({
           onClose={() => setMobileMenuOpen(false)}
           collapsibleNavSections={collapsibleNavSections}
           navFooter={navFooter}
+          footerBuildBadge={footerBuildBadge}
         />
       )}
     </>

@@ -74,6 +74,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
   const [newEndsAt, setNewEndsAt] = useState('');
   const [newStatus, setNewStatus] = useState<CourseStatusKey>('published');
   const [newPrice, setNewPrice] = useState('');
+  const [newScormFile, setNewScormFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Course | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Course | null>(null);
@@ -272,6 +273,9 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
         created_at: data.course.created_at ?? new Date().toISOString(),
       };
       setCourses((prev) => [newCourse, ...prev]);
+      if (newScormFile) {
+        await handleUpload(newCourse.id, newScormFile);
+      }
       setShowCreate(false);
       setNewTitle('');
       setNewDesc('');
@@ -279,6 +283,8 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
       setNewEndsAt('');
       setNewStatus('published');
       setNewPrice('');
+      setNewScormFile(null);
+      toast.success(newScormFile ? 'Курс создан, SCORM загружен' : 'Курс создан');
     } catch (err) {
       console.error(err);
       toast.error('Ошибка создания курса');
@@ -293,8 +299,13 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
       form.set('file', file);
       form.set('courseId', courseId);
       const res = await fetch('/api/portal/admin/courses/upload', { method: 'POST', body: form });
-      if (!res.ok) throw new Error(await res.text());
-      const data = (await res.json()) as { scormPath?: string };
+      let data: { success?: boolean; scormPath?: string; error?: string };
+      try {
+        data = (await res.json()) as { success?: boolean; scormPath?: string; error?: string };
+      } catch {
+        throw new Error(res.ok ? 'Неверный ответ сервера' : `Ошибка ${res.status}`);
+      }
+      if (!res.ok) throw new Error(data.error ?? `Ошибка ${res.status}`);
       setCourses((prev) =>
         prev.map((c) =>
           c.id === courseId ? { ...c, scorm_path: data.scormPath ?? c.scorm_path } : c
@@ -302,8 +313,8 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
       );
       toast.success('SCORM-пакет загружен');
     } catch (err) {
-      console.error(err);
-      toast.error('Ошибка загрузки');
+      console.error('SCORM upload error:', err);
+      toast.error(err instanceof Error ? err.message : 'Ошибка загрузки SCORM');
     }
     setUploading(null);
   }
@@ -500,11 +511,22 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                 className="mt-1"
               />
             </div>
+            <div>
+              <Label htmlFor="newScorm">SCORM-пакет (ZIP)</Label>
+              <Input
+                id="newScorm"
+                type="file"
+                accept=".zip"
+                onChange={(e) => setNewScormFile(e.target.files?.[0] ?? null)}
+                className="mt-1"
+              />
+              <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Можно загрузить SCORM после создания курса или сейчас.</p>
+            </div>
             <div className="flex gap-2">
               <Button type="submit" disabled={creating}>
-                {creating ? 'Создание…' : 'Создать'}
+                {creating ? (newScormFile ? 'Создание и загрузка…' : 'Создание…') : 'Создать'}
               </Button>
-              <Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>
+              <Button type="button" variant="ghost" onClick={() => { setShowCreate(false); setNewScormFile(null); }}>
                 Отмена
               </Button>
             </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -30,6 +30,8 @@ import { downloadXlsx } from '@/lib/export-xlsx';
 import { isPlaceholderOrExampleUrl } from '@/lib/placeholder-url';
 import { MediaItemGroupsBlock } from './MediaItemGroupsBlock';
 import { GroupPickerModal } from '@/components/portal/GroupPickerModal';
+import MediaViewerLazy from '@/components/portal/media/MediaViewerLazy';
+import { MediaCoverPlaceholder } from '@/components/portal/CourseCoverPlaceholder';
 
 interface MediaItem {
   id: string;
@@ -49,11 +51,6 @@ interface MediaItem {
   course_title?: string | null;
 }
 
-const IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-const VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv'];
-const AUDIO_MIMES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'];
-const PDF_MIMES = ['application/pdf'];
-
 const RESOURCE_TYPE_FILTERS: { value: string; label: string }[] = [
   { value: 'all', label: 'Все' },
   { value: 'file', label: 'Файл' },
@@ -65,6 +62,7 @@ const CATEGORY_SUGGESTIONS = ['video', 'pdf', 'image'];
 const MEDIA_TABLE_COLUMNS: ColumnConfigItem[] = [
   { id: 'num', label: '№' },
   { id: 'title', label: 'Название' },
+  { id: 'description', label: 'Описание' },
   { id: 'category', label: 'Категория' },
   { id: 'type', label: 'Тип' },
   { id: 'mime', label: 'MIME' },
@@ -111,6 +109,39 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => MEDIA_TABLE_COLUMNS.map((c) => c.id));
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>(() => {
+    if (typeof window === 'undefined') return 'table';
+    try {
+      const v = localStorage.getItem('portal-media-admin-view');
+      if (v === 'grid' || v === 'table') return v;
+    } catch {
+      /* ignore */
+    }
+    return window.matchMedia('(min-width: 1280px)').matches ? 'table' : 'grid';
+  });
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1280px)');
+    const sync = () => {
+      try {
+        if (localStorage.getItem('portal-media-admin-view')) return;
+      } catch {
+        /* ignore */
+      }
+      setViewMode(mq.matches ? 'table' : 'grid');
+    };
+    mq.addEventListener('change', sync);
+    return () => mq.removeEventListener('change', sync);
+  }, []);
+
+  const persistViewMode = (mode: 'table' | 'grid') => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem('portal-media-admin-view', mode);
+    } catch {
+      /* ignore */
+    }
+  };
   const handleSort = (columnId: string) => {
     setPage(0);
     if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
@@ -267,9 +298,17 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
     filteredItems = filteredItems.filter((m) => m.category === categoryFilter);
   }
   const q = searchQuery.trim().toLowerCase();
-  if (q) filteredItems = filteredItems.filter((m) => m.title.toLowerCase().includes(q));
+  if (q) {
+    filteredItems = filteredItems.filter(
+      (m) =>
+        m.title.toLowerCase().includes(q) ||
+        (m.description ?? '').toLowerCase().includes(q) ||
+        (m.category ?? '').toLowerCase().includes(q)
+    );
+  }
   const mediaSortGetters: Record<string, (m: MediaItem) => unknown> = {
     title: (m) => m.title,
+    description: (m) => m.description ?? '',
     category: (m) => m.category ?? '',
     type: (m) => m.type ?? 'file',
     mime: (m) => m.mime_type ?? '',
@@ -290,6 +329,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
   const handleExportExcel = () => {
     downloadXlsx(sortedItems, [
       { key: 'title', header: 'Название' },
+      { key: 'description', header: 'Описание' },
       { key: 'category', header: 'Категория' },
       { key: 'type', header: 'Тип' },
       { key: 'mime_type', header: 'MIME' },
@@ -484,12 +524,28 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
             <input
               type="search"
-              placeholder="Найти в списке"
+              placeholder="Название, описание, категория"
               value={searchQuery}
               onChange={(e) => { setSearchQuery(e.target.value); setPage(0); }}
-              className="w-48 rounded-lg border border-[#E2E8F0] bg-white py-2 pl-8 pr-3 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-muted)]"
-              aria-label="Найти в списке"
+              className="w-56 sm:w-64 rounded-lg border border-[#E2E8F0] bg-white py-2 pl-8 pr-3 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-muted)]"
+              aria-label="Поиск по названию, описанию и категории"
             />
+          </div>
+          <div className="flex rounded-lg border border-[#E2E8F0] bg-white p-0.5 text-sm">
+            <button
+              type="button"
+              className={`rounded-md px-2.5 py-1.5 ${viewMode === 'table' ? 'bg-[#EEF2FF] text-[#4338CA] font-medium' : 'text-[var(--portal-text-muted)]'}`}
+              onClick={() => { persistViewMode('table'); setPage(0); }}
+            >
+              Таблица
+            </button>
+            <button
+              type="button"
+              className={`rounded-md px-2.5 py-1.5 ${viewMode === 'grid' ? 'bg-[#EEF2FF] text-[#4338CA] font-medium' : 'text-[var(--portal-text-muted)]'}`}
+              onClick={() => { persistViewMode('grid'); setPage(0); }}
+            >
+              Сетка
+            </button>
           </div>
         </div>
         {selectedIds.size > 0 && (
@@ -510,6 +566,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
             </Button>
           </div>
         )}
+        {viewMode === 'table' && (
         <div className="overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
           <Table>
             <TableHeader>
@@ -517,7 +574,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                 <TableHead className="w-10">
                   <button
                     type="button"
-                    onClick={toggleSelectAllOnPage}
+                    onClick={(e) => { e.stopPropagation(); toggleSelectAllOnPage(); }}
                     className="p-1"
                     title={pageItems.every((m) => selectedIds.has(m.id)) ? 'Снять выбор' : 'Выбрать страницу'}
                   >
@@ -528,10 +585,16 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                     )}
                   </button>
                 </TableHead>
+                <TableHead className="w-[76px] min-w-[76px]">Превью</TableHead>
                 {visibleColumnIds.includes('num') && <TableHead className="w-10">№</TableHead>}
                 {visibleColumnIds.includes('title') && (
                   <SortableTableHead sortKey="title" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>
                     Название
+                  </SortableTableHead>
+                )}
+                {visibleColumnIds.includes('description') && (
+                  <SortableTableHead sortKey="description" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort} className="max-w-[200px]">
+                    Описание
                   </SortableTableHead>
                 )}
                 {visibleColumnIds.includes('category') && (
@@ -575,7 +638,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
             <TableBody>
               {pageItems.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={2 + visibleColumnIds.length} className="p-0">
+                  <TableCell colSpan={3 + visibleColumnIds.length} className="p-0">
                     <EmptyState
                       title="Нет файлов"
                       description="Нажмите «Загрузить файл» или измените фильтры"
@@ -590,14 +653,38 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                     ? ((m.rating_sum ?? 0) / (m.rating_count ?? 1)).toFixed(1)
                     : '—';
                   return (
-                  <TableRow key={m.id}>
-                    <TableCell className="w-10">
-                      <button type="button" onClick={() => toggleSelect(m.id)} className="p-1">
+                  <TableRow
+                    key={m.id}
+                    className="cursor-pointer hover:bg-[#F8FAFC]"
+                    onClick={() => setPreviewItem(m)}
+                  >
+                    <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
+                      <button type="button" onClick={() => toggleSelect(m.id)} className="p-1 min-h-9 min-w-9 inline-flex items-center justify-center">
                         {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
+                      </button>
+                    </TableCell>
+                    <TableCell className="w-[76px] p-1.5 align-middle" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="relative block h-14 w-[4.5rem] rounded overflow-hidden bg-[#1e1340] shrink-0 ring-1 ring-[#E2E8F0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366F1]"
+                        onClick={() => setPreviewItem(m)}
+                        aria-label={`Превью: ${m.title}`}
+                      >
+                        {m.thumbnail_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- admin media thumbnails
+                          <img src={m.thumbnail_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                        ) : (
+                          <MediaCoverPlaceholder category={m.category} title={m.title} className="absolute inset-0 h-full w-full" />
+                        )}
                       </button>
                     </TableCell>
                     {visibleColumnIds.includes('num') && <TableCell className="text-[var(--portal-text-muted)]">{start + idx + 1}</TableCell>}
                     {visibleColumnIds.includes('title') && <TableCell className="font-medium text-[var(--portal-text)]">{m.title}</TableCell>}
+                    {visibleColumnIds.includes('description') && (
+                      <TableCell className="text-[var(--portal-text-muted)] text-sm max-w-[220px]">
+                        <span className="line-clamp-2" title={m.description ?? undefined}>{m.description?.trim() ? m.description : '—'}</span>
+                      </TableCell>
+                    )}
                     {visibleColumnIds.includes('category') && <TableCell className="text-[var(--portal-text-muted)]">{m.category ?? '—'}</TableCell>}
                     {visibleColumnIds.includes('type') && <TableCell className="text-[var(--portal-text-muted)]">{resType === 'link' ? 'Ссылка' : 'Файл'}</TableCell>}
                     {visibleColumnIds.includes('mime') && <TableCell className="text-[var(--portal-text-muted)] text-xs max-w-[100px] truncate" title={m.mime_type ?? ''}>{m.mime_type ?? '—'}</TableCell>}
@@ -605,7 +692,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                     {visibleColumnIds.includes('rating') && <TableCell className="text-[var(--portal-text-muted)]">{rating}</TableCell>}
                     {visibleColumnIds.includes('download') && <TableCell className="text-[var(--portal-text-muted)]">{(m.allow_download ?? true) ? 'Да' : 'Нет'}</TableCell>}
                     {visibleColumnIds.includes('usage') && (
-                      <TableCell className="text-[var(--portal-text-muted)] text-sm">
+                      <TableCell className="text-[var(--portal-text-muted)] text-sm" onClick={(e) => e.stopPropagation()}>
                         {m.course_title ? (
                           <a href={`/portal/admin/courses/${m.course_id}`} className="text-[#6366F1] hover:underline">{m.course_title}</a>
                         ) : (
@@ -613,53 +700,53 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                         )}
                       </TableCell>
                     )}
-                    <TableCell>
-                      <div className="flex items-center gap-1">
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex items-center gap-0.5">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0"
+                          className="h-9 w-9 min-h-9 min-w-9 p-0 shrink-0"
                           onClick={() => setPreviewItem(m)}
                           aria-label="Превью"
                         >
-                          <ImageIcon className="h-4 w-4" />
+                          <ImageIcon className="h-[18px] w-[18px]" />
                         </Button>
                         {isPlaceholderOrExampleUrl(m.file_url) ? (
                           <span
-                            className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)]"
+                            className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded text-[var(--portal-text-muted)]"
                             title="Тестовая ссылка"
                             aria-label="Ссылка (тест)"
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            <ExternalLink className="h-[18px] w-[18px]" />
                           </span>
                         ) : (
                           <a
                             href={m.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                            className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
                             aria-label="Открыть"
                           >
-                            <ExternalLink className="h-4 w-4" />
+                            <ExternalLink className="h-[18px] w-[18px]" />
                           </a>
                         )}
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0"
+                          className="h-9 w-9 min-h-9 min-w-9 p-0 shrink-0"
                           onClick={() => setEditing(m)}
                           aria-label="Редактировать"
                         >
-                          <Pencil className="h-4 w-4" />
+                          <Pencil className="h-[18px] w-[18px]" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-8 w-8 p-0 text-red-600"
+                          className="h-9 w-9 min-h-9 min-w-9 p-0 shrink-0 text-red-600"
                           onClick={() => setDeleteTarget(m)}
                           aria-label="Удалить"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-[18px] w-[18px]" />
                         </Button>
                       </div>
                     </TableCell>
@@ -670,6 +757,97 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
             </TableBody>
           </Table>
         </div>
+        )}
+
+        {viewMode === 'grid' && (
+          <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">
+            {pageItems.length === 0 ? (
+              <EmptyState
+                title="Нет файлов"
+                description="Нажмите «Загрузить файл» или измените фильтры"
+                icon={<FolderOpen className="h-10 w-10" />}
+              />
+            ) : (
+              <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {pageItems.map((m) => {
+                  const resType = m.type ?? 'file';
+                  return (
+                    <li key={m.id} className="flex flex-col overflow-hidden rounded-xl border border-[#E2E8F0] bg-[#FAFBFC] shadow-sm">
+                      <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-[#1e1340]">
+                        {m.thumbnail_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element -- admin media thumbnails
+                          <img src={m.thumbnail_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                        ) : (
+                          <MediaCoverPlaceholder category={m.category} title={m.title} className="absolute inset-0 h-full w-full" />
+                        )}
+                        <div className="absolute left-2 top-2 flex flex-wrap gap-1">
+                          <span className="rounded bg-black/55 px-1.5 py-0.5 text-[10px] font-medium text-white">{resType === 'link' ? 'Ссылка' : 'Файл'}</span>
+                          {m.category && (
+                            <span className="rounded bg-black/55 px-1.5 py-0.5 text-[10px] text-white">{m.category}</span>
+                          )}
+                        </div>
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/0 pointer-events-none">
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            className="pointer-events-auto min-h-9 shadow-md opacity-95"
+                            onClick={() => setPreviewItem(m)}
+                          >
+                            Открыть
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex flex-1 flex-col gap-2 p-3">
+                        <div className="flex items-start gap-2">
+                          <button type="button" onClick={() => toggleSelect(m.id)} className="mt-0.5 p-0.5 shrink-0" aria-label={selectedIds.has(m.id) ? 'Снять выбор' : 'Выбрать'}>
+                            {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
+                          </button>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-semibold text-sm text-[var(--portal-text)] leading-snug line-clamp-2">{m.title}</p>
+                            {m.description?.trim() ? (
+                              <p className="mt-1 text-xs text-[var(--portal-text-muted)] line-clamp-2 leading-relaxed" title={m.description}>
+                                {m.description}
+                              </p>
+                            ) : null}
+                            <p className="mt-1 text-[10px] text-[var(--portal-text-soft)] truncate" title={m.mime_type ?? ''}>{m.mime_type ?? '—'}</p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1 border-t border-[#E2E8F0] pt-2">
+                          <Button variant="ghost" size="sm" className="h-9 min-h-9 px-2" onClick={() => setPreviewItem(m)} aria-label="Превью">
+                            <ImageIcon className="h-[18px] w-[18px]" />
+                          </Button>
+                          {isPlaceholderOrExampleUrl(m.file_url) ? (
+                            <span className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center text-[var(--portal-text-muted)]" title="Тестовая ссылка">
+                              <ExternalLink className="h-[18px] w-[18px]" />
+                            </span>
+                          ) : (
+                            <a
+                              href={m.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                              aria-label="Открыть файл"
+                            >
+                              <ExternalLink className="h-[18px] w-[18px]" />
+                            </a>
+                          )}
+                          <Button variant="ghost" size="sm" className="h-9 min-h-9 px-2" onClick={() => setEditing(m)} aria-label="Редактировать">
+                            <Pencil className="h-[18px] w-[18px]" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-9 min-h-9 px-2 text-red-600" onClick={() => setDeleteTarget(m)} aria-label="Удалить">
+                            <Trash2 className="h-[18px] w-[18px]" />
+                          </Button>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+        )}
+
         {total > 0 && (
           <TablePagination
             currentPage={currentPage}
@@ -681,9 +859,9 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
             onPageSizeChange={setPageSize}
             onExportExcel={handleExportExcel}
             exportLabel="Excel"
-            columnConfig={MEDIA_TABLE_COLUMNS}
-            visibleColumnIds={visibleColumnIds}
-            onVisibleColumnIdsChange={setVisibleColumnIds}
+            columnConfig={viewMode === 'table' ? MEDIA_TABLE_COLUMNS : undefined}
+            visibleColumnIds={viewMode === 'table' ? visibleColumnIds : []}
+            onVisibleColumnIdsChange={viewMode === 'table' ? setVisibleColumnIds : undefined}
           />
         )}
       </section>
@@ -798,54 +976,19 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
 }
 
 function PreviewDialog({ item, onClose }: { item: MediaItem; onClose: () => void }) {
-  const mime = item.mime_type ?? '';
-  const isImage = IMAGE_MIMES.includes(mime);
-  const isVideo = VIDEO_MIMES.some((v) => mime.startsWith('video/')) || mime.startsWith('video/');
-  const isAudio = AUDIO_MIMES.some((a) => mime.startsWith('audio/')) || mime.startsWith('audio/');
-  const isPdf = PDF_MIMES.includes(mime) || mime.includes('pdf');
-  const src = item.file_url;
-  const isPlaceholder = isPlaceholderOrExampleUrl(src);
-
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col gap-2 overflow-hidden p-6">
+        <DialogHeader className="shrink-0">
           <DialogTitle>{item.title}</DialogTitle>
         </DialogHeader>
-        <div className="mt-2">
-          {isPlaceholder ? (
-            <p className="text-sm text-[var(--portal-text-muted)] py-4">
-              Тестовый ресурс. Ссылка не ведёт на реальный файл (example.com или пусто).
-            </p>
-          ) : (
-            <>
-              {isImage && (
-                // eslint-disable-next-line @next/next/no-img-element -- preview URL dynamic
-                <img src={src} alt={item.title} className="max-h-[70vh] w-full object-contain rounded-lg" />
-              )}
-              {isVideo && !isImage && (
-                <video controls className="w-full max-h-[70vh] rounded-lg" src={src}>
-                  Ваш браузер не поддерживает видео.
-                </video>
-              )}
-              {isAudio && !isVideo && (
-                <audio controls className="w-full" src={src}>
-                  Ваш браузер не поддерживает аудио.
-                </audio>
-              )}
-              {isPdf && !isVideo && !isAudio && (
-                <iframe title={item.title} src={src} className="w-full h-[70vh] rounded-lg border border-[#E2E8F0]" />
-              )}
-              {!isImage && !isVideo && !isAudio && !isPdf && (
-                <div className="space-y-2">
-                  <p className="text-sm text-[var(--portal-text-muted)]">Предпросмотр недоступен. Доступно только скачивание.</p>
-                  <a href={src} target="_blank" rel="noopener noreferrer" className="text-[#6366F1] hover:underline inline-flex items-center gap-1">
-                    <ExternalLink className="h-4 w-4" /> Открыть / Скачать
-                  </a>
-                </div>
-              )}
-            </>
-          )}
+        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+          <MediaViewerLazy
+            title={item.title}
+            src={item.file_url}
+            mimeType={item.mime_type ?? ''}
+            poster={item.thumbnail_url ?? null}
+          />
         </div>
       </DialogContent>
     </Dialog>

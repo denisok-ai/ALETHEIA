@@ -1,7 +1,7 @@
 /**
- * Admin: create user (email, password, displayName, role).
+ * Admin: list users (GET) with pagination and search, create user (POST).
  */
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { hash } from 'bcryptjs';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -10,6 +10,54 @@ import { validatePassword } from '@/lib/password-validation';
 const ALLOWED_ROLES = ['user', 'manager', 'admin'];
 const MAX_EMAIL = 255;
 const MAX_DISPLAY_NAME = 200;
+const DEFAULT_LIMIT = 100;
+const MAX_LIMIT = 500;
+
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminSession();
+  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(1, parseInt(searchParams.get('page') ?? '1', 10));
+  const limit = Math.min(MAX_LIMIT, Math.max(1, parseInt(searchParams.get('limit') ?? String(DEFAULT_LIMIT), 10)));
+  const q = searchParams.get('q')?.trim() ?? '';
+  const skip = (page - 1) * limit;
+
+  const where = q
+    ? {
+        OR: [
+          { email: { contains: q } },
+          { displayName: { contains: q } },
+          { profile: { displayName: { contains: q } } },
+          { profile: { email: { contains: q } } },
+        ],
+      }
+    : {};
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        email: true,
+        displayName: true,
+        profile: { select: { displayName: true } },
+      },
+    }),
+    prisma.user.count({ where }),
+  ]);
+
+  const result = users.map((u) => ({
+    id: u.id,
+    email: u.email,
+    displayName: u.profile?.displayName ?? u.displayName ?? null,
+  }));
+
+  return NextResponse.json({ users: result, total, page, limit });
+}
 
 export async function POST(req: Request) {
   const auth = await requireAdminSession();

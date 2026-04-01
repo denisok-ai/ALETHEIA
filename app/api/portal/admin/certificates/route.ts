@@ -17,10 +17,11 @@ export async function GET(request: NextRequest) {
     include: {
       course: { select: { id: true, title: true } },
       user: {
-        include: {
+        select: {
+          id: true,
+          email: true,
           profile: { select: { displayName: true } },
         },
-        select: { id: true, email: true },
       },
     },
     orderBy: { issuedAt: 'desc' },

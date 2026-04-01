@@ -4,6 +4,7 @@
 import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
 import { notFound } from 'next/navigation';
+import { Suspense } from 'react';
 
 export const metadata: Metadata = { title: 'Тикеты' };
 
@@ -16,13 +17,15 @@ export default async function ManagerTicketsPage() {
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || (role !== 'manager' && role !== 'admin')) notFound();
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="w-full max-w-none space-y-6">
       <PageHeader
         items={[{ href: '/portal/manager/dashboard', label: 'Дашборд' }, { label: 'Тикеты' }]}
         title="Тикеты"
         description="Заявки поддержки"
       />
-      <ManagerTicketsTableClient />
+      <Suspense fallback={<p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>}>
+        <ManagerTicketsTableClient />
+      </Suspense>
     </div>
   );
 }

@@ -10,6 +10,7 @@ export const mediaUpdateSchema = z.object({
   courseId: z.string().cuid().optional().nullable(),
   allowDownload: z.boolean().optional(),
   thumbnailUrl: z.string().max(2000).optional().nullable(),
+  sortOrder: z.number().int().min(0).optional(),
 });
 
 export const mediaCreateLinkSchema = z.object({

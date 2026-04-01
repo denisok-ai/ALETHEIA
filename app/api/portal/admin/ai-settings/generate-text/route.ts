@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
     promptChars: system.length + userContent.length,
     responseChars: content.length,
     durationMs: Date.now() - startMs,
-    userId: auth?.userId,
-    role: 'admin',
+    userId: auth.userId,
+    role: auth.role,
   });
 
   return NextResponse.json({ content });

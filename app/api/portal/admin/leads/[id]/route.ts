@@ -1,5 +1,5 @@
 /**
- * Admin: update lead (status).
+ * Admin: get / update lead.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
@@ -8,6 +8,38 @@ import { prisma } from '@/lib/db';
 const ALLOWED_STATUSES = ['new', 'contacted', 'qualified', 'converted', 'lost'];
 const MAX_NOTES = 2000;
 const MAX_SOURCE = 100;
+
+export async function GET(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireAdminSession();
+  if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+
+  const { id } = await params;
+  const leadId = parseInt(id, 10);
+  if (isNaN(leadId)) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
+
+  const lead = await prisma.lead.findUnique({ where: { id: leadId } });
+  if (!lead) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+
+  return NextResponse.json({
+    lead: {
+      id: lead.id,
+      name: lead.name,
+      phone: lead.phone,
+      email: lead.email,
+      message: lead.message,
+      notes: lead.notes,
+      status: lead.status,
+      source: lead.source,
+      converted_to_user_id: lead.convertedToUserId,
+      last_order_number: lead.lastOrderNumber ?? null,
+      created_at: lead.createdAt.toISOString(),
+      updated_at: lead.updatedAt.toISOString(),
+    },
+  });
+}
 
 export async function PATCH(
   request: NextRequest,

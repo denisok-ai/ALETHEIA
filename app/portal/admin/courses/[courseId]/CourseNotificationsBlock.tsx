@@ -118,8 +118,8 @@ export function CourseNotificationsBlock({
     setCatalogLoading(true);
     fetch('/api/portal/admin/notification-sets')
       .then((r) => r.json())
-      .then((data: { notificationSets: CatalogSet[] }) => {
-        setCatalog(data.notificationSets ?? []);
+      .then((data: { sets?: CatalogSet[] }) => {
+        setCatalog(data.sets ?? []);
       })
       .catch(() => {
         toast.error('Ошибка загрузки каталога');

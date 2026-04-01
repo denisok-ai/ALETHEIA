@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Download } from 'lucide-react';
-import { CERTIFICATE_TEMPLATE_LABELS, type CertificateTemplateId } from '@/lib/certificates-constants';
-
-const TEMPLATES: CertificateTemplateId[] = ['default', 'minimal', 'elegant'];
+import {
+  CERTIFICATE_TEMPLATE_LABELS,
+  CERTIFICATE_TEMPLATE_IDS_FOR_SELECT,
+  type CertificateTemplateId,
+} from '@/lib/certificates-constants';
 
 export function CertificateDownload({ certId, allowDownload = true }: { certId: string; allowDownload?: boolean }) {
   const [template, setTemplate] = useState<CertificateTemplateId>('default');
@@ -23,7 +25,7 @@ export function CertificateDownload({ certId, allowDownload = true }: { certId: 
         className="rounded-lg border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)] hover:bg-[#F8FAFC]"
         aria-label="Шаблон сертификата"
       >
-        {TEMPLATES.map((t) => (
+        {CERTIFICATE_TEMPLATE_IDS_FOR_SELECT.map((t) => (
           <option key={t} value={t}>{CERTIFICATE_TEMPLATE_LABELS[t]}</option>
         ))}
       </select>

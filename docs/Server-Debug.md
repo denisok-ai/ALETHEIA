@@ -211,3 +211,55 @@ ssh -L 9229:127.0.0.1:9229 user@IP_СЕРВЕРА
    npm run start
    ```
    Для сборки нужны все зависимости (в т.ч. dev), поэтому используется `npm ci` без `--omit=dev`.
+
+---
+
+## Ошибка 500 на `/portal/admin/dashboard`
+
+1. **Логи Node** (сразу после воспроизведения 500 в браузере):
+   ```bash
+   journalctl -u aletheia.service -n 150 --no-pager
+   # или: pm2 logs aletheia --lines 150
+   ```
+   - Если есть строка **`[portal/admin/dashboard] loadDashboardMetrics failed`** — смотрите текст ошибки Prisma ниже (БД, миграции, `DATABASE_URL`).
+   - Если её **нет** — часто причина в рендере страницы после загрузки метрик; убедитесь, что на сервере актуальный код (графики без SSR).
+
+2. **Счётчики аналитики в HTML** (без блокировщика рекламы; проверка с сервера или локально):
+   ```bash
+   curl -sS https://avaterra.pro/ | grep -E 'googletagmanager|G-7CQ48S3CFF|clarity\.ms' || true
+   ```
+   Пустой вывод: проверьте `Environment=NODE_ENV=production` в unit-файле ([`scripts/systemd/aletheia.service.example`](../scripts/systemd/aletheia.service.example)), что после `git pull` выполнен **`npm run build`** и перезапущен сервис, и что nginx не отдаёт устаревший HTML главной из кеша.
+
+---
+
+## 502 Bad Gateway (nginx)
+
+Это **не кеш «старой версии»**: nginx не получил ответ от upstream (обычно `127.0.0.1:3000`). Причины:
+
+1. **Процесс Next.js не запущен или сразу падает** — смотрите `sudo systemctl status aletheia.service -l` и `sudo journalctl -u aletheia.service -n 80 --no-pager`.
+2. **`WorkingDirectory` в unit-файле не тот каталог**, где выполняли `npm run build` (например деплой в `/opt/ALETHEIA`, а сервис стартует из `/var/www/...`) — в логах может не быть `.next` или старая сборка.
+3. **Другой порт** — в [`scripts/nginx-aletheia.conf`](../scripts/nginx-aletheia.conf) указан `proxy_pass http://127.0.0.1:3000`. Если в `.env` задан `PORT=…`, тот же порт должен быть в nginx.
+
+Проверка **до** внешнего URL (на самом сервере):
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/api/health
+```
+
+Ожидается `200`. Скрипт [`scripts/deploy-pull.sh`](../scripts/deploy-pull.sh) после рестарта делает такую проверку и при сбое печатает хвост `journalctl`.
+
+---
+
+## nginx `proxy_cache` и Next.js
+
+Если в `sites-enabled` для `location /` включены **`proxy_cache`** и **`proxy_cache_valid 200 30d`**, nginx **до 30 дней** может отдавать **старый HTML/RSC** с прошлого успешного ответа Node. После деплоя сайт «не обновляется», портал и админка могут вести себя странно.
+
+**Рекомендация:** для `location /` **не кешировать** ответы приложения (`proxy_no_cache 1;` и `proxy_cache_bypass 1;` — см. [`scripts/nginx-aletheia.conf`](../scripts/nginx-aletheia.conf)). Кеш при необходимости — **только** для `/_next/static/` (именованные чанки).
+
+После правки конфига: `sudo nginx -t && sudo systemctl reload nginx`. Сброс уже записанного кеша: `sudo rm -rf /var/cache/nginx/*` (или путь из `proxy_cache_path` в `nginx.conf`).
+
+Проверка, что на диске актуальный код (пример — админский layout после выката `AdminPortalShell`):
+
+```bash
+head -n 12 /opt/ALETHEIA/app/portal/admin/layout.tsx
+```

@@ -13,6 +13,7 @@ const ADMIN_PAGES = [
   { href: '/portal/admin/media', label: /медиа/i },
   { href: '/portal/admin/users', label: /пользовател/i },
   { href: '/portal/admin/crm', label: /crm|лид/i },
+  { href: '/portal/admin/shop', label: /товар/i },
   { href: '/portal/admin/payments', label: /оплат/i },
   { href: '/portal/admin/settings', label: /настройк/i },
   { href: '/portal/admin/help', label: /помощь|help/i },
@@ -63,5 +64,19 @@ test.describe('Настройки', () => {
   test('формы загружаются', async ({ page }) => {
     await page.goto('/portal/admin/settings');
     await expect(page.getByRole('heading', { name: /настройк/i })).toBeVisible({ timeout: 10000 });
+  });
+});
+
+test.describe('Товары для главной', () => {
+  test('кнопка «Добавить товар» открывает форму создания над таблицей', async ({ page }) => {
+    await page.goto('/portal/admin/shop');
+    await expect(
+      page.getByRole('heading', { name: /товары для продажи на главной/i })
+    ).toBeVisible({ timeout: 10000 });
+    await page.getByRole('button', { name: /добавить товар/i }).click();
+    await expect(page.getByRole('heading', { name: /новый товар/i })).toBeVisible();
+    await expect(page.getByLabel(/slug/i)).toBeVisible();
+    await page.getByRole('button', { name: /^закрыть$/i }).click();
+    await expect(page.getByRole('heading', { name: /новый товар/i })).toBeHidden();
   });
 });

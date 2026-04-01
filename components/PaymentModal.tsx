@@ -123,7 +123,7 @@ export function PaymentModal({ isOpen, onClose, tariff }: PaymentModalProps) {
             <div className="flex justify-between items-center">
               <span className="font-semibold text-[var(--portal-text)]">Итого:</span>
               <span className="text-2xl font-bold text-accent">
-                {tariff.price.toLocaleString('ru-RU')} ₽
+                {tariff.price <= 0 ? 'Бесплатно' : `${tariff.price.toLocaleString('ru-RU')} ₽`}
               </span>
             </div>
           </div>
@@ -136,17 +136,31 @@ export function PaymentModal({ isOpen, onClose, tariff }: PaymentModalProps) {
             {loading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Создание платежа...
+                {tariff.price <= 0 ? 'Оформление…' : 'Создание платежа...'}
               </>
+            ) : tariff.price <= 0 ? (
+              'Получить доступ'
             ) : (
               'Перейти к оплате'
             )}
           </Button>
           <p className="text-xs text-[var(--portal-text-muted)] text-center">
-            Нажимая кнопку, вы соглашаетесь с{' '}
-            <a href="/oferta" className="underline hover:text-accent">офертой</a>{' '}
-            и{' '}
-            <a href="/privacy" className="underline hover:text-accent">политикой конфиденциальности</a>.
+            {tariff.price <= 0 ? (
+              <>
+                Нажимая кнопку, вы соглашаетесь с{' '}
+                <a href="/privacy" className="underline hover:text-accent">
+                  политикой конфиденциальности
+                </a>
+                .
+              </>
+            ) : (
+              <>
+                Нажимая кнопку, вы соглашаетесь с{' '}
+                <a href="/oferta#oplata" className="underline hover:text-accent">офертой</a>{' '}
+                и{' '}
+                <a href="/privacy" className="underline hover:text-accent">политикой конфиденциальности</a>.
+              </>
+            )}
           </p>
         </form>
       </DialogContent>

@@ -26,6 +26,8 @@ import { sortTableBy, type SortDir } from '@/lib/table-sort';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 import { FileText, Inbox } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 const AUDIT_TABLE_COLUMNS: ColumnConfigItem[] = [
   { id: 'num', label: '№' },
@@ -49,6 +51,9 @@ interface AuditLogRow {
 export function AuditLogClient() {
   const [logs, setLogs] = useState<AuditLogRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [purging, setPurging] = useState(false);
+  const [reloadNonce, setReloadNonce] = useState(0);
   const [actionFilter, setActionFilter] = useState('');
   const [entityFilter, setEntityFilter] = useState('');
   const [actorFilter, setActorFilter] = useState('');
@@ -105,7 +110,27 @@ export function AuditLogClient() {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [actionFilter, entityFilter, actorFilter, dateFrom, dateTo]);
+  }, [actionFilter, entityFilter, actorFilter, dateFrom, dateTo, reloadNonce]);
+
+  async function runAuditPurge() {
+    setPurgeOpen(false);
+    setPurging(true);
+    try {
+      const res = await fetch('/api/portal/admin/audit/purge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ olderThanDays: 90 }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+      toast.success(`Удалено записей: ${data.deleted ?? 0}`);
+      setReloadNonce((n) => n + 1);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка');
+    } finally {
+      setPurging(false);
+    }
+  }
 
   const filtered = useMemo(() => {
     if (!search.trim()) return logs;
@@ -156,6 +181,20 @@ export function AuditLogClient() {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button type="button" variant="secondary" size="sm" disabled={purging} onClick={() => setPurgeOpen(true)}>
+          {purging ? 'Удаление…' : 'Удалить записи старше 90 дней'}
+        </Button>
+      </div>
+      <ConfirmDialog
+        open={purgeOpen}
+        onOpenChange={setPurgeOpen}
+        title="Очистить журнал аудита?"
+        description="Будут безвозвратно удалены записи старше 90 дней. Откат не предусмотрен — при необходимости сделайте экспорт в Excel заранее."
+        confirmLabel="Удалить"
+        variant="danger"
+        onConfirm={runAuditPurge}
+      />
       <div className="flex flex-wrap items-center gap-3">
         <SearchInput
           onSearch={setSearch}

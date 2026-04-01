@@ -61,7 +61,8 @@
 | Курс | /portal/admin/courses/[courseId] | ✅ Сделано | portal-card блоки, вкладки и ScormManifestViewer |
 | Пользователи | /portal/admin/users | ✅ Сделано | PageHeader, max-w-6xl |
 | Пользователь | /portal/admin/users/[id] | ✅ Сделано | PageHeader, кнопка «Назад» в стиле портала |
-| Платежи | /portal/admin/payments | ✅ Сделано | portal-card метрики и таблица, фильтры, ServicesAdminBlock |
+| Товары (главная) | /portal/admin/shop | ✅ Сделано | ServicesAdminBlock |
+| Платежи | /portal/admin/payments | ✅ Сделано | portal-card метрики, симуляция, таблица заказов, фильтры |
 | CRM / Лиды | /portal/admin/crm | ✅ Сделано | portal-card метрики, воронка, таблица лидов в portal-card |
 | Сертификаты | /portal/admin/certificates | ✅ Сделано | Список в portal-card, селекты и ячейки — portal стиль |
 | Шаблоны сертификатов | /portal/admin/certificate-templates | ✅ Сделано | Card, таблица, кнопки и ссылки Indigo |

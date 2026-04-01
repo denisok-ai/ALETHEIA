@@ -30,6 +30,10 @@ export default function ScormPlayPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const apiInitialized = useRef<string | null>(null);
   const refreshProgressRef = useRef<() => void>(() => {});
+  const scormInitializedRef = useRef(false);
+  const fallbackModeRef = useRef(false);
+  const lessonStartTimeRef = useRef<number>(0);
+  const currentLessonIdRef = useRef<string | null>(null);
 
   const refreshProgress = useCallback(async () => {
     const res = await fetch(
@@ -48,20 +52,55 @@ export default function ScormPlayPage() {
     refreshProgressRef.current = refreshProgress;
   }, [refreshProgress]);
 
+  const saveFallbackProgress = useCallback(
+    async (lessonId: string, completionStatus: 'incomplete' | 'completed') => {
+      const elapsed = Math.floor((Date.now() - lessonStartTimeRef.current) / 1000);
+      try {
+        const res = await fetch('/api/portal/scorm/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            courseId,
+            lessonId,
+            completion_status: completionStatus,
+            time_spent: elapsed,
+          }),
+        });
+        if (res.ok) {
+          console.log('[SCORM] fallback progress saved', { lessonId, completionStatus, time_spent: elapsed });
+          refreshProgressRef.current?.();
+        }
+      } catch (e) {
+        console.warn('[SCORM] fallback progress save error', e);
+      }
+    },
+    [courseId]
+  );
+
   const initApiForLesson = useCallback(
     async (lessonId: string, url: string, scormVersion: string, cmiData: Record<string, unknown>) => {
+      scormInitializedRef.current = false;
+      fallbackModeRef.current = false;
+      lessonStartTimeRef.current = Date.now();
+
       const commitUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/api/portal/scorm/progress`;
-      const requestHandler = (commitObj: unknown) =>
-        Object.assign(
+      const requestHandler = (commitObj: unknown) => {
+        const payload = Object.assign(
           typeof commitObj === 'object' && commitObj !== null ? { ...commitObj } : {},
           { courseId, lessonId }
         );
+        console.log('[SCORM] commit', { courseId, lessonId, completion_status: (payload as Record<string, unknown>).completion_status ?? (payload as Record<string, unknown>).completionStatus });
+        return payload;
+      };
       const xhrHandler = (xhr: XMLHttpRequest) => {
         try {
           const json = JSON.parse(xhr.responseText || '{}');
+          console.log('[SCORM] progress response', { status: xhr.status, success: json.success, courseId, lessonId });
           if (json.success) refreshProgressRef.current?.();
           return { result: !!json.success, errorCode: 0 };
-        } catch {
+        } catch (e) {
+          console.warn('[SCORM] progress response parse error', { status: xhr.status, responseText: xhr.responseText?.slice(0, 200), courseId, lessonId }, e);
           return { result: false, errorCode: 101 };
         }
       };
@@ -74,17 +113,21 @@ export default function ScormPlayPage() {
         xhrResponseHandler: xhrHandler,
         renderCommonCommitFields: true as const,
         sendFullCommit: true as const,
+        xhrWithCredentials: true,
+        useBeaconInsteadOfFetch: 'on-terminate' as const,
       };
 
       if (scormVersion === '2004') {
         const { Scorm2004API } = await import('scorm-again');
         const api = new Scorm2004API(commonOptions);
+        api.on?.('Initialize', () => { scormInitializedRef.current = true; });
         if (Object.keys(cmiData).length > 0) api.loadFromJSON(cmiData as Record<string, unknown>);
         (window as unknown as { API_1484_11?: unknown }).API_1484_11 = api;
         (window as unknown as { API?: unknown }).API = undefined;
       } else {
         const { Scorm12API } = await import('scorm-again');
         const api = new Scorm12API(commonOptions);
+        api.on?.('LMSInitialize', () => { scormInitializedRef.current = true; });
         if (Object.keys(cmiData).length > 0) api.loadFromJSON(cmiData as Record<string, unknown>);
         (window as unknown as { API?: unknown }).API = api;
         (window as unknown as { API_1484_11?: unknown }).API_1484_11 = undefined;
@@ -161,6 +204,10 @@ export default function ScormPlayPage() {
     async (lessonId: string) => {
       if (!structure || lessonId === currentLessonId) return;
 
+      if (fallbackModeRef.current && currentLessonId) {
+        await saveFallbackProgress(currentLessonId, 'completed');
+      }
+
       setCurrentLessonId(lessonId);
       const item = structure.items.find((i) => i.identifier === lessonId);
       const url =
@@ -186,8 +233,43 @@ export default function ScormPlayPage() {
       await initApiForLesson(lessonId, resolvedUrl, structure.scormVersion, cmiData);
       setScormUrl(resolvedUrl);
     },
-    [courseId, structure, currentLessonId, initApiForLesson]
+    [courseId, structure, currentLessonId, initApiForLesson, saveFallbackProgress]
   );
+
+  useEffect(() => {
+    if (!structure || !scormUrl || !currentLessonId) return;
+    const t = setTimeout(() => {
+      if (!scormInitializedRef.current) {
+        fallbackModeRef.current = true;
+        console.log('[SCORM] non-SCORM content detected, using fallback tracking', { courseId, lessonId: currentLessonId });
+        void saveFallbackProgress(currentLessonId, 'incomplete');
+      }
+    }, 10000);
+    return () => clearTimeout(t);
+  }, [structure, scormUrl, currentLessonId, courseId, saveFallbackProgress]);
+
+  useEffect(() => {
+    currentLessonIdRef.current = currentLessonId;
+  }, [currentLessonId]);
+
+  useEffect(() => {
+    if (!structure || !scormUrl) return;
+    const saveOnExit = () => {
+      const lid = currentLessonIdRef.current;
+      if (fallbackModeRef.current && lid) {
+        void saveFallbackProgress(lid, 'completed');
+      }
+    };
+    const handleBeforeUnload = saveOnExit;
+    const handlePageHide = saveOnExit;
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handlePageHide);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handlePageHide);
+      saveOnExit();
+    };
+  }, [structure, scormUrl, saveFallbackProgress]);
 
   useEffect(() => {
     if (!structure || !scormUrl) return;

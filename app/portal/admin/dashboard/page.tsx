@@ -1,22 +1,30 @@
 /**
  * Admin dashboard: real metrics from DB, revenue and activity charts, quick actions, recent events.
  */
-import { Suspense } from 'react';
 import type { Metadata } from 'next';
+import nextDynamic from 'next/dynamic';
+import { prisma } from '@/lib/db';
+import { PageHeader } from '@/components/portal/PageHeader';
+import { RecentEvents, type EventItem } from './RecentEvents';
+import { QuickAccessSection } from './QuickAccessSection';
 
 export const metadata: Metadata = { title: 'Дашборд' };
 
 /** Не кешировать как статику: иначе возможен пустой/устаревший RSC при смене сессии. */
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
-import { prisma } from '@/lib/db';
-import { PageHeader } from '@/components/portal/PageHeader';
-import { Card } from '@/components/portal/Card';
-import { DashboardCharts } from './DashboardCharts';
-import { RecentEvents, type EventItem } from './RecentEvents';
-import { QuickAccessSection } from './QuickAccessSection';
 
 const PERIODS = [7, 30, 90] as const;
+
+type SearchParamsInput = Promise<{ period?: string }> | { period?: string };
+
+async function resolveSearchParams(sp: SearchParamsInput | undefined): Promise<{ period?: string }> {
+  if (sp == null) return {};
+  if (typeof sp === 'object' && sp !== null && 'then' in sp && typeof (sp as Promise<unknown>).then === 'function') {
+    return (await sp) ?? {};
+  }
+  return sp as { period?: string };
+}
 
 function DashboardChartsFallback() {
   return (
@@ -28,19 +36,24 @@ function DashboardChartsFallback() {
   );
 }
 
-export default async function AdminDashboardPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ period?: string }>;
-}) {
-  const { period: periodStr } = await searchParams;
-  const periodNum = Math.min(90, Math.max(7, Number(periodStr) || 30));
-  const period = (PERIODS.includes(periodNum as 7 | 30 | 90) ? periodNum : 30) as 7 | 30 | 90;
+/** Recharts + useSearchParams без SSR — иначе возможен 500 на проде при потоковом рендере RSC. */
+const DashboardCharts = nextDynamic(
+  () => import('./DashboardCharts').then((m) => ({ default: m.DashboardCharts })),
+  { ssr: false, loading: () => <DashboardChartsFallback /> }
+);
 
+async function loadDashboardMetrics(period: 7 | 30 | 90) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const periodStart = new Date(now);
   periodStart.setDate(periodStart.getDate() - period);
+
+  // Уникальные слушатели SCORM: groupBy по userId стабильнее на PostgreSQL, чем findMany+distinct.
+  const scormUserGroups = await prisma.scormProgress.groupBy({
+    by: ['userId'],
+    _count: { _all: true },
+  });
+  const scormStarted = scormUserGroups.length;
 
   const [
     usersCount,
@@ -49,7 +62,6 @@ export default async function AdminDashboardPage({
     paidOrdersByDay,
     ticketsCount,
     leadsCount,
-    scormStarted,
     scormCertificates,
     scormAvgScore,
     scormProgressCount,
@@ -71,12 +83,6 @@ export default async function AdminDashboardPage({
     }),
     prisma.ticket.count({ where: { status: { in: ['open', 'in_progress'] } } }),
     prisma.lead.count({ where: { status: 'new' } }),
-    prisma.scormProgress
-      .groupBy({
-        by: ['userId'],
-        _count: { _all: true },
-      })
-      .then((r) => r.length),
     prisma.certificate.count(),
     prisma.scormProgress.aggregate({ _avg: { score: true }, where: { score: { not: null } } }),
     prisma.scormProgress.count(),
@@ -105,6 +111,75 @@ export default async function AdminDashboardPage({
       select: { id: true, email: true, createdAt: true },
     }),
   ]);
+
+  return {
+    now,
+    period,
+    monthStart,
+    periodStart,
+    scormStarted,
+    usersCount,
+    coursesCount,
+    paidOrders,
+    paidOrdersByDay,
+    ticketsCount,
+    leadsCount,
+    scormCertificates,
+    scormAvgScore,
+    scormProgressCount,
+    enrollmentsInPeriod,
+    certificatesInPeriod,
+    recentPaidOrders,
+    recentLeads,
+    recentUsers,
+  };
+}
+
+export default async function AdminDashboardPage({ searchParams }: { searchParams: SearchParamsInput }) {
+  const sp = await resolveSearchParams(searchParams);
+  const periodStr = sp.period;
+  const periodNum = Math.min(90, Math.max(7, Number(periodStr) || 30));
+  const period = (PERIODS.includes(periodNum as 7 | 30 | 90) ? periodNum : 30) as 7 | 30 | 90;
+
+  let data: Awaited<ReturnType<typeof loadDashboardMetrics>>;
+  try {
+    data = await loadDashboardMetrics(period);
+  } catch (err) {
+    const digest = err instanceof Error && 'digest' in err ? String((err as Error & { digest?: string }).digest) : '';
+    console.error('[portal/admin/dashboard] loadDashboardMetrics failed', err);
+    return (
+      <div className="max-w-2xl space-y-4 p-6">
+        <PageHeader items={[{ label: 'Дашборд' }]} title="Дашборд" description="Ошибка загрузки данных" />
+        <div className="portal-card border border-red-200 bg-red-50/80 p-5 text-sm text-red-900">
+          <p className="font-semibold">Не удалось загрузить метрики</p>
+          <p className="mt-2 text-red-800/90">
+            Проверьте подключение к БД, миграции Prisma и логи процесса Node (journalctl / pm2 logs). После исправления
+            обновите страницу.
+          </p>
+          {digest ? <p className="mt-2 font-mono text-xs opacity-80">digest: {digest}</p> : null}
+        </div>
+      </div>
+    );
+  }
+
+  const {
+    now,
+    paidOrders,
+    paidOrdersByDay,
+    usersCount,
+    coursesCount,
+    ticketsCount,
+    leadsCount,
+    scormStarted,
+    scormCertificates,
+    scormAvgScore,
+    scormProgressCount,
+    enrollmentsInPeriod,
+    certificatesInPeriod,
+    recentPaidOrders,
+    recentLeads,
+    recentUsers,
+  } = data;
 
   const revenueMonth = paidOrders.reduce((s, o) => s + o.amount, 0);
 
@@ -190,12 +265,9 @@ export default async function AdminDashboardPage({
         description="Сводная аналитика и последние события"
       />
 
-      {/* Быстрый доступ */}
       <QuickAccessSection />
 
-      {/* Главные KPI */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-5">
-        {/* Выручка — акцентная indigo */}
         <div
           className="portal-card p-5 col-span-2 lg:col-span-1 flex items-center gap-4"
           style={{
@@ -203,8 +275,7 @@ export default async function AdminDashboardPage({
             borderColor: '#C7D2FE',
           }}
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl
-            bg-[#6366F1] text-white shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#6366F1] text-white shadow-sm">
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.182.160.198.144.447.257.706.358V7.249a2.032 2.032 0 00-.892.5zM10 1a9 9 0 100 18A9 9 0 0010 1zm.75 4.495v.73a3.54 3.54 0 011.516.559c.481.304 1.234.94 1.234 2.216 0 1.275-.753 1.912-1.234 2.216a3.54 3.54 0 01-1.516.559v.73a.75.75 0 01-1.5 0v-.73a3.54 3.54 0 01-1.516-.56C7.253 11.912 6.5 11.275 6.5 10c0-1.275.753-1.912 1.234-2.215a3.54 3.54 0 011.516-.56v-.73a.75.75 0 011.5 0z" />
             </svg>
@@ -236,7 +307,6 @@ export default async function AdminDashboardPage({
         </div>
       </div>
 
-      {/* Метрики обучения */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <div className="portal-metric">
           <p className="text-xs text-[var(--portal-text-muted)] mb-1">Начали обучение</p>
@@ -259,9 +329,7 @@ export default async function AdminDashboardPage({
         </div>
       </div>
 
-      <Suspense fallback={<DashboardChartsFallback />}>
-        <DashboardCharts revenueData={chartData} activityData={activityData} />
-      </Suspense>
+      <DashboardCharts revenueData={chartData} activityData={activityData} />
       <RecentEvents events={events} />
     </div>
   );

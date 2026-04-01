@@ -83,11 +83,18 @@ export function CourseEnrollmentsClient({
   const [bulkEnrollText, setBulkEnrollText] = useState('');
   const [bulkEnrolling, setBulkEnrolling] = useState(false);
   const [listSearch, setListSearch] = useState('');
-  const [addDropdownOpen, setAddDropdownOpen] = useState(false);
   const [accessDropdownOpen, setAccessDropdownOpen] = useState(false);
   const [bulkAccessing, setBulkAccessing] = useState(false);
   const [togglingCompletion, setTogglingCompletion] = useState<string | null>(null);
   const [togglingAccess, setTogglingAccess] = useState<string | null>(null);
+  const [listSelectOpen, setListSelectOpen] = useState(false);
+  const [listSelectGroups, setListSelectGroups] = useState<{ id: string; name: string }[]>([]);
+  const [listSelectGroupId, setListSelectGroupId] = useState<string>('');
+  const [listSelectUsers, setListSelectUsers] = useState<{ id: string; email: string; displayName: string | null }[]>([]);
+  const [listSelectSearch, setListSelectSearch] = useState('');
+  const [listSelectSelectedIds, setListSelectSelectedIds] = useState<Set<string>>(new Set());
+  const [listSelectLoading, setListSelectLoading] = useState(false);
+  const [listSelectEnrolling, setListSelectEnrolling] = useState(false);
 
   const fetchEnrollments = useCallback(async () => {
     setLoading(true);
@@ -128,6 +135,101 @@ export function CourseEnrollmentsClient({
     }, 400);
     return () => clearTimeout(t);
   }, [addOpen, searchQ]);
+
+  useEffect(() => {
+    if (!listSelectOpen) return;
+    fetch('/api/portal/admin/groups?moduleType=user')
+      .then((r) => r.ok ? r.json() : { groups: [] })
+      .then((d: { groups?: { id: string; name: string }[] }) => {
+        setListSelectGroups(d.groups ?? []);
+        setListSelectGroupId('');
+      })
+      .catch(() => setListSelectGroups([]));
+  }, [listSelectOpen]);
+
+  useEffect(() => {
+    if (!listSelectOpen) return;
+    const t = setTimeout(() => {
+      setListSelectLoading(true);
+      if (listSelectGroupId) {
+        fetch(`/api/portal/admin/groups/${listSelectGroupId}/users`)
+          .then((r) => r.ok ? r.json() : { users: [] })
+          .then((d: { users?: { userId: string; email: string; displayName: string | null }[] }) => {
+            const users = (d.users ?? []).map((u) => ({ id: u.userId, email: u.email, displayName: u.displayName }));
+            setListSelectUsers(users);
+          })
+          .catch(() => setListSelectUsers([]))
+          .finally(() => setListSelectLoading(false));
+      } else {
+        const q = listSelectSearch.trim();
+        fetch(`/api/portal/admin/users?limit=200${q ? `&q=${encodeURIComponent(q)}` : ''}`)
+          .then((r) => r.ok ? r.json() : { users: [] })
+          .then((d: { users?: { id: string; email: string; displayName: string | null }[] }) => {
+            setListSelectUsers(d.users ?? []);
+          })
+          .catch(() => setListSelectUsers([]))
+          .finally(() => setListSelectLoading(false));
+      }
+    }, listSelectGroupId ? 0 : 400);
+    return () => clearTimeout(t);
+  }, [listSelectOpen, listSelectGroupId, listSelectSearch]);
+
+  const listSelectFiltered = listSelectUsers.filter((u) => {
+    const q = listSelectSearch.trim().toLowerCase();
+    if (!q) return true;
+    const name = (u.displayName ?? u.email ?? '').toLowerCase();
+    const email = (u.email ?? '').toLowerCase();
+    return name.includes(q) || email.includes(q);
+  });
+
+  function toggleListSelectAll() {
+    const enrollable = listSelectFiltered.filter((u) => !alreadyEnrolledIds.has(u.id));
+    const allSelected = enrollable.every((u) => listSelectSelectedIds.has(u.id));
+    if (allSelected) {
+      setListSelectSelectedIds((prev) => {
+        const next = new Set(prev);
+        enrollable.forEach((u) => next.delete(u.id));
+        return next;
+      });
+    } else {
+      setListSelectSelectedIds((prev) => {
+        const next = new Set(prev);
+        enrollable.forEach((u) => next.add(u.id));
+        return next;
+      });
+    }
+  }
+
+  async function handleListSelectEnroll() {
+    const ids = Array.from(listSelectSelectedIds).filter((id) => !alreadyEnrolledIds.has(id));
+    if (ids.length === 0) {
+      toast.error('Выберите пользователей для записи');
+      return;
+    }
+    setListSelectEnrolling(true);
+    try {
+      const res = await fetch(`/api/portal/admin/courses/${courseId}/enrollments/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userIds: ids }),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      const data = (await res.json()) as { enrolled: number; skipped: number; notFound: string[] };
+      let msg = `Зачислено: ${data.enrolled}`;
+      if (data.skipped) msg += `, пропущено (уже записаны): ${data.skipped}`;
+      if (data.notFound?.length) msg += `, не найдено: ${data.notFound.length}`;
+      toast.success(msg);
+      setListSelectOpen(false);
+      setListSelectSelectedIds(new Set());
+      setListSelectSearch('');
+      setListSelectGroupId('');
+      fetchEnrollments();
+    } catch (e) {
+      console.error(e);
+      toast.error('Ошибка массового зачисления');
+    }
+    setListSelectEnrolling(false);
+  }
 
   async function handleEnroll(userId: string) {
     setAdding(true);
@@ -395,24 +497,13 @@ export function CourseEnrollmentsClient({
         <h2 className="text-lg font-semibold text-[var(--portal-text)]">Участники</h2>
         <div className="flex flex-wrap items-center gap-2">
           <div className="relative">
-            <Button variant="secondary" size="sm" onClick={() => { setAddDropdownOpen((v) => !v); setAccessDropdownOpen(false); }}>
+            <Button variant="secondary" size="sm" onClick={() => { setListSelectOpen(true); setAccessDropdownOpen(false); }}>
               <UserPlus className="mr-2 h-4 w-4" />
               Добавить
-              <ChevronDown className="ml-1 h-4 w-4" />
             </Button>
-            {addDropdownOpen && (
-              <div className="absolute left-0 top-full z-10 mt-1 min-w-[220px] rounded-lg border border-[#E2E8F0] bg-white py-1 shadow-lg">
-                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]" onClick={() => { setAddOpen(true); setAddDropdownOpen(false); }}>
-                  Быстрое добавление одного
-                </button>
-                <button type="button" className="w-full px-3 py-2 text-left text-sm hover:bg-[#F8FAFC]" onClick={() => { setBulkEnrollOpen(true); setAddDropdownOpen(false); }}>
-                  Быстрое добавление нескольких
-                </button>
-              </div>
-            )}
           </div>
           <div className="relative">
-            <Button variant="secondary" size="sm" onClick={() => { setAccessDropdownOpen((v) => !v); setAddDropdownOpen(false); }} disabled={enrollments.length === 0 || bulkAccessing}>
+            <Button variant="secondary" size="sm" onClick={() => setAccessDropdownOpen((v) => !v)} disabled={enrollments.length === 0 || bulkAccessing}>
               <LockOpen className="mr-2 h-4 w-4" />
               Доступ
               <ChevronDown className="ml-1 h-4 w-4" />
@@ -638,6 +729,100 @@ export function CourseEnrollmentsClient({
               )}
             </ul>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={listSelectOpen} onOpenChange={(open) => { setListSelectOpen(open); if (!open) { setListSelectSelectedIds(new Set()); setListSelectSearch(''); setListSelectGroupId(''); } }}>
+        <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+          <DialogHeader>
+            <DialogTitle>Добавить слушателей на курс</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-[var(--portal-text-muted)]">
+            Курс: {courseTitle}. Выберите группу или всех пользователей, отметьте галочками кого записать на курс, затем нажмите «Записать выбранных».
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <div className="flex-1 min-w-[200px]">
+              <Label htmlFor="list-select-group">Группа</Label>
+              <select
+                id="list-select-group"
+                value={listSelectGroupId}
+                onChange={(e) => setListSelectGroupId(e.target.value)}
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
+              >
+                <option value="">Все пользователи</option>
+                {listSelectGroups.map((g) => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <Label htmlFor="list-select-search">Поиск</Label>
+              <Input
+                id="list-select-search"
+                value={listSelectSearch}
+                onChange={(e) => setListSelectSearch(e.target.value)}
+                placeholder="ФИО или email..."
+                className="mt-1"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-4 py-2 border-b border-[#E2E8F0]">
+            <Button variant="ghost" size="sm" onClick={toggleListSelectAll}>
+              {listSelectFiltered.filter((u) => !alreadyEnrolledIds.has(u.id)).every((u) => listSelectSelectedIds.has(u.id)) && listSelectFiltered.filter((u) => !alreadyEnrolledIds.has(u.id)).length > 0
+                ? 'Снять выбор'
+                : 'Выбрать всех'}
+            </Button>
+            <span className="text-sm text-[var(--portal-text-muted)]">
+              Выбрано: {Array.from(listSelectSelectedIds).filter((id) => !alreadyEnrolledIds.has(id)).length}
+            </span>
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto rounded border border-[#E2E8F0] max-h-[300px]">
+            {listSelectLoading ? (
+              <div className="p-4 text-center text-sm text-[var(--portal-text-muted)]">Загрузка…</div>
+            ) : listSelectFiltered.length === 0 ? (
+              <div className="p-4 text-center text-sm text-[var(--portal-text-muted)]">Нет пользователей</div>
+            ) : (
+              <ul className="divide-y divide-[#E2E8F0] p-2">
+                {listSelectFiltered.map((u) => {
+                  const enrolled = alreadyEnrolledIds.has(u.id);
+                  const selected = listSelectSelectedIds.has(u.id);
+                  return (
+                    <li key={u.id} className="flex items-center gap-3 py-2 px-2 hover:bg-[#F8FAFC] rounded">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        onChange={() => {
+                          if (enrolled) return;
+                          setListSelectSelectedIds((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(u.id)) next.delete(u.id);
+                            else next.add(u.id);
+                            return next;
+                          });
+                        }}
+                        disabled={enrolled}
+                        aria-label={u.displayName || u.email}
+                      />
+                      <span className="flex-1 text-sm truncate">
+                        {u.displayName || u.email}
+                        {u.displayName && <span className="text-[var(--portal-text-muted)]"> ({u.email})</span>}
+                        {enrolled && <span className="ml-2 text-amber-600 text-xs">Уже записан</span>}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </div>
+          <div className="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
+            <Button variant="ghost" onClick={() => setListSelectOpen(false)}>Отмена</Button>
+            <Button
+              onClick={handleListSelectEnroll}
+              disabled={listSelectEnrolling || Array.from(listSelectSelectedIds).filter((id) => !alreadyEnrolledIds.has(id)).length === 0}
+            >
+              {listSelectEnrolling ? '…' : 'Записать выбранных'}
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 

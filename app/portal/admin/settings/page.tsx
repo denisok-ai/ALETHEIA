@@ -13,7 +13,7 @@ import packageJson from '../../../../package.json';
 
 export default function AdminSettingsPage() {
   return (
-    <div className="space-y-6 w-full max-w-4xl">
+    <div className="w-full max-w-none space-y-6">
       <PageHeader
         items={[
           { href: '/portal/admin/dashboard', label: 'Дашборд' },
@@ -50,6 +50,9 @@ export default function AdminSettingsPage() {
           </li>
           <li>
             <span className="text-[var(--portal-text-muted)]">Деплой — см. docs/Deploy.md в репозитории</span>
+          </li>
+          <li>
+            <span className="text-[var(--portal-text-muted)]">Переменные окружения и БД — docs/Env-Config.md; аудит оплат — docs/Payments-Audit-Checklist.md</span>
           </li>
         </ul>
         <p className="mt-4 text-sm text-[var(--portal-text-muted)]">

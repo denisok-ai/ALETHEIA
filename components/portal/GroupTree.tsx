@@ -28,7 +28,8 @@ export interface GroupTreeNode {
 export interface GroupTreeProps {
   moduleType: 'course' | 'media' | 'user';
   selectedGroupId: string | null;
-  onSelectGroup: (groupId: string | null) => void;
+  /** Второй аргумент — название выбранной группы (для фильтров/chip); для «Все» — null */
+  onSelectGroup: (groupId: string | null, groupName?: string | null) => void;
   onAddGroup?: (parentId: string | null) => void;
   onEditGroup?: (groupId: string) => void;
   onDeleteGroup?: (groupId: string) => void;
@@ -48,7 +49,7 @@ function TreeRow({
   node: GroupTreeNode;
   level: number;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string, name: string) => void;
   expandedIds: Set<string>;
   toggleExpanded: (id: string) => void;
   showCounts: boolean;
@@ -64,7 +65,7 @@ function TreeRow({
           isSelected ? 'bg-[#EEF2FF] text-[#4F46E5]' : 'hover:bg-[#F8FAFC] text-[var(--portal-text)]'
         }`}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
-        onClick={() => onSelect(node.id)}
+        onClick={() => onSelect(node.id, node.name)}
       >
         <button
           type="button"
@@ -235,7 +236,7 @@ export function GroupTree({
           className={`w-full flex items-center gap-1 py-1.5 px-2 rounded-lg text-left ${
             !selectedGroupId ? 'bg-[#EEF2FF] text-[#4F46E5]' : 'hover:bg-[#F8FAFC] text-[var(--portal-text)]'
           }`}
-          onClick={() => onSelectGroup(null)}
+          onClick={() => onSelectGroup(null, null)}
         >
           <span className="w-4 inline-block" />
           <span className="truncate">Все</span>

@@ -307,12 +307,58 @@ async function main() {
     }).catch(() => {});
   }
 
-  // ——— Услуги (Service): 4 основных тарифа (витрина) + доп. ———
-  const mainTariffs = [
-    { slug: 'consult', name: 'Индивидуальная консультация', price: 5000, paykeeperTariffId: 'consult', desc: 'Диагностика и коррекция через мышечное тестирование.' },
-    { slug: 'group', name: 'Групповой тренинг', price: 3000, paykeeperTariffId: 'group', desc: 'Психосоматика и работа с подсознанием в группе.' },
-    { slug: 'course', name: 'Курс AVATERRA', price: 25000, paykeeperTariffId: 'course', desc: '10 занятий: основы кинезиологии и мышечного тестирования.' },
-    { slug: 'online', name: 'Онлайн-консультация', price: 3500, paykeeperTariffId: 'online', desc: 'Удалённая сессия с мастером школы.' },
+  // ——— Услуги (Service): витрина — лид-магнит, Профи, ВИП (старые тарифы отключаем) ———
+  await prisma.service.updateMany({
+    where: {
+      OR: [
+        { slug: { in: ['consult', 'group', 'course', 'online'] } },
+        { slug: { startsWith: 'course-' } },
+      ],
+    },
+    data: { isActive: false },
+  }).catch(() => {});
+
+  const mainTariffs: {
+    slug: string;
+    name: string;
+    price: number;
+    paykeeperTariffId: string;
+    description: string;
+  }[] = [
+    {
+      slug: 'kod-tela-start',
+      name: 'Код тела: введение в мышечное тестирование',
+      price: 0,
+      paykeeperTariffId: 'kod-tela-start',
+      description: `Бесплатный мини-курс: первые шаги в мышечное тестирование без «сложно и не для меня».
+• 3–4 динамичных видео (7–15 минут каждое)
+• Видео 1 — что такое кинезиология и как тело реагирует на стресс и скрытые эмоции
+• Видео 2 — наглядный пример теста из реальной практики
+• Видео 3 — простое упражнение: само-тест «Да/Нет» на вашем теле
+• Видео 4 — про полный путь в школе и ограниченное предложение на «Профи» и «ВИП»`,
+    },
+    {
+      slug: 'avaterra-praktik',
+      name: 'AVATERRA: Практик',
+      price: 25_000,
+      paykeeperTariffId: 'avaterra-praktik',
+      description: `Тариф «Профи»: фундаментальный навык мышечного тестирования для себя, близких или старта с клиентами.
+• Полный дистанционный курс: введение, основы тестирования, подсознание, практика и интеграция
+• Дополнительные видео: библиотека эмоций, типичные ошибки новичков, скрипты и алгоритмы
+• Регулярные Zoom с сертифицированными кураторами-практиками школы
+• Формат Q&A, отработка техники под наблюдением эксперта, разбор ваших ситуаций`,
+    },
+    {
+      slug: 'avaterra-master-vip',
+      name: 'AVATERRA: Мастер. Менторство Татьяны Стрельцовой',
+      price: 69_000,
+      paykeeperTariffId: 'avaterra-master-vip',
+      description: `Тариф «ВИП»: глубокое погружение и личное время основателя с многолетним опытом.
+• Всё из тарифа «Профи»: полный курс и базовые дополнительные материалы
+• Закрытые онлайн-встречи с Татьяной Стрельцовой для узкой группы VIP-учеников
+• Супервизия, разбор на глубоком уровне, коррекция техники от автора методики
+• Секретный модуль: продвинутые техники, сложная психосоматика, интеграция биохакинга, монетизация навыка`,
+    },
   ];
   const publishedIds = courses.filter((_, i) => statuses[i % statuses.length] === 'published').map((c) => c.id);
   const defaultCourseId = publishedIds[0] ?? courses[0]?.id;
@@ -324,29 +370,19 @@ async function main() {
         name: t.name,
         price: t.price,
         paykeeperTariffId: t.paykeeperTariffId,
+        description: t.description,
         courseId: defaultCourseId,
         isActive: true,
       },
-      update: { name: t.name, price: t.price, paykeeperTariffId: t.paykeeperTariffId, isActive: true },
+      update: {
+        name: t.name,
+        price: t.price,
+        paykeeperTariffId: t.paykeeperTariffId,
+        description: t.description,
+        isActive: true,
+        courseId: defaultCourseId,
+      },
     }).catch(() => {});
-  }
-  const existingService = await prisma.service.findFirst({ where: { slug: { startsWith: 'course-' } } });
-  if (!existingService) {
-    for (let i = 0; i < Math.min(11, courses.length); i++) {
-      const slug = `course-${i + 1}`;
-      await prisma.service.upsert({
-        where: { slug },
-        create: {
-          slug,
-          name: `Тариф «${courses[i].title.slice(0, 30)}»`,
-          price: 5000 + i * 1000,
-          paykeeperTariffId: slug,
-          courseId: courses[i].id,
-          isActive: i < 8,
-        },
-        update: {},
-      }).catch(() => {});
-    }
   }
 
   // ——— Заказы: 50+, связка с пользователями и тарифами ———

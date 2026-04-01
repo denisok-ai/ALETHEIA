@@ -1,0 +1,74 @@
+# 1) Сборка + проверка, что GA и Clarity попали в production-бандл; файл Яндекса на месте.
+# 2) С main: деплой по SSH (нужны secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY).
+# Продакшен с этой машины не обновляется — только после push в GitHub и успешного workflow.
+name: CI and deploy
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-verify:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: 'file:./ci-build.db'
+      NEXTAUTH_SECRET: 'ci-build-placeholder-secret-32chars-min!!'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - run: npm ci
+
+      - run: npx prisma generate
+
+      - name: Apply migrations (SQLite for CI)
+        run: npx prisma migrate deploy
+
+      - name: Production build
+        run: npm run build
+
+      - name: Verify Yandex verification file
+        run: test -f public/yandex_0dec6f2dc03cbfd9.html && grep -q '0dec6f2dc03cbfd9' public/yandex_0dec6f2dc03cbfd9.html
+
+      - name: Verify GA + Clarity in client bundle
+        run: |
+          set -e
+          if ! grep -rE "G-7CQ48S3CFF|googletagmanager\.com/gtag" .next --include='*.js' -q; then
+            echo "::error::В .next не найден Google Analytics (gtag)"
+            exit 1
+          fi
+          if ! grep -rE "w4v3ss4ro9|clarity\.ms/tag" .next --include='*.js' -q; then
+            echo "::error::В .next не найден Microsoft Clarity"
+            exit 1
+          fi
+          echo "OK: счётчики в production-сборке"
+
+  deploy:
+    needs: build-and-verify
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            APP_DIR="${{ vars.DEPLOY_APP_DIR }}"
+            if [ -z "$APP_DIR" ]; then APP_DIR="/opt/ALETHEIA"; fi
+            cd "$APP_DIR"
+            export DEPLOY_ROOT="$APP_DIR"
+            export GIT_BRANCH=main
+            bash scripts/deploy-pull.sh

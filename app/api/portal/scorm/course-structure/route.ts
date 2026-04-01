@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { scormPublicUrl } from '@/lib/scorm/public-url';
 
 type ManifestItem = { identifier: string; title?: string; href?: string };
 
@@ -42,16 +43,10 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  let baseUrl = 'https://avaterra.pro';
-  try {
-    const requestUrl = new URL(request.url);
-    if (requestUrl.host) baseUrl = `${requestUrl.protocol}//${requestUrl.host}`.replace(/\/+$/, '');
-  } catch {
-    // use default when request.url is malformed (e.g. behind proxy)
-  }
-  const pathPrefix = '/uploads/scorm/';
-  const basePath = course.scormPath.replace(/\/[^/]+$/, ''); // dir part e.g. "courses-xxx"
-  const defaultEntryUrl = `${baseUrl}${pathPrefix}${course.scormPath.replace(/^\/+/, '')}`;
+  // basePath = package root (courses-xxx/vN) — hrefs in manifest are relative to imsmanifest.xml
+  const versionMatch = course.scormPath.match(/^(courses-[^/]+\/v\d+)/);
+  const basePath = versionMatch ? versionMatch[1] : course.scormPath.replace(/\/[^/]+$/, '');
+  const defaultEntryUrl = scormPublicUrl(course.scormPath);
 
   let items: { identifier: string; title?: string; url: string }[] = [];
   let isMultiSco = false;
@@ -65,16 +60,14 @@ export async function GET(request: NextRequest) {
         items = rawItems.map((it) => ({
           identifier: it.identifier,
           title: it.title,
-          url: it.href
-            ? `${baseUrl}${pathPrefix}${basePath}/${it.href}`.replace(/\/+/g, '/')
-            : defaultEntryUrl,
+          url: it.href ? scormPublicUrl(`${basePath}/${it.href}`) : defaultEntryUrl,
         }));
       } else if (rawItems.length === 1) {
         items = [{
           identifier: rawItems[0].identifier,
           title: rawItems[0].title,
           url: rawItems[0].href
-            ? `${baseUrl}${pathPrefix}${basePath}/${rawItems[0].href}`.replace(/\/+/g, '/')
+            ? scormPublicUrl(`${basePath}/${rawItems[0].href}`)
             : defaultEntryUrl,
         }];
       }

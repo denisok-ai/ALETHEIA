@@ -1,14 +1,12 @@
 'use client';
 
 /**
- * Блок «Обложка курса» в карточке курса: превью, загрузка файла, ввод URL, сохранение.
+ * Блок «Обложка курса»: превью, загрузка файла, AI-генерация.
  */
 import { useState, useRef } from 'react';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { ImagePlus, Loader2, Sparkles } from 'lucide-react';
 
 interface CourseCoverBlockProps {
@@ -24,7 +22,6 @@ export function CourseCoverBlock({
 }: CourseCoverBlockProps) {
   const [thumbnailUrl, setThumbnailUrl] = useState(initialThumbnailUrl ?? '');
   const [uploading, setUploading] = useState(false);
-  const [savingUrl, setSavingUrl] = useState(false);
   const [generating, setGenerating] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -76,25 +73,6 @@ export function CourseCoverBlock({
     }
   }
 
-  async function handleSaveUrl() {
-    const url = thumbnailUrl.trim() || null;
-    setSavingUrl(true);
-    try {
-      const res = await fetch(`/api/portal/admin/courses/${courseId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ thumbnailUrl: url }),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      onSaved?.(url);
-      toast.success('Обложка сохранена');
-    } catch {
-      toast.error('Ошибка сохранения');
-    } finally {
-      setSavingUrl(false);
-    }
-  }
-
   const displayUrl = thumbnailUrl.trim() || null;
   const isExternalUrl = displayUrl?.startsWith('http://') || displayUrl?.startsWith('https://');
 
@@ -102,7 +80,7 @@ export function CourseCoverBlock({
     <div className="portal-card p-4">
       <h2 className="text-base font-semibold text-[var(--portal-text)]">Обложка курса</h2>
       <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
-        Изображение для карточки курса (превью). Загрузите файл или укажите URL.
+        Изображение для карточки курса (превью). Загрузите файл или сгенерируйте с помощью AI.
       </p>
       <div className="mt-4 flex flex-wrap gap-6 items-start">
         <div className="flex-shrink-0">
@@ -155,32 +133,11 @@ export function CourseCoverBlock({
               variant="secondary"
               size="sm"
               onClick={handleGenerateCover}
-              disabled={uploading || savingUrl || generating}
+              disabled={uploading || generating}
             >
               {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
               <span className="ml-2">{generating ? 'Генерация…' : 'AI Сгенерировать обложку'}</span>
             </Button>
-          </div>
-          <div>
-            <Label htmlFor="cover-url" className="text-sm">или URL обложки</Label>
-            <div className="mt-1 flex gap-2">
-              <Input
-                id="cover-url"
-                type="url"
-                value={thumbnailUrl}
-                onChange={(e) => setThumbnailUrl(e.target.value)}
-                placeholder="/uploads/... или https://..."
-                className="flex-1"
-              />
-              <Button
-                type="button"
-                size="sm"
-                onClick={handleSaveUrl}
-                disabled={savingUrl || generating}
-              >
-                {savingUrl ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Сохранить'}
-              </Button>
-            </div>
           </div>
         </div>
       </div>

@@ -64,13 +64,14 @@ export async function PATCH(
     return NextResponse.json({ error: 'Validation failed', issues: parsed.error.issues }, { status: 400 });
   }
 
-  const data: { title?: string; category?: string | null; description?: string | null; courseId?: string | null; allowDownload?: boolean; thumbnailUrl?: string | null } = {};
+  const data: { title?: string; category?: string | null; description?: string | null; courseId?: string | null; allowDownload?: boolean; thumbnailUrl?: string | null; sortOrder?: number } = {};
   if (parsed.data.title !== undefined) data.title = parsed.data.title;
   if (parsed.data.category !== undefined) data.category = parsed.data.category;
   if (parsed.data.description !== undefined) data.description = parsed.data.description;
   if (parsed.data.courseId !== undefined) data.courseId = parsed.data.courseId;
   if (parsed.data.allowDownload !== undefined) data.allowDownload = parsed.data.allowDownload;
   if (parsed.data.thumbnailUrl !== undefined) data.thumbnailUrl = parsed.data.thumbnailUrl?.trim() || null;
+  if (parsed.data.sortOrder !== undefined) data.sortOrder = parsed.data.sortOrder;
 
   const media = await prisma.media.update({
     where: { id },

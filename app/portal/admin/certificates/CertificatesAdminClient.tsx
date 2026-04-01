@@ -22,7 +22,11 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { Download, FileText, Ban, ExternalLink, Award, UserPlus } from 'lucide-react';
 import { format } from 'date-fns';
-import { CERTIFICATE_TEMPLATE_LABELS, type CertificateTemplateId } from '@/lib/certificates-constants';
+import {
+  CERTIFICATE_TEMPLATE_LABELS,
+  CERTIFICATE_TEMPLATE_IDS_FOR_SELECT,
+  type CertificateTemplateId,
+} from '@/lib/certificates-constants';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { SortableTableHead } from '@/components/ui/SortableTableHead';
 import { sortTableBy, type SortDir } from '@/lib/table-sort';
@@ -382,7 +386,7 @@ export function CertificatesAdminClient({
               {!detailCert.revokedAt && (
                 <>
                   <span className="text-sm text-[var(--portal-text-muted)] mr-1 self-center">Шаблон PDF:</span>
-                  {(['default', 'minimal', 'elegant'] as const).map((tpl) => (
+                  {CERTIFICATE_TEMPLATE_IDS_FOR_SELECT.map((tpl) => (
                     <a key={tpl} href={downloadUrl(detailCert.id, tpl)} target="_blank" rel="noopener noreferrer">
                       <Button variant="secondary" size="sm"><Download className="mr-1 h-4 w-4" /> {CERTIFICATE_TEMPLATE_LABELS[tpl]}</Button>
                     </a>

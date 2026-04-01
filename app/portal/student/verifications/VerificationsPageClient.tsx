@@ -19,6 +19,7 @@ interface VerificationItem {
   courseId: string;
   courseTitle: string;
   lessonId: string | null;
+  assignmentType?: string;
   videoUrl: string;
   status: string;
   comment: string | null;
@@ -58,6 +59,7 @@ export function VerificationsPageClient({
   const [addCourseId, setAddCourseId] = useState('');
   const [addLessonId, setAddLessonId] = useState('');
   const [addVideoUrl, setAddVideoUrl] = useState('');
+  const [addAssignmentType, setAddAssignmentType] = useState<'video' | 'text'>('video');
   const [submittingAdd, setSubmittingAdd] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editVideoUrl, setEditVideoUrl] = useState('');
@@ -100,11 +102,19 @@ export function VerificationsPageClient({
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     const url = addVideoUrl.trim();
-    const isHttp = url.startsWith('http://') || url.startsWith('https://');
-    const isUploaded = url.startsWith('/uploads/');
-    if (!url || (!isHttp && !isUploaded)) {
-      toast.error('Введите ссылку на видео или загрузите файл');
-      return;
+    const isText = addAssignmentType === 'text';
+    if (isText) {
+      if (url.length < 1 || url.length > 20000) {
+        toast.error('Текст ответа: от 1 до 20 000 символов');
+        return;
+      }
+    } else {
+      const isHttp = url.startsWith('http://') || url.startsWith('https://');
+      const isUploaded = url.startsWith('/uploads/');
+      if (!url || (!isHttp && !isUploaded)) {
+        toast.error('Введите ссылку на видео или загрузите файл');
+        return;
+      }
     }
     if (!addCourseId) {
       toast.error('Выберите курс');
@@ -119,6 +129,7 @@ export function VerificationsPageClient({
           courseId: addCourseId,
           lessonId: addLessonId || null,
           videoUrl: url,
+          assignmentType: isText ? 'text' : 'video',
         }),
       });
       const data = await res.json();
@@ -128,6 +139,7 @@ export function VerificationsPageClient({
         courseId: data.courseId,
         courseTitle: enrolledCourses.find((c) => c.id === data.courseId)?.title ?? 'Курс',
         lessonId: data.lessonId,
+        assignmentType: isText ? 'text' : 'video',
         videoUrl: url,
         status: 'pending',
         comment: null,
@@ -137,6 +149,7 @@ export function VerificationsPageClient({
       setAddVideoUrl('');
       setAddLessonId('');
       setAddCourseId('');
+      setAddAssignmentType('video');
       setShowAddForm(false);
       toast.success('Задание добавлено на проверку');
     } catch (err) {
@@ -158,10 +171,15 @@ export function VerificationsPageClient({
     setEditLessonId('');
   }
 
-  async function saveEdit(id: string) {
+  async function saveEdit(id: string, mode: 'video' | 'text') {
     const url = editVideoUrl.trim();
-    if (!url || !url.startsWith('http')) {
-      toast.error('Введите корректную ссылку на видео');
+    if (mode === 'text') {
+      if (url.length < 1 || url.length > 20000) {
+        toast.error('Текст ответа: от 1 до 20 000 символов');
+        return;
+      }
+    } else if (!url || (!url.startsWith('http') && !url.startsWith('/uploads/'))) {
+      toast.error('Введите корректную ссылку на видео или путь к загруженному файлу');
       return;
     }
     setSubmittingEdit(true);
@@ -249,37 +267,68 @@ export function VerificationsPageClient({
               </div>
             )}
             <div>
-              <Label htmlFor="add-url">Ссылка на видео или загрузите файл *</Label>
-              <div className="mt-1 flex flex-wrap items-center gap-2">
-                <Input
-                  id="add-url"
-                  type="text"
+              <Label htmlFor="add-type">Тип задания</Label>
+              <select
+                id="add-type"
+                value={addAssignmentType}
+                onChange={(e) => {
+                  setAddAssignmentType(e.target.value as 'video' | 'text');
+                  setAddVideoUrl('');
+                }}
+                className="mt-1 block w-full max-w-md rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-h-10"
+              >
+                <option value="video">Видео (ссылка или файл)</option>
+                <option value="text">Текстовый ответ</option>
+              </select>
+            </div>
+            {addAssignmentType === 'text' ? (
+              <div>
+                <Label htmlFor="add-text">Текст ответа *</Label>
+                <textarea
+                  id="add-text"
                   value={addVideoUrl}
                   onChange={(e) => setAddVideoUrl(e.target.value)}
-                  placeholder="https://... или нажмите «Загрузить видео»"
+                  rows={8}
                   required
-                  className="min-h-10 flex-1 min-w-[200px]"
+                  maxLength={20000}
+                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-h-[120px]"
+                  placeholder="Ваш ответ по заданию…"
                 />
-                <input
-                  ref={addVideoInputRef}
-                  type="file"
-                  accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,.mp4,.webm,.mov,.avi,.mkv"
-                  className="hidden"
-                  onChange={(e) => handleUploadVideo(e, setAddVideoUrl)}
-                />
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  disabled={uploadingVideo}
-                  onClick={() => addVideoInputRef.current?.click()}
-                  className="min-h-10"
-                >
-                  {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                  <span className="ml-2">{uploadingVideo ? 'Загрузка…' : 'Загрузить видео'}</span>
-                </Button>
               </div>
-            </div>
+            ) : (
+              <div>
+                <Label htmlFor="add-url">Ссылка на видео или загрузите файл *</Label>
+                <div className="mt-1 flex flex-wrap items-center gap-2">
+                  <Input
+                    id="add-url"
+                    type="text"
+                    value={addVideoUrl}
+                    onChange={(e) => setAddVideoUrl(e.target.value)}
+                    placeholder="https://... или нажмите «Загрузить видео»"
+                    required
+                    className="min-h-10 flex-1 min-w-[200px]"
+                  />
+                  <input
+                    ref={addVideoInputRef}
+                    type="file"
+                    accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,.mp4,.webm,.mov,.avi,.mkv"
+                    className="hidden"
+                    onChange={(e) => handleUploadVideo(e, setAddVideoUrl)}
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    disabled={uploadingVideo}
+                    onClick={() => addVideoInputRef.current?.click()}
+                    className="min-h-10"
+                  >
+                    {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                    <span className="ml-2">{uploadingVideo ? 'Загрузка…' : 'Загрузить видео'}</span>
+                  </Button>
+                </div>
+              </div>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button type="submit" variant="primary" disabled={submittingAdd}>
                 {submittingAdd ? 'Отправка…' : 'Отправить на проверку'}
@@ -364,37 +413,68 @@ export function VerificationsPageClient({
             )}
           </div>
           <div>
-            <Label htmlFor="add-url">Ссылка на видео или загрузите файл *</Label>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <Input
-                id="add-url"
-                type="text"
+            <Label htmlFor="add-type-main">Тип задания</Label>
+            <select
+              id="add-type-main"
+              value={addAssignmentType}
+              onChange={(e) => {
+                setAddAssignmentType(e.target.value as 'video' | 'text');
+                setAddVideoUrl('');
+              }}
+              className="mt-1 block w-full max-w-md rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-h-10"
+            >
+              <option value="video">Видео (ссылка или файл)</option>
+              <option value="text">Текстовый ответ</option>
+            </select>
+          </div>
+          {addAssignmentType === 'text' ? (
+            <div>
+              <Label htmlFor="add-text-main">Текст ответа *</Label>
+              <textarea
+                id="add-text-main"
                 value={addVideoUrl}
                 onChange={(e) => setAddVideoUrl(e.target.value)}
-                placeholder="https://... или нажмите «Загрузить видео»"
+                rows={8}
                 required
-                className="min-h-10 flex-1 min-w-[200px] max-w-xl"
+                maxLength={20000}
+                className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-h-[120px]"
+                placeholder="Ваш ответ по заданию…"
               />
-              <input
-                ref={addVideoInputRef}
-                type="file"
-                accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,.mp4,.webm,.mov,.avi,.mkv"
-                className="hidden"
-                onChange={(e) => handleUploadVideo(e, setAddVideoUrl)}
-              />
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                disabled={uploadingVideo}
-                onClick={() => addVideoInputRef.current?.click()}
-                className="min-h-10"
-              >
-                {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                <span className="ml-2">{uploadingVideo ? 'Загрузка…' : 'Загрузить видео'}</span>
-              </Button>
             </div>
-          </div>
+          ) : (
+            <div>
+              <Label htmlFor="add-url-main">Ссылка на видео или загрузите файл *</Label>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <Input
+                  id="add-url-main"
+                  type="text"
+                  value={addVideoUrl}
+                  onChange={(e) => setAddVideoUrl(e.target.value)}
+                  placeholder="https://... или нажмите «Загрузить видео»"
+                  required
+                  className="min-h-10 flex-1 min-w-[200px] max-w-xl"
+                />
+                <input
+                  ref={addVideoInputRef}
+                  type="file"
+                  accept="video/mp4,video/webm,video/quicktime,video/x-msvideo,video/x-matroska,.mp4,.webm,.mov,.avi,.mkv"
+                  className="hidden"
+                  onChange={(e) => handleUploadVideo(e, setAddVideoUrl)}
+                />
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  disabled={uploadingVideo}
+                  onClick={() => addVideoInputRef.current?.click()}
+                  className="min-h-10"
+                >
+                  {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  <span className="ml-2">{uploadingVideo ? 'Загрузка…' : 'Загрузить видео'}</span>
+                </Button>
+              </div>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <Button type="submit" variant="primary" disabled={submittingAdd}>
               {submittingAdd ? 'Отправка…' : 'Отправить на проверку'}
@@ -430,34 +510,50 @@ export function VerificationsPageClient({
               {isEditing ? (
                 <div className="space-y-3 pt-2 border-t border-[#E2E8F0]">
                   <div>
-                    <Label htmlFor={`edit-url-${v.id}`}>Ссылка на видео или загрузите файл</Label>
-                    <div className="mt-1 flex flex-wrap items-center gap-2">
-                      <Input
-                        id={`edit-url-${v.id}`}
-                        type="text"
-                        value={editVideoUrl}
-                        onChange={(e) => setEditVideoUrl(e.target.value)}
-                        className="min-h-9 text-sm flex-1 min-w-[160px]"
-                      />
-                      <input
-                        ref={editVideoInputRef}
-                        type="file"
-                        accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.avi,.mkv"
-                        className="hidden"
-                        onChange={(e) => handleUploadVideo(e, setEditVideoUrl)}
-                      />
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        disabled={uploadingVideo}
-                        onClick={() => editVideoInputRef.current?.click()}
-                        className="min-h-9"
-                      >
-                        {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
-                        <span className="ml-1">{uploadingVideo ? 'Загрузка…' : 'Загрузить'}</span>
-                      </Button>
-                    </div>
+                    {v.assignmentType === 'text' ? (
+                      <>
+                        <Label htmlFor={`edit-text-${v.id}`}>Текст ответа</Label>
+                        <textarea
+                          id={`edit-text-${v.id}`}
+                          value={editVideoUrl}
+                          onChange={(e) => setEditVideoUrl(e.target.value)}
+                          rows={6}
+                          maxLength={20000}
+                          className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-2.5 py-2 text-sm"
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <Label htmlFor={`edit-url-${v.id}`}>Ссылка на видео или загрузите файл</Label>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <Input
+                            id={`edit-url-${v.id}`}
+                            type="text"
+                            value={editVideoUrl}
+                            onChange={(e) => setEditVideoUrl(e.target.value)}
+                            className="min-h-9 text-sm flex-1 min-w-[160px]"
+                          />
+                          <input
+                            ref={editVideoInputRef}
+                            type="file"
+                            accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov,.avi,.mkv"
+                            className="hidden"
+                            onChange={(e) => handleUploadVideo(e, setEditVideoUrl)}
+                          />
+                          <Button
+                            type="button"
+                            variant="secondary"
+                            size="sm"
+                            disabled={uploadingVideo}
+                            onClick={() => editVideoInputRef.current?.click()}
+                            className="min-h-9"
+                          >
+                            {uploadingVideo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                            <span className="ml-1">{uploadingVideo ? 'Загрузка…' : 'Загрузить'}</span>
+                          </Button>
+                        </div>
+                      </>
+                    )}
                   </div>
                   {(lessonOptionsByCourse[v.courseId]?.length ?? 0) > 0 && (
                     <div>
@@ -482,7 +578,7 @@ export function VerificationsPageClient({
                       type="button"
                       size="sm"
                       variant="primary"
-                      onClick={() => saveEdit(v.id)}
+                      onClick={() => saveEdit(v.id, v.assignmentType === 'text' ? 'text' : 'video')}
                       disabled={submittingEdit}
                     >
                       <Save className="h-3.5 w-3.5 mr-1" />
@@ -496,18 +592,29 @@ export function VerificationsPageClient({
                 </div>
               ) : (
                 <>
-                  {v.lessonId && (
-                    <p className="text-xs text-[var(--portal-text-muted)]">Урок: {v.lessonId}</p>
+                  <p className="text-xs text-[var(--portal-text-muted)]">
+                    {v.assignmentType === 'text' ? (
+                      <span className="inline-block rounded bg-[#EEF2FF] px-1.5 py-0.5 font-medium text-[#4338CA]">Текст</span>
+                    ) : (
+                      <span className="inline-block rounded bg-[#F1F5F9] px-1.5 py-0.5 font-medium text-[var(--portal-text)]">Видео</span>
+                    )}
+                    {v.lessonId && ` · Урок: ${v.lessonId}`}
+                  </p>
+                  {v.assignmentType === 'text' ? (
+                    <p className="text-sm text-[var(--portal-text)] line-clamp-6 whitespace-pre-wrap break-words">
+                      {v.videoUrl}
+                    </p>
+                  ) : (
+                    <a
+                      href={v.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-[var(--portal-accent)] hover:underline truncate"
+                    >
+                      <ExternalLink className="h-4 w-4 shrink-0" />
+                      <span className="truncate">Смотреть видео</span>
+                    </a>
                   )}
-                  <a
-                    href={v.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-[var(--portal-accent)] hover:underline truncate"
-                  >
-                    <ExternalLink className="h-4 w-4 shrink-0" />
-                    <span className="truncate">Смотреть видео</span>
-                  </a>
                   {v.status === 'rejected' && v.comment && (
                     <p className="text-sm text-[var(--portal-text-muted)] bg-red-50/50 rounded-lg px-3 py-2 border border-red-100">
                       {v.comment}

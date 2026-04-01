@@ -38,6 +38,10 @@ fi
 if [[ "${SKIP_LOCAL_BUILD:-}" != "1" ]]; then
   echo ""
   echo "=== Локальная сборка (next build) ==="
+  # Не доверять устаревшему BUILD_COMMIT из окружения (иначе в UI/health — старый sha).
+  export BUILD_COMMIT
+  BUILD_COMMIT="$(git -C "$ROOT_DIR" rev-parse --short HEAD 2>/dev/null || true)"
+  echo "   BUILD_COMMIT=$BUILD_COMMIT"
   npm run build:server 2>/dev/null || npm run build
 fi
 
@@ -62,7 +66,9 @@ echo ""
 echo "=== rsync .next (полная замена), public, prisma, конфиги ==="
 rsync -avz --delete -e "$RSYNC_RSH" ./.next/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/.next/"
 rsync -avz --delete -e "$RSYNC_RSH" ./public/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/public/"
-rsync -avz --delete -e "$RSYNC_RSH" ./prisma/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/prisma/"
+# Prisma: без --delete — иначе rsync с --exclude удалит dev.db на сервере.
+# Локальные *.db на прод не копируем.
+rsync -avz --exclude 'dev.db' --exclude '*.db' -e "$RSYNC_RSH" ./prisma/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/prisma/"
 rsync -avz -e "$RSYNC_RSH" \
   ./package.json \
   ./package-lock.json \

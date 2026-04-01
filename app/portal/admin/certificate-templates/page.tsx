@@ -12,6 +12,7 @@ import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { Card } from '@/components/portal/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { CertificateLayoutPreviewLinks } from '@/components/portal/CertificateLayoutPreviewLinks';
 import { CertificateTemplatesTableClient } from './CertificateTemplatesTableClient';
 import { Button } from '@/components/ui/button';
 import { LayoutTemplate, Plus } from 'lucide-react';
@@ -65,6 +66,7 @@ export default async function AdminCertificateTemplatesPage() {
           </Link>
         }
       />
+      <CertificateLayoutPreviewLinks />
       <Card>
         {templates.length === 0 ? (
           <EmptyState

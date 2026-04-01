@@ -9,6 +9,7 @@ export const metadata: Metadata = { title: 'Сертификаты' };
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
+import { CertificateLayoutPreviewLinks } from '@/components/portal/CertificateLayoutPreviewLinks';
 import { CertificatesAdminClient } from './CertificatesAdminClient';
 
 export default async function AdminCertificatesPage() {
@@ -56,6 +57,7 @@ export default async function AdminCertificatesPage() {
         title="Сертификаты"
         description="Каталог выданных сертификатов, скачивание PDF, массовая выдача"
       />
+      <CertificateLayoutPreviewLinks />
       <CertificatesAdminClient
         initialCertificates={initialCertificates}
         courses={courses.map((c) => ({ id: c.id, title: c.title }))}

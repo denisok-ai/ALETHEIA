@@ -2,15 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Download, ArrowLeft } from 'lucide-react';
 import { isPlaceholderOrExampleUrl } from '@/lib/placeholder-url';
-
-const IMAGE_MIMES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'];
-const VIDEO_MIMES = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo', 'video/x-ms-wmv'];
-const AUDIO_MIMES = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/ogg'];
-const PDF_MIMES = ['application/pdf'];
+import MediaViewerLazy from '@/components/portal/media/MediaViewerLazy';
 
 type MediaRecord = {
   id: string;
@@ -19,6 +14,7 @@ type MediaRecord = {
   mimeType: string | null;
   allowDownload: boolean;
   type: string;
+  thumbnailUrl?: string | null;
 };
 
 export function MediaViewClient({
@@ -29,7 +25,12 @@ export function MediaViewClient({
   media: MediaRecord;
 }) {
   const router = useRouter();
-  const [viewRecord, setViewRecord] = useState<{ file_url: string; mime_type: string | null; allow_download: boolean } | null>(null);
+  const [viewRecord, setViewRecord] = useState<{
+    file_url: string;
+    mime_type: string | null;
+    allow_download: boolean;
+    thumbnail_url?: string | null;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -40,19 +41,19 @@ export function MediaViewClient({
         if (!cancelled && data) setViewRecord(data);
       })
       .catch(() => {})
-      .finally(() => { if (!cancelled) setLoading(false); });
-    return () => { cancelled = true; };
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [mediaId]);
 
   const src = viewRecord?.file_url ?? media.fileUrl;
   const mime = viewRecord?.mime_type ?? media.mimeType ?? '';
   const allowDownload = viewRecord?.allow_download ?? media.allowDownload;
+  const poster = viewRecord?.thumbnail_url ?? media.thumbnailUrl ?? null;
   const isPlaceholder = isPlaceholderOrExampleUrl(src);
-
-  const isImage = IMAGE_MIMES.includes(mime);
-  const isVideo = mime.startsWith('video/');
-  const isAudio = mime.startsWith('audio/');
-  const isPdf = PDF_MIMES.includes(mime) || mime.includes('pdf');
 
   if (loading) {
     return (
@@ -62,51 +63,12 @@ export function MediaViewClient({
     );
   }
 
-  const downloadUrl = src.startsWith('http') ? src : (typeof window !== 'undefined' ? window.location.origin + src : src);
+  const downloadUrl = src.startsWith('http') ? src : typeof window !== 'undefined' ? window.location.origin + src : src;
 
   return (
     <div className="space-y-4">
       <div className="portal-card p-4">
-        {isPlaceholder ? (
-          <p className="text-sm text-[var(--portal-text-muted)] py-4">
-            Тестовый ресурс. Ссылка не ведёт на реальный файл (example.com или пусто).
-          </p>
-        ) : (
-        <>
-        {isImage && (
-          // eslint-disable-next-line @next/next/no-img-element -- dynamic media URL
-          <img src={src} alt={media.title} className="max-h-[70vh] w-full object-contain rounded-lg" />
-        )}
-        {isVideo && !isImage && (
-          <video controls className="w-full max-h-[70vh] rounded-lg" src={src}>
-            Ваш браузер не поддерживает видео.
-          </video>
-        )}
-        {isAudio && !isVideo && (
-          <audio controls className="w-full" src={src}>
-            Ваш браузер не поддерживает аудио.
-          </audio>
-        )}
-        {isPdf && !isVideo && !isAudio && (
-          <iframe title={media.title} src={src} className="w-full h-[70vh] rounded-lg border border-[#E2E8F0]" />
-        )}
-        {!isImage && !isVideo && !isAudio && !isPdf && (
-          <div className="space-y-3 py-4">
-            <p className="text-sm text-[var(--portal-text-muted)]">Предпросмотр недоступен.</p>
-            {allowDownload && (
-              <a
-                href={downloadUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-medium text-[#6366F1] hover:underline"
-              >
-                Открыть / Скачать
-              </a>
-            )}
-          </div>
-        )}
-        </>
-        )}
+        <MediaViewerLazy title={media.title} src={src} mimeType={mime} poster={poster} />
       </div>
 
       <div className="flex flex-wrap gap-2">

@@ -6,7 +6,8 @@ import { redirect } from 'next/navigation';
 import { getUser } from '@/lib/auth';
 import { getSystemSettings } from '@/lib/settings';
 import { PortalUIProvider } from '@/components/portal/PortalUIProvider';
-import { PortalHeader } from '@/components/portal/PortalHeader';
+import { PortalCommandPalette } from '@/components/portal/PortalCommandPalette';
+import { PortalHeaderWrapper } from '@/components/portal/PortalHeaderWrapper';
 import { ClaimOrdersTrigger } from '@/components/portal/ClaimOrdersTrigger';
 import { prisma } from '@/lib/db';
 import type { Metadata } from 'next';
@@ -49,9 +50,10 @@ export default async function PortalLayout({
 
   return (
     <PortalUIProvider user={user} profile={profile} portalTitle={portalTitle}>
+      <PortalCommandPalette />
       {profile?.role === 'user' && <ClaimOrdersTrigger />}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <PortalHeader user={user} profile={profile} portalTitle={portalTitle} unreadNotificationCount={unreadCount} />
+        <PortalHeaderWrapper user={user} profile={profile} portalTitle={portalTitle} unreadNotificationCount={unreadCount} />
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
       </div>
     </PortalUIProvider>

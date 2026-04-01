@@ -38,5 +38,6 @@ export async function GET(
     mime_type: media.mimeType,
     allow_download: media.allowDownload,
     type: media.type,
+    thumbnail_url: media.thumbnailUrl,
   });
 }

@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { scormPublicUrl } from '@/lib/scorm/public-url';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -31,26 +32,19 @@ export async function GET(request: NextRequest) {
   });
   if (!course?.scormPath) return NextResponse.json({ error: 'No SCORM content' }, { status: 404 });
 
-  let baseUrl: string;
-  try {
-    const requestUrl = new URL(request.url);
-    baseUrl = `${requestUrl.protocol}//${requestUrl.host}`;
-    if (!requestUrl.host) baseUrl = 'https://avaterra.pro';
-  } catch {
-    baseUrl = 'https://avaterra.pro';
-  }
-  const pathPrefix = '/uploads/scorm/';
   const lessonId = searchParams.get('lessonId');
-  let url = `${baseUrl.replace(/\/+$/, '')}${pathPrefix}${course.scormPath.replace(/^\/+/, '')}`;
+  let url = scormPublicUrl(course.scormPath);
 
   if (lessonId && lessonId !== 'main' && course.scormManifest) {
     try {
       const manifest = JSON.parse(course.scormManifest) as { items?: { identifier: string; href?: string }[] };
       const item = manifest.items?.find((i) => i.identifier === lessonId);
       if (item?.href) {
-        const basePath = course.scormPath.replace(/\/[^/]+$/, '');
+        // basePath = package root (courses-xxx/vN) — hrefs are relative to imsmanifest.xml
+        const versionMatch = course.scormPath.match(/^(courses-[^/]+\/v\d+)/);
+        const basePath = versionMatch ? versionMatch[1] : course.scormPath.replace(/\/[^/]+$/, '');
         const pathPart = `${basePath}/${item.href}`.replace(/^\/+/, '');
-        url = `${baseUrl.replace(/\/+$/, '')}${pathPrefix}${pathPart}`;
+        url = scormPublicUrl(pathPart);
       }
     } catch {
       // use default url

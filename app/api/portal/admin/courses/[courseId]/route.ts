@@ -43,9 +43,11 @@ export async function PATCH(
   if (parsed.data.startsAt !== undefined) data.startsAt = parsed.data.startsAt ? new Date(parsed.data.startsAt) : null;
   if (parsed.data.endsAt !== undefined) data.endsAt = parsed.data.endsAt ? new Date(parsed.data.endsAt) : null;
   if (parsed.data.verificationRequiredLessonIds !== undefined) {
-    data.verificationRequiredLessonIds = Array.isArray(parsed.data.verificationRequiredLessonIds) && parsed.data.verificationRequiredLessonIds.length > 0
-      ? JSON.stringify(parsed.data.verificationRequiredLessonIds)
-      : null;
+    const arr = parsed.data.verificationRequiredLessonIds;
+    const normalized = Array.isArray(arr)
+      ? arr.map((x) => (typeof x === 'string' ? { lessonId: x } : x))
+      : [];
+    data.verificationRequiredLessonIds = normalized.length > 0 ? JSON.stringify(normalized) : null;
   }
 
   const course = await prisma.course.update({

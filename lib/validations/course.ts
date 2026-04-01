@@ -13,7 +13,20 @@ export const courseCreateSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
   thumbnailUrl: z.string().max(2000).optional().nullable(),
   aiTutorEnabled: z.boolean().optional(),
-  verificationRequiredLessonIds: z.array(z.string()).optional().nullable(),
+  verificationRequiredLessonIds: z
+    .array(
+      z.union([
+        z.string(),
+        z.object({
+          lessonId: z.string(),
+          instructions: z.string().optional(),
+          maxFiles: z.number().int().min(1).max(10).optional(),
+          requiredFormat: z.enum(['video', 'photo', 'document']).optional(),
+        }),
+      ])
+    )
+    .optional()
+    .nullable(),
 });
 
 export const courseUpdateSchema = courseCreateSchema.partial();

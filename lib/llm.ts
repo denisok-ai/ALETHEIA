@@ -14,7 +14,7 @@ export async function getLlmApiKey(llmKey: string): Promise<string | null> {
 
   const envFallback = async (): Promise<string | null> => {
     const overrides = await getEnvOverrides();
-    return overrides.deepseek_api_key ?? null;
+    return overrides.deepseek_api_key ?? overrides.openai_api_key ?? null;
   };
 
   if (!row) return envFallback();

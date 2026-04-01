@@ -35,8 +35,11 @@ export function CourseDetailTabs({
 
   return (
     <div className="space-y-4">
-      <div className="border-b border-[#E2E8F0]">
-        <nav className="-mb-px flex flex-wrap gap-1" aria-label="Разделы курса">
+      <div className="border-b border-[#E2E8F0] -mx-1 px-1">
+        <nav
+          className="-mb-px flex gap-0 overflow-x-auto overflow-y-hidden pb-px [scrollbar-width:thin]"
+          aria-label="Разделы курса"
+        >
           {TABS.map((tab) => {
             const Icon = tab.icon;
             return (
@@ -45,13 +48,13 @@ export function CourseDetailTabs({
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 aria-current={activeTab === tab.id ? 'page' : undefined}
-                className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
+                className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 sm:px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab.id
                     ? 'border-[#6366F1] text-[#4F46E5]'
                     : 'border-transparent text-[var(--portal-text-muted)] hover:border-[#E2E8F0] hover:text-[var(--portal-text)]'
                 }`}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-4 w-4 shrink-0" aria-hidden />
                 {tab.label}
               </button>
             );

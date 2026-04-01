@@ -55,6 +55,15 @@
 
 ---
 
+## Локальная среда и деплой (Cursor / WSL)
+
+- В Windows для проекта задан терминал по умолчанию **Ubuntu (WSL)** — см. `.vscode/settings.json`.
+- Деплой на VPS: **`npm run deploy:remote`** или задача VS Code / Cursor: **Run Task → deploy:remote (SSH prod)**.
+- **Авторежим без ввода passphrase:** скопировать `scripts/.deploy.env.example` → `scripts/.deploy.env`, указать `DEPLOY_SSH_KEY=` путь к отдельному ключу **без** пароля (публичный ключ — в `authorized_keys` на сервере). Файл `.deploy.env` в `.gitignore`, не коммитить.
+- Если ключ с passphrase: перед деплоем задача **ssh-add: avaterra key (WSL)** или вручную `ssh-add ~/.ssh/avaterra_pro_root`.
+
+---
+
 ## Ресурсы
 
 - Next.js: https://nextjs.org/docs

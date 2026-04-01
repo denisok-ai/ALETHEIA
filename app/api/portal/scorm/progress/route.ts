@@ -99,16 +99,8 @@ async function maybeIssueCertificate(userId: string, courseId: string, lessonId:
   });
   if (completed.length < requiredLessonIds.length) return;
 
-  const verificationRequiredIds: string[] = (() => {
-    const raw = (course as { verificationRequiredLessonIds?: string | null }).verificationRequiredLessonIds;
-    if (!raw?.trim()) return [];
-    try {
-      const arr = JSON.parse(raw) as unknown;
-      return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
-    } catch {
-      return [];
-    }
-  })();
+  const { getVerificationLessonIds } = await import('@/lib/verification-lessons');
+  const verificationRequiredIds = getVerificationLessonIds(course.verificationRequiredLessonIds);
   if (verificationRequiredIds.length > 0) {
     const approvedByLesson = await prisma.phygitalVerification.findMany({
       where: {
@@ -184,12 +176,17 @@ export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
   const role = (session?.user as { role?: string })?.role;
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!userId) {
+    console.warn('[SCORM progress] POST 401: no session', { hasCookie: !!request.headers.get('cookie') });
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   let body: Record<string, unknown>;
+  const rawText = await request.text();
   try {
-    body = (await request.json()) as Record<string, unknown>;
-  } catch {
+    body = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : {};
+  } catch (e) {
+    console.warn('[SCORM progress] POST 400: invalid JSON', { textPreview: rawText.slice(0, 200) }, e);
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
@@ -197,25 +194,29 @@ export async function POST(request: NextRequest) {
   const lessonId = body.lessonId as string | undefined;
   if (!courseId || !lessonId) return NextResponse.json({ error: 'Missing courseId or lessonId' }, { status: 400 });
 
-  if (role === 'admin') {
-    return NextResponse.json({ success: true });
-  }
+  console.log('[SCORM progress] POST', { userId, role, courseId, lessonId, completion_status: body.completion_status });
 
-  if (role === 'manager') {
+  if (role === 'admin') {
+    // Admin может тестировать любой курс без записи — пропускаем проверку enrollment
+  } else if (role === 'manager') {
     const managerEnrollment = await prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
     });
-    if (!managerEnrollment) return NextResponse.json({ success: true });
-  }
-
-  const enrollment = await prisma.enrollment.findUnique({
-    where: { userId_courseId: { userId, courseId } },
-  });
-  if (!enrollment) {
-    return NextResponse.json(
-      { error: 'Нет доступа к курсу. Запишитесь на курс для прохождения.' },
-      { status: 403 }
-    );
+    if (!managerEnrollment) {
+      console.log('[SCORM progress] manager without enrollment, skipping save', { userId, courseId, lessonId });
+      return NextResponse.json({ success: true });
+    }
+  } else {
+    const enrollment = await prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!enrollment) {
+      console.warn('[SCORM progress] POST 403: not enrolled', { userId, courseId, lessonId });
+      return NextResponse.json(
+        { error: 'Нет доступа к курсу. Запишитесь на курс для прохождения.' },
+        { status: 403 }
+      );
+    }
   }
 
   const cmi = body.cmi as Record<string, unknown> | undefined;
@@ -269,6 +270,8 @@ export async function POST(request: NextRequest) {
       timeSpent: timeSpentVal,
     },
   });
+
+  console.log('[SCORM progress] saved', { userId, courseId, lessonId, completionStatus, score: scoreVal, timeSpent: timeSpentVal });
 
   if (isLessonCompleted(completionStatus)) {
     try {

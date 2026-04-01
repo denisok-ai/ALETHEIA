@@ -3,15 +3,14 @@
  */
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { ExternalLink } from 'lucide-react';
 import { PageHeader } from '@/components/portal/PageHeader';
-import { ScormManifestViewer } from '@/components/admin/ScormManifestViewer';
-import { CourseAdminClient } from './CourseAdminClient';
-import { CourseAiTutorToggle } from './CourseAiTutorToggle';
+import { ScormPackageCard } from './ScormPackageCard';
+import { ScormVersionsBlock } from './ScormVersionsBlock';
+import { CourseCertificateTemplateBlock } from './CourseCertificateTemplateBlock';
+import { CourseAiTutorBlock } from './CourseAiTutorBlock';
 import { CourseCoverBlock } from './CourseCoverBlock';
 import { CourseMediaBlock } from './CourseMediaBlock';
 import { CourseVerificationLessonsBlock } from './CourseVerificationLessonsBlock';
@@ -49,34 +48,45 @@ export default async function AdminCourseDetailPage({ params }: PageProps) {
   });
   if (!course) notFound();
 
-  const [enrollmentCount, startedCount, certificateCount, progressByLesson, courseMedia, allMedia] = await Promise.all([
+  const [enrollmentCount, startedCount, certificateCount, courseMedia, allMedia, boundCertTemplate] = await Promise.all([
     prisma.enrollment.count({ where: { courseId } }),
     prisma.scormProgress.groupBy({
       by: ['userId'],
       where: { courseId },
     }).then((r) => r.length),
     prisma.certificate.count({ where: { courseId } }),
-    prisma.scormProgress.groupBy({
-      by: ['lessonId'],
-      where: { courseId },
-      _count: { userId: true },
-      _avg: { score: true },
-    }),
     prisma.media.findMany({
       where: { courseId },
       orderBy: { sortOrder: 'asc' },
-      select: { id: true, title: true, fileUrl: true },
+      select: { id: true, title: true, fileUrl: true, mimeType: true, thumbnailUrl: true, sortOrder: true },
     }),
     prisma.media.findMany({
       orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
-      select: { id: true, title: true, fileUrl: true, courseId: true },
+      select: { id: true, title: true, fileUrl: true, mimeType: true, thumbnailUrl: true, courseId: true },
+    }),
+    prisma.certificateTemplate.findFirst({
+      where: { courseId },
+      select: { id: true },
     }),
   ]);
 
-  const courseMediaItems = courseMedia.map((m) => ({ id: m.id, title: m.title, file_url: m.fileUrl }));
+  const courseMediaItems = courseMedia.map((m) => ({
+    id: m.id,
+    title: m.title,
+    file_url: m.fileUrl,
+    mime_type: m.mimeType,
+    thumbnail_url: m.thumbnailUrl,
+    sort_order: m.sortOrder,
+  }));
   const availableMediaItems = allMedia
     .filter((m) => m.courseId !== courseId)
-    .map((m) => ({ id: m.id, title: m.title, file_url: m.fileUrl }));
+    .map((m) => ({
+      id: m.id,
+      title: m.title,
+      file_url: m.fileUrl,
+      mime_type: m.mimeType,
+      thumbnail_url: m.thumbnailUrl,
+    }));
 
   return (
     <div className="space-y-6 w-full">
@@ -106,6 +116,18 @@ export default async function AdminCourseDetailPage({ params }: PageProps) {
             <dt className="inline font-medium text-[var(--portal-text-muted)]">Статус:</dt>
             <dd className="inline ml-1 text-[var(--portal-text)]">{getCourseStatusLabel(course.status)}</dd>
           </div>
+          <div>
+            <dt className="inline font-medium text-[var(--portal-text-muted)]">Записано:</dt>
+            <dd className="inline ml-1 text-[var(--portal-text)]">{enrollmentCount}</dd>
+          </div>
+          <div>
+            <dt className="inline font-medium text-[var(--portal-text-muted)]">Начали:</dt>
+            <dd className="inline ml-1 text-[var(--portal-text)]">{startedCount}</dd>
+          </div>
+          <div>
+            <dt className="inline font-medium text-[var(--portal-text-muted)]">Сертификатов:</dt>
+            <dd className="inline ml-1 text-[var(--portal-text)]">{certificateCount}</dd>
+          </div>
           {course.startsAt && (
             <div>
               <dt className="inline font-medium text-[var(--portal-text-muted)]">Начало:</dt>
@@ -122,95 +144,72 @@ export default async function AdminCourseDetailPage({ params }: PageProps) {
       </div>
 
       <CourseDetailTabs courseId={courseId} courseTitle={course.title}>
-        {/* Tab: Обзор */}
-        <div className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="portal-card p-4">
-              <h2 className="text-base font-semibold text-[var(--portal-text)]">Статистика SCORM</h2>
-              <dl className="mt-3 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <dt className="text-[var(--portal-text-muted)]">Записано</dt>
-                  <dd className="font-medium text-[var(--portal-text)]">{enrollmentCount}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-[var(--portal-text-muted)]">Начали прохождение</dt>
-                  <dd className="font-medium text-[var(--portal-text)]">{startedCount}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-[var(--portal-text-muted)]">Получили сертификат</dt>
-                  <dd className="font-medium text-[var(--portal-text)]">{certificateCount}</dd>
-                </div>
-              </dl>
-              {progressByLesson.length > 0 && (
-                <div className="mt-4 border-t border-[#E2E8F0] pt-3">
-                  <p className="text-xs font-medium text-[var(--portal-text-muted)]">По урокам</p>
-                  <ul className="mt-1 space-y-1 text-sm">
-                    {progressByLesson.map((p) => (
-                      <li key={p.lessonId} className="flex justify-between">
-                        <span className="truncate text-[var(--portal-text-muted)]">{p.lessonId}</span>
-                        <span className="text-[var(--portal-text)]">
-                          {p._count.userId} чел.
-                          {p._avg.score != null && ` · ср. ${Math.round(p._avg.score)}%`}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+        {/* Tab: Обзор — сгруппировано по смыслу */}
+        <div className="space-y-8">
+          <section className="space-y-3" aria-labelledby="course-overview-learning">
+            <h2
+              id="course-overview-learning"
+              className="text-xs font-semibold uppercase tracking-wide text-[var(--portal-text-muted)]"
+            >
+              Обучение и проверка
+            </h2>
+            <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
+              <CourseAiTutorBlock courseId={courseId} initialEnabled={course.aiTutorEnabled ?? true} />
+              <CourseVerificationLessonsBlock
+                courseId={courseId}
+                scormManifest={course.scormManifest}
+                verificationRequiredLessonIdsJson={course.verificationRequiredLessonIds}
+              />
             </div>
+          </section>
 
-            <CourseAiTutorToggle courseId={courseId} initialEnabled={course.aiTutorEnabled ?? true} />
+          <section className="space-y-3" aria-labelledby="course-overview-branding">
+            <h2
+              id="course-overview-branding"
+              className="text-xs font-semibold uppercase tracking-wide text-[var(--portal-text-muted)]"
+            >
+              Оформление и выдача
+            </h2>
+            <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
+              <CourseCoverBlock courseId={courseId} initialThumbnailUrl={course.thumbnailUrl} />
+              <CourseCertificateTemplateBlock
+                courseId={courseId}
+                courseTitle={course.title}
+                initialBoundTemplateId={boundCertTemplate?.id ?? null}
+              />
+            </div>
+          </section>
 
-            <CourseVerificationLessonsBlock
-              courseId={courseId}
-              scormManifest={course.scormManifest}
-              verificationRequiredLessonIdsJson={course.verificationRequiredLessonIds}
-            />
-
-            <CourseCoverBlock
-              courseId={courseId}
-              initialThumbnailUrl={course.thumbnailUrl}
-            />
-
-            <div>
-              <ScormManifestViewer
+          <section className="space-y-3" aria-labelledby="course-overview-scorm">
+            <h2
+              id="course-overview-scorm"
+              className="text-xs font-semibold uppercase tracking-wide text-[var(--portal-text-muted)]"
+            >
+              SCORM-пакет
+            </h2>
+            <div className="space-y-6">
+              <ScormPackageCard
+                courseId={courseId}
                 scormManifest={course.scormManifest}
                 scormVersion={course.scormVersion}
               />
+              <ScormVersionsBlock courseId={courseId} />
             </div>
-          </div>
+          </section>
 
-          {course.scormPath && (
-            <div className="portal-card p-4">
-              <h2 className="text-base font-semibold text-[var(--portal-text)]">Просмотр SCORM-курса</h2>
-              <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
-                Откройте курс в плеере для проверки после импорта. Прогресс при просмотре не сохраняется.
-              </p>
-              <Link
-                href={`/portal/student/courses/${courseId}/play`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-3 inline-flex h-11 items-center justify-center rounded-lg bg-[#6366F1] px-6 font-semibold text-white transition-all hover:bg-[#4F46E5] shadow-sm hover:shadow-[0_4px_14px_rgba(99,102,241,0.35)]"
-              >
-                <ExternalLink className="mr-2 h-4 w-4" />
-                Открыть просмотр
-              </Link>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-3">
-            <CourseAdminClient
+          <section className="space-y-3" aria-labelledby="course-overview-media">
+            <h2
+              id="course-overview-media"
+              className="text-xs font-semibold uppercase tracking-wide text-[var(--portal-text-muted)]"
+            >
+              Медиатека курса
+            </h2>
+            <CourseMediaBlock
               courseId={courseId}
-              courseTitle={course.title}
-              hasScorm={!!course.scormPath}
+              initialAttached={courseMediaItems}
+              availableMedia={availableMediaItems}
             />
-          </div>
-
-          <CourseMediaBlock
-            courseId={courseId}
-            initialAttached={courseMediaItems}
-            availableMedia={availableMediaItems}
-          />
+          </section>
         </div>
       </CourseDetailTabs>
     </div>

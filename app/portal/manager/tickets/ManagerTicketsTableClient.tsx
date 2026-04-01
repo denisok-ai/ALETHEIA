@@ -5,7 +5,7 @@
  */
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { toast } from 'sonner';
+import { useSearchParams } from 'next/navigation';
 import {
   Table,
   TableBody,
@@ -20,6 +20,8 @@ import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/c
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 import { MessageSquare, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 
 const TICKETS_TABLE_COLUMNS: ColumnConfigItem[] = [
   { id: 'date', label: 'Дата' },
@@ -48,6 +50,8 @@ export interface TicketRow {
 }
 
 export function ManagerTicketsTableClient() {
+  const searchParams = useSearchParams();
+  const filterUserId = searchParams.get('userId')?.trim() ?? '';
   const [tickets, setTickets] = useState<TicketRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -56,6 +60,8 @@ export function ManagerTicketsTableClient() {
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => TICKETS_TABLE_COLUMNS.map((c) => c.id));
   const [sortKey, setSortKey] = useState<string>('date');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkLoading, setBulkLoading] = useState(false);
 
   const fetchTickets = useCallback(async (opts?: { exportMode?: boolean }) => {
     const exportMode = opts?.exportMode ?? false;
@@ -65,6 +71,7 @@ export function ManagerTicketsTableClient() {
       sortKey,
       sortDir,
     });
+    if (filterUserId) params.set('userId', filterUserId);
     if (exportMode) params.set('export', '1');
     setLoading(true);
     try {
@@ -82,16 +89,67 @@ export function ManagerTicketsTableClient() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, sortKey, sortDir]);
+  }, [page, pageSize, sortKey, sortDir, filterUserId]);
+
+  useEffect(() => {
+    setPage(0);
+  }, [filterUserId]);
 
   useEffect(() => {
     fetchTickets();
   }, [fetchTickets]);
 
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [filterUserId, page, pageSize, sortKey, sortDir]);
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllOnPage() {
+    const ids = tickets.map((t) => t.id);
+    const allSelected = ids.length > 0 && ids.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) ids.forEach((id) => next.delete(id));
+      else ids.forEach((id) => next.add(id));
+      return next;
+    });
+  }
+
+  async function applyBulkStatus(status: string) {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkLoading(true);
+    try {
+      const res = await fetch('/api/portal/manager/tickets/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ticketIds: ids, status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+      toast.success(`Обновлено тикетов: ${data.updated ?? ids.length}`);
+      setSelectedIds(new Set());
+      await fetchTickets();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось обновить');
+    } finally {
+      setBulkLoading(false);
+    }
+  }
+
   const handleExportExcel = async () => {
-    const all = await fetch(`/api/portal/manager/tickets?export=1&sortKey=${sortKey}&sortDir=${sortDir}`).then((r) =>
-      r.ok ? r.json() : { tickets: [] }
-    );
+    const uid = filterUserId ? `&userId=${encodeURIComponent(filterUserId)}` : '';
+    const all = await fetch(
+      `/api/portal/manager/tickets?export=1&sortKey=${sortKey}&sortDir=${sortDir}${uid}`,
+    ).then((r) => (r.ok ? r.json() : { tickets: [] }));
     const list = (all.tickets ?? []) as TicketRow[];
     const headers = ['Дата', 'Тема', 'Пользователь', 'Статус'];
     const rows = list.map((t) => {
@@ -135,17 +193,58 @@ export function ManagerTicketsTableClient() {
       <div className="portal-card p-10 text-center">
         <MessageSquare className="h-12 w-12 mx-auto mb-4 text-[var(--portal-text-soft)]" />
         <h2 className="text-lg font-semibold text-[var(--portal-text)]">Нет тикетов</h2>
-        <p className="mt-2 text-sm text-[var(--portal-text-muted)]">Новые обращения появятся здесь.</p>
+        <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
+          {filterUserId
+            ? 'У этого пользователя пока нет обращений. Снимите фильтр или перейдите к полному списку.'
+            : 'Новые обращения появятся здесь.'}
+        </p>
       </div>
     );
   }
 
   return (
     <div className="portal-card overflow-hidden p-0">
+      {filterUserId && (
+        <div className="border-b border-[#E2E8F0] bg-[#EEF2FF] px-4 py-2 text-sm text-[var(--portal-text)]">
+          Фильтр по пользователю: только тикеты этого userId.{' '}
+          <Link href="/portal/manager/tickets" className="font-medium text-[#6366F1] underline">
+            Показать все
+          </Link>
+        </div>
+      )}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-[#C7D2FE] bg-[#EEF2FF] px-4 py-2">
+          <span className="text-sm font-medium">Выбрано: {selectedIds.size}</span>
+          <span className="text-xs text-[var(--portal-text-muted)]">Статус:</span>
+          {(['open', 'in_progress', 'resolved', 'closed'] as const).map((st) => (
+            <Button
+              key={st}
+              size="sm"
+              variant="secondary"
+              disabled={bulkLoading}
+              onClick={() => applyBulkStatus(st)}
+            >
+              {STATUS_MAP[st]?.label ?? st}
+            </Button>
+          ))}
+          <Button size="sm" variant="ghost" type="button" onClick={() => setSelectedIds(new Set())}>
+            Снять выбор
+          </Button>
+        </div>
+      )}
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow className="border-b border-[#E2E8F0] bg-[#F8FAFC] hover:bg-[#F8FAFC]">
+              <TableHead className="w-10 px-2">
+                <input
+                  type="checkbox"
+                  checked={tickets.length > 0 && tickets.every((t) => selectedIds.has(t.id))}
+                  onChange={toggleSelectAllOnPage}
+                  className="rounded border-[#E2E8F0]"
+                  aria-label="Выбрать все на странице"
+                />
+              </TableHead>
               <SortableTableHead sortKey="date" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>
                 Дата
               </SortableTableHead>
@@ -168,6 +267,15 @@ export function ManagerTicketsTableClient() {
               const s = STATUS_MAP[t.status] ?? { label: t.status, cls: 'badge-neutral' };
               return (
                 <TableRow key={t.id} className="border-b border-[#E2E8F0] last:border-0">
+                  <TableCell className="w-10 px-2" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(t.id)}
+                      onChange={() => toggleSelect(t.id)}
+                      className="rounded border-[#E2E8F0]"
+                      aria-label={`Выбрать тикет ${t.subject}`}
+                    />
+                  </TableCell>
                   <TableCell className="text-[var(--portal-text-muted)] whitespace-nowrap">
                     {format(new Date(t.createdAt), 'dd.MM.yy HH:mm')}
                   </TableCell>

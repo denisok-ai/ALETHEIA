@@ -11,8 +11,10 @@ import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { CourseCoverPlaceholder } from '@/components/portal/CourseCoverPlaceholder';
 import { CourseVerificationBlock } from './CourseVerificationBlock';
+import { CourseMediaBlock, type CourseMediaItem } from './CourseMediaBlock';
 import { Button } from '@/components/ui/button';
 import { Play, CheckCircle2, ArrowLeft, Settings } from 'lucide-react';
+import { parseVerificationLessons } from '@/lib/verification-lessons';
 
 function totalLessons(manifest: string | null): number {
   if (!manifest) return 1;
@@ -64,7 +66,7 @@ export default async function StudentCourseDetailPage({ params }: Props) {
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course) notFound();
 
-  const [enrollment, progressByLesson, completedByLesson] = await Promise.all([
+  const [enrollment, progressByLesson, completedByLesson, courseMedia] = await Promise.all([
     prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
     }),
@@ -75,6 +77,24 @@ export default async function StudentCourseDetailPage({ params }: Props) {
     prisma.scormProgress.findMany({
       where: { userId, courseId, completionStatus: { in: ['completed', 'passed'] } },
       select: { lessonId: true },
+    }),
+    prisma.media.findMany({
+      where: { courseId },
+      orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
+      select: {
+        id: true,
+        title: true,
+        fileUrl: true,
+        mimeType: true,
+        category: true,
+        description: true,
+        thumbnailUrl: true,
+        type: true,
+        viewsCount: true,
+        allowDownload: true,
+        ratingSum: true,
+        ratingCount: true,
+      },
     }),
   ]);
 
@@ -114,14 +134,25 @@ export default async function StudentCourseDetailPage({ params }: Props) {
   const hasProgress = completed > 0 || progressByLesson.length > 0;
 
   const verificationLessonOptions = lessonOptionsFromManifest(course.scormManifest);
-  const verificationRequiredIds: string[] = (() => {
-    const raw = (course as { verificationRequiredLessonIds?: string | null }).verificationRequiredLessonIds;
-    if (!raw?.trim()) return [];
-    try {
-      const arr = JSON.parse(raw) as unknown;
-      return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
-    } catch { return []; }
-  })();
+  const verificationConfigs = parseVerificationLessons(
+    (course as { verificationRequiredLessonIds?: string | null }).verificationRequiredLessonIds
+  );
+  const verificationRequiredIds = verificationConfigs.map((c) => c.lessonId);
+
+  const mediaItems: CourseMediaItem[] = courseMedia.map((m) => ({
+    id: m.id,
+    title: m.title,
+    fileUrl: m.fileUrl,
+    mimeType: m.mimeType,
+    category: m.category,
+    description: m.description,
+    thumbnailUrl: m.thumbnailUrl,
+    type: m.type,
+    viewsCount: m.viewsCount,
+    allowDownload: m.allowDownload,
+    ratingSum: m.ratingSum,
+    ratingCount: m.ratingCount,
+  }));
 
   return (
     <div className="space-y-6 w-full max-w-5xl">
@@ -219,10 +250,13 @@ export default async function StudentCourseDetailPage({ params }: Props) {
         </div>
       )}
 
+      <CourseMediaBlock items={mediaItems} />
+
       <CourseVerificationBlock
         courseId={courseId}
         lessonOptions={verificationLessonOptions}
         requiredLessonIds={verificationRequiredIds}
+        verificationConfigs={verificationConfigs}
       />
     </div>
   );

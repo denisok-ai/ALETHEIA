@@ -37,7 +37,7 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
 
   const { id: userId } = await params;
 
-  const [user, courses] = await Promise.all([
+  const [user, courses, notificationLogs, mailingLogs, inAppNotifications] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -51,6 +51,22 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
     prisma.course.findMany({
       select: { id: true, title: true },
       orderBy: { sortOrder: 'asc' },
+    }),
+    prisma.notificationLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+    }),
+    prisma.mailingLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 25,
+      include: { mailing: { select: { internalTitle: true, emailSubject: true } } },
+    }),
+    prisma.notification.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 25,
     }),
   ]);
 
@@ -83,6 +99,8 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
 
       <UserDetailTabs
         userId={user.id}
+        accountEmail={user.email}
+        createdAt={user.createdAt.toISOString()}
         initialRole={profile?.role ?? 'user'}
         initialStatus={profile?.status ?? 'active'}
         initialDisplayName={profile?.displayName ?? null}
@@ -112,6 +130,29 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
           id: t.id,
           subject: t.subject,
           status: t.status,
+        }))}
+        notificationLogs={notificationLogs.map((n) => ({
+          id: n.id,
+          eventType: n.eventType,
+          subject: n.subject,
+          channel: n.channel,
+          content: n.content,
+          createdAt: n.createdAt.toISOString(),
+        }))}
+        mailingLogs={mailingLogs.map((m) => ({
+          id: m.id,
+          status: m.status,
+          recipientEmail: m.recipientEmail,
+          sentAt: m.sentAt?.toISOString() ?? null,
+          createdAt: m.createdAt.toISOString(),
+          mailing: m.mailing,
+        }))}
+        inAppNotifications={inAppNotifications.map((n) => ({
+          id: n.id,
+          type: n.type,
+          content: n.content,
+          isRead: n.isRead,
+          createdAt: n.createdAt.toISOString(),
         }))}
       />
     </div>

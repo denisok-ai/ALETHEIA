@@ -4,12 +4,12 @@ import { prisma } from '@/lib/db';
 import { getSystemSettings } from '@/lib/settings';
 import { nanoid } from 'nanoid';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { processPaidOrder } from '@/lib/paykeeper-webhook-process';
 
 const TARIFFS: Record<string, { name: string; price: number }> = {
-  consult: { name: 'Индивидуальная консультация', price: 5000 },
-  group: { name: 'Групповой тренинг', price: 3000 },
-  course: { name: 'Курс AVATERRA', price: 25000 },
-  online: { name: 'Онлайн-консультация', price: 3500 },
+  'kod-tela-start': { name: 'Код тела: введение в мышечное тестирование', price: 0 },
+  'avaterra-praktik': { name: 'AVATERRA: Практик', price: 25_000 },
+  'avaterra-master-vip': { name: 'AVATERRA: Мастер. Менторство Татьяны Стрельцовой', price: 69_000 },
 };
 
 export async function POST(request: NextRequest) {
@@ -75,6 +75,25 @@ export async function POST(request: NextRequest) {
     }
 
     const baseUrl = (await getSystemSettings()).site_url?.replace(/\/$/, '') || '';
+
+    if (amount <= 0) {
+      const paid = await processPaidOrder(orderNumber);
+      if (!paid.success) {
+        return NextResponse.json(
+          { error: paid.error || 'Не удалось оформить бесплатный доступ', success: false },
+          { status: 500 }
+        );
+      }
+      const paymentUrl = baseUrl
+        ? `${baseUrl}/success?order=${encodeURIComponent(orderNumber)}`
+        : `/success?order=${encodeURIComponent(orderNumber)}`;
+      return NextResponse.json({
+        success: true,
+        paymentUrl,
+        orderNumber,
+        amount,
+      });
+    }
 
     let paymentUrl: string;
     try {

@@ -98,6 +98,10 @@ test.describe('Страницы оферта и политика', () => {
   test('/oferta загружается', async ({ page }) => {
     await page.goto('/oferta');
     await expect(page.getByRole('heading', { name: /публичная оферта|оферта/i })).toBeVisible();
+    await expect(page.getByRole('navigation', { name: /Разделы: оплата, доступ, возврат/i })).toBeVisible();
+    await expect(page.locator('#oplata')).toBeVisible();
+    await expect(page.locator('#dostup')).toBeVisible();
+    await expect(page.locator('#vozvrat')).toBeVisible();
   });
 
   test('/privacy загружается', async ({ page }) => {

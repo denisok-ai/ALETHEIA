@@ -29,12 +29,13 @@ const SECTIONS = [
   },
   {
     title: 'Пользователи и продажи',
-    description: 'Пользователи, CRM, оплаты',
+    description: 'Пользователи, CRM, товары, оплаты',
     href: '/portal/admin/users',
     icon: Users,
     links: [
       { label: 'Пользователи', href: '/portal/admin/users' },
       { label: 'CRM', href: '/portal/admin/crm' },
+      { label: 'Товары', href: '/portal/admin/shop' },
       { label: 'Оплаты', href: '/portal/admin/payments' },
     ],
   },

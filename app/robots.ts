@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { getSystemSettings } from '@/lib/settings';
+import { normalizeSiteUrl, siteUrlHostForRobots } from '@/lib/site-url';
 
 /**
  * Генерирует robots.txt. Разрешена индексация публичных страниц.
@@ -7,7 +8,7 @@ import { getSystemSettings } from '@/lib/settings';
  */
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const settings = await getSystemSettings();
-  const baseUrl = settings.site_url || 'https://avaterra.pro';
+  const baseUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
   return {
     rules: [
       {
@@ -16,6 +17,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         disallow: ['/portal/', '/api/', '/auth/'],
       },
     ],
-    sitemap: `${baseUrl.replace(/\/$/, '')}/sitemap.xml`,
+    host: siteUrlHostForRobots(settings.site_url || 'https://avaterra.pro'),
+    sitemap: `${baseUrl}/sitemap.xml`,
   };
 }

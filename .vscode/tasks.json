@@ -1,0 +1,25 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "deploy:remote (SSH prod)",
+      "type": "npm",
+      "script": "deploy:remote",
+      "path": "package.json",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
+    },
+    {
+      "label": "ssh-add: avaterra key (WSL)",
+      "type": "shell",
+      "command": "ssh-add ~/.ssh/avaterra_pro_root && ssh-add -l",
+      "options": {
+        "shell": {
+          "executable": "wsl.exe",
+          "args": ["-d", "Ubuntu", "-e", "bash", "-lc"]
+        }
+      },
+      "problemMatcher": []
+    }
+  ]
+}

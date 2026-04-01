@@ -1,7 +1,7 @@
 /**
  * AI tutor for SCORM course: streaming chat grounded in course content (Course.aiContext).
- * POST body: { messages: UIMessage[], courseId: string, lessonId?: string }
- * Auth: enrolled student only. Uses LlmSetting key 'course-tutor' or falls back to 'chatbot'.
+ * Saves conversations to AiTutorConversation/AiTutorMessage for admin review.
+ * POST body: { messages: UIMessage[], courseId: string, lessonId?: string, conversationId?: string }
  */
 import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -13,6 +13,10 @@ import { createDeepSeek } from '@ai-sdk/deepseek';
 
 const DEFAULT_MODEL = 'deepseek-chat';
 
+function getMessageContent(m: { content?: string; text?: string }): string {
+  return String((m as { content?: string }).content ?? (m as { text?: string }).text ?? '').trim();
+}
+
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
@@ -20,14 +24,14 @@ export async function POST(request: NextRequest) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  let body: { messages?: unknown[]; courseId?: string; lessonId?: string };
+  let body: { messages?: unknown[]; courseId?: string; lessonId?: string; conversationId?: string };
   try {
     body = await request.json();
   } catch {
     return new Response(JSON.stringify({ error: 'Invalid JSON' }), { status: 400 });
   }
 
-  const { messages = [], courseId, lessonId } = body;
+  const { messages = [], courseId, lessonId, conversationId: existingConvId } = body;
   if (!courseId || !Array.isArray(messages)) {
     return new Response(JSON.stringify({ error: 'Missing courseId or messages' }), { status: 400 });
   }
@@ -56,13 +60,39 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  let conversationId = existingConvId as string | undefined;
+  if (conversationId) {
+    const conv = await prisma.aiTutorConversation.findFirst({
+      where: { id: conversationId, userId, courseId },
+    });
+    if (!conv) conversationId = undefined;
+  }
+
+  if (!conversationId) {
+    const conv = await prisma.aiTutorConversation.create({
+      data: { userId, courseId, lessonId: lessonId ?? null },
+    });
+    conversationId = conv.id;
+  }
+
+  const lastUserMsg = [...messages].reverse().find((m) => (m as { role?: string }).role === 'user');
+  if (lastUserMsg && getMessageContent(lastUserMsg as { content?: string; text?: string })) {
+    await prisma.aiTutorMessage.create({
+      data: {
+        conversationId,
+        role: 'user',
+        content: getMessageContent(lastUserMsg as { content?: string; text?: string }),
+      },
+    });
+  }
+
   const progressList = await prisma.scormProgress.findMany({
     where: { userId, courseId },
     select: { lessonId: true, completionStatus: true },
   });
   const completedLessons = progressList.filter(
-  (p) => p.completionStatus === 'completed' || p.completionStatus === 'passed'
-).length;
+    (p) => p.completionStatus === 'completed' || p.completionStatus === 'passed'
+  ).length;
   let totalLessons = 1;
   if (course.aiContext) {
     try {
@@ -127,7 +157,21 @@ ${contentText}`;
     messages: modelMessages,
     maxOutputTokens: maxTokens,
     temperature,
+    onFinish: async ({ text }) => {
+      if (text?.trim()) {
+        try {
+          await prisma.aiTutorMessage.create({
+            data: { conversationId: conversationId!, role: 'assistant', content: text },
+          });
+        } catch (e) {
+          console.error('Failed to save AI tutor message:', e);
+        }
+      }
+    },
   });
 
-  return result.toUIMessageStreamResponse();
+  const response = await result.toUIMessageStreamResponse();
+  const headers = new Headers(response.headers);
+  headers.set('X-Conversation-Id', conversationId);
+  return new Response(response.body, { status: response.status, headers });
 }

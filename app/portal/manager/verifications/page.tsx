@@ -47,6 +47,7 @@ export default async function ManagerVerificationsPage() {
     course_id: i.courseId,
     course_title: i.course?.title ?? '',
     lesson_id: i.lessonId,
+    assignment_type: i.assignmentType ?? 'video',
     video_url: i.videoUrl,
     status: i.status,
     created_at: i.createdAt.toISOString(),
@@ -57,7 +58,7 @@ export default async function ManagerVerificationsPage() {
       <PageHeader
         items={[{ href: '/portal/manager/dashboard', label: 'Дашборд' }, { label: 'Верификация заданий' }]}
         title="Верификация заданий"
-        description="Очередь видео на проверку, одобрить / отклонить"
+        description="Очередь заданий на проверку (видео и текст), одобрить / отклонить"
       />
       <VerificationsList
         items={list}

@@ -14,12 +14,19 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { BarChart3, BookOpen, Users, Calendar, Download, List, FileSpreadsheet } from 'lucide-react';
+import { BarChart3, BookOpen, Users, Calendar, Download, List, FileSpreadsheet, Layers } from 'lucide-react';
 import { format } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
+import { toast } from 'sonner';
 
-type ReportType = 'summary' | 'by-course' | 'by-learner' | 'by-period' | 'course-learners';
+type ReportType =
+  | 'summary'
+  | 'by-course'
+  | 'by-learner'
+  | 'by-period'
+  | 'course-learners'
+  | 'group-intersection';
 
 interface CourseOption {
   courseId: string;
@@ -37,6 +44,22 @@ interface CourseLearnerRow {
   avgScore: number | null;
   timeSpentMinutes: number;
   hasCertificate: boolean;
+}
+
+interface GroupOption {
+  id: string;
+  name: string;
+}
+
+interface GroupIntersectionRow {
+  userId: string;
+  displayName: string;
+  email: string;
+  courseId: string;
+  courseTitle: string;
+  enrolledAt: string;
+  completedAt: string | null;
+  accessClosed: boolean;
 }
 
 function dateToParam(d: Date): string {
@@ -70,6 +93,11 @@ export function ReportsClient() {
   } | null>(null);
   const [courseList, setCourseList] = useState<CourseOption[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState('');
+  const [userGroups, setUserGroups] = useState<GroupOption[]>([]);
+  const [courseGroups, setCourseGroups] = useState<GroupOption[]>([]);
+  const [userGroupId, setUserGroupId] = useState('');
+  const [courseGroupId, setCourseGroupId] = useState('');
+  const [groupIntersection, setGroupIntersection] = useState<{ rows: GroupIntersectionRow[] } | null>(null);
 
   useEffect(() => {
     if (reportType !== 'course-learners') return;
@@ -93,6 +121,27 @@ export function ReportsClient() {
     return () => { cancelled = true; };
   }, [reportType]);
 
+  useEffect(() => {
+    if (reportType !== 'group-intersection') return;
+    let cancelled = false;
+    Promise.all([
+      fetch('/api/portal/admin/groups?moduleType=user').then((r) => r.json()),
+      fetch('/api/portal/admin/groups?moduleType=course').then((r) => r.json()),
+    ])
+      .then(([ud, cd]) => {
+        if (cancelled) return;
+        setUserGroups((ud.groups ?? []).map((g: { id: string; name: string }) => ({ id: g.id, name: g.name })));
+        setCourseGroups((cd.groups ?? []).map((g: { id: string; name: string }) => ({ id: g.id, name: g.name })));
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setUserGroups([]);
+          setCourseGroups([]);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [reportType]);
+
   const fetchReport = useCallback(async () => {
     setLoading(true);
     try {
@@ -103,49 +152,97 @@ export function ReportsClient() {
       if (reportType === 'summary') {
         const r = await fetch(`/api/portal/admin/reports/summary?${params}`);
         const data = await r.json();
-        setSummary(data);
+        if (!r.ok) {
+          toast.error(typeof data.error === 'string' ? data.error : 'Ошибка отчёта');
+          setSummary(null);
+        } else {
+          setSummary(data);
+        }
         setByCourse(null);
         setByLearner(null);
         setByPeriod(null);
         setCourseLearners(null);
+        setGroupIntersection(null);
       } else if (reportType === 'course-learners' && selectedCourseId) {
         const r = await fetch(`/api/portal/admin/reports/course/${selectedCourseId}/learners`);
         const data = await r.json();
         if (r.ok) setCourseLearners({ courseId: data.courseId, courseTitle: data.courseTitle, rows: data.rows ?? [] });
-        else setCourseLearners(null);
+        else {
+          toast.error(data.error === 'Course not found' ? 'Курс не найден' : 'Ошибка отчёта');
+          setCourseLearners(null);
+        }
         setSummary(null);
         setByCourse(null);
         setByLearner(null);
         setByPeriod(null);
+        setGroupIntersection(null);
       } else if (reportType === 'by-course') {
         const r = await fetch(`/api/portal/admin/reports/by-course?${params}`);
         const data = await r.json();
-        setByCourse(data);
+        if (!r.ok) {
+          toast.error('Ошибка отчёта');
+          setByCourse(null);
+        } else {
+          setByCourse(data);
+        }
         setSummary(null);
         setByLearner(null);
         setByPeriod(null);
         setCourseLearners(null);
+        setGroupIntersection(null);
       } else if (reportType === 'by-learner') {
         const r = await fetch(`/api/portal/admin/reports/by-learner?${params}`);
         const data = await r.json();
-        setByLearner(data);
+        if (!r.ok) {
+          toast.error('Ошибка отчёта');
+          setByLearner(null);
+        } else {
+          setByLearner(data);
+        }
         setSummary(null);
         setByCourse(null);
+        setByPeriod(null);
+        setCourseLearners(null);
+        setGroupIntersection(null);
+      } else if (reportType === 'group-intersection') {
+        if (!userGroupId || !courseGroupId) {
+          toast.error('Выберите группу пользователей и группу курсов');
+          setGroupIntersection(null);
+          return;
+        }
+        const gp = new URLSearchParams({ dateFrom, dateTo, userGroupId, courseGroupId });
+        const r = await fetch(`/api/portal/admin/reports/group-intersection?${gp}`);
+        const data = await r.json();
+        if (!r.ok) {
+          toast.error(typeof data.error === 'string' ? data.error : 'Ошибка отчёта');
+          setGroupIntersection(null);
+        } else {
+          setGroupIntersection({ rows: data.rows ?? [] });
+        }
+        setSummary(null);
+        setByCourse(null);
+        setByLearner(null);
         setByPeriod(null);
         setCourseLearners(null);
       } else {
         const r = await fetch(`/api/portal/admin/reports/by-period?${params}`);
         const data = await r.json();
-        setByPeriod(data);
+        if (!r.ok) {
+          toast.error('Ошибка отчёта');
+          setByPeriod(null);
+        } else {
+          setByPeriod(data);
+        }
         setSummary(null);
         setByCourse(null);
         setByLearner(null);
         setCourseLearners(null);
+        setGroupIntersection(null);
       }
     } finally {
       setLoading(false);
     }
-  }, [reportType, dateFrom, dateTo, statusFilter, roleFilter, selectedCourseId]);
+  }, [reportType, dateFrom, dateTo, statusFilter, roleFilter, selectedCourseId, userGroupId, courseGroupId]);
 
   const exportCsv = useCallback(() => {
     if (reportType === 'by-course' && byCourse?.rows?.length) {
@@ -187,12 +284,30 @@ export function ReportsClient() {
       a.download = `report-by-period-${dateFrom}-${dateTo}.csv`;
       a.click();
       URL.revokeObjectURL(a.href);
+    } else if (reportType === 'group-intersection' && groupIntersection?.rows?.length) {
+      const header = ['Слушатель', 'Email', 'Курс', 'Зачислен', 'Завершён', 'Доступ'];
+      const rows = groupIntersection.rows.map((r) => [
+        r.displayName,
+        r.email,
+        r.courseTitle,
+        r.enrolledAt.slice(0, 10),
+        r.completedAt ? r.completedAt.slice(0, 10) : '—',
+        r.accessClosed ? 'Закрыт' : 'Открыт',
+      ]);
+      const csv = '\uFEFF' + header.map(csvEscape).join(',') + '\n' + rows.map((r) => r.map(csvEscape).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `report-groups-${dateFrom}-${dateTo}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
     } else if (reportType === 'summary' && summary?.summary) {
       const s = summary.summary as Record<string, unknown>;
       const header = ['Показатель', 'Значение'];
       const rowNames = [
         'usersActive', 'coursesTotal', 'coursesPublished', 'enrollmentsTotal', 'enrollmentsCompletedTotal',
-        'completionRatePercent', 'certificatesTotal', 'enrollmentsInPeriod', 'completedInPeriod', 'revenueInPeriod',
+        'completionRatePercent', 'certificatesTotal', 'enrollmentsInPeriod', 'completedInPeriod',
+        'certificatesInPeriod', 'ordersCountInPeriod', 'revenueInPeriod',
       ];
       const labels: Record<string, string> = {
         usersActive: 'Активных пользователей',
@@ -204,6 +319,8 @@ export function ReportsClient() {
         certificatesTotal: 'Сертификатов выдано',
         enrollmentsInPeriod: 'За период: зачислений',
         completedInPeriod: 'За период: завершений',
+        certificatesInPeriod: 'За период: сертификатов',
+        ordersCountInPeriod: 'За период: оплат (шт.)',
         revenueInPeriod: 'За период: выручка (₽)',
       };
       const rows = rowNames.map((k) => [labels[k] ?? k, String(s[k] ?? '')]);
@@ -235,7 +352,7 @@ export function ReportsClient() {
       a.click();
       URL.revokeObjectURL(a.href);
     }
-  }, [reportType, byCourse, byLearner, byPeriod, summary, courseLearners, dateFrom, dateTo]);
+  }, [reportType, byCourse, byLearner, byPeriod, summary, courseLearners, groupIntersection, dateFrom, dateTo]);
 
   const exportXlsx = useCallback(() => {
     if (reportType === 'by-course' && byCourse?.rows?.length) {
@@ -272,6 +389,17 @@ export function ReportsClient() {
         ];
       });
       downloadXlsxFromArrays(header, rows, `report-by-period-${dateFrom}-${dateTo}.xlsx`);
+    } else if (reportType === 'group-intersection' && groupIntersection?.rows?.length) {
+      const header = ['Слушатель', 'Email', 'Курс', 'Зачислен', 'Завершён', 'Доступ'];
+      const rows: (string | number | null | undefined)[][] = groupIntersection.rows.map((r) => [
+        r.displayName,
+        r.email,
+        r.courseTitle,
+        r.enrolledAt.slice(0, 10),
+        r.completedAt ? r.completedAt.slice(0, 10) : '—',
+        r.accessClosed ? 'Закрыт' : 'Открыт',
+      ]);
+      downloadXlsxFromArrays(header, rows, `report-groups-${dateFrom}-${dateTo}.xlsx`);
     } else if (reportType === 'summary' && summary?.summary) {
       const s = summary.summary as Record<string, unknown>;
       const header = ['Показатель', 'Значение'];
@@ -285,11 +413,14 @@ export function ReportsClient() {
         certificatesTotal: 'Сертификатов выдано',
         enrollmentsInPeriod: 'За период: зачислений',
         completedInPeriod: 'За период: завершений',
+        certificatesInPeriod: 'За период: сертификатов',
+        ordersCountInPeriod: 'За период: оплат (шт.)',
         revenueInPeriod: 'За период: выручка (₽)',
       };
       const rowNames = [
         'usersActive', 'coursesTotal', 'coursesPublished', 'enrollmentsTotal', 'enrollmentsCompletedTotal',
-        'completionRatePercent', 'certificatesTotal', 'enrollmentsInPeriod', 'completedInPeriod', 'revenueInPeriod',
+        'completionRatePercent', 'certificatesTotal', 'enrollmentsInPeriod', 'completedInPeriod',
+        'certificatesInPeriod', 'ordersCountInPeriod', 'revenueInPeriod',
       ];
       const rows = rowNames.map((k) => [labels[k] ?? k, String(s[k] ?? '')]);
       downloadXlsxFromArrays(header, rows, `report-summary-${dateFrom}-${dateTo}.xlsx`);
@@ -308,13 +439,14 @@ export function ReportsClient() {
       ]);
       downloadXlsxFromArrays(header, rows, `report-course-learners-${courseLearners.courseId}-${dateToParam(new Date())}.xlsx`);
     }
-  }, [reportType, byCourse, byLearner, byPeriod, summary, courseLearners, dateFrom, dateTo]);
+  }, [reportType, byCourse, byLearner, byPeriod, summary, courseLearners, groupIntersection, dateFrom, dateTo]);
 
   const tabs = [
     { id: 'summary' as const, label: 'Сводка', icon: <BarChart3 className="h-4 w-4" /> },
     { id: 'by-course' as const, label: 'По курсам', icon: <BookOpen className="h-4 w-4" /> },
     { id: 'by-learner' as const, label: 'По слушателям', icon: <Users className="h-4 w-4" /> },
     { id: 'by-period' as const, label: 'По периоду', icon: <Calendar className="h-4 w-4" /> },
+    { id: 'group-intersection' as const, label: 'Группы × курсы', icon: <Layers className="h-4 w-4" /> },
     { id: 'course-learners' as const, label: 'Слушатели курса', icon: <List className="h-4 w-4" /> },
   ];
 
@@ -394,13 +526,47 @@ export function ReportsClient() {
                 ))}
               </select>
             )}
-            <Button onClick={fetchReport} disabled={loading || (reportType === 'course-learners' && !selectedCourseId)}>
+            {reportType === 'group-intersection' && (
+              <>
+                <select
+                  value={userGroupId}
+                  onChange={(e) => setUserGroupId(e.target.value)}
+                  className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)] min-w-[180px] max-w-[240px]"
+                  aria-label="Группа пользователей"
+                >
+                  <option value="">— Группа пользователей —</option>
+                  {userGroups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={courseGroupId}
+                  onChange={(e) => setCourseGroupId(e.target.value)}
+                  className="rounded border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)] min-w-[180px] max-w-[240px]"
+                  aria-label="Группа курсов"
+                >
+                  <option value="">— Группа курсов —</option>
+                  {courseGroups.map((g) => (
+                    <option key={g.id} value={g.id}>{g.name}</option>
+                  ))}
+                </select>
+              </>
+            )}
+            <Button
+              onClick={fetchReport}
+              disabled={
+                loading ||
+                (reportType === 'course-learners' && !selectedCourseId) ||
+                (reportType === 'group-intersection' && (!userGroupId || !courseGroupId))
+              }
+            >
               {loading ? 'Загрузка…' : 'Сформировать'}
             </Button>
             {((reportType === 'summary' && summary?.summary) ||
               (reportType === 'by-course' && byCourse?.rows?.length) ||
               (reportType === 'by-learner' && byLearner?.rows?.length) ||
               (reportType === 'by-period' && byPeriod?.rows?.length) ||
+              (reportType === 'group-intersection' && groupIntersection?.rows?.length) ||
               (reportType === 'course-learners' && courseLearners?.rows?.length)) && (
               <>
                 <Button variant="secondary" onClick={exportCsv}>
@@ -454,6 +620,14 @@ export function ReportsClient() {
               <div className="portal-card p-4">
                 <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">За период: завершений</p>
                 <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.completedInPeriod as number}</p>
+              </div>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">За период: сертификатов</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.certificatesInPeriod as number}</p>
+              </div>
+              <div className="portal-card p-4">
+                <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">За период: оплат (шт.)</p>
+                <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{s.ordersCountInPeriod as number}</p>
               </div>
               <div className="portal-card p-4">
                 <p className="text-xs font-medium uppercase text-[var(--portal-text-muted)]">За период: выручка (₽)</p>
@@ -606,6 +780,40 @@ export function ReportsClient() {
         </>
       )}
 
+      {groupIntersection?.rows && groupIntersection.rows.length > 0 && (
+        <Card className="overflow-hidden p-0">
+          <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2 text-sm text-[var(--portal-text-muted)]">
+            Зачисления: слушатели из выбранной группы пользователей на курсы из выбранной группы курсов за период.
+          </div>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Слушатель</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Курс</TableHead>
+                  <TableHead>Зачислен</TableHead>
+                  <TableHead>Завершён</TableHead>
+                  <TableHead>Доступ</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {groupIntersection.rows.map((r) => (
+                  <TableRow key={`${r.userId}-${r.courseId}-${r.enrolledAt}`}>
+                    <TableCell className="font-medium">{r.displayName}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">{r.email}</TableCell>
+                    <TableCell>{r.courseTitle}</TableCell>
+                    <TableCell className="text-sm">{r.enrolledAt.slice(0, 10)}</TableCell>
+                    <TableCell className="text-sm">{r.completedAt ? r.completedAt.slice(0, 10) : '—'}</TableCell>
+                    <TableCell>{r.accessClosed ? 'Закрыт' : 'Открыт'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        </Card>
+      )}
+
       {courseLearners && (
         <Card className="overflow-hidden p-0">
           <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[var(--portal-text)]">
@@ -646,7 +854,13 @@ export function ReportsClient() {
         </Card>
       )}
 
-      {!loading && !summary?.summary && !byCourse?.rows?.length && !byLearner?.rows?.length && !byPeriod?.rows?.length && !courseLearners?.rows?.length && (
+      {!loading &&
+        !summary?.summary &&
+        !byCourse?.rows?.length &&
+        !byLearner?.rows?.length &&
+        !byPeriod?.rows?.length &&
+        !groupIntersection?.rows?.length &&
+        !courseLearners?.rows?.length && (
         <p className="text-center text-[var(--portal-text-muted)]">Выберите тип отчёта и нажмите «Сформировать».</p>
       )}
     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/SearchInput';
@@ -25,7 +26,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsx } from '@/lib/export-xlsx';
 import { formatPersonName } from '@/lib/format-person-name';
-import { Pencil, Users, Sparkles } from 'lucide-react';
+import { Pencil, Users } from 'lucide-react';
 
 interface Lead {
   id: number;
@@ -56,6 +57,7 @@ const LEADS_TABLE_COLUMNS: ColumnConfigItem[] = [
 ];
 
 export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
+  const router = useRouter();
   const [leads, setLeads] = useState(initialLeads);
   const [converting, setConverting] = useState<number | null>(null);
   const [updating, setUpdating] = useState<number | null>(null);
@@ -67,12 +69,9 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
   const [pageSize, setPageSize] = useState(10);
   const [notesEditing, setNotesEditing] = useState<Lead | null>(null);
   const [notesValue, setNotesValue] = useState('');
-  const [detailLead, setDetailLead] = useState<Lead | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
   const [convertConfirmLead, setConvertConfirmLead] = useState<Lead | null>(null);
-  const [aiSummaryLoading, setAiSummaryLoading] = useState<number | null>(null);
-  const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => LEADS_TABLE_COLUMNS.map((c) => c.id));
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -215,38 +214,6 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
     toast.success('Экспорт выполнен');
   }
 
-  async function handleAiSummary(lead: Lead) {
-    setAiSummaryLoading(lead.id);
-    setAiSummary(null);
-    try {
-      const context = [
-        `Имя: ${lead.name}`,
-        `Телефон: ${lead.phone}`,
-        lead.email ? `Email: ${lead.email}` : null,
-        lead.message ? `Сообщение: ${lead.message}` : null,
-        lead.notes ? `Заметки: ${lead.notes}` : null,
-        `Статус: ${lead.status}`,
-        lead.source ? `Источник: ${lead.source}` : null,
-      ].filter(Boolean).join('\n');
-      const res = await fetch('/api/portal/admin/ai-settings/generate-text', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          instruction: 'Сделай краткое резюме этого лида (2-3 предложения) и предложи следующий шаг для менеджера.',
-          context,
-          maxTokens: 300,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? 'Ошибка');
-      setAiSummary(data.content ?? '');
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Не удалось сгенерировать');
-    } finally {
-      setAiSummaryLoading(null);
-    }
-  }
-
   function toggleSelect(id: number) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -347,7 +314,11 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
               </TableRow>
             ) : (
               pageLeads.map((l, idx) => (
-                <TableRow key={l.id} className="cursor-pointer hover:bg-[#F8FAFC]" onClick={() => setDetailLead(l)}>
+                <TableRow
+                  key={l.id}
+                  className="cursor-pointer hover:bg-[#F8FAFC]"
+                  onClick={() => router.push(`/portal/admin/crm/leads/${l.id}`)}
+                >
                   <TableCell onClick={(e) => e.stopPropagation()}>
                     <input
                       type="checkbox"
@@ -448,62 +419,6 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         />
       )}
       </div>
-
-      {detailLead && (
-        <Dialog open onOpenChange={(open) => { if (!open) { setDetailLead(null); setAiSummary(null); } }}>
-          <DialogContent className="max-w-md" onClick={(e) => e.stopPropagation()}>
-            <DialogHeader>
-              <DialogTitle>Лид: {formatPersonName(detailLead.name)}</DialogTitle>
-            </DialogHeader>
-            <dl className="mt-2 space-y-1 text-sm">
-              <div><dt className="text-[var(--portal-text-muted)] inline">Телефон: </dt><dd className="inline">{detailLead.phone}</dd></div>
-              <div><dt className="text-[var(--portal-text-muted)] inline">Email: </dt><dd className="inline">{detailLead.email ?? '—'}</dd></div>
-              <div><dt className="text-[var(--portal-text-muted)] inline">Статус: </dt><dd className="inline">{detailLead.status}</dd></div>
-              {detailLead.source && <div><dt className="text-[var(--portal-text-muted)] inline">Источник: </dt><dd className="inline">{detailLead.source}</dd></div>}
-              <div><dt className="text-[var(--portal-text-muted)] inline">Дата: </dt><dd className="inline">{new Date(detailLead.created_at).toLocaleString('ru')}</dd></div>
-              {detailLead.last_order_number && (
-                <div><dt className="text-[var(--portal-text-muted)] inline">Оплаченный заказ: </dt><dd className="inline">{detailLead.last_order_number}</dd></div>
-              )}
-              {detailLead.message && <div><dt className="text-[var(--portal-text-muted)] inline">Сообщение: </dt><dd className="inline break-words">{detailLead.message}</dd></div>}
-              {detailLead.notes && <div><dt className="text-[var(--portal-text-muted)] inline">Заметки: </dt><dd className="inline break-words">{detailLead.notes}</dd></div>}
-            </dl>
-            {aiSummary && (
-              <div className="mt-4 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-sm text-[var(--portal-text)] whitespace-pre-wrap">
-                <p className="font-medium text-[var(--portal-text-muted)] mb-1">AI резюме</p>
-                {aiSummary}
-              </div>
-            )}
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => handleAiSummary(detailLead)}
-                disabled={aiSummaryLoading === detailLead.id}
-                className="gap-1"
-              >
-                <Sparkles className="h-4 w-4" />
-                {aiSummaryLoading === detailLead.id ? 'Генерация…' : 'AI резюме'}
-              </Button>
-              <select
-                value={detailLead.status}
-                onChange={(e) => { handleStatusChange(detailLead.id, e.target.value); setDetailLead((p) => p ? { ...p, status: e.target.value } : null); }}
-                disabled={updating === detailLead.id}
-                className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
-              >
-                {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-              </select>
-              <Button size="sm" variant="ghost" onClick={() => { setNotesEditing(detailLead); setNotesValue(detailLead.notes ?? ''); setDetailLead(null); }}>
-                <Pencil className="mr-1 h-4 w-4" /> Заметки
-              </Button>
-              {!detailLead.converted_to_user_id && detailLead.email && (
-                <Button size="sm" variant="secondary" onClick={() => setConvertConfirmLead(detailLead)} disabled={converting === detailLead.id}>
-                  Конвертировать
-                </Button>
-              )}
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
 
       <ConfirmDialog
         open={!!convertConfirmLead}

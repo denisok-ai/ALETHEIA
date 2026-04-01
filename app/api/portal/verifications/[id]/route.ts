@@ -5,13 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-
-function isValidUrl(s: string): boolean {
-  if (!s || typeof s !== 'string') return false;
-  const t = s.trim();
-  if (t.length > 2000) return false;
-  return t.startsWith('http://') || t.startsWith('https://') || t.startsWith('/uploads/');
-}
+import { isValidTextSubmission, isValidVideoSubmissionUrl } from '@/lib/verification-submission';
 
 export async function PATCH(
   request: NextRequest,
@@ -46,13 +40,24 @@ export async function PATCH(
   const updates: { videoUrl?: string; lessonId?: string | null } = {};
   if (body.videoUrl !== undefined) {
     const videoUrl = typeof body.videoUrl === 'string' ? body.videoUrl.trim() : '';
-    if (!videoUrl || !isValidUrl(videoUrl)) {
-      return NextResponse.json(
-        { error: 'Укажите ссылку на видео (http/https) или загрузите файл' },
-        { status: 400 }
-      );
+    const isText = verification.assignmentType === 'text';
+    if (isText) {
+      if (!isValidTextSubmission(videoUrl)) {
+        return NextResponse.json(
+          { error: 'Текст ответа: от 1 до 20 000 символов' },
+          { status: 400 }
+        );
+      }
+      updates.videoUrl = videoUrl;
+    } else {
+      if (!videoUrl || !isValidVideoSubmissionUrl(videoUrl)) {
+        return NextResponse.json(
+          { error: 'Укажите ссылку на видео (http/https) или загрузите файл' },
+          { status: 400 }
+        );
+      }
+      updates.videoUrl = videoUrl;
     }
-    updates.videoUrl = videoUrl;
   }
   if (body.lessonId !== undefined) {
     updates.lessonId = typeof body.lessonId === 'string' && body.lessonId.trim() ? body.lessonId.trim() : null;

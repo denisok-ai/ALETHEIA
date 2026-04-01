@@ -304,10 +304,12 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
             value={textMapping}
             onChange={(e) => setTextMapping(e.target.value)}
             rows={4}
-            placeholder='{"name":{"x":100,"y":200},"date":{"x":100,"y":250},...}'
+            placeholder='{"name":{"x":100,"y":420,"fontSize":16},"courseTitle":{"x":100,"y":480,"fontSize":14},"certNumber":{"x":72,"y":750,"fontSize":9},"date":{"x":400,"y":750,"fontSize":9},"expiryDate":{"x":100,"y":780,"fontSize":9}}'
             className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[#6366F1] px-3 py-2 font-mono text-sm"
           />
-          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Координаты для полей: name, date, courseTitle, certNumber.</p>
+          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+            Координаты в pt (A4 ≈ 595×842): name, courseTitle, certNumber, date, expiryDate (опционально). Текст срока: «Действителен до …».
+          </p>
         </div>
         <div>
           <Label htmlFor="ct-course">Курс</Label>

@@ -1,7 +1,7 @@
 /**
  * Admin: download any certificate PDF.
- * Если у сертификата есть pdfUrl и файл в кеше — отдаём из кеша; иначе генерируем, кешируем и отдаём.
- * Query: ?template=default|minimal|elegant — шаблон в стиле сайта (если образ не задан).
+ * Кеш: отдельный файл на макет (v2-{layout}) или v2-bg для подложки — старый uploads/.../id.pdf не используется.
+ * Query: ?template=default|heritage|prestige|minimal|elegant — макет PDF (если подложка не задана).
  */
 import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
@@ -11,10 +11,14 @@ import { storageRead, storageWrite, storageExists } from '@/lib/storage';
 import {
   generateCertificatePdf,
   generateCertificatePdfWithImage,
-  CERTIFICATE_TEMPLATE_IDS,
-  type CertificateTemplateId,
   type CertificateTextMapping,
 } from '@/lib/certificates';
+import {
+  builtinPdfStoragePath,
+  customBgPdfStoragePath,
+  parseCertificateLayoutQuery,
+} from '@/lib/certificate-pdf-cache';
+import { resolveCertificateRecipientName } from '@/lib/certificate-recipient-name';
 
 function resolveBackgroundPath(backgroundImageUrl: string): string {
   const relative = backgroundImageUrl.startsWith('/') ? backgroundImageUrl.slice(1) : backgroundImageUrl;
@@ -31,7 +35,14 @@ export async function GET(
   const { certId } = await params;
   const cert = await prisma.certificate.findUnique({
     where: { id: certId },
-    include: {
+    select: {
+      id: true,
+      userId: true,
+      certNumber: true,
+      issuedAt: true,
+      expiryDate: true,
+      pdfUrl: true,
+      revokedAt: true,
       course: { select: { title: true } },
       template: { select: { backgroundImageUrl: true, textMapping: true } },
     },
@@ -39,9 +50,16 @@ export async function GET(
   if (!cert) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   if (cert.revokedAt) return NextResponse.json({ error: 'Сертификат аннулирован' }, { status: 403 });
 
-  const cachePath = cert.pdfUrl && !cert.pdfUrl.startsWith('http') ? cert.pdfUrl : null;
-  if (cachePath && storageExists(cachePath)) {
-    const cached = await storageRead(cachePath);
+  const certTemplate = cert.template;
+  const usesCustomBg = Boolean(certTemplate?.backgroundImageUrl);
+  const builtinLayout = parseCertificateLayoutQuery(request.nextUrl.searchParams.get('template'));
+
+  const versionedCachePath = usesCustomBg
+    ? customBgPdfStoragePath(certId)
+    : builtinPdfStoragePath(certId, builtinLayout);
+
+  if (storageExists(versionedCachePath)) {
+    const cached = await storageRead(versionedCachePath);
     if (cached) {
       return new NextResponse(new Uint8Array(cached), {
         headers: {
@@ -52,50 +70,52 @@ export async function GET(
     }
   }
 
-  const profile = await prisma.profile.findUnique({
-    where: { userId: cert.userId },
-    select: { displayName: true },
+  const owner = await prisma.user.findUnique({
+    where: { id: cert.userId },
+    select: {
+      email: true,
+      displayName: true,
+      profile: { select: { displayName: true } },
+    },
   });
-  const displayName = profile?.displayName ?? 'Слушатель';
+  const recipientName = resolveCertificateRecipientName({
+    profileDisplayName: owner?.profile?.displayName,
+    userDisplayName: owner?.displayName,
+    userEmail: owner?.email,
+  });
 
   const data = {
-    userName: displayName,
+    userName: recipientName,
     courseName: cert.course?.title ?? 'Курс',
     certNumber: cert.certNumber,
     date: new Date(cert.issuedAt).toLocaleDateString('ru'),
+    expiryDate: cert.expiryDate ? new Date(cert.expiryDate).toLocaleDateString('ru') : null,
   };
 
   let buffer: Buffer;
-  const template = cert.template;
-  if (template?.backgroundImageUrl) {
-    const backgroundPath = resolveBackgroundPath(template.backgroundImageUrl);
+  if (certTemplate?.backgroundImageUrl) {
+    const backgroundPath = resolveBackgroundPath(certTemplate.backgroundImageUrl);
     let mapping: CertificateTextMapping = {};
-    if (template.textMapping) {
+    if (certTemplate.textMapping) {
       try {
-        mapping = JSON.parse(template.textMapping) as CertificateTextMapping;
+        mapping = JSON.parse(certTemplate.textMapping) as CertificateTextMapping;
       } catch {
-        // оставляем пустой mapping
+        // пустой mapping
       }
     }
     buffer = await generateCertificatePdfWithImage(data, backgroundPath, mapping);
   } else {
-    const templateParam = request.nextUrl.searchParams.get('template');
-    const template: CertificateTemplateId =
-      templateParam && CERTIFICATE_TEMPLATE_IDS.includes(templateParam as CertificateTemplateId)
-        ? (templateParam as CertificateTemplateId)
-        : 'default';
-    buffer = await generateCertificatePdf(data, template);
+    buffer = await generateCertificatePdf(data, builtinLayout);
   }
 
-  const certCachePath = `uploads/certificates/${certId}.pdf`;
   try {
-    await storageWrite(certCachePath, buffer);
+    await storageWrite(versionedCachePath, buffer);
     await prisma.certificate.update({
       where: { id: certId },
-      data: { pdfUrl: certCachePath },
+      data: { pdfUrl: versionedCachePath },
     });
   } catch {
-    // кеш не критичен, отдаём сгенерированный PDF
+    // кеш не критичен
   }
 
   return new NextResponse(new Uint8Array(buffer), {

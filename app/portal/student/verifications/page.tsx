@@ -44,6 +44,7 @@ export default async function StudentVerificationsPage() {
     courseId: v.courseId,
     courseTitle: v.course?.title ?? 'Курс',
     lessonId: v.lessonId,
+    assignmentType: v.assignmentType ?? 'video',
     videoUrl: v.videoUrl,
     status: v.status,
     comment: v.comment,
@@ -64,7 +65,7 @@ export default async function StudentVerificationsPage() {
           { label: 'Задания на проверку' },
         ]}
         title="Задания на проверку"
-        description="Видео, отправленные на проверку менеджеру"
+        description="Видео и текстовые ответы, отправленные на проверку менеджеру"
       />
       <VerificationsPageClient initialList={initialList} enrolledCourses={enrolledCourses} />
     </div>

@@ -137,7 +137,7 @@ export function CourseGroupsBlock({ courseId }: { courseId: string }) {
                   className="text-red-600 hover:text-red-700"
                   onClick={() => handleRemove(g.id)}
                 >
-                  Удалить из группы
+                  Исключить из группы
                 </Button>
               </li>
             ))}

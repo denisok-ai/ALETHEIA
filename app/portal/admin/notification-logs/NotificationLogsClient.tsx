@@ -4,6 +4,10 @@
  * Notification logs table with filters, column sorting and pagination.
  */
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import {
   Table,
   TableBody,
@@ -51,6 +55,9 @@ const EVENT_TYPES = [
 ];
 
 export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] }) {
+  const router = useRouter();
+  const [purgeOpen, setPurgeOpen] = useState(false);
+  const [purging, setPurging] = useState(false);
   const [eventFilter, setEventFilter] = useState('');
   const [channelFilter, setChannelFilter] = useState('');
   const [page, setPage] = useState(0);
@@ -101,8 +108,42 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
   const logsStart = logsCurrentPage * pageSize;
   const logsPageRows = sorted.slice(logsStart, logsStart + pageSize);
 
+  async function runPurge() {
+    setPurgeOpen(false);
+    setPurging(true);
+    try {
+      const res = await fetch('/api/portal/admin/notification-logs/purge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ olderThanDays: 30 }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+      toast.success(`Удалено записей: ${data.deleted ?? 0}`);
+      router.refresh();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка');
+    } finally {
+      setPurging(false);
+    }
+  }
+
   return (
     <div className="mt-6 space-y-4">
+      <div className="flex flex-wrap items-center gap-3">
+        <Button type="button" variant="secondary" size="sm" disabled={purging} onClick={() => setPurgeOpen(true)}>
+          {purging ? 'Удаление…' : 'Удалить записи старше 30 дней'}
+        </Button>
+      </div>
+      <ConfirmDialog
+        open={purgeOpen}
+        onOpenChange={setPurgeOpen}
+        title="Очистить журнал?"
+        description="Будут безвозвратно удалены все записи журнала уведомлений старше 30 дней."
+        confirmLabel="Удалить"
+        variant="danger"
+        onConfirm={runPurge}
+      />
       <div className="flex flex-wrap items-center gap-3">
         <select
           value={eventFilter}

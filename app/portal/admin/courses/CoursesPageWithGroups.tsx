@@ -6,7 +6,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { toast } from 'sonner';
 import { GroupTree } from '@/components/portal/GroupTree';
-import { ResizableGroupsLayout } from '@/components/portal/ResizableGroupsLayout';
+import { AdaptiveGroupsLayout } from '@/components/portal/AdaptiveGroupsLayout';
 import { GroupFormModal } from '@/components/portal/GroupFormModal';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { CoursesAdminClient } from './CoursesAdminClient';
@@ -27,6 +27,7 @@ interface Course {
 
 export function CoursesPageWithGroups({ initialCourses }: { initialCourses: Course[] }) {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [selectedGroupName, setSelectedGroupName] = useState<string | null>(null);
   const [groupModalOpen, setGroupModalOpen] = useState(false);
   const [groupEditId, setGroupEditId] = useState<string | null>(null);
   const [groupParentId, setGroupParentId] = useState<string | null>(null);
@@ -70,7 +71,10 @@ export function CoursesPageWithGroups({ initialCourses }: { initialCourses: Cour
     setGroupEditId(null);
     setGroupParentId(null);
     setTreeVersion((v) => v + 1);
-    if (selectedGroupId) setSelectedGroupId(null);
+    if (selectedGroupId) {
+      setSelectedGroupId(null);
+      setSelectedGroupName(null);
+    }
   };
 
   const handleEditGroup = (groupId: string) => {
@@ -97,41 +101,57 @@ export function CoursesPageWithGroups({ initialCourses }: { initialCourses: Cour
       toast.success('Группа удалена');
       setDeleteGroupId(null);
       setTreeVersion((v) => v + 1);
-      if (selectedGroupId === deleteGroupId) setSelectedGroupId(null);
+      if (selectedGroupId === deleteGroupId) {
+        setSelectedGroupId(null);
+        setSelectedGroupName(null);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Ошибка');
     }
     setDeleting(false);
   };
 
+  const clearGroupFilter = () => {
+    setSelectedGroupId(null);
+    setSelectedGroupName(null);
+  };
+
   return (
     <>
-    <ResizableGroupsLayout
-      storageKey="courses"
-      sidebar={
-        <GroupTree
-          key={`course-${treeVersion}`}
-          moduleType="course"
-          selectedGroupId={selectedGroupId}
-          onSelectGroup={setSelectedGroupId}
-          onAddGroup={handleAddGroup}
-          onEditGroup={handleEditGroup}
-          onDeleteGroup={handleDeleteGroup}
-          showCounts
-        />
-      }
-    >
-      {loadingGroup ? (
-        <p className="text-[var(--portal-text-muted)] py-4">Загрузка курсов группы…</p>
-      ) : (
-        <CoursesAdminClient
-          key={selectedGroupId ?? 'all'}
-          initialCourses={displayCourses}
-          selectedGroupId={selectedGroupId}
-          onGroupsChanged={() => setGroupRefreshTrigger((t) => t + 1)}
-        />
-      )}
-    </ResizableGroupsLayout>
+      <AdaptiveGroupsLayout
+        storageKey="courses"
+        selectedGroupId={selectedGroupId}
+        selectedGroupName={selectedGroupName}
+        onClearGroupFilter={clearGroupFilter}
+        filterNoun="курсы"
+        renderSidebar={({ closeDrawer }) => (
+          <GroupTree
+            key={`course-${treeVersion}`}
+            moduleType="course"
+            selectedGroupId={selectedGroupId}
+            onSelectGroup={(id, name) => {
+              setSelectedGroupId(id);
+              setSelectedGroupName(name ?? null);
+              closeDrawer();
+            }}
+            onAddGroup={handleAddGroup}
+            onEditGroup={handleEditGroup}
+            onDeleteGroup={handleDeleteGroup}
+            showCounts
+          />
+        )}
+      >
+        {loadingGroup ? (
+          <p className="text-[var(--portal-text-muted)] py-4">Загрузка курсов группы…</p>
+        ) : (
+          <CoursesAdminClient
+            key={selectedGroupId ?? 'all'}
+            initialCourses={displayCourses}
+            selectedGroupId={selectedGroupId}
+            onGroupsChanged={() => setGroupRefreshTrigger((t) => t + 1)}
+          />
+        )}
+      </AdaptiveGroupsLayout>
       <GroupFormModal
         open={groupModalOpen}
         onOpenChange={setGroupModalOpen}

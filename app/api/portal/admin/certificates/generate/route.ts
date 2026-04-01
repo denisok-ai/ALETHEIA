@@ -80,16 +80,8 @@ export async function POST(request: NextRequest) {
   const existingUserIds = new Set(existingCerts.map((c) => c.userId));
   let toIssue = userIdsCompleted.filter((id) => !existingUserIds.has(id));
 
-  const verificationRequiredIds: string[] = (() => {
-    const raw = course.verificationRequiredLessonIds;
-    if (!raw?.trim()) return [];
-    try {
-      const arr = JSON.parse(raw) as unknown;
-      return Array.isArray(arr) ? arr.filter((x): x is string => typeof x === 'string') : [];
-    } catch {
-      return [];
-    }
-  })();
+  const { getVerificationLessonIds } = await import('@/lib/verification-lessons');
+  const verificationRequiredIds = getVerificationLessonIds(course.verificationRequiredLessonIds);
   if (verificationRequiredIds.length > 0 && toIssue.length > 0) {
     const approvedByUserLesson = await prisma.phygitalVerification.findMany({
       where: {

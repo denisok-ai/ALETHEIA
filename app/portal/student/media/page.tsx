@@ -63,6 +63,7 @@ export default async function StudentMediaPage() {
     id: m.id,
     title: m.title,
     fileUrl: m.fileUrl,
+    thumbnailUrl: m.thumbnailUrl,
     mimeType: m.mimeType,
     category: m.category,
     description: m.description,

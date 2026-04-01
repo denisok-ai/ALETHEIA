@@ -44,6 +44,8 @@ export interface TicketThreadProps {
   managers?: { id: string; label: string }[];
   backHref: string;
   backLabel: string;
+  /** Ширина контейнера: менеджерский тикет — wide (на всю колонку портала) */
+  layout?: 'default' | 'wide';
 }
 
 export function TicketThread({
@@ -62,6 +64,7 @@ export function TicketThread({
   managers = [],
   backHref,
   backLabel,
+  layout = 'default',
 }: TicketThreadProps) {
   const [messages, setMessages] = useState(initialMessages);
   const [reply, setReply] = useState('');
@@ -193,7 +196,7 @@ export function TicketThread({
     status === 'open' ? 'Открыт' : status === 'in_progress' ? 'В работе' : status === 'resolved' ? 'Решён' : 'Закрыт';
 
   return (
-    <div className="space-y-6 max-w-3xl">
+    <div className={`space-y-6 ${layout === 'wide' ? 'w-full max-w-none' : 'max-w-3xl'}`}>
       <div>
         <Link href={backHref} className="text-sm font-medium text-[var(--portal-accent)] hover:underline">
           {backLabel}

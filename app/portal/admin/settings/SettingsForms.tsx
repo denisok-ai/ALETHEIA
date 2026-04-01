@@ -20,6 +20,8 @@ interface SettingsKeys {
   resend_from: string;
   resend_notify_email: string;
   contact_phone: string;
+  company_legal_address: string;
+  scorm_max_size_mb: string;
   email_payment_course_subject?: string;
   email_payment_course_body?: string;
   email_payment_generic_subject?: string;
@@ -49,7 +51,13 @@ export function SettingsForms() {
   const [savingEmail, setSavingEmail] = useState(false);
   const [savingPaymentEmail, setSavingPaymentEmail] = useState(false);
 
-  const [general, setGeneral] = useState({ site_url: '', portal_title: '', contact_phone: '' });
+  const [general, setGeneral] = useState({
+    site_url: '',
+    portal_title: '',
+    contact_phone: '',
+    company_legal_address: '',
+    scorm_max_size_mb: '200',
+  });
   const [email, setEmail] = useState({ resend_from: '', resend_notify_email: '' });
   const [paymentEmail, setPaymentEmail] = useState<PaymentEmailSettings>({
     email_payment_course_subject: '',
@@ -85,6 +93,11 @@ export function SettingsForms() {
   const [testingEmail, setTestingEmail] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [confirmUrlOpen, setConfirmUrlOpen] = useState(false);
+  const [paymentPreviewLoading, setPaymentPreviewLoading] = useState(false);
+  const [paymentTestSending, setPaymentTestSending] = useState(false);
+  const [paymentPreview, setPaymentPreview] = useState<{ subject: string; html: string; kind: string } | null>(null);
+  const [confirmImportEnvOpen, setConfirmImportEnvOpen] = useState(false);
+  const [importingEnv, setImportingEnv] = useState(false);
 
   useEffect(() => {
     fetch('/api/portal/admin/settings')
@@ -100,6 +113,8 @@ export function SettingsForms() {
           resend_from: k.resend_from ?? '',
           resend_notify_email: k.resend_notify_email ?? '',
           contact_phone: k.contact_phone ?? '',
+          company_legal_address: typeof k.company_legal_address === 'string' ? k.company_legal_address : '',
+          scorm_max_size_mb: k.scorm_max_size_mb ?? '200',
           email_payment_course_subject: typeof k.email_payment_course_subject === 'string' ? k.email_payment_course_subject : '',
           email_payment_course_body: typeof k.email_payment_course_body === 'string' ? k.email_payment_course_body : '',
           email_payment_generic_subject: typeof k.email_payment_generic_subject === 'string' ? k.email_payment_generic_subject : '',
@@ -134,6 +149,8 @@ export function SettingsForms() {
           site_url: k.site_url ?? '',
           portal_title: k.portal_title ?? '',
           contact_phone: k.contact_phone ?? '',
+          company_legal_address: typeof k.company_legal_address === 'string' ? k.company_legal_address : '',
+          scorm_max_size_mb: k.scorm_max_size_mb ?? '200',
         });
         setEmail({
           resend_from: k.resend_from ?? '',
@@ -170,6 +187,8 @@ export function SettingsForms() {
       site_url: keys.site_url,
       portal_title: keys.portal_title,
       contact_phone: keys.contact_phone,
+      company_legal_address: keys.company_legal_address ?? '',
+      scorm_max_size_mb: keys.scorm_max_size_mb ?? '200',
     });
     setEmail({
       resend_from: keys.resend_from,
@@ -210,6 +229,8 @@ export function SettingsForms() {
         site_url: general.site_url,
         portal_title: general.portal_title,
         contact_phone: general.contact_phone,
+        company_legal_address: general.company_legal_address,
+        scorm_max_size_mb: general.scorm_max_size_mb,
       }),
     })
       .then((res) => {
@@ -288,7 +309,7 @@ export function SettingsForms() {
       <div className="portal-card p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Общие</h2>
         <p className="mt-1 text-sm text-[var(--portal-text-muted)]">URL сайта и название портала. Изменение URL повлияет на ссылки в письмах и сертификатах.</p>
-        <form onSubmit={saveGeneral} className="mt-4 space-y-4 max-w-xl">
+        <form onSubmit={saveGeneral} className="mt-4 max-w-3xl space-y-4">
           <div>
             <Label htmlFor="site_url">URL сайта</Label>
             <Input
@@ -319,6 +340,31 @@ export function SettingsForms() {
               placeholder="+7 (999) 000-00-00"
               className="mt-1"
             />
+          </div>
+          <div>
+            <Label htmlFor="company_legal_address">Юридический / почтовый адрес компании</Label>
+            <textarea
+              id="company_legal_address"
+              value={general.company_legal_address}
+              onChange={(e) => setGeneral((p) => ({ ...p, company_legal_address: e.target.value }))}
+              placeholder="Полное наименование и адрес для писем и документов"
+              rows={3}
+              className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)]"
+            />
+          </div>
+          <div>
+            <Label htmlFor="scorm_max_size_mb">Макс. размер SCORM-пакета (МБ)</Label>
+            <Input
+              id="scorm_max_size_mb"
+              type="number"
+              min={1}
+              max={1000}
+              value={general.scorm_max_size_mb}
+              onChange={(e) => setGeneral((p) => ({ ...p, scorm_max_size_mb: e.target.value }))}
+              placeholder="200"
+              className="mt-1 w-32"
+            />
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Ограничение размера ZIP при загрузке курса. По умолчанию 200 МБ.</p>
           </div>
           <Button type="submit" disabled={savingGeneral}>
             {savingGeneral ? 'Сохранение…' : 'Сохранить'}
@@ -369,7 +415,7 @@ export function SettingsForms() {
       <div className="portal-card p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Шаблоны писем об оплате</h2>
         <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
-          Тема и тело писем после оплаты. Если пусто — используется текст по умолчанию. Плейсхолдеры: {'{{orderid}}'}, {'{{courseTitle}}'}, {'{{loginUrl}}'}, {'{{successUrl}}'}, {'{{portal_title}}'}.
+          Тема и тело писем после оплаты. Если пусто — используется текст по умолчанию. Плейсхолдеры: {'{{orderid}}'}, {'{{courseTitle}}'}, {'{{userName}}'}, {'{{orderAmount}}'}, {'{{loginUrl}}'}, {'{{successUrl}}'}, {'{{portalUrl}}'}, {'{{ofertaUrl}}'} (к ссылке можно добавить якорь: #oplata, #dostup, #vozvrat), {'{{supportEmail}}'}, {'{{company_address}}'}, {'{{portal_title}}'}.
         </p>
         <form onSubmit={savePaymentEmail} className="mt-4 space-y-4 max-w-2xl">
           <div>
@@ -414,6 +460,146 @@ export function SettingsForms() {
             {savingPaymentEmail ? 'Сохранение…' : 'Сохранить шаблоны'}
           </Button>
         </form>
+        <div className="mt-6 space-y-3 border-t border-[#E2E8F0] pt-6">
+          <p className="text-sm font-medium text-[var(--portal-text)]">Превью с подстановкой тестовых данных</p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={paymentPreviewLoading}
+              onClick={async () => {
+                setPaymentPreviewLoading(true);
+                try {
+                  const res = await fetch('/api/portal/admin/settings/payment-email-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kind: 'course', send: false }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    toast.error(typeof data.error === 'string' ? data.error : 'Ошибка превью');
+                    return;
+                  }
+                  setPaymentPreview({
+                    subject: data.subject,
+                    html: data.html,
+                    kind: data.kind ?? 'course',
+                  });
+                } catch {
+                  toast.error('Ошибка запроса');
+                } finally {
+                  setPaymentPreviewLoading(false);
+                }
+              }}
+            >
+              {paymentPreviewLoading ? '…' : 'Превью: оплата курса'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={paymentPreviewLoading}
+              onClick={async () => {
+                setPaymentPreviewLoading(true);
+                try {
+                  const res = await fetch('/api/portal/admin/settings/payment-email-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kind: 'generic', send: false }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    toast.error(typeof data.error === 'string' ? data.error : 'Ошибка превью');
+                    return;
+                  }
+                  setPaymentPreview({
+                    subject: data.subject,
+                    html: data.html,
+                    kind: data.kind ?? 'generic',
+                  });
+                } catch {
+                  toast.error('Ошибка запроса');
+                } finally {
+                  setPaymentPreviewLoading(false);
+                }
+              }}
+            >
+              {paymentPreviewLoading ? '…' : 'Превью: без курса'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={paymentTestSending || !keys?.resend_api_key}
+              onClick={async () => {
+                setPaymentTestSending(true);
+                try {
+                  const res = await fetch('/api/portal/admin/settings/payment-email-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kind: 'course', send: true }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    toast.error(typeof data.error === 'string' ? data.error : 'Ошибка отправки');
+                    return;
+                  }
+                  toast.success(`Тест «курс» отправлен на ${data.sentTo}`);
+                } catch {
+                  toast.error('Ошибка запроса');
+                } finally {
+                  setPaymentTestSending(false);
+                }
+              }}
+            >
+              {paymentTestSending ? '…' : 'Тест на email: курс'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={paymentTestSending || !keys?.resend_api_key}
+              onClick={async () => {
+                setPaymentTestSending(true);
+                try {
+                  const res = await fetch('/api/portal/admin/settings/payment-email-test', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ kind: 'generic', send: true }),
+                  });
+                  const data = await res.json();
+                  if (!res.ok) {
+                    toast.error(typeof data.error === 'string' ? data.error : 'Ошибка отправки');
+                    return;
+                  }
+                  toast.success(`Тест «без курса» отправлен на ${data.sentTo}`);
+                } catch {
+                  toast.error('Ошибка запроса');
+                } finally {
+                  setPaymentTestSending(false);
+                }
+              }}
+            >
+              {paymentTestSending ? '…' : 'Тест на email: без курса'}
+            </Button>
+          </div>
+          <p className="text-xs text-[var(--portal-text-muted)]">
+            Тест уходит на «Email получателя уведомлений» из блока «Почта». Нужен сохранённый Resend API-ключ.
+          </p>
+          {paymentPreview && (
+            <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+              <p className="text-xs text-[var(--portal-text-muted)]">Тип: {paymentPreview.kind}</p>
+              <p className="mt-1 text-sm font-medium text-[var(--portal-text)]">Тема: {paymentPreview.subject}</p>
+              <iframe
+                title="Превью HTML письма"
+                className="mt-2 w-full min-h-[200px] rounded border border-[#E2E8F0] bg-white"
+                srcDoc={paymentPreview.html}
+                sandbox=""
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="portal-card p-6">
@@ -827,6 +1013,54 @@ export function SettingsForms() {
             Тестовое письмо уходит на адрес из блока «Почта». Telegram: проверка токена через getMe.
           </p>
         </form>
+      </div>
+
+      <div className="portal-card p-6">
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Импорт из переменных окружения процесса</h2>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)] max-w-2xl">
+          После первого деплоя можно перенести значения из <code className="rounded bg-[#F1F5F9] px-1">.env</code> на сервере в БД одной операцией.
+          Перезаписываются только те ключи, для которых в окружении процесса задано непустое значение.{' '}
+          <code className="rounded bg-[#F1F5F9] px-1">DATABASE_URL</code> и{' '}
+          <code className="rounded bg-[#F1F5F9] px-1">NEXTAUTH_SECRET</code> сюда не входят — их задают только в панели хостинга.
+        </p>
+        <Button
+          type="button"
+          variant="secondary"
+          className="mt-4"
+          disabled={importingEnv}
+          onClick={() => setConfirmImportEnvOpen(true)}
+        >
+          {importingEnv ? 'Импорт…' : 'Импортировать из env процесса…'}
+        </Button>
+        <ConfirmDialog
+          open={confirmImportEnvOpen}
+          onOpenChange={setConfirmImportEnvOpen}
+          title="Импорт настроек из окружения?"
+          description="Будут записаны в БД все совпадения с переменными окружения текущего процесса (см. docs/Env-Config.md). Уже сохранённые значения для этих ключей будут заменены."
+          confirmLabel="Импортировать"
+          onConfirm={async () => {
+            setImportingEnv(true);
+            try {
+              const res = await fetch('/api/portal/admin/settings/import-env', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ confirm: true }),
+              });
+              const data = await res.json();
+              if (!res.ok) {
+                toast.error(typeof data.error === 'string' ? data.error : 'Ошибка импорта');
+                return;
+              }
+              toast.success(`Импортировано ключей: ${data.imported?.length ?? 0}. Обновление страницы…`);
+              window.location.reload();
+            } catch {
+              toast.error('Ошибка запроса');
+            } finally {
+              setImportingEnv(false);
+              setConfirmImportEnvOpen(false);
+            }
+          }}
+        />
       </div>
     </div>
   );

@@ -7,11 +7,18 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Video, Send, HelpCircle, Clock, CheckCircle2, XCircle, ExternalLink, Upload, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import type { VerificationLessonConfig } from '@/lib/verification-lessons';
 
 export interface LessonOption {
   id: string;
   title?: string;
 }
+
+const FORMAT_LABELS: Record<string, string> = {
+  video: 'Видео',
+  photo: 'Фото',
+  document: 'Документ',
+};
 
 interface SubmissionItem {
   id: string;
@@ -33,12 +40,14 @@ export function CourseVerificationBlock({
   courseId,
   lessonOptions,
   requiredLessonIds = [],
+  verificationConfigs = [],
 }: {
   courseId: string;
   lessonOptions: LessonOption[];
-  /** Lesson identifiers that require verification (from course settings). */
   requiredLessonIds?: string[];
+  verificationConfigs?: VerificationLessonConfig[];
 }) {
+  const configByLesson = new Map(verificationConfigs.map((c) => [c.lessonId, c]));
   const [videoUrl, setVideoUrl] = useState('');
   const [lessonId, setLessonId] = useState<string>('');
   const [submitting, setSubmitting] = useState(false);
@@ -131,12 +140,27 @@ export function CourseVerificationBlock({
         Запишите короткое видео (телефон или камера), загрузите на YouTube, Google Диск или другое облако с доступом по ссылке и вставьте ссылку ниже. Менеджер проверит в течение 1–2 рабочих дней.
       </p>
       {requiredLessonIds.length > 0 && (
-        <p className="text-sm text-[var(--portal-text)] mb-3">
-          По этому курсу нужно отправить видео по урокам:{' '}
-          {requiredLessonIds
-            .map((id) => lessonOptions.find((o) => o.id === id)?.title ?? id)
-            .join(', ')}
-        </p>
+        <div className="mb-3 space-y-2">
+          <p className="text-sm font-medium text-[var(--portal-text)]">
+            По этому курсу нужно отправить задание по урокам:
+          </p>
+          <ul className="space-y-2">
+            {requiredLessonIds.map((id) => {
+              const cfg = configByLesson.get(id);
+              const title = lessonOptions.find((o) => o.id === id)?.title ?? id;
+              const formatLabel = cfg?.requiredFormat ? FORMAT_LABELS[cfg.requiredFormat] : null;
+              return (
+                <li key={id} className="text-sm text-[var(--portal-text)] pl-2 border-l-2 border-[#E2E8F0]">
+                  <span className="font-medium">{title}</span>
+                  {formatLabel && <span className="text-[var(--portal-text-muted)] ml-1">({formatLabel})</span>}
+                  {cfg?.instructions && (
+                    <p className="mt-1 text-[var(--portal-text-muted)]">{cfg.instructions}</p>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-3 md:space-y-4">
         {lessonOptions.length > 0 && (

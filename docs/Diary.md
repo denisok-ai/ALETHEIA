@@ -2,6 +2,49 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-03-22 — Админка оплат: UX блока «Товары для главной»
+
+**Задача:** привести экран управления услугами к паттерну с соседнего проекта (Neurocosmetics): форма создания/редактирования в `portal-card` над таблицей, без многошагового мастера в модалке.
+
+**Сделано:** в `ServicesAdminBlock` — поиск, фильтр по активности, пагинация (`TablePagination`), колонка «Статус»; форма «Новый товар» / «Редактировать товар» с кнопкой «Закрыть»; строка поиска и фильтра вынесена под заголовок карточки для узких экранов.
+
+**Файлы:** `app/portal/admin/payments/ServicesAdminBlock.tsx`, `docs/Support.md`, e2e в `tests/e2e/admin/all-sections.spec.ts`.
+
+---
+
+## 2026-03-22 — Медиатека: просмотр PDF/видео/изображений и UI админки
+
+**Задача:** единый просмотрщик в портале (студент и админ-превью), постраничный PDF с масштабом, современное видео, зум изображений; карточки с обложкой `thumbnailUrl`; админ — сетка и поиск по описанию.
+
+**Решение:**
+1. **PDF:** `react-pdf` + PDF.js, worker через CDN `unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs` (в модуле `MediaPdfPanel`, как рекомендует react-pdf). В `next.config.mjs` добавлен `transpilePackages: ['react-pdf']`; для клиентского бандла в **dev** — `cheap-module-source-map` (см. запись 2026-03-23).
+2. **Видео:** **Plyr** (вместо Vidstack: в npm для `@vidstack/react` актуальна только линейка 0.6.x с иным API). Plyr даёт скорость, PiP, полноэкранный режим, клавиатурные подсказки.
+3. **Изображения:** `react-zoom-pan-pinch` (колесо, pinch, двойной клик сброс).
+4. **Общий компонент:** `components/portal/media/MediaViewer.tsx` + ленивая обёртка `MediaViewerLazy.tsx` (`dynamic`, `ssr: false`).
+5. **API:** `GET /api/portal/media/[id]/view` дополнен полем `thumbnail_url` для постера видео после инкремента просмотров.
+6. **Админ:** переключатель таблица/сетка (сохранение в `localStorage` `portal-media-admin-view`), колонка «Описание», поиск по названию/описанию/категории.
+7. **Студент:** в списке медиатеки отображается `thumbnailUrl` при наличии.
+
+**Риски:** внешние `fileUrl` с другого origin без CORS могут не открываться в PDF.js; worker зависит от доступности unpkg (при необходимости скопировать `pdf.worker.min.mjs` в `public/`).
+
+**Файлы:** `components/portal/media/*`, `lib/media-mime.ts`, `app/portal/student/media/*`, `app/portal/admin/media/MediaAdminClient.tsx`, `app/api/portal/media/[id]/view/route.ts`, `next.config.mjs`.
+
+---
+
+## 2026-03-23 — Медиатека: снята debug-инструментализация
+
+**Задача:** убрать временные `fetch` на локальный ingest и файл `media-pdf-trace.ts` после отладки PDF в `next dev`.
+
+**Сохранено:** в `next.config.mjs` для `dev && !isServer` остаётся `devtool: 'cheap-module-source-map'` — обход падения `pdfjs-dist` при стандартном `eval-source-map` (mozilla/pdf.js#20478).
+
+**Файлы:** удалён `components/portal/media/media-pdf-trace.ts`; правки `MediaPdfPanel.tsx`, `MediaViewer.tsx`.
+
+**Доп. 2026-03-23:** если `cheap-module-source-map` не устраняет падение pdf.mjs в dev, для клиента задан `devtool: 'source-map'`. Превью в админке: `DialogContent` без `overflow-auto` на всём блоке — внутренний скролл, чтобы не ломать UI Plyr.
+
+**Доп. 2026-03-23 (PDF):** `react-pdf`/`pdfjs-dist` убраны из просмотра медиатеки — превью PDF через `<iframe>` и встроенный просмотрщик браузера (страницы/зум). Иначе в Next dev webpack оборачивает вложенный бандл pdf.js в `eval` и падает с `Object.defineProperty`. Сертификаты не затронуты (`@react-pdf/renderer` — отдельный пакет).
+
+---
+
 ## 2026-03-15 — Исправление падающих E2E-тестов
 
 **Задача:** устранить падения guest-тестов после доработок.

@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
   const pageSize = exportMode ? MAX_EXPORT : Math.min(100, Math.max(1, parseInt(searchParams.get('pageSize') ?? '25', 10)));
   const sortKey = searchParams.get('sortKey') ?? 'date';
   const sortDir = searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc';
+  const userIdFilter = searchParams.get('userId')?.trim();
+  const where = userIdFilter ? { userId: userIdFilter } : {};
 
   type OrderBy = { createdAt?: 'asc' | 'desc'; subject?: 'asc' | 'desc'; status?: 'asc' | 'desc'; user?: { email: 'asc' | 'desc' } };
   let orderBy: OrderBy = { createdAt: 'desc' };
@@ -29,6 +31,7 @@ export async function GET(request: NextRequest) {
 
   const [tickets, total] = await Promise.all([
     prisma.ticket.findMany({
+      where,
       skip: exportMode ? 0 : page * pageSize,
       take: pageSize,
       orderBy,
@@ -38,7 +41,7 @@ export async function GET(request: NextRequest) {
         },
       },
     }),
-    prisma.ticket.count(),
+    prisma.ticket.count({ where }),
   ]);
 
   const rows = tickets.map((t) => ({

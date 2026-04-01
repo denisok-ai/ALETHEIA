@@ -18,6 +18,10 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
   if (!order) {
     return { success: false, error: 'Order not found' };
   }
+  if (order.status === 'paid') {
+    console.info('[PayKeeper webhook] idempotent_ok already_paid', { orderNumber });
+    return { success: true };
+  }
 
   await prisma.order.update({
     where: { orderNumber },
@@ -38,8 +42,11 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
 
   const service = await prisma.service.findFirst({
     where: {
-      paykeeperTariffId: order.tariffId,
       isActive: true,
+      OR: [
+        { paykeeperTariffId: order.tariffId },
+        { slug: order.tariffId },
+      ],
     },
     select: { courseId: true },
   });
@@ -61,13 +68,17 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
   const loginUrl = siteUrl ? `${siteUrl}/login` : '/login';
   const registerUrl = siteUrl ? `${siteUrl}/register` : '/register';
   const successUrl = siteUrl ? `${siteUrl}/success` : '/success';
-  const vars = { orderid: orderNumber, loginUrl, successUrl, portal_title: portalTitle };
+  const portalUrl = siteUrl || '';
+  const ofertaUrl = siteUrl ? `${siteUrl}/oferta` : '/oferta';
+  const supportEmail = settings.resend_notify_email?.trim() || '';
+  const orderAmount = `${order.amount.toLocaleString('ru-RU')} ₽`;
+  const emailLocal = order.clientEmail.trim().split('@')[0] || 'клиент';
 
   if (courseId) {
     const [user, course] = await Promise.all([
       prisma.user.findFirst({
         where: { email: order.clientEmail.trim() },
-        select: { id: true },
+        select: { id: true, profile: { select: { displayName: true } } },
       }),
       prisma.course.findUnique({
         where: { id: courseId },
@@ -138,6 +149,9 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
     }
 
     const courseTitle = course?.title ?? 'Курс';
+    const userName =
+      user?.profile?.displayName?.trim() ||
+      emailLocal;
 
     if (userId && userWasAutoCreated) {
       const token = await createPasswordToken(userId);
@@ -157,8 +171,21 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
         console.error('[PayKeeper] Send set-password email:', mailErr);
       }
     } else if (userId) {
-      const subject = renderPaymentEmailTemplate(paymentTpl.courseSubject, { ...vars, courseTitle });
-      const body = renderPaymentEmailTemplate(paymentTpl.courseBody, { ...vars, courseTitle });
+      const vars = {
+        orderid: orderNumber,
+        loginUrl,
+        successUrl,
+        portal_title: portalTitle,
+        courseTitle,
+        userName,
+        orderAmount,
+        supportEmail,
+        portalUrl,
+        ofertaUrl,
+        company_address: settings.company_legal_address?.trim() || '',
+      };
+      const subject = renderPaymentEmailTemplate(paymentTpl.courseSubject, vars);
+      const body = renderPaymentEmailTemplate(paymentTpl.courseBody, vars);
       await sendEmail(order.clientEmail, subject, body);
     } else {
       const subject = `${portalTitle}: оплата получена — зарегистрируйтесь для доступа к курсу`;
@@ -173,6 +200,19 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
       }
     }
   } else {
+    const vars = {
+      orderid: orderNumber,
+      loginUrl,
+      successUrl,
+      portal_title: portalTitle,
+      courseTitle: '',
+      userName: emailLocal,
+      orderAmount,
+      supportEmail,
+      portalUrl,
+      ofertaUrl,
+      company_address: settings.company_legal_address?.trim() || '',
+    };
     const subject = renderPaymentEmailTemplate(paymentTpl.genericSubject, vars);
     const body = renderPaymentEmailTemplate(paymentTpl.genericBody, vars);
     await sendEmail(order.clientEmail, subject, body);

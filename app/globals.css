@@ -1,13 +1,11 @@
+/* Шрифты: <link> в app/layout.tsx (не @import — Turbopack; не next/font — баг с Turbopack). */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Шрифты: загрузка в браузере через @import — без таймаутов next/font на сервере */
-@import url('https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,100..900;1,7..72,100..900&family=Outfit:wght@100..900&display=swap');
-
 /* ─── Публичный сайт ─── */
 :root {
-  /* Шрифты (загружаются через link в layout — Literata, Outfit с Google Fonts) */
   --font-literata: 'Literata', Georgia, serif;
   --font-outfit: 'Outfit', system-ui, sans-serif;
 

@@ -36,6 +36,7 @@ model User {
   userGroups      UserGroup[]
   passwordTokens         PasswordToken[]
   emailVerificationTokens EmailVerificationToken[]
+  aiTutorConversations    AiTutorConversation[]
 }
 
 // Иерархические группы для модулей Курсы, Медиатека, Пользователи
@@ -161,6 +162,54 @@ model Course {
   courseNotificationSets CourseNotificationSet[]
   certificateTemplates CertificateTemplate[]
   courseGroups         CourseGroup[]
+  scormVersions        ScormVersion[]
+  aiTutorConversations AiTutorConversation[]
+}
+
+model ScormVersion {
+  id            String   @id @default(cuid())
+  courseId      String
+  course        Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  version       Int      @default(1)
+  scormPath     String
+  scormVersion  String?
+  scormManifest String?
+  aiContext     String?
+  fileSize      Int?
+  notes         String?
+  isActive      Boolean  @default(false)
+  uploadedById  String?
+  createdAt     DateTime @default(now())
+
+  @@unique([courseId, version])
+  @@index([courseId])
+}
+
+model AiTutorConversation {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages AiTutorMessage[]
+
+  @@index([courseId])
+  @@index([userId])
+}
+
+model AiTutorMessage {
+  id             String   @id @default(cuid())
+  conversationId String
+  conversation   AiTutorConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  role           String
+  content        String
+  createdAt      DateTime @default(now())
+
+  @@index([conversationId])
 }
 
 model Enrollment {
@@ -295,6 +344,8 @@ model PhygitalVerification {
   courseId   String
   course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessonId   String?
+  /// video | text — тип задания (текстовые ответы и видео проходят одну очередь проверки)
+  assignmentType String @default("video")
   videoUrl   String
   status     String   @default("pending") // pending, approved, rejected
   reviewedBy String?
@@ -440,10 +491,13 @@ model SystemSetting {
   updatedAt DateTime @updatedAt
 }
 
+// Service: товары витрины главной — description/imageUrl для карточки «Купить курс»
 model Service {
   id          String   @id @default(cuid())
   slug        String   @unique
   name        String
+  description String?
+  imageUrl    String?
   price       Int
   paykeeperTariffId String?
   courseId    String?

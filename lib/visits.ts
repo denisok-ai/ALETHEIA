@@ -34,6 +34,9 @@ export async function recordVisitOrUpdate(
   userId: string,
   client: ClientInfo
 ): Promise<void> {
+  const exists = await prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+  if (!exists) return;
+
   const now = new Date();
   const updated = await prisma.visitLog.updateMany({
     where: { userId, logoutAt: null },
@@ -44,15 +47,21 @@ export async function recordVisitOrUpdate(
     },
   });
   if (updated.count > 0) return;
-  await prisma.visitLog.create({
-    data: {
-      userId,
-      loginAt: now,
-      lastActivityAt: now,
-      ipAddress: client.ipAddress ?? undefined,
-      userAgent: client.userAgent ?? undefined,
-    },
-  });
+  try {
+    await prisma.visitLog.create({
+      data: {
+        userId,
+        loginAt: now,
+        lastActivityAt: now,
+        ipAddress: client.ipAddress ?? undefined,
+        userAgent: client.userAgent ?? undefined,
+      },
+    });
+  } catch (e: unknown) {
+    const code = e && typeof e === 'object' && 'code' in e ? (e as { code?: string }).code : '';
+    if (code === 'P2003') return;
+    throw e;
+  }
 }
 
 /**

@@ -62,10 +62,6 @@ const STATUS_LABELS: Record<string, string> = {
   completed: 'Завершено',
 };
 
-const SOURCE_FILTER_OPTIONS = [
-  { value: 'all', label: 'Все' },
-  { value: 'no_source', label: 'Без источника' },
-] as const;
 
 function formatTime(seconds: number): string {
   if (seconds >= 3600) {
@@ -86,7 +82,6 @@ export function CourseLearningResults({
 }) {
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pageSize, setPageSize] = useState(10);
@@ -132,9 +127,6 @@ export function CourseLearningResults({
   }, [fetchData]);
 
   const filtered = enrollments.filter((e) => {
-    if (sourceFilter === 'no_source') {
-      // Пока нет поля «источник» у записи — показываем всех
-    }
     const q = searchQuery.trim().toLowerCase();
     if (!q) return true;
     const name = (e.user.displayName ?? '').toLowerCase();
@@ -273,18 +265,6 @@ export function CourseLearningResults({
               </div>
             )}
           </div>
-          <select
-            value={sourceFilter}
-            onChange={(e) => setSourceFilter(e.target.value)}
-            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)]"
-            aria-label="Фильтр по источнику"
-          >
-            {SOURCE_FILTER_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
           <div className="relative">
             <Search className="absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--portal-text-muted)]" />
             <input
@@ -328,13 +308,9 @@ export function CourseLearningResults({
                   {visibleColumnIds.includes('firstActivityAt') && <SortableTableHead sortKey="firstActivityAt" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Первый запуск</SortableTableHead>}
                   {visibleColumnIds.includes('lastActivityAt') && <SortableTableHead sortKey="lastActivityAt" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Окончание</SortableTableHead>}
                   {visibleColumnIds.includes('totalTimeSeconds') && <SortableTableHead sortKey="totalTimeSeconds" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Затрачено времени</SortableTableHead>}
-                  <TableHead>Последнее обращение</TableHead>
                   {visibleColumnIds.includes('percent') && <SortableTableHead sortKey="percent" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Пройдено</SortableTableHead>}
                   {visibleColumnIds.includes('avgScore') && <SortableTableHead sortKey="avgScore" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Баллов</SortableTableHead>}
-                  <TableHead>Оценка в %</TableHead>
-                  <TableHead>Проходной балл</TableHead>
                   {visibleColumnIds.includes('status') && <SortableTableHead sortKey="status" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Статус прохождения</SortableTableHead>}
-                  <TableHead>Завершение</TableHead>
                   <TableHead className="w-32">Действия</TableHead>
                 </TableRow>
               </TableHeader>
@@ -385,11 +361,6 @@ export function CourseLearningResults({
                           : '—'}
                       </TableCell>
                     )}
-                    <TableCell className="text-[var(--portal-text-muted)] text-sm">
-                      {row.lastActivityAt
-                        ? format(new Date(row.lastActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })
-                        : '—'}
-                    </TableCell>
                     {visibleColumnIds.includes('percent') && (
                       <TableCell>
                         {row.progress.totalLessons > 0 ? `${row.progress.percent}%` : '—'}
@@ -400,10 +371,6 @@ export function CourseLearningResults({
                         {row.progress.avgScore != null ? String(row.progress.avgScore) : '—'}
                       </TableCell>
                     )}
-                    <TableCell>
-                      {row.progress.avgScore != null ? `${row.progress.avgScore}%` : 'Неопределено'}
-                    </TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">—</TableCell>
                     {visibleColumnIds.includes('status') && (
                       <TableCell>
                         <span
@@ -419,9 +386,6 @@ export function CourseLearningResults({
                       </span>
                     </TableCell>
                     )}
-                    <TableCell>
-                      {row.status === 'completed' ? 'Завершено' : 'Не завершено'}
-                    </TableCell>
                     <TableCell>
                       <Link
                         href={`/portal/admin/courses/${courseId}/enrollments/${row.userId}`}

@@ -5,13 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-
-function isValidUrl(s: string): boolean {
-  if (!s || typeof s !== 'string') return false;
-  const t = s.trim();
-  if (t.length > 2000) return false;
-  return t.startsWith('http://') || t.startsWith('https://') || t.startsWith('/uploads/');
-}
+import { isValidTextSubmission, isValidVideoSubmissionUrl } from '@/lib/verification-submission';
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -19,7 +13,7 @@ export async function POST(request: NextRequest) {
   const role = (session?.user as { role?: string })?.role;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  let body: { courseId?: string; lessonId?: string; videoUrl?: string };
+  let body: { courseId?: string; lessonId?: string; videoUrl?: string; assignmentType?: string };
   try {
     body = await request.json();
   } catch {
@@ -29,14 +23,28 @@ export async function POST(request: NextRequest) {
   const courseId = typeof body.courseId === 'string' ? body.courseId.trim() : '';
   const lessonId = typeof body.lessonId === 'string' ? body.lessonId.trim() || null : null;
   const videoUrl = typeof body.videoUrl === 'string' ? body.videoUrl.trim() : '';
+  const assignmentType =
+    body.assignmentType === 'text' ? 'text' : 'video';
 
   if (!courseId || !videoUrl) {
     return NextResponse.json(
-      { error: 'Укажите курс и ссылку на видео' },
+      {
+        error:
+          assignmentType === 'text'
+            ? 'Укажите курс и текст ответа'
+            : 'Укажите курс и ссылку на видео',
+      },
       { status: 400 }
     );
   }
-  if (!isValidUrl(videoUrl)) {
+  if (assignmentType === 'text') {
+    if (!isValidTextSubmission(videoUrl)) {
+      return NextResponse.json(
+        { error: 'Текст ответа: от 1 до 20 000 символов' },
+        { status: 400 }
+      );
+    }
+  } else if (!isValidVideoSubmissionUrl(videoUrl)) {
     return NextResponse.json(
       { error: 'Укажите ссылку на видео (http/https) или загрузите файл' },
       { status: 400 }
@@ -65,6 +73,7 @@ export async function POST(request: NextRequest) {
       userId,
       courseId,
       lessonId,
+      assignmentType,
       videoUrl,
       status: 'pending',
     },
@@ -97,6 +106,7 @@ export async function GET(request: NextRequest) {
     courseId: v.courseId,
     courseTitle: v.course?.title ?? 'Курс',
     lessonId: v.lessonId,
+    assignmentType: v.assignmentType ?? 'video',
     videoUrl: v.videoUrl,
     status: v.status,
     comment: v.comment,

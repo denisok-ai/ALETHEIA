@@ -42,9 +42,18 @@ export async function PATCH(
     return NextResponse.json({ error: 'No valid updates' }, { status: 400 });
   }
 
-  const profile = await prisma.profile.update({
-    where: { userId: id },
-    data: profileUpdates,
+  const profile = await prisma.$transaction(async (tx) => {
+    const p = await tx.profile.update({
+      where: { userId: id },
+      data: profileUpdates,
+    });
+    if (body.displayName !== undefined) {
+      await tx.user.update({
+        where: { id },
+        data: { displayName: profileUpdates.displayName ?? null },
+      });
+    }
+    return p;
   });
   return NextResponse.json({ profile });
 }

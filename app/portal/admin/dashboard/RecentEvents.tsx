@@ -5,6 +5,16 @@ import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { formatPersonName } from '@/lib/format-person-name';
 
+function formatEventAt(iso: string): string {
+  try {
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    return format(d, 'dd.MM.yyyy HH:mm', { locale: ru });
+  } catch {
+    return '—';
+  }
+}
+
 export type EventItem =
   | { type: 'payment'; id: number; orderNumber: string; amount: number; email: string; at: string }
   | { type: 'lead'; id: number; name: string; phone: string; at: string }
@@ -59,9 +69,7 @@ export function RecentEvents({ events }: { events: EventItem[] }) {
                     </Link>
                   )}
                 </td>
-                <td className="py-2 text-[var(--portal-text-muted)]">
-                  {format(new Date(e.at), 'dd.MM.yyyy HH:mm', { locale: ru })}
-                </td>
+                <td className="py-2 text-[var(--portal-text-muted)]">{formatEventAt(e.at)}</td>
               </tr>
             ))}
           </tbody>

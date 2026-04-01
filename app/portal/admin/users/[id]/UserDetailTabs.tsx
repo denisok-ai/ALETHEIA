@@ -6,8 +6,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { User, BookOpen, Award, CreditCard, MessageSquare, FolderTree } from 'lucide-react';
+import { User, BookOpen, Award, CreditCard, MessageSquare, FolderTree, Send } from 'lucide-react';
 import { UserDetailClient } from './UserDetailClient';
+import {
+  UserCommunicationsBlock,
+  type NotificationLogItem,
+  type MailingLogItem,
+  type InAppNotificationItem,
+} from './UserCommunicationsBlock';
 import { UserGroupsBlock } from './UserGroupsBlock';
 import { UserRecentActions } from './UserRecentActions';
 import { EnrollUserOnCourse } from './EnrollUserOnCourse';
@@ -17,6 +23,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 const TABS = [
   { id: 'profile', label: 'Профиль', icon: User },
   { id: 'groups', label: 'Группы', icon: FolderTree },
+  { id: 'communications', label: 'Коммуникации', icon: Send },
   { id: 'enrollments', label: 'Записи на курсы', icon: BookOpen },
   { id: 'certificates', label: 'Сертификаты', icon: Award },
   { id: 'orders', label: 'Заказы', icon: CreditCard },
@@ -58,6 +65,8 @@ export type CourseOption = { id: string; title: string };
 
 export function UserDetailTabs({
   userId,
+  accountEmail,
+  createdAt,
   initialRole,
   initialStatus,
   initialDisplayName,
@@ -67,8 +76,13 @@ export function UserDetailTabs({
   certificates,
   orders,
   tickets,
+  notificationLogs,
+  mailingLogs,
+  inAppNotifications,
 }: {
   userId: string;
+  accountEmail: string;
+  createdAt: string;
   initialRole: string;
   initialStatus: string;
   initialDisplayName: string | null;
@@ -78,6 +92,9 @@ export function UserDetailTabs({
   certificates: CertificateItem[];
   orders: OrderItem[];
   tickets: TicketItem[];
+  notificationLogs: NotificationLogItem[];
+  mailingLogs: MailingLogItem[];
+  inAppNotifications: InAppNotificationItem[];
 }) {
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const enrolledCourseIds = enrollments.map((e) => e.courseId);
@@ -110,10 +127,22 @@ export function UserDetailTabs({
 
       {activeTab === 'groups' && <UserGroupsBlock userId={userId} />}
 
+      {activeTab === 'communications' && (
+        <UserCommunicationsBlock
+          userId={userId}
+          accountEmail={accountEmail}
+          notificationLogs={notificationLogs}
+          mailingLogs={mailingLogs}
+          inAppNotifications={inAppNotifications}
+        />
+      )}
+
       {activeTab === 'profile' && (
         <div className="space-y-6">
           <UserDetailClient
             userId={userId}
+            accountEmail={accountEmail}
+            createdAt={createdAt}
             initialRole={initialRole}
             initialStatus={initialStatus}
             initialDisplayName={initialDisplayName}
