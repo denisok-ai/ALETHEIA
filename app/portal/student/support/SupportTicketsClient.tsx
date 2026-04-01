@@ -104,7 +104,7 @@ export function SupportTicketsClient({ initialTickets }: { initialTickets: Ticke
               rows={3}
               className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3.5 py-2.5 text-sm
                 text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)]
-                focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:border-transparent min-h-[80px]"
+                focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-transparent min-h-[80px]"
             />
           </div>
           {error && (
@@ -127,7 +127,7 @@ export function SupportTicketsClient({ initialTickets }: { initialTickets: Ticke
                   key={size}
                   type="button"
                   onClick={() => { setPageSize(size); setPage(0); }}
-                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-[#EEF2FF] text-[#4F46E5] font-medium' : 'text-[var(--portal-text-muted)] hover:bg-[#F1F5F9]'}`}
+                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)] font-medium' : 'text-[var(--portal-text-muted)] hover:bg-[#F1F5F9]'}`}
                   aria-label={`Показать по ${size}`}
                 >
                   {size}

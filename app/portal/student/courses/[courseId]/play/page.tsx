@@ -302,14 +302,14 @@ export default function ScormPlayPage() {
         <div className="mt-4 flex flex-wrap gap-4">
           <Link
             href={`/portal/student/courses/${courseId}`}
-            className="inline-block text-[#6366F1] hover:underline"
+            className="inline-block text-[var(--portal-accent)] hover:underline"
           >
             ← Назад к курсу
           </Link>
           {isNoScorm && (
             <Link
               href={`/portal/admin/courses/${courseId}`}
-              className="inline-block text-[#6366F1] hover:underline"
+              className="inline-block text-[var(--portal-accent)] hover:underline"
             >
               Админка → загрузить SCORM
             </Link>
@@ -333,7 +333,7 @@ export default function ScormPlayPage() {
         <div className="flex items-center gap-4">
           <Link
             href={`/portal/student/courses/${courseId}`}
-            className="text-sm font-medium text-[#6366F1] hover:underline"
+            className="text-sm font-medium text-[var(--portal-accent)] hover:underline"
           >
             ← Выход из курса
           </Link>

@@ -108,12 +108,12 @@ export function CourseCertificateTemplateBlock({
     <div className="portal-card p-4">
       <div className="flex items-center justify-between gap-2">
         <h2 className="text-base font-semibold text-[var(--portal-text)] flex items-center gap-2">
-          <Award className="h-5 w-5 text-[#6366F1]" />
+          <Award className="h-5 w-5 text-[var(--portal-accent)]" />
           Шаблон для выдачи сертификатов
         </h2>
         <Link
           href="/portal/admin/certificate-templates"
-          className="text-sm text-[#6366F1] hover:underline flex items-center gap-1"
+          className="text-sm text-[var(--portal-accent)] hover:underline flex items-center gap-1"
         >
           Управление шаблонами
           <ExternalLink className="h-3.5 w-3.5" />
@@ -151,7 +151,7 @@ export function CourseCertificateTemplateBlock({
               disabled={saving}
               className={`w-full flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
                 !selectedId
-                  ? 'border-[#6366F1] bg-[#6366F1]/10 text-[#6366F1]'
+                  ? 'border-[var(--portal-accent)] bg-[var(--portal-accent)]/10 text-[var(--portal-accent)]'
                   : 'border-[#E2E8F0] hover:bg-[#F8FAFC] text-[var(--portal-text)]'
               }`}
             >
@@ -166,7 +166,7 @@ export function CourseCertificateTemplateBlock({
                 disabled={saving}
                 className={`w-full flex items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm transition-colors ${
                   selectedId === t.id
-                    ? 'border-[#6366F1] bg-[#6366F1]/10 text-[#6366F1]'
+                    ? 'border-[var(--portal-accent)] bg-[var(--portal-accent)]/10 text-[var(--portal-accent)]'
                     : 'border-[#E2E8F0] hover:bg-[#F8FAFC] text-[var(--portal-text)]'
                 }`}
               >

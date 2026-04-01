@@ -3,6 +3,7 @@ import { Hero } from '@/components/sections/Hero';
 import { getSystemSettings } from '@/lib/settings';
 
 // Секции ниже первого экрана — отдельные чанки (дизайн не меняется, SSR сохранён)
+const HowItWorks = dynamic(() => import('@/components/sections/HowItWorks').then((m) => m.HowItWorks), { ssr: true });
 const About = dynamic(() => import('@/components/sections/About').then((m) => m.About), { ssr: true });
 const Program = dynamic(() => import('@/components/sections/Program').then((m) => m.Program), { ssr: true });
 const Author = dynamic(() => import('@/components/sections/Author').then((m) => m.Author), { ssr: true });
@@ -18,13 +19,14 @@ export default async function HomePage() {
   return (
     <>
       <Hero />
+      <HowItWorks />
       <About />
-      <NewsWidget />
       <Program />
       <Author />
       <Testimonials />
       <Pricing />
       <FAQ />
+      <NewsWidget />
       <Contact contactPhone={contactPhone} />
     </>
   );

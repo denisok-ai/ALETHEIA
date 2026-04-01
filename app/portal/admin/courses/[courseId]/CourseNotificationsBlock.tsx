@@ -273,7 +273,7 @@ export function CourseNotificationsBlock({
               placeholder="Найти в списке"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-48 rounded-lg border border-[#E2E8F0] bg-white py-2 pl-8 pr-3 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-muted)] focus:ring-2 focus:ring-[#6366F1]"
+              className="w-48 rounded-lg border border-[#E2E8F0] bg-white py-2 pl-8 pr-3 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-muted)] focus:ring-2 focus:ring-[var(--portal-accent)]"
               aria-label="Найти в списке"
             />
           </div>
@@ -282,7 +282,7 @@ export function CourseNotificationsBlock({
 
       <p className="mb-4 text-sm text-[var(--portal-text-muted)]">
         Наборы уведомлений, которые будут автоматически отправляться пользователям по данному мероприятию.{' '}
-        <Link href="/portal/admin/notification-sets" className="text-[#6366F1] hover:underline">
+        <Link href="/portal/admin/notification-sets" className="text-[var(--portal-accent)] hover:underline">
           Каталог наборов →
         </Link>
       </p>
@@ -332,7 +332,7 @@ export function CourseNotificationsBlock({
                       <TableCell>
                         <Link
                           href={`/portal/admin/notification-sets/${row.notificationSetId}`}
-                          className="font-medium text-[#6366F1] hover:underline"
+                          className="font-medium text-[var(--portal-accent)] hover:underline"
                         >
                           {row.name}
                         </Link>
@@ -342,7 +342,7 @@ export function CourseNotificationsBlock({
                       <div className="flex items-center gap-2">
                         <Link
                           href={`/portal/admin/notification-sets/${row.notificationSetId}`}
-                          className="text-sm text-[#6366F1] hover:underline"
+                          className="text-sm text-[var(--portal-accent)] hover:underline"
                         >
                           Подробнее
                         </Link>

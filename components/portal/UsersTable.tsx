@@ -228,7 +228,7 @@ export function UsersTable({
         const id = c.row.original.id;
         const v = c.getValue() ?? '—';
         return (
-          <Link href={`/portal/admin/users/${id}`} className="text-[#6366F1] hover:underline font-medium">
+          <Link href={`/portal/admin/users/${id}`} className="text-[var(--portal-accent)] hover:underline font-medium">
             {v}
           </Link>
         );
@@ -240,7 +240,7 @@ export function UsersTable({
         const id = c.row.original.id;
         const v = c.getValue() ?? '—';
         return (
-          <Link href={`/portal/admin/users/${id}`} className="text-[#6366F1] hover:underline">
+          <Link href={`/portal/admin/users/${id}`} className="text-[var(--portal-accent)] hover:underline">
             {v}
           </Link>
         );
@@ -253,7 +253,7 @@ export function UsersTable({
           value={row.original.role}
           onChange={(e) => handleRoleChange(row.original.id, e.target.value)}
           disabled={updating === row.original.id}
-          className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+          className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
         >
           {ROLES.map((r) => (
             <option key={r} value={r}>{ROLE_LABELS[r] ?? r}</option>
@@ -268,7 +268,7 @@ export function UsersTable({
           value={row.original.status}
           onChange={(e) => handleStatusChange(row.original.id, e.target.value)}
           disabled={updating === row.original.id}
-          className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+          className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
         >
           {STATUSES.map((s) => (
             <option key={s} value={s}>{s}</option>
@@ -351,7 +351,7 @@ export function UsersTable({
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
         >
           <option value="all">Все статусы</option>
           <option value="active">Активные</option>
@@ -360,7 +360,7 @@ export function UsersTable({
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
         >
           <option value="all">Все роли</option>
           {ROLES.map((r) => (
@@ -373,7 +373,7 @@ export function UsersTable({
         </Button>
       </div>
       {selectedCount > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--portal-accent-muted)] bg-[var(--portal-accent-soft)] px-3 py-2">
           <span className="text-sm font-medium text-[var(--portal-text)]">
             <Users className="mr-1 inline h-4 w-4" />
             Выбрано: {selectedCount}

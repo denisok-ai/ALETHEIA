@@ -440,7 +440,7 @@ export function ServicesAdminBlock() {
                 onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                 rows={4}
                 placeholder="Текст на карточке тарифа на главной. Если пусто — подставится краткое описание курса."
-                className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6366F1]"
+                className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)]"
               />
               <ServiceAiHelper
                 context={{
@@ -545,7 +545,7 @@ export function ServicesAdminBlock() {
                   id="svc-course"
                   value={form.courseId}
                   onChange={(e) => setForm((p) => ({ ...p, courseId: e.target.value }))}
-                  className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+                  className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
                 >
                   <option value="">— не привязан</option>
                   {courses.map((c) => (
@@ -570,7 +570,7 @@ export function ServicesAdminBlock() {
                   href="https://help.paykeeper.ru/"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[#6366F1] underline"
+                  className="text-[var(--portal-accent)] underline"
                 >
                   личном кабинете PayKeeper
                 </a>

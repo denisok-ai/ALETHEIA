@@ -51,7 +51,7 @@ export function AiTestChat() {
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Введите вопрос..."
-            className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+            className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
             disabled={loading}
           />
         </div>

@@ -535,7 +535,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
       )}
 
       {selectedIds.size > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--portal-accent-muted)] bg-[var(--portal-accent-soft)] px-3 py-2">
           <span className="text-sm font-medium text-[var(--portal-text)]">Выбрано: {selectedIds.size}</span>
           <span className="text-sm text-[var(--portal-text-muted)]">Установить статус:</span>
           {COURSE_STATUS_OPTIONS.map((o) => (
@@ -566,55 +566,55 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
             <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
               <th className="w-10 px-2 py-2">
                 <button type="button" onClick={toggleSelectAll} className="p-1" title={selectedIds.size >= courses.length ? 'Снять выбор' : 'Выбрать все'}>
-                  {selectedIds.size >= courses.length && courses.length > 0 ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
+                  {selectedIds.size >= courses.length && courses.length > 0 ? <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
                 </button>
               </th>
               <th className="px-4 py-2 font-medium text-[var(--portal-text)] w-8">↑↓</th>
               {visibleColumnIds.includes('title') && (
                 <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
-                  <button type="button" onClick={() => handleSort('title')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                  <button type="button" onClick={() => handleSort('title')} className="inline-flex items-center gap-1.5 text-left hover:text-[var(--portal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
                     Название
-                    {sortKey === 'title' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                    {sortKey === 'title' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[var(--portal-accent)]" /> : <ChevronDown className="h-4 w-4 text-[var(--portal-accent)]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
                   </button>
                 </th>
               )}
               {visibleColumnIds.includes('starts_at') && (
                 <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
-                  <button type="button" onClick={() => handleSort('starts_at')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                  <button type="button" onClick={() => handleSort('starts_at')} className="inline-flex items-center gap-1.5 text-left hover:text-[var(--portal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
                     Начало
-                    {sortKey === 'starts_at' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                    {sortKey === 'starts_at' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[var(--portal-accent)]" /> : <ChevronDown className="h-4 w-4 text-[var(--portal-accent)]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
                   </button>
                 </th>
               )}
               {visibleColumnIds.includes('ends_at') && (
                 <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
-                  <button type="button" onClick={() => handleSort('ends_at')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                  <button type="button" onClick={() => handleSort('ends_at')} className="inline-flex items-center gap-1.5 text-left hover:text-[var(--portal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
                     Окончание
-                    {sortKey === 'ends_at' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                    {sortKey === 'ends_at' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[var(--portal-accent)]" /> : <ChevronDown className="h-4 w-4 text-[var(--portal-accent)]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
                   </button>
                 </th>
               )}
               {visibleColumnIds.includes('status') && (
                 <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
-                  <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                  <button type="button" onClick={() => handleSort('status')} className="inline-flex items-center gap-1.5 text-left hover:text-[var(--portal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
                     Статус
-                    {sortKey === 'status' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                    {sortKey === 'status' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[var(--portal-accent)]" /> : <ChevronDown className="h-4 w-4 text-[var(--portal-accent)]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
                   </button>
                 </th>
               )}
               {visibleColumnIds.includes('price') && (
                 <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
-                  <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                  <button type="button" onClick={() => handleSort('price')} className="inline-flex items-center gap-1.5 text-left hover:text-[var(--portal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
                     Цена
-                    {sortKey === 'price' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                    {sortKey === 'price' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[var(--portal-accent)]" /> : <ChevronDown className="h-4 w-4 text-[var(--portal-accent)]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
                   </button>
                 </th>
               )}
               {visibleColumnIds.includes('scorm') && (
                 <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
-                  <button type="button" onClick={() => handleSort('scorm')} className="inline-flex items-center gap-1.5 text-left hover:text-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                  <button type="button" onClick={() => handleSort('scorm')} className="inline-flex items-center gap-1.5 text-left hover:text-[var(--portal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
                     SCORM
-                    {sortKey === 'scorm' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[#6366F1]" /> : <ChevronDown className="h-4 w-4 text-[#6366F1]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                    {sortKey === 'scorm' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[var(--portal-accent)]" /> : <ChevronDown className="h-4 w-4 text-[var(--portal-accent)]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
                   </button>
                 </th>
               )}
@@ -631,7 +631,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
               <tr key={c.id} className="border-b border-[#E2E8F0] hover:bg-[#F8FAFC]">
                 <td className="px-2 py-2">
                   <button type="button" onClick={() => toggleSelect(c.id)} className="p-1">
-                    {selectedIds.has(c.id) ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
+                    {selectedIds.has(c.id) ? <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
                   </button>
                 </td>
                 <td className="px-2 py-2">
@@ -660,7 +660,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                   <td className="px-4 py-2">
                     <Link
                       href={`/portal/admin/courses/${c.id}`}
-                      className="font-medium text-[#6366F1] hover:underline"
+                      className="font-medium text-[var(--portal-accent)] hover:underline"
                     >
                       {c.title}
                     </Link>
@@ -692,7 +692,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                         href={`/portal/student/courses/${c.id}/play`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--portal-text-muted)] hover:bg-[#F8FAFC] hover:text-[#6366F1]"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--portal-text-muted)] hover:bg-[#F8FAFC] hover:text-[var(--portal-accent)]"
                         title="Просмотр SCORM-курса"
                       >
                         <ExternalLink className="h-4 w-4" />

@@ -23,8 +23,8 @@ const tocItems = [
  */
 export default function OfertaPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-24">
-      <h1 className="font-heading text-3xl font-semibold text-[#2D1B4E]">
+    <div className="mx-auto max-w-3xl px-4 py-24 font-body">
+      <h1 className="font-heading text-3xl font-semibold text-[var(--text)]">
         Публичная оферта
       </h1>
       <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
@@ -32,16 +32,16 @@ export default function OfertaPage() {
       </p>
 
       <nav
-        className="mt-8 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
+        className="mt-8 rounded-[var(--card-radius)] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow-soft)]"
         aria-label="Разделы: оплата, доступ, возврат"
       >
-        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">На этой странице</p>
+        <p className="text-xs font-medium uppercase tracking-wide text-[var(--text-soft)]">На этой странице</p>
         <ul className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-3">
           {tocItems.map(({ id, label }) => (
             <li key={id}>
               <a
                 href={`#${id}`}
-                className="inline-flex rounded-full border border-[#D4AF37]/45 bg-amber-50 px-3 py-1.5 text-sm text-slate-800 transition hover:border-[#D4AF37] hover:bg-amber-100/90"
+                className="inline-flex rounded-full border border-[#D4AF37]/45 bg-amber-50 px-3 py-1.5 text-sm text-[var(--text)] transition hover:border-[#D4AF37] hover:bg-amber-100/90"
               >
                 {label}
               </a>
@@ -50,30 +50,30 @@ export default function OfertaPage() {
         </ul>
       </nav>
 
-      <div className="mt-10 space-y-8 text-slate-700">
+      <div className="mt-10 max-w-[var(--prose-max-width)] space-y-8 font-body leading-[var(--leading-body)] text-[var(--text)]">
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">1. Общие положения</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">1. Общие положения</h2>
           <p className="mt-2">
             Настоящая оферта является официальным предложением Исполнителя заключить договор на оказание образовательных и консультационных услуг на условиях, изложенных ниже. Акцептом оферты считается оплата услуг или подача заявки через формы сайта и последующее подтверждение Исполнителем.
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">2. Предмет договора</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">2. Предмет договора</h2>
           <p className="mt-2">
             Исполнитель оказывает Заказчику услуги в области кинезиологии, мышечного тестирования, консультаций и образовательных программ (курсы, тренинги, индивидуальные и групповые занятия) в соответствии с выбранным форматом и тарифом, указанным на сайте avaterra.pro.
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">3. Порядок оказания услуг</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">3. Порядок оказания услуг</h2>
           <p className="mt-2">
             Сроки, форма (очно/онлайн) и порядок оказания услуг согласовываются после приёма заявки. Доступ к онлайн-курсам и материалам предоставляется после подтверждения оплаты в личном кабинете на портале. Исполнитель вправе использовать технические средства (платформа, SCORM-контент, мессенджеры) для оказания услуг.
           </p>
         </section>
 
         <section aria-labelledby="oferta-section-4">
-          <h2 id="oferta-section-4" className="font-heading text-xl font-semibold text-[#2D1B4E]">
+          <h2 id="oferta-section-4" className="font-heading text-xl font-semibold text-[var(--text)]">
             4. Условия оплаты, доступа и возврата
           </h2>
           <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
@@ -81,7 +81,7 @@ export default function OfertaPage() {
           </p>
 
           <section id="oplata" className="mt-8 scroll-mt-28" aria-labelledby="oplata-heading">
-            <h3 id="oplata-heading" className="font-heading text-lg font-semibold text-[#2D1B4E]">
+            <h3 id="oplata-heading" className="font-heading text-lg font-semibold text-[var(--text)]">
               4.1. Условия оплаты
             </h3>
             <ul className="mt-3 list-disc space-y-2 pl-5">
@@ -98,7 +98,7 @@ export default function OfertaPage() {
           </section>
 
           <section id="dostup" className="mt-8 scroll-mt-28" aria-labelledby="dostup-heading">
-            <h3 id="dostup-heading" className="font-heading text-lg font-semibold text-[#2D1B4E]">
+            <h3 id="dostup-heading" className="font-heading text-lg font-semibold text-[var(--text)]">
               4.2. Доступ к материалам
             </h3>
             <ul className="mt-3 list-disc space-y-2 pl-5">
@@ -121,7 +121,7 @@ export default function OfertaPage() {
           </section>
 
           <section id="vozvrat" className="mt-8 scroll-mt-28" aria-labelledby="vozvrat-heading">
-            <h3 id="vozvrat-heading" className="font-heading text-lg font-semibold text-[#2D1B4E]">
+            <h3 id="vozvrat-heading" className="font-heading text-lg font-semibold text-[var(--text)]">
               4.3. Возвраты
             </h3>
             <ul className="mt-3 list-disc space-y-2 pl-5">
@@ -142,7 +142,7 @@ export default function OfertaPage() {
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">5. Персональные данные</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">5. Персональные данные</h2>
           <p className="mt-2">
             Обработка персональных данных Заказчика осуществляется в соответствии с{' '}
             <Link href="/privacy" className="text-[#D4AF37] underline hover:text-[#e8c85c]">
@@ -153,7 +153,7 @@ export default function OfertaPage() {
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">6. Заключительные положения</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">6. Заключительные положения</h2>
           <p className="mt-2">
             По вопросам оферты и оказания услуг можно обратиться через форму обратной связи на сайте или по контактам, указанным в разделе «Контакты». Исполнитель оставляет за собой право изменять условия оферты с публикацией актуальной версии на сайте.
           </p>

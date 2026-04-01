@@ -18,7 +18,7 @@ export function CertificateLayoutPreviewLinks() {
               href={`/api/portal/admin/certificates/sample-preview?template=${encodeURIComponent(id)}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-[#6366F1] underline decoration-[#6366F1]/40 underline-offset-2 hover:decoration-[#6366F1]"
+              className="inline-flex items-center gap-1 text-sm text-[var(--portal-accent)] underline decoration-[var(--portal-accent)]/40 underline-offset-2 hover:decoration-[var(--portal-accent)]"
             >
               {CERTIFICATE_TEMPLATE_LABELS[id]}
               <ExternalLink className="h-3.5 w-3.5 shrink-0 opacity-70" aria-hidden />

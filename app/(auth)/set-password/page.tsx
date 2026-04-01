@@ -118,7 +118,7 @@ function SetPasswordForm() {
         </Button>
       </form>
       <p className="mt-4 text-center">
-        <Link href="/login" className="text-sm text-[#6366F1] hover:underline">
+        <Link href="/login" className="text-sm text-[var(--portal-accent)] hover:underline">
           ← Назад к входу
         </Link>
       </p>

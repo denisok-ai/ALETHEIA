@@ -180,7 +180,7 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
             <div>
               <dt className="text-[var(--portal-text-muted)]">Родительская группа</dt>
               <dd>
-                <Link href={`/portal/admin/groups/${group.parent.id}`} className="text-[#6366F1] hover:underline">
+                <Link href={`/portal/admin/groups/${group.parent.id}`} className="text-[var(--portal-accent)] hover:underline">
                   {group.parent.name}
                 </Link>
               </dd>
@@ -230,7 +230,7 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
               <li key={ch.id}>
                 <Link
                   href={`/portal/admin/groups/${ch.id}`}
-                  className="text-[#6366F1] hover:underline text-sm"
+                  className="text-[var(--portal-accent)] hover:underline text-sm"
                 >
                   {ch.name}
                 </Link>
@@ -279,7 +279,7 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
                   {courses.map((c) => (
                     <TableRow key={c.id}>
                       <TableCell>
-                        <Link href={`/portal/admin/courses/${c.id}`} className="text-[#6366F1] hover:underline">
+                        <Link href={`/portal/admin/courses/${c.id}`} className="text-[var(--portal-accent)] hover:underline">
                           {c.title}
                         </Link>
                       </TableCell>
@@ -326,7 +326,7 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
                   {media.map((m) => (
                     <TableRow key={m.id}>
                       <TableCell>
-                        <Link href={`/portal/admin/media`} className="text-[#6366F1] hover:underline">
+                        <Link href={`/portal/admin/media`} className="text-[var(--portal-accent)] hover:underline">
                           {m.title}
                         </Link>
                       </TableCell>
@@ -374,7 +374,7 @@ export function GroupDetailClient({ group }: GroupDetailClientProps) {
                   {users.map((u) => (
                     <TableRow key={u.userId}>
                       <TableCell>
-                        <Link href={`/portal/admin/users/${u.userId}`} className="text-[#6366F1] hover:underline">
+                        <Link href={`/portal/admin/users/${u.userId}`} className="text-[var(--portal-accent)] hover:underline">
                           {u.displayName ?? u.email ?? u.userId}
                         </Link>
                       </TableCell>

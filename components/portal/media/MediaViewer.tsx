@@ -91,7 +91,7 @@ export default function MediaViewer({ title, src, mimeType, poster }: MediaViewe
         href={src}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-[#6366F1] hover:underline inline-flex items-center gap-1"
+        className="text-[var(--portal-accent)] hover:underline inline-flex items-center gap-1"
       >
         <ExternalLink className="h-4 w-4" /> Открыть / Скачать
       </a>

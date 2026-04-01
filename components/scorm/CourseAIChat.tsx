@@ -58,7 +58,7 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
                 className={cn(
                   'rounded-lg px-3 py-2 text-sm',
                   m.role === 'user'
-                    ? 'ml-6 bg-[#EEF2FF] text-[var(--portal-text)]'
+                    ? 'ml-6 bg-[var(--portal-accent-soft)] text-[var(--portal-text)]'
                     : 'mr-6 bg-[#F8FAFC] text-[var(--portal-text)]'
                 )}
               >
@@ -84,7 +84,7 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
                     type="button"
                     onClick={() => sendMessage({ text: q })}
                     disabled={isLoading}
-                    className="rounded-full bg-[#F8FAFC] px-2 py-1 text-xs text-[var(--portal-text)] hover:bg-[#EEF2FF]"
+                    className="rounded-full bg-[#F8FAFC] px-2 py-1 text-xs text-[var(--portal-text)] hover:bg-[var(--portal-accent-soft)]"
                   >
                     {q}
                   </button>
@@ -119,7 +119,7 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex h-12 w-12 items-center justify-center rounded-full bg-[#6366F1] text-white shadow-lg hover:bg-[#4F46E5]"
+        className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--portal-accent)] text-white shadow-lg hover:bg-[var(--portal-accent-dark)]"
         aria-label={open ? 'Закрыть чат' : 'Открыть AI-тьютор'}
       >
         <MessageCircle className="h-5 w-5" />

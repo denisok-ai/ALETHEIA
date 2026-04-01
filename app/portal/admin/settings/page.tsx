@@ -41,7 +41,7 @@ export default function AdminSettingsPage() {
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Документация</h2>
         <ul className="mt-2 space-y-2 text-sm">
           <li>
-            <a href="https://github.com/vercel/next.js/blob/canary/docs/02-app/01-api-reference/configuration/next-config-js.md" target="_blank" rel="noopener noreferrer" className="text-[#6366F1] hover:underline">
+            <a href="https://github.com/vercel/next.js/blob/canary/docs/02-app/01-api-reference/configuration/next-config-js.md" target="_blank" rel="noopener noreferrer" className="text-[var(--portal-accent)] hover:underline">
               Next.js конфигурация
             </a>
           </li>

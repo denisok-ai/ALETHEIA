@@ -121,7 +121,7 @@ export function CourseCard({
         {!accessClosed && (
           <div className={cn(
             'absolute inset-0 flex items-center justify-center pointer-events-none',
-            'bg-black/0 group-hover:bg-[#6366F1]/20 transition-all duration-200'
+            'bg-black/0 group-hover:bg-[var(--portal-accent)]/20 transition-all duration-200'
           )}>
             <button
               type="button"
@@ -129,7 +129,7 @@ export function CourseCard({
               aria-label={`Запустить курс "${title}"`}
               className={cn(
                 'flex h-12 w-12 items-center justify-center rounded-full pointer-events-auto',
-                'bg-white text-[#4F46E5] shadow-lg',
+                'bg-white text-[var(--portal-accent-dark)] shadow-lg',
                 'scale-0 group-hover:scale-100 transition-transform duration-200'
               )}
             >
@@ -194,7 +194,7 @@ export function CourseCard({
               <span className="text-xs font-medium text-amber-700">Доступ закрыт</span>
               <span className="text-xs text-[var(--portal-text-muted)]">
                 Период обучения завершён.{' '}
-                <Link href="/portal/student/support" className="text-[#6366F1] hover:underline">
+                <Link href="/portal/student/support" className="text-[var(--portal-accent)] hover:underline">
                   Обратитесь в поддержку
                 </Link>
                 {' '}для продления.
@@ -219,7 +219,7 @@ export function CourseCard({
               href={adminHref}
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
                 border border-[#E2E8F0] text-[var(--portal-text-muted)]
-                hover:bg-[#EEF2FF] hover:text-[var(--portal-accent)] hover:border-[#C7D2FE]
+                hover:bg-[var(--portal-accent-soft)] hover:text-[var(--portal-accent)] hover:border-[var(--portal-accent-muted)]
                 transition"
               title="Управлять в админке"
             >

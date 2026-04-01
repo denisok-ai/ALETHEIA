@@ -29,7 +29,7 @@ export function MediaPdfPanel({ fileUrl, title }: Props) {
           href={iframeSrc}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[#6366F1] hover:underline"
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--portal-accent)] hover:underline"
         >
           <ExternalLink className="h-4 w-4" />
           Открыть PDF в новой вкладке

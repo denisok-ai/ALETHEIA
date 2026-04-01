@@ -72,7 +72,7 @@ export function DashboardCharts({
                 type="button"
                 onClick={() => setPeriod(p)}
                 className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  periodParam === p ? 'bg-[#6366F1] text-white' : 'text-[var(--portal-text-muted)] hover:bg-[#F1F5F9] hover:text-[var(--portal-text)]'
+                  periodParam === p ? 'bg-[var(--portal-accent)] text-white' : 'text-[var(--portal-text-muted)] hover:bg-[#F1F5F9] hover:text-[var(--portal-text)]'
                 }`}
               >
                 {p} дн.

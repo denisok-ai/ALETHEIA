@@ -53,7 +53,7 @@ export default function UnsubscribePage() {
       {status === 'success' ? (
         <div className="mt-8 rounded-lg border border-green-500/50 bg-green-500/10 p-4 text-green-200">
           <p>{message}</p>
-          <Link href="/" className="mt-3 inline-block text-sm text-[#6366F1] underline">
+          <Link href="/" className="mt-3 inline-block text-sm text-[var(--portal-accent)] underline">
             Вернуться на главную
           </Link>
         </div>
@@ -69,7 +69,7 @@ export default function UnsubscribePage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="example@mail.ru"
-              className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:border-[#6366F1] focus:outline-none focus:ring-1 focus:ring-[#6366F1]"
+              className="mt-1 w-full rounded-lg border border-white/20 bg-white/5 px-3 py-2 text-white placeholder:text-white/40 focus:border-[var(--portal-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--portal-accent)]"
               disabled={status === 'loading'}
               autoComplete="email"
             />
@@ -80,7 +80,7 @@ export default function UnsubscribePage() {
           <button
             type="submit"
             disabled={status === 'loading'}
-            className="w-full rounded-lg bg-[#6366F1] px-4 py-2 font-medium text-[var(--portal-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
+            className="w-full rounded-lg bg-[var(--portal-accent)] px-4 py-2 font-medium text-[var(--portal-text)] transition-opacity hover:opacity-90 disabled:opacity-50"
           >
             {status === 'loading' ? 'Отправка…' : 'Отписаться'}
           </button>

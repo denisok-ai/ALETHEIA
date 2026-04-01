@@ -29,8 +29,9 @@ echo "→ SSH $USER@$HOST (приоритет каталога: $REMOTE_DIR)"
 
 REMOTE_DIR_Q=$(printf '%q' "$REMOTE_DIR")
 
+# SKIP_NGINX_CACHE=1 — не чистить proxy_cache nginx (редко; см. scripts/deploy-pull.sh).
 ssh -i "$KEY" -o IdentitiesOnly=yes -o ConnectTimeout=30 "${USER}@${HOST}" \
-  "REMOTE_DIR=$REMOTE_DIR_Q GIT_BRANCH=${GIT_BRANCH:-main} bash -s" <<'REMOTE'
+  "REMOTE_DIR=$REMOTE_DIR_Q GIT_BRANCH=${GIT_BRANCH:-main} SKIP_NGINX_CACHE=${SKIP_NGINX_CACHE:-0} bash -s" <<'REMOTE'
 set -euo pipefail
 candidates=("$REMOTE_DIR" /opt/ALETHEIA /srv/avaterra /var/www/avaterra)
 TARGET=""

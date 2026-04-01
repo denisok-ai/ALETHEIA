@@ -27,6 +27,7 @@
 - **`NODE_ENV`:** `production` (в unit или окружении).
 - **Секреты и URL:** файл **`.env`** в `/opt/ALETHEIA` (в git не коммитится). Список переменных — [.env.example](../.env.example), подробнее — [Env-Config.md](Env-Config.md).
 - **Рекомендуется в `.env` на проде:** `NEXTAUTH_URL=https://avaterra.pro` (иначе предупреждение next-auth в логах).
+- **SQLite на этом VPS:** в `.env` задать `DATABASE_URL="file:/opt/ALETHEIA/prisma/dev.db"` (см. §5).
 - **Опционально:** `npm install sharp` в каталоге приложения — ускорение оптимизации изображений Next.js.
 
 **PM2:** если ранее использовался, на проде должен остаться **либо** PM2, **либо** systemd, но не оба на порту 3000. При переходе на systemd: `pm2 delete aletheia`, `pm2 save`.
@@ -55,10 +56,13 @@
 
 | Режим | Когда используется |
 |--------|-------------------|
-| **SQLite** | `DATABASE_URL="file:./dev.db"` — файл **`prisma/dev.db`** (путь относительно каталога со `schema.prisma`, см. документацию Prisma). Так может работать продуктивный VPS avaterra.pro до отдельной миграции на PostgreSQL. |
+| **SQLite (локально)** | `DATABASE_URL="file:./dev.db"` — файл **`prisma/dev.db`** относительно каталога со `schema.prisma` (см. документацию Prisma). |
+| **SQLite (VPS avaterra.pro)** | **Рекомендуется абсолютный URL:** `DATABASE_URL="file:/opt/ALETHEIA/prisma/dev.db"` в **`/opt/ALETHEIA/.env`**. Так Prisma, `sqlite3` и скрипты (`npx tsx scripts/import-services-replace.ts`) однозначно попадают в один файл; после инцидента 2026-04 исключены расхождения «в БД 3 строки `Service`, а API отдаёт старые slug» при относительном `file:./dev.db`. |
 | **PostgreSQL** | Явный URL `postgresql://…` — целевой вариант для масштабирования и нескольких воркеров; настройка — [Deploy.md — БД для продакшена](Deploy.md). |
 
-**Риск «две базы»:** скрипты и `sqlite3` правят тот `dev.db`, который соответствует **текущему** `cwd` и загруженному `.env`. Если unit systemd указывает **другой** `WorkingDirectory` или другой `DATABASE_URL`, сайт продолжит читать старую БД (типичный симптом: импорт пишет «Deleted 3», а `/api/shop/products` отдаёт пять старых slug). Полный снимок: [`scripts/prod-diagnostics.sh`](../scripts/prod-diagnostics.sh).
+**Риск «две базы»:** скрипты и `sqlite3` правят тот `dev.db`, который соответствует **загруженному** `.env`. Если unit systemd указывает **другой** `WorkingDirectory` или в оболочке задали `DATABASE_URL` без записи в `.env`, сайт может читать не тот файл. Полный снимок: [`scripts/prod-diagnostics.sh`](../scripts/prod-diagnostics.sh).
+
+**После правки `dev.db`:** `sudo systemctl restart aletheia` (открытый SQLite у старого процесса). **Если `/api/health` показывает старый `commit`, а `git log -1` уже новый** — пересобрать приложение (`scripts/deploy-pull.sh` или `rm -rf .next && npm run build`) и снова рестарт: `commit` в health берётся из **`NEXT_PUBLIC_BUILD_COMMIT` на этапе `next build`** ([`next.config.mjs`](../next.config.mjs)).
 
 В репозитории в `schema.prisma` для локальной разработки задан `provider = "sqlite"`; смена провайдера на PostgreSQL на VPS — отдельная процедура миграции данных, не обязательная для уже работающего SQLite.
 
@@ -92,6 +96,7 @@
 Скрипт: `git pull` → зависимости → `prisma generate` → `prisma migrate deploy` → удаление `.next` → `npm run build` → рестарт `aletheia.service` (или PM2) → при возможности сброс proxy-кеша nginx.
 
 **Переменные (опционально):** `DEPLOY_ROOT`, `GIT_BRANCH`, `SKIP_NGINX_CACHE=1`, `APP_PORT` — см. комментарии в [`scripts/deploy-pull.sh`](../scripts/deploy-pull.sh).  
+**С ПК:** [`scripts/deploy-remote.sh`](../scripts/deploy-remote.sh) (`npm run deploy:remote`) передаёт на сервер `SKIP_NGINX_CACHE`; шаг **5b** в `deploy-pull.sh` очищает `proxy_cache` (см. [`scripts/nginx-clear-proxy-cache.sh`](../scripts/nginx-clear-proxy-cache.sh)) и делает `nginx reload`. Если каталога кеша нет — скрипт не падает, при необходимости всё равно выполняется reload.  
 **На тестовом стенде** (не на проде с реальными данными): `RESET_AND_SEED=1` — полный сброс БД и seed.
 
 ### Вариант B — без `git pull` на сервере (rsync с WSL)
@@ -132,7 +137,11 @@ sudo systemctl status aletheia.service --no-pager -l
 curl -sS https://avaterra.pro/api/health
 ```
 
-В ответе `/api/health` — `version` и `commit` (и заголовки `X-App-Version` / `X-Build-Commit`). Убедиться, что админский layout обновился:  
+В ответе `/api/health` — `version` и **`commit`** (короткий SHA **текущей production-сборки**, задаётся при `next build` через `NEXT_PUBLIC_BUILD_COMMIT` в [`next.config.mjs`](../next.config.mjs)). Сверка: `cd /opt/ALETHEIA && git rev-parse --short HEAD` — после свежего деплоя должен совпадать с `commit` в JSON (если нет — не выполняли `next build` после `git pull`). Заголовки `X-App-Version` / `X-Build-Commit` при наличии.
+
+Дополнительно: `curl -sS http://127.0.0.1:3000/api/shop/products | head -c 800` — витрина тарифов из БД.
+
+Убедиться, что админский layout обновился:  
 `head -n 12 /opt/ALETHEIA/app/portal/admin/layout.tsx` — ожидается обёртка **`AdminPortalShell`**, а не длинный список иконок Lucide в layout.
 
 ---
@@ -161,9 +170,10 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 1. Оставить **один** корень деплоя для avaterra.pro — **`/opt/ALETHEIA`** (или задокументировать иной, но единственный).
 2. Остановить дубликаты: второй **PM2**-процесс на том же порту, старый клон с ручным `npm start`, лишний unit.
 3. В **`/etc/systemd/system/aletheia.service`**: `WorkingDirectory` = этот корень; **`EnvironmentFile=-/opt/ALETHEIA/.env`** (как в [`scripts/systemd/aletheia.service.example`](../scripts/systemd/aletheia.service.example)), чтобы те же `DATABASE_URL` использовали и приложение, и ручные `npx tsx scripts/…`.
-4. Бэкап канонической БД: `cp prisma/dev.db "prisma/dev.db.bak-$(date +%Y%m%d%H%M)"` в корне деплоя.
-5. Лишние **`*.db`** и **`.next`** в **неиспользуемых** клонах (`/var/www/…`) — удалять только если отчёт подтверждает, что на них не ссылается ни systemd, ни PM2, ни `lsof` на порту приложения.
-6. `sudo systemctl daemon-reload && sudo systemctl restart aletheia` (или имя вашего unit), затем `curl` `/api/health` и `/api/shop/products`.
+4. Бэкап канонической БД: `cp prisma/dev.db "prisma/dev.db.bak-$(date +%Y%m%d%H%M)"` в корне деплоя. Файлы `prisma/dev.db.bak*` **не коммитить** в Git (в `.gitignore`); при необходимости хранить копии вне репозитория (`~/backups/`).
+5. **После любой перезаписи `prisma/dev.db`** (импорт, `sqlite3 < …sql`, восстановление из бэкапа) выполните **`sudo systemctl restart aletheia`**. Иначе уже запущенный Node держит открытый дескриптор SQLite на **старом inode**: `sqlite3` и скрипты видят новые данные, а `curl localhost:3000/api/…` — старые (как в отчёте: в БД 3 `Service`, в API пять slug).
+6. Лишние **`*.db`** и **`.next`** в **неиспользуемых** клонах (`/var/www/…`) — удалять только если отчёт подтверждает, что на них не ссылается ни systemd, ни PM2, ни `lsof` на порту приложения.
+7. `sudo systemctl daemon-reload && sudo systemctl restart aletheia` (или имя вашего unit) после правок unit; после смены БД — только рестарт; затем `curl` `/api/health` и `/api/shop/products`.
 
 Синхронизация витрины тарифов: [`scripts/import-services-replace.ts`](../scripts/import-services-replace.ts) или [`prisma/data/replace-services-sqlite.sql`](../prisma/data/replace-services-sqlite.sql) (нужен `sqlite3` в PATH). См. также [`scripts/check-database-url.sh`](../scripts/check-database-url.sh).
 
@@ -175,26 +185,30 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 |---------|----------------|
 | **502** от nginx | `curl` к `127.0.0.1:3000/api/health`; `journalctl -u aletheia.service -n 80`; совпадение порта с nginx. |
 | Старый UI после деплоя | Кеш nginx `proxy_cache`; жёсткое обновление браузера; очистка `/var/cache/nginx`. |
-| Импорт БД «сработал», сайт не меняется | Две копии проекта или разный `DATABASE_URL`; полный отчёт — §9. |
+| Импорт БД «сработал», сайт не меняется | **`systemctl restart aletheia`**; в `.env` для SQLite на VPS — абсолютный `file:/opt/ALETHEIA/prisma/dev.db` (§5). Иначе §9 (две копии проекта / другой `DATABASE_URL`). |
+| `sqlite3` показывает новые строки, API — старые | Рестарт сервиса + абсолютный `DATABASE_URL`; при старом **`commit`** в `/api/health` — **`npm run build`** (или `deploy-pull.sh`). |
 | Ошибки RSC / `navFooter` | Актуальный код с клиентскими shell layout (см. п. 6). |
 
 Подробнее — [Server-Debug.md](Server-Debug.md).
 
 ---
 
-## 12. Зафиксировано на сервере (шаблон)
+## 12. Зафиксировано на сервере
 
-*После `git pull` на VPS: выполните **раздел 9** (диагностика); при расхождениях — **раздел 10** (уборка). Затем замените таблицу ниже фактическими значениями (без паролей и полных URL с секретами) и при необходимости закоммитьте в репозиторий.*
+*Обновляйте таблицу после смены хоста, домена или способа запуска. После `git pull` на VPS полезно прогнать **раздел 9** и при необходимости **раздел 10**.*
 
-| Поле | Значение |
-|------|-----------|
-| Дата аудита | _YYYY-MM-DD_ |
-| Активный корень приложения | _например /opt/ALETHEIA_ |
-| Unit systemd | _например aletheia.service_ |
-| Порт Node | _например 3000_ |
-| Тип БД | _SQLite prisma/dev.db / PostgreSQL …_ |
-| Файл nginx vhost | _например /etc/nginx/sites-enabled/aletheia_ |
-| Примечание | _например «второй клон в /var/www удалён»_ |
+| Поле | Значение (актуально на 2026-04-01) |
+|------|-------------------------------------|
+| Дата аудита | 2026-04-01 |
+| Хост VPS | `p941004.kvmvps`, Ubuntu 24.04 LTS, IP `95.181.224.70` |
+| Активный корень приложения | `/opt/ALETHEIA` |
+| Unit systemd | `aletheia.service`, `WorkingDirectory=/opt/ALETHEIA` |
+| Порт Node | `3000` (nginx → `127.0.0.1:3000`) |
+| Тип БД | SQLite, файл `/opt/ALETHEIA/prisma/dev.db`; в `.env`: `DATABASE_URL="file:/opt/ALETHEIA/prisma/dev.db"` |
+| Файл nginx vhost | `/etc/nginx/sites-enabled/aletheia` |
+| Второй клон приложения | Нет: под `/var/www` только `html`, отдельного клона ALETHEIA нет |
+| PM2 | Запись `aletheia` в состоянии stopped; рабочий процесс — только systemd |
+| Примечание | Витрина `/api/shop/products` приведена к трём тарифам (`kod-tela-start`, `avaterra-praktik`, `avaterra-master-vip`); после правок БД и смены `DATABASE_URL` выполнялись `next build` + `systemctl restart aletheia`; `commit` в `/api/health` совпадает с деплоем (например `9cfcfe0`). |
 
 ---
 

@@ -10,10 +10,10 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#F8FAFC] px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] px-4 font-body">
       <Link
         href="/"
-        className="absolute top-6 left-6 text-[#6366F1] font-semibold hover:underline"
+        className="absolute top-6 left-6 text-[var(--portal-accent)] font-semibold hover:underline"
       >
         ← AVATERRA
       </Link>

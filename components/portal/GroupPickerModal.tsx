@@ -73,7 +73,7 @@ export function GroupPickerModal({
               <select
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
-                className="mt-2 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+                className="mt-2 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
               >
                 <option value="">—</option>
                 {groups.map((g) => (

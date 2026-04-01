@@ -73,7 +73,7 @@ export function ServiceAiHelper({
         onChange={(e) => setTask(e.target.value)}
         placeholder="Запрос: например «Короче, акцент на результат за 10 занятий» или оставьте пустым для шаблона"
         rows={2}
-        className="mt-2 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#6366F1] focus:ring-offset-0"
+        className="mt-2 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:ring-offset-0"
       />
       <Button
         type="button"

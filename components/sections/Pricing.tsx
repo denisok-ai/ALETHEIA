@@ -105,59 +105,54 @@ export function Pricing() {
 
   return (
     <>
-      <section id="pricing" ref={ref} className="relative py-28 px-5 bg-lavender-light/30 md:py-32 md:px-6">
+      <section
+        id="pricing"
+        ref={ref}
+        className="relative scroll-mt-24 border-t border-[var(--border)] bg-[var(--lavender-light)] py-24 px-5 md:py-28 md:px-6"
+      >
         <motion.div
-          style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
-          initial={{ opacity: 0, rotateX: 18 }}
-          animate={isInView ? { opacity: 1, rotateX: 0 } : {}}
-          transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5 }}
           className="mx-auto max-w-6xl"
         >
-          <motion.span
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            className="block text-sm font-semibold uppercase tracking-widest text-accent"
-          >
-            Тарифы
-          </motion.span>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            animate={isInView ? { opacity: 1, y: 0 } : {}}
-            transition={{ delay: 0.05 }}
-            className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl"
-          >
-            От бесплатного знакомства до менторства основателя
-          </motion.h2>
+          <span className="block text-sm font-semibold uppercase tracking-widest text-plum">Тарифы</span>
+          <h2 className="mt-2 max-w-3xl font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">
+            Купить курс или записаться на консультацию
+          </h2>
+          <p className="mt-4 max-w-2xl text-[var(--text-muted)] leading-relaxed">
+            Выберите формат: бесплатное знакомство, полный курс или менторство. Оплата и детали — в модальном окне.
+          </p>
 
-          <div className="mt-14 grid gap-8 sm:grid-cols-1 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
+          <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3 lg:gap-10">
             {products.map((tariff, i) => (
               <motion.div
                 key={tariff.id}
-                initial={{ opacity: 0, y: 40 }}
+                initial={{ opacity: 0, y: 24 }}
                 animate={isInView ? { opacity: 1, y: 0 } : {}}
-                transition={{ delay: 0.1 + i * 0.1, type: 'spring', stiffness: 80 }}
+                transition={{ delay: 0.06 + i * 0.07, duration: 0.45 }}
                 className="h-full"
               >
                 <TiltCard maxTilt={6} className="h-full">
                   <div
                     className={`relative h-full rounded-2xl border p-7 transition-shadow md:p-8 ${
                       tariff.popular
-                        ? 'border-accent/50 bg-gradient-to-b from-accent/10 to-bg-cream shadow-xl shadow-accent/20'
-                        : 'border-[#E2E8F0] bg-white hover:border-[#6366F1]/40 hover:shadow-xl hover:shadow-black/10'
+                        ? 'border-rose/50 bg-[var(--surface)] shadow-xl shadow-rose/15'
+                        : 'border-[var(--border)] bg-[var(--surface)] hover:border-plum/35 hover:shadow-xl hover:shadow-black/5'
                     }`}
                     style={{
                       boxShadow: tariff.popular
-                        ? '0 25px 50px -12px rgba(166, 139, 91, 0.25), 0 12px 24px -8px rgba(0,0,0,0.08)'
+                        ? '0 25px 50px -12px rgba(206, 143, 176, 0.2), 0 12px 24px -8px rgba(95, 84, 103, 0.08)'
                         : '0 12px 24px -8px rgba(0,0,0,0.06)',
                     }}
                   >
                     {tariff.popular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-accent px-4 py-1 text-sm font-bold text-white">
+                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-rose px-4 py-1 text-sm font-bold text-white">
                         Хит продаж
                       </span>
                     )}
                     {tariff.imageUrl ? (
-                      <div className="mb-4 aspect-[16/10] w-full overflow-hidden rounded-xl bg-[#F1F5F9]">
+                      <div className="mb-4 aspect-[16/10] w-full overflow-hidden rounded-xl bg-[var(--lavender-light)]">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img
                           src={tariff.imageUrl}
@@ -166,21 +161,21 @@ export function Pricing() {
                         />
                       </div>
                     ) : null}
-                    <h3 className="font-heading text-xl font-semibold text-[var(--portal-text)]">
+                    <h3 className="font-heading text-xl font-semibold text-[var(--text)]">
                       {tariff.name}
                     </h3>
-                    <p className="mt-2 text-sm text-[var(--portal-text-muted)]">{tariff.description}</p>
-                    <ul className="mt-4 space-y-2 text-sm text-[var(--portal-text-muted)]">
+                    <p className="mt-2 text-sm text-[var(--text-muted)]">{tariff.description}</p>
+                    <ul className="mt-4 space-y-2 text-sm text-[var(--text-muted)]">
                       {tariff.features.map((f) => (
                         <li key={f}>• {f}</li>
                       ))}
                     </ul>
-                    <p className="mt-6 text-3xl font-bold text-accent">
+                    <p className="mt-6 text-3xl font-bold text-plum">
                       {tariff.price <= 0 ? 'Бесплатно' : `${tariff.price.toLocaleString('ru-RU')} ₽`}
                     </p>
                     <Button
-                      variant={tariff.popular ? 'primary' : 'secondary'}
-                      className="mt-6 w-full shadow-[0_0_20px_rgba(166,139,91,0.25)] hover:shadow-[0_0_28px_rgba(166,139,91,0.35)]"
+                      variant={tariff.popular ? 'landingRose' : 'landingSoft'}
+                      className="mt-6 w-full"
                       onClick={() => setModalTariff(tariff)}
                     >
                       {tariff.price <= 0 ? 'Получить бесплатно' : 'Купить'}

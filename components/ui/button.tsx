@@ -1,8 +1,7 @@
 'use client';
 
 /**
- * Универсальный компонент кнопки — Indigo-дизайн-система 2026.
- * Используется на публичном сайте и в портале.
+ * Кнопки: портал — токены --portal-* (plum); лендинг — landingRose / landingPlum / landingSoft.
  */
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
@@ -13,44 +12,45 @@ const buttonVariants = cva(
     'inline-flex items-center justify-center gap-2',
     'rounded-lg font-semibold tracking-tight',
     'transition-all duration-150',
-    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#6366F1] focus-visible:ring-offset-2',
+    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--portal-accent)] focus-visible:ring-offset-2',
     'disabled:pointer-events-none disabled:opacity-50',
     'select-none',
   ].join(' '),
   {
     variants: {
       variant: {
-        /* Основная кнопка — Indigo */
         primary:
-          'bg-[#6366F1] text-white hover:bg-[#4F46E5] active:bg-[#4338CA] shadow-sm hover:shadow-[0_4px_14px_rgba(99,102,241,0.35)]',
+          'bg-[var(--portal-primary)] text-white hover:bg-[var(--portal-accent-dark)] active:opacity-95 shadow-sm hover:shadow-[0_4px_14px_rgba(133,107,146,0.35)]',
 
-        /* Вторичная — outline Indigo */
         secondary:
-          'border border-[#C7D2FE] bg-[#EEF2FF] text-[#4338CA] hover:bg-[#6366F1] hover:text-white hover:border-transparent',
+          'border border-[var(--portal-accent-muted)] bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)] hover:bg-[var(--portal-primary)] hover:text-white hover:border-transparent',
 
-        /* Призрак — лёгкий hover */
         ghost:
-          'text-[#475569] hover:bg-[#F1F5F9] hover:text-[#0F172A]',
+          'text-[#475569] hover:bg-[var(--portal-surface-hover)] hover:text-[var(--portal-text)]',
 
-        /* Деструктивный */
         danger:
           'bg-red-500 text-white hover:bg-red-600 active:bg-red-700 shadow-sm hover:shadow-[0_4px_14px_rgba(239,68,68,0.3)]',
 
-        /* Акцентный — золотой (для публичного сайта) */
-        accent:
-          'bg-[#D4AF37] text-[#1a1a2e] hover:bg-[#b8942a] hover:shadow-[0_0_24px_rgba(212,175,55,0.35)] active:scale-[0.98]',
+        landingRose:
+          'bg-[#CE8FB0] text-white hover:bg-[#b87a9c] active:scale-[0.98] shadow-sm hover:shadow-[0_4px_18px_rgba(206,143,176,0.35)]',
+        landingPlum:
+          'bg-[#856B92] text-white hover:bg-[#735a7d] shadow-sm hover:shadow-[0_4px_18px_rgba(133,107,146,0.35)]',
+        landingSoft:
+          'bg-[#B4B1D8] text-[#5F5467] hover:bg-[#9e9ac8] shadow-sm',
 
-        /* Ссылка-кнопка */
+        accent:
+          'bg-[#CE8FB0] text-white hover:bg-[#b87a9c] hover:shadow-[0_4px_18px_rgba(206,143,176,0.35)] active:scale-[0.98]',
+
         link:
-          'text-[#6366F1] underline-offset-4 hover:underline p-0 h-auto',
+          'text-[var(--portal-accent)] underline-offset-4 hover:underline p-0 h-auto',
       },
       size: {
-        xs:      'h-7  px-3   text-xs',
-        sm:      'h-8  px-3.5 text-sm',
-        default: 'h-10 px-5   text-sm',
-        lg:      'h-11 px-6   text-base',
-        xl:      'h-13 px-8   text-base',
-        icon:    'h-9  w-9',
+        xs: 'h-8 px-3 text-xs min-h-[2rem]',
+        sm: 'h-9 px-3.5 text-sm min-h-[2.25rem]',
+        default: 'h-11 px-5 text-sm min-h-[2.75rem]',
+        lg: 'h-12 px-6 text-base min-h-[3rem]',
+        xl: 'h-12 px-8 text-base min-h-[3rem] md:min-h-[3.25rem]',
+        icon: 'h-11 w-11 min-h-[2.75rem] min-w-[2.75rem]',
       },
     },
     defaultVariants: {

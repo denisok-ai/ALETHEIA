@@ -40,6 +40,9 @@ playwright/.cache/
 
 # SQLite dev DB (локальная копия)
 prisma/dev.db
+# Бэкапы БД (сервер/ручные копии — не коммитить)
+prisma/dev.db.bak*
+prisma/*.db.bak*
 
 # IDE
 .idea/

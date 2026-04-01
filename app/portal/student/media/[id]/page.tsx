@@ -70,13 +70,13 @@ export default async function StudentMediaViewPage({ params }: Props) {
             {media.courseId && media.course && (
               <Link
                 href={`/portal/student/courses/${media.courseId}`}
-                className="text-sm font-medium text-[#6366F1] hover:text-[#4F46E5] hover:underline"
+                className="text-sm font-medium text-[var(--portal-accent)] hover:text-[var(--portal-accent-dark)] hover:underline"
               >
                 К курсу «{media.course.title.length > 36 ? `${media.course.title.slice(0, 36)}…` : media.course.title}»
               </Link>
             )}
             <Link href="/portal/student/media">
-              <span className="text-sm font-medium text-[#6366F1] hover:text-[#4F46E5] hover:underline">
+              <span className="text-sm font-medium text-[var(--portal-accent)] hover:text-[var(--portal-accent-dark)] hover:underline">
                 ← К медиатеке
               </span>
             </Link>

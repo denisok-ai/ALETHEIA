@@ -1,9 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import Image from 'next/image';
 import { motion, useInView } from 'framer-motion';
-import { TiltCard } from '@/components/ui/TiltCard';
 import { Sparkles, Heart, Shield, Users } from 'lucide-react';
 
 const cards = [
@@ -34,82 +32,44 @@ export function About() {
   const isInView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section id="why" ref={ref} className="relative py-28 px-5 overflow-hidden md:py-32 md:px-6">
-      <div className="absolute inset-0 bg-gradient-to-b from-lavender-light/40 via-bg to-lavender/30" />
-      <motion.div
-        style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
-        initial={{ opacity: 0, rotateX: 18 }}
-        animate={isInView ? { opacity: 1, rotateX: 0 } : {}}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-        className="relative mx-auto max-w-6xl"
-      >
-        <div className="grid gap-12 lg:grid-cols-5 lg:gap-16">
-          <motion.div
-            initial={{ opacity: 0, x: -24 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
-            transition={{ delay: 0.2 }}
-            className="relative h-56 overflow-hidden rounded-2xl bg-gradient-to-br from-[#1a2744] to-[#1e3a5f] lg:col-span-2 lg:h-72"
-          >
-            <Image
-              src="/images/thematic/about-path.png"
-              alt="Путь к гармонии — кинезиология и подсознание"
-              fill
-              className="object-cover opacity-90"
-              sizes="(max-width: 1024px) 100vw, 40vw"
-              onError={(e) => {
-                const target = e.target as HTMLImageElement;
-                target.style.display = 'none';
-              }}
-            />
-          </motion.div>
-          <div className="lg:col-span-3">
-            <motion.span
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              className="block text-sm font-semibold uppercase tracking-widest text-accent"
-            >
-              О курсе
-            </motion.span>
-            <motion.h2
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.05 }}
-              className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl"
-            >
-              Более 20 лет мы помогаем обрести баланс
-            </motion.h2>
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.1 }}
-              className="mt-5 max-w-2xl leading-relaxed text-[var(--portal-text-muted)]"
-            >
-              Более 15 000 человек прошли наши программы. Кинезиология и работа с подсознанием — в формате, который подходит именно вам.
-            </motion.p>
-          </div>
-        </div>
+    <section
+      id="why"
+      ref={ref}
+      className="relative scroll-mt-24 border-t border-[var(--border)] bg-[var(--surface)] py-24 px-5 md:py-28 md:px-6"
+    >
+      <div className="relative mx-auto max-w-6xl">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
+          transition={{ duration: 0.5 }}
+          className="max-w-3xl"
+        >
+          <span className="block text-sm font-semibold uppercase tracking-widest text-plum">О школе</span>
+          <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">
+            Более 20 лет мы помогаем обрести баланс
+          </h2>
+          <p className="mt-5 leading-relaxed text-[var(--text-muted)]">
+            Более 15 000 человек прошли наши программы. Кинезиология и работа с подсознанием — в формате, который
+            подходит именно вам.
+          </p>
+        </motion.div>
 
-        <div className="mt-16 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
           {cards.map((card, i) => (
             <motion.div
               key={card.title}
-              initial={{ opacity: 0, y: 40 }}
+              initial={{ opacity: 0, y: 24 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
-              transition={{ delay: 0.15 + i * 0.08, type: 'spring', stiffness: 80 }}
+              transition={{ delay: 0.08 + i * 0.05, duration: 0.45 }}
+              className="flex h-full flex-col rounded-2xl border border-[var(--border)] bg-[var(--bg)] p-6 transition-colors hover:border-plum/30 hover:bg-[var(--lavender-light)] md:p-7"
             >
-              <TiltCard maxTilt={8} className="h-full">
-                <div className="rounded-2xl border border-lavender-soft/50 bg-white/90 p-7 backdrop-blur-xl transition-all hover:border-accent/40 hover:bg-lavender-light/30 h-full flex flex-col md:p-8">
-                  <card.icon className="h-8 w-8 text-accent mb-4" />
-                  <h3 className="font-heading text-lg font-semibold text-[var(--portal-text)]">
-                    {card.title}
-                  </h3>
-                  <p className="mt-2 text-sm text-[var(--portal-text-muted)] flex-1">{card.text}</p>
-                </div>
-              </TiltCard>
+              <card.icon className="mb-4 h-8 w-8 text-plum" aria-hidden />
+              <h3 className="font-heading text-lg font-semibold text-[var(--text)]">{card.title}</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-[var(--text-muted)]">{card.text}</p>
             </motion.div>
           ))}
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 }

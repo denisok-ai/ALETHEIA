@@ -46,7 +46,7 @@ export function ProfileEditForm({
       {/* Карточка с email — слева на десктопе */}
       <div className="portal-card p-4 md:p-5 lg:col-span-4 xl:col-span-3 h-fit">
         <div className="flex items-center gap-3">
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#4F46E5]">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]">
             <User className="h-6 w-6" />
           </span>
           <div className="min-w-0">
@@ -69,7 +69,7 @@ export function ProfileEditForm({
             onChange={(e) => setDisplayName(e.target.value)}
             placeholder="Как к вам обращаться"
             maxLength={200}
-            className="mt-2 border-[#E2E8F0] focus:ring-[#6366F1] focus:border-[#6366F1] min-h-10 touch-manipulation"
+            className="mt-2 border-[#E2E8F0] focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)] min-h-10 touch-manipulation"
           />
           <p className="mt-1 text-xs text-[var(--portal-text-muted)]">До 200 символов</p>
         </div>

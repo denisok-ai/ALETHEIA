@@ -446,7 +446,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                     <div className="flex items-center gap-1">
                       <Link
                         href={`/portal/admin/mailings/${m.id}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
                         title="Подробнее / Результаты"
                       >
                         <FileText className="h-4 w-4" />
@@ -456,7 +456,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                           <button
                             type="button"
                             onClick={() => openEdit(m)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
                             title="Редактировать"
                           >
                             <Pencil className="h-4 w-4" />
@@ -484,7 +484,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                         <button
                           type="button"
                           onClick={() => handleCopy(m)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
                           title="Копировать"
                         >
                           <Copy className="h-4 w-4" />

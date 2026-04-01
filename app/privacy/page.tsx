@@ -14,66 +14,66 @@ export const metadata: Metadata = {
  */
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-24">
-      <h1 className="font-heading text-3xl font-semibold text-[#2D1B4E]">
+    <div className="mx-auto max-w-3xl px-4 py-24 font-body">
+      <h1 className="font-heading text-3xl font-semibold text-[var(--text)]">
         Политика конфиденциальности
       </h1>
-      <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
+      <p className="mt-2 text-sm text-[var(--text-muted)]">
         Обработка персональных данных на сайте avaterra.pro. Рекомендуем ознакомиться до отправки форм и регистрации.
       </p>
 
-      <div className="mt-10 space-y-8 text-slate-700">
+      <div className="mt-10 max-w-[var(--prose-max-width)] space-y-8 leading-[var(--leading-body)] text-[var(--text)]">
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">1. Общие положения</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">1. Общие положения</h2>
           <p className="mt-2">
             Настоящая политика определяет порядок обработки персональных данных посетителей сайта и пользователей портала школы AVATERRA (далее — Оператор). Обработка осуществляется в соответствии с Федеральным законом № 152-ФЗ «О персональных данных» и иными применимыми нормами.
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">2. Какие данные мы обрабатываем</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">2. Какие данные мы обрабатываем</h2>
           <p className="mt-2">
             При использовании сайта и портала могут собираться: имя, контактный телефон, адрес электронной почты, данные учётной записи (логин, хэш пароля), сведения об обучении и оплате (в объёме, необходимом для оказания услуг и учёта). Технические данные: IP-адрес, данные cookies и журналов сервера — для обеспечения работы сайта и безопасности.
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">3. Цели обработки</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">3. Цели обработки</h2>
           <p className="mt-2">
             Персональные данные используются для: приёма и обработки заявок; заключения и исполнения договоров на оказание образовательных и консультационных услуг; регистрации и работы в личном кабинете; рассылки уведомлений, связанных с услугами (при наличии согласия); улучшения работы сайта и соблюдения требований законодательства.
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">4. Передача данных третьим лицам</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">4. Передача данных третьим лицам</h2>
           <p className="mt-2">
             Данные могут передаваться партнёрам, необходимым для оказания услуг: платёжным системам (в объёме, требуемом для проведения платежей), сервисам рассылки писем и уведомлений, хостингу. Передача осуществляется в рамках договоров о конфиденциальности и только в объёме, необходимом для указанных целей. Оператор не продаёт персональные данные.
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">5. Хранение и защита</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">5. Хранение и защита</h2>
           <p className="mt-2">
             Данные хранятся в течение срока, необходимого для оказания услуг и исполнения законодательных требований. Применяются организационные и технические меры защиты: ограничение доступа, шифрование паролей, защищённые каналы связи (HTTPS). Доступ к персональным данным имеют только уполномоченные лица.
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">6. Ваши права</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">6. Ваши права</h2>
           <p className="mt-2">
             Вы вправе запросить доступ к своим персональным данным, их уточнение, блокирование или удаление в случаях, предусмотренных законом. Для этого направьте запрос по контактам, указанным на сайте. Отзыв согласия на обработку данных может ограничить возможность оказания услуг (например, доступ в личный кабинет).
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">7. Cookies и аналитика</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">7. Cookies и аналитика</h2>
           <p className="mt-2">
             Сайт может использовать файлы cookies для обеспечения работы сессий, авторизации и сохранения настроек. Отключение cookies в браузере может ограничить функциональность сайта. При использовании средств аналитики могут обрабатываться обезличенные данные о посещениях.
           </p>
         </section>
 
         <section>
-          <h2 className="font-heading text-xl font-semibold text-[#2D1B4E]">8. Изменения политики</h2>
+          <h2 className="font-heading text-xl font-semibold text-[var(--text)]">8. Изменения политики</h2>
           <p className="mt-2">
             Оператор вправе обновлять настоящую политику. Актуальная версия публикуется на данной странице. Продолжение использования сайта и портала после внесения изменений означает принятие обновлённой политики. При существенных изменениях мы можем уведомить пользователей по доступным каналам связи.
           </p>

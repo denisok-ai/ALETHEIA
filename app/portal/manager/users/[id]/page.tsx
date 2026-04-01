@@ -64,7 +64,7 @@ export default async function ManagerUserDetailPage({ params }: PageProps) {
         actions={
           <Link
             href="/portal/manager/users"
-            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[#6366F1] transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[var(--portal-accent)] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             К списку
@@ -159,7 +159,7 @@ export default async function ManagerUserDetailPage({ params }: PageProps) {
                 <li key={t.id}>
                   <Link
                     href={`/portal/manager/tickets/${t.id}`}
-                    className="text-[#6366F1] hover:underline font-medium"
+                    className="text-[var(--portal-accent)] hover:underline font-medium"
                   >
                     {t.subject}
                   </Link>

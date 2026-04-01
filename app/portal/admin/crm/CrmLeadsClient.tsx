@@ -237,7 +237,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
         >
           <option value="all">Все статусы</option>
           {STATUSES.map((s) => (
@@ -247,7 +247,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         <select
           value={sourceFilter}
           onChange={(e) => { setSourceFilter(e.target.value); setPage(0); }}
-          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
         >
           <option value="all">Все источники</option>
           {sources.map((s) => (
@@ -256,7 +256,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         </select>
       </div>
       {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+        <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--portal-accent-muted)] bg-[var(--portal-accent-soft)] px-3 py-2">
           <span className="text-sm font-medium text-[var(--portal-text)]">Выбрано: {selectedIds.size}</span>
           <span className="text-sm text-[var(--portal-text-muted)]">Сменить статус:</span>
           {STATUSES.map((s) => (
@@ -347,7 +347,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
                       value={l.status}
                       onChange={(e) => handleStatusChange(l.id, e.target.value)}
                       disabled={updating === l.id}
-                      className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+                      className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
                     >
                       {STATUSES.map((s) => (
                         <option key={s} value={s}>{s}</option>
@@ -439,7 +439,7 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
             <textarea
               value={notesValue}
               onChange={(e) => setNotesValue(e.target.value)}
-              className="mt-3 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm min-h-[100px] text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+              className="mt-3 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm min-h-[100px] text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
               placeholder="Заметки по лиду..."
             />
             <div className="mt-3 flex gap-2">

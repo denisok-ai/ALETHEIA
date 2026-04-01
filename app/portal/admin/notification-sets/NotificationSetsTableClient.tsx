@@ -96,7 +96,7 @@ export function NotificationSetsTableClient({ sets }: { sets: NotificationSetRow
                 <TableCell className="font-medium text-[var(--portal-text)]">
                   <Link
                     href={`/portal/admin/notification-sets/${s.id}`}
-                    className="text-[#6366F1] hover:underline"
+                    className="text-[var(--portal-accent)] hover:underline"
                   >
                     {s.name}
                   </Link>

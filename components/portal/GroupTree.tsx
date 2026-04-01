@@ -62,7 +62,7 @@ function TreeRow({
     <div className="select-none">
       <div
         className={`flex items-center gap-1 py-1.5 px-2 rounded-lg cursor-pointer group ${
-          isSelected ? 'bg-[#EEF2FF] text-[#4F46E5]' : 'hover:bg-[#F8FAFC] text-[var(--portal-text)]'
+          isSelected ? 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]' : 'hover:bg-[#F8FAFC] text-[var(--portal-text)]'
         }`}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={() => onSelect(node.id, node.name)}
@@ -87,7 +87,7 @@ function TreeRow({
           )}
         </button>
         {hasChildren && isExpanded ? (
-          <FolderOpen className="h-4 w-4 text-[#6366F1] shrink-0" />
+          <FolderOpen className="h-4 w-4 text-[var(--portal-accent)] shrink-0" />
         ) : (
           <Folder className="h-4 w-4 text-[var(--portal-text-muted)] shrink-0" />
         )}
@@ -181,7 +181,7 @@ export function GroupTree({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 text-[#6366F1] px-2"
+              className="h-7 text-[var(--portal-accent)] px-2"
               onClick={() => onAddGroup(null)}
               title="Добавить группу (корневую)"
             >
@@ -194,7 +194,7 @@ export function GroupTree({
               type="button"
               variant="ghost"
               size="sm"
-              className="h-7 text-[#6366F1] px-2"
+              className="h-7 text-[var(--portal-accent)] px-2"
               onClick={() => onAddGroup(selectedGroupId)}
               title="Добавить подгруппу"
             >
@@ -234,7 +234,7 @@ export function GroupTree({
         <button
           type="button"
           className={`w-full flex items-center gap-1 py-1.5 px-2 rounded-lg text-left ${
-            !selectedGroupId ? 'bg-[#EEF2FF] text-[#4F46E5]' : 'hover:bg-[#F8FAFC] text-[var(--portal-text)]'
+            !selectedGroupId ? 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]' : 'hover:bg-[#F8FAFC] text-[var(--portal-text)]'
           }`}
           onClick={() => onSelectGroup(null, null)}
         >

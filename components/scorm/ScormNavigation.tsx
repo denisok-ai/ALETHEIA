@@ -42,7 +42,7 @@ export function ScormNavigation({
                 className={cn(
                   'flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors',
                   isCurrent
-                    ? 'bg-[#EEF2FF] text-[#4F46E5] font-medium'
+                    ? 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)] font-medium'
                     : 'text-[var(--portal-text)] hover:bg-[#F8FAFC]',
                 )}
               >

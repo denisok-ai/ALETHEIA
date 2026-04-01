@@ -540,7 +540,7 @@ export function CourseEnrollmentsClient({
       </div>
 
       {selectedArr.length > 0 && (
-        <div className="mt-3 flex items-center gap-3 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+        <div className="mt-3 flex items-center gap-3 rounded-lg border border-[var(--portal-accent-muted)] bg-[var(--portal-accent-soft)] px-3 py-2">
           <span className="text-sm font-medium text-[var(--portal-text)]">Выбрано: {selectedArr.length}</span>
           <Button variant="danger" size="sm" onClick={() => setBulkUnenrollConfirm(true)} disabled={bulkUnenrolling}>
             Отчислить выбранных
@@ -601,7 +601,7 @@ export function CourseEnrollmentsClient({
                   <TableCell>
                     <Link
                       href={`/portal/admin/users/${row.userId}`}
-                      className="font-medium text-[#6366F1] hover:underline"
+                      className="font-medium text-[var(--portal-accent)] hover:underline"
                     >
                       {row.user.displayName || row.user.email || '—'}
                     </Link>
@@ -628,7 +628,7 @@ export function CourseEnrollmentsClient({
                     <div className="flex flex-wrap items-center gap-1">
                       <Link
                         href={`/portal/admin/users/${row.userId}`}
-                        className="inline-flex h-8 items-center rounded px-2 text-xs text-[#6366F1] hover:bg-[#F8FAFC]"
+                        className="inline-flex h-8 items-center rounded px-2 text-xs text-[var(--portal-accent)] hover:bg-[#F8FAFC]"
                         title="Подробнее"
                         aria-label="Карточка участника"
                       >
@@ -636,7 +636,7 @@ export function CourseEnrollmentsClient({
                       </Link>
                       <Link
                         href={`/portal/admin/courses/${courseId}/enrollments/${row.userId}`}
-                        className="inline-flex h-8 items-center rounded px-2 text-xs text-[#6366F1] hover:bg-[#F8FAFC]"
+                        className="inline-flex h-8 items-center rounded px-2 text-xs text-[var(--portal-accent)] hover:bg-[#F8FAFC]"
                         title="Изменить результаты"
                         aria-label="Изменить результаты прохождения"
                       >

@@ -55,7 +55,7 @@ export default async function ManagerDashboardPage() {
           href="/portal/manager/tickets"
           className="portal-card flex items-center gap-4 p-5 hover:shadow-[var(--portal-shadow)] transition-shadow"
         >
-          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#4F46E5]">
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]">
             <MessageSquare className="h-6 w-6" />
           </span>
           <div className="min-w-0">
@@ -84,7 +84,7 @@ export default async function ManagerDashboardPage() {
         {recentTickets.length === 0 ? (
           <div className="portal-card p-8 text-center">
             <p className="text-sm text-[var(--portal-text-muted)]">Нет тикетов</p>
-            <Link href="/portal/manager/tickets" className="mt-3 inline-block text-sm font-medium text-[#6366F1] hover:underline">
+            <Link href="/portal/manager/tickets" className="mt-3 inline-block text-sm font-medium text-[var(--portal-accent)] hover:underline">
               Перейти к тикетам →
             </Link>
           </div>
@@ -113,7 +113,7 @@ export default async function ManagerDashboardPage() {
         )}
         {recentTickets.length > 0 && (
           <p className="mt-3">
-            <Link href="/portal/manager/tickets" className="text-sm font-medium text-[#6366F1] hover:underline">
+            <Link href="/portal/manager/tickets" className="text-sm font-medium text-[var(--portal-accent)] hover:underline">
               Все тикеты →
             </Link>
           </p>

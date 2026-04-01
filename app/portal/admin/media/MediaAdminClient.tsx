@@ -429,14 +429,14 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
             <div
               {...getRootProps()}
               className={`rounded-lg border-2 border-dashed p-6 text-center transition-colors cursor-pointer ${
-                isDragActive ? 'border-[#6366F1] bg-[#EEF2FF]' : 'border-[#E2E8F0] bg-[#F8FAFC] hover:border-[#6366F1]/50'
+                isDragActive ? 'border-[var(--portal-accent)] bg-[var(--portal-accent-soft)]' : 'border-[#E2E8F0] bg-[#F8FAFC] hover:border-[var(--portal-accent)]/50'
               }`}
             >
               <input {...getInputProps()} />
               <p className="text-sm text-[var(--portal-text-muted)]">
                 {isDragActive ? 'Отпустите файлы…' : 'Перетащите файлы сюда или нажмите для выбора (несколько файлов)'}
               </p>
-              {files.length > 0 && <p className="mt-2 text-sm font-medium text-[#6366F1]">Выбрано: {files.length}</p>}
+              {files.length > 0 && <p className="mt-2 text-sm font-medium text-[var(--portal-accent)]">Выбрано: {files.length}</p>}
             </div>
             <div className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -534,14 +534,14 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
           <div className="flex rounded-lg border border-[#E2E8F0] bg-white p-0.5 text-sm">
             <button
               type="button"
-              className={`rounded-md px-2.5 py-1.5 ${viewMode === 'table' ? 'bg-[#EEF2FF] text-[#4338CA] font-medium' : 'text-[var(--portal-text-muted)]'}`}
+              className={`rounded-md px-2.5 py-1.5 ${viewMode === 'table' ? 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)] font-medium' : 'text-[var(--portal-text-muted)]'}`}
               onClick={() => { persistViewMode('table'); setPage(0); }}
             >
               Таблица
             </button>
             <button
               type="button"
-              className={`rounded-md px-2.5 py-1.5 ${viewMode === 'grid' ? 'bg-[#EEF2FF] text-[#4338CA] font-medium' : 'text-[var(--portal-text-muted)]'}`}
+              className={`rounded-md px-2.5 py-1.5 ${viewMode === 'grid' ? 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)] font-medium' : 'text-[var(--portal-text-muted)]'}`}
               onClick={() => { persistViewMode('grid'); setPage(0); }}
             >
               Сетка
@@ -549,7 +549,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
           </div>
         </div>
         {selectedIds.size > 0 && (
-          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[#C7D2FE] bg-[#EEF2FF] px-3 py-2">
+          <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--portal-accent-muted)] bg-[var(--portal-accent-soft)] px-3 py-2">
             <span className="text-sm font-medium text-[var(--portal-text)]">Выбрано: {selectedIds.size}</span>
             <Button size="sm" variant="secondary" disabled={groupActionLoading} onClick={() => setGroupPickerOpen(true)}>
               <FolderPlus className="h-3.5 w-3.5 mr-1" />
@@ -579,7 +579,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                     title={pageItems.every((m) => selectedIds.has(m.id)) ? 'Снять выбор' : 'Выбрать страницу'}
                   >
                     {pageItems.length > 0 && pageItems.every((m) => selectedIds.has(m.id)) ? (
-                      <CheckSquare className="h-4 w-4 text-[#6366F1]" />
+                      <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" />
                     ) : (
                       <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />
                     )}
@@ -660,13 +660,13 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                   >
                     <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
                       <button type="button" onClick={() => toggleSelect(m.id)} className="p-1 min-h-9 min-w-9 inline-flex items-center justify-center">
-                        {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
+                        {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
                       </button>
                     </TableCell>
                     <TableCell className="w-[76px] p-1.5 align-middle" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
-                        className="relative block h-14 w-[4.5rem] rounded overflow-hidden bg-[#1e1340] shrink-0 ring-1 ring-[#E2E8F0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366F1]"
+                        className="relative block h-14 w-[4.5rem] rounded overflow-hidden bg-[#1e1340] shrink-0 ring-1 ring-[#E2E8F0] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--portal-accent)]"
                         onClick={() => setPreviewItem(m)}
                         aria-label={`Превью: ${m.title}`}
                       >
@@ -694,7 +694,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                     {visibleColumnIds.includes('usage') && (
                       <TableCell className="text-[var(--portal-text-muted)] text-sm" onClick={(e) => e.stopPropagation()}>
                         {m.course_title ? (
-                          <a href={`/portal/admin/courses/${m.course_id}`} className="text-[#6366F1] hover:underline">{m.course_title}</a>
+                          <a href={`/portal/admin/courses/${m.course_id}`} className="text-[var(--portal-accent)] hover:underline">{m.course_title}</a>
                         ) : (
                           '—'
                         )}
@@ -724,7 +724,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                             href={m.file_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                            className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
                             aria-label="Открыть"
                           >
                             <ExternalLink className="h-[18px] w-[18px]" />
@@ -801,7 +801,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                       <div className="flex flex-1 flex-col gap-2 p-3">
                         <div className="flex items-start gap-2">
                           <button type="button" onClick={() => toggleSelect(m.id)} className="mt-0.5 p-0.5 shrink-0" aria-label={selectedIds.has(m.id) ? 'Снять выбор' : 'Выбрать'}>
-                            {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-[#6366F1]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
+                            {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
                           </button>
                           <div className="min-w-0 flex-1">
                             <p className="font-semibold text-sm text-[var(--portal-text)] leading-snug line-clamp-2">{m.title}</p>
@@ -826,7 +826,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                               href={m.file_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                              className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
                               aria-label="Открыть файл"
                             >
                               <ExternalLink className="h-[18px] w-[18px]" />

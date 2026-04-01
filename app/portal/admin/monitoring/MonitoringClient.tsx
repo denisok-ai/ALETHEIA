@@ -298,7 +298,7 @@ export function MonitoringClient() {
             type="button"
             onClick={() => setTab('online')}
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-              tab === 'online' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
+              tab === 'online' ? 'border-[var(--portal-accent)] bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]' : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
             }`}
           >
             <Activity className="h-4 w-4" />
@@ -308,7 +308,7 @@ export function MonitoringClient() {
             type="button"
             onClick={() => setTab('visits')}
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-              tab === 'visits' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
+              tab === 'visits' ? 'border-[var(--portal-accent)] bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]' : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
             }`}
           >
             <Users className="h-4 w-4" />
@@ -318,7 +318,7 @@ export function MonitoringClient() {
             type="button"
             onClick={() => setTab('tasks')}
             className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
-              tab === 'tasks' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
+              tab === 'tasks' ? 'border-[var(--portal-accent)] bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]' : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
             }`}
           >
             <ListTodo className="h-4 w-4" />
@@ -390,7 +390,7 @@ export function MonitoringClient() {
                       <TableCell>
                         <Link
                           href={`/portal/admin/users/${row.userId}`}
-                          className="text-[#6366F1] hover:underline"
+                          className="text-[var(--portal-accent)] hover:underline"
                         >
                           {row.displayName || row.email || row.userId}
                         </Link>
@@ -433,7 +433,7 @@ export function MonitoringClient() {
                 type="button"
                 onClick={() => setVisitsSubTab('stats')}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
-                  visitsSubTab === 'stats' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white'
+                  visitsSubTab === 'stats' ? 'border-[var(--portal-accent)] bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]' : 'border-[#E2E8F0] bg-white'
                 }`}
               >
                 <Calendar className="h-4 w-4" />
@@ -443,7 +443,7 @@ export function MonitoringClient() {
                 type="button"
                 onClick={() => setVisitsSubTab('chart')}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium ${
-                  visitsSubTab === 'chart' ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]' : 'border-[#E2E8F0] bg-white'
+                  visitsSubTab === 'chart' ? 'border-[var(--portal-accent)] bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]' : 'border-[#E2E8F0] bg-white'
                 }`}
               >
                 <BarChart3 className="h-4 w-4" />
@@ -528,7 +528,7 @@ export function MonitoringClient() {
                         <TableCell>
                           <Link
                             href={`/portal/admin/users/${row.userId}`}
-                            className="text-[#6366F1] hover:underline"
+                            className="text-[var(--portal-accent)] hover:underline"
                           >
                             {row.displayName || row.email || row.userId}
                           </Link>
@@ -537,7 +537,7 @@ export function MonitoringClient() {
                         <TableCell>
                           <Link
                             href={`/portal/admin/monitoring/visits/user/${row.userId}`}
-                            className="text-sm text-[#6366F1] hover:underline"
+                            className="text-sm text-[var(--portal-accent)] hover:underline"
                           >
                             Детализация
                           </Link>
@@ -609,7 +609,7 @@ export function MonitoringClient() {
                     <div key={d.day} className="flex min-w-[24px] flex-1 flex-col items-center">
                       <span className="mb-1 text-xs text-[var(--portal-text-muted)]">{d.uniqueVisitors}</span>
                       <div
-                        className="w-full min-w-[8px] rounded-t bg-[#6366F1]/70 transition-all"
+                        className="w-full min-w-[8px] rounded-t bg-[var(--portal-accent)]/70 transition-all"
                         style={{ height: `${(d.uniqueVisitors / maxChart) * 120}px` }}
                         title={`${d.day}: ${d.uniqueVisitors} уникальных посетителей`}
                       />

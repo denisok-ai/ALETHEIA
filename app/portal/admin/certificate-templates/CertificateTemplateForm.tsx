@@ -268,7 +268,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
               id="ct-file"
               type="file"
               accept=".png,.jpg,.jpeg,.pdf"
-              className="mt-1 block w-full text-sm text-[var(--portal-text-muted)] file:mr-4 file:rounded file:border-0 file:bg-[#6366F1] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
+              className="mt-1 block w-full text-sm text-[var(--portal-text-muted)] file:mr-4 file:rounded file:border-0 file:bg-[var(--portal-accent)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
               onChange={(e) => setFile(e.target.files?.[0] ?? null)}
             />
           )}
@@ -278,7 +278,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
                 id="ct-file-edit"
                 type="file"
                 accept=".png,.jpg,.jpeg,.pdf"
-                className="mt-1 block w-full text-sm text-[var(--portal-text-muted)] file:mr-4 file:rounded file:border-0 file:bg-[#6366F1] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
+                className="mt-1 block w-full text-sm text-[var(--portal-text-muted)] file:mr-4 file:rounded file:border-0 file:bg-[var(--portal-accent)] file:px-4 file:py-2 file:text-sm file:font-medium file:text-white"
                 onChange={(e) => { setFile(e.target.files?.[0] ?? null); setRemoveBackground(false); }}
               />
               {backgroundImageUrl && (
@@ -305,7 +305,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
             onChange={(e) => setTextMapping(e.target.value)}
             rows={4}
             placeholder='{"name":{"x":100,"y":420,"fontSize":16},"courseTitle":{"x":100,"y":480,"fontSize":14},"certNumber":{"x":72,"y":750,"fontSize":9},"date":{"x":400,"y":750,"fontSize":9},"expiryDate":{"x":100,"y":780,"fontSize":9}}'
-            className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[#6366F1] px-3 py-2 font-mono text-sm"
+            className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[var(--portal-accent)] px-3 py-2 font-mono text-sm"
           />
           <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
             Координаты в pt (A4 ≈ 595×842): name, courseTitle, certNumber, date, expiryDate (опционально). Текст срока: «Действителен до …».
@@ -317,7 +317,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
             id="ct-course"
             value={courseId ?? ''}
             onChange={(e) => setCourseId(e.target.value || null)}
-            className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[#6366F1] px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[var(--portal-accent)] px-3 py-2 text-sm"
           >
             <option value="">— общий шаблон</option>
             {courses.map((c) => (

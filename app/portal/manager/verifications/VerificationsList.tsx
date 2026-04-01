@@ -122,7 +122,7 @@ export function VerificationsList({
                 )}
               </p>
               <p className="text-sm text-[var(--portal-text-muted)] mt-0.5">
-                <span className="mr-2 inline-block rounded bg-[#EEF2FF] px-1.5 py-0.5 text-xs font-medium text-[#4338CA]">
+                <span className="mr-2 inline-block rounded bg-[var(--portal-accent-soft)] px-1.5 py-0.5 text-xs font-medium text-[var(--portal-accent-dark)]">
                   {item.assignment_type === 'text' ? 'Текст' : 'Видео'}
                 </span>
                 {item.course_title || item.course_id}
@@ -155,7 +155,7 @@ export function VerificationsList({
                   href={item.video_url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:border-[#C7D2FE] transition-colors w-fit"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:border-[var(--portal-accent-muted)] transition-colors w-fit"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   Смотреть видео

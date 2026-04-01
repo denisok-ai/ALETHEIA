@@ -207,7 +207,7 @@ export function PaymentsTableClient({
         <select
           value={statusFilter}
           onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}
-          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
         >
           <option value="all">Все статусы</option>
           <option value="pending">Ожидает</option>
@@ -218,7 +218,7 @@ export function PaymentsTableClient({
         <select
           value={tariffFilter}
           onChange={(e) => { setTariffFilter(e.target.value); setPage(0); }}
-          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
         >
           <option value="all">Все тарифы</option>
           {tariffIds.map((t) => (
@@ -360,7 +360,7 @@ export function PaymentsTableClient({
                 <div>
                   <dt className="text-[var(--portal-text-muted)] inline">Пользователь: </dt>
                   <dd className="inline">
-                    <Link href={`/portal/admin/users/${detailOrder.userId}`} className="text-[#6366F1] hover:underline">Карточка пользователя</Link>
+                    <Link href={`/portal/admin/users/${detailOrder.userId}`} className="text-[var(--portal-accent)] hover:underline">Карточка пользователя</Link>
                   </dd>
                 </div>
               )}

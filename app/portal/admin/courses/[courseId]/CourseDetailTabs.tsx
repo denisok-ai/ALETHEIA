@@ -50,7 +50,7 @@ export function CourseDetailTabs({
                 aria-current={activeTab === tab.id ? 'page' : undefined}
                 className={`inline-flex shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 sm:px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'border-[#6366F1] text-[#4F46E5]'
+                    ? 'border-[var(--portal-accent)] text-[var(--portal-accent-dark)]'
                     : 'border-transparent text-[var(--portal-text-muted)] hover:border-[#E2E8F0] hover:text-[var(--portal-text)]'
                 }`}
               >

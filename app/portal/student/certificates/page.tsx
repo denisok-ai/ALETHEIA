@@ -58,7 +58,7 @@ export default async function StudentCertificatesPage() {
                 hover:shadow-[var(--portal-shadow)] transition-shadow min-w-0"
             >
               <div className="flex items-center gap-3 min-w-0 flex-1">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#EEF2FF] text-[#4F46E5]">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]">
                   <Award className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">

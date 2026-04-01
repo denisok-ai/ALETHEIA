@@ -51,7 +51,7 @@ export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profil
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Email или имя..."
-          className="flex-1 min-w-[200px] rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+          className="flex-1 min-w-[200px] rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
         />
         <Button type="submit" variant="primary" disabled={loading}>
           <Search className="h-4 w-4 mr-1.5" />
@@ -87,7 +87,7 @@ export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profil
                   <td className="px-4 py-3">
                     <Link
                       href={`/portal/manager/users/${p.id}`}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:bg-[#EEF2FF] hover:text-[#6366F1]"
+                      className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:bg-[var(--portal-accent-soft)] hover:text-[var(--portal-accent)]"
                       title="Открыть карточку"
                     >
                       <ExternalLink className="h-4 w-4" />

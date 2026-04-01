@@ -65,12 +65,12 @@ export function NotificationsList({ initialItems }: { initialItems: Notif[] }) {
           key={n.id}
           className={[
             'portal-card flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 transition-all min-w-0',
-            n.is_read ? 'opacity-75' : 'border-l-4 border-l-[#6366F1]',
+            n.is_read ? 'opacity-75' : 'border-l-4 border-l-[var(--portal-accent)]',
           ].join(' ')}
         >
           <div className="min-w-0 flex-1 flex items-start gap-2 sm:gap-3">
             {!n.is_read && (
-              <span className="mt-1.5 sm:mt-0 flex h-2 w-2 shrink-0 rounded-full bg-[#6366F1]" aria-hidden />
+              <span className="mt-1.5 sm:mt-0 flex h-2 w-2 shrink-0 rounded-full bg-[var(--portal-accent)]" aria-hidden />
             )}
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">

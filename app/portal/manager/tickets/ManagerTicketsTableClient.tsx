@@ -205,15 +205,15 @@ export function ManagerTicketsTableClient() {
   return (
     <div className="portal-card overflow-hidden p-0">
       {filterUserId && (
-        <div className="border-b border-[#E2E8F0] bg-[#EEF2FF] px-4 py-2 text-sm text-[var(--portal-text)]">
+        <div className="border-b border-[#E2E8F0] bg-[var(--portal-accent-soft)] px-4 py-2 text-sm text-[var(--portal-text)]">
           Фильтр по пользователю: только тикеты этого userId.{' '}
-          <Link href="/portal/manager/tickets" className="font-medium text-[#6366F1] underline">
+          <Link href="/portal/manager/tickets" className="font-medium text-[var(--portal-accent)] underline">
             Показать все
           </Link>
         </div>
       )}
       {selectedIds.size > 0 && (
-        <div className="flex flex-wrap items-center gap-2 border-b border-[#C7D2FE] bg-[#EEF2FF] px-4 py-2">
+        <div className="flex flex-wrap items-center gap-2 border-b border-[var(--portal-accent-muted)] bg-[var(--portal-accent-soft)] px-4 py-2">
           <span className="text-sm font-medium">Выбрано: {selectedIds.size}</span>
           <span className="text-xs text-[var(--portal-text-muted)]">Статус:</span>
           {(['open', 'in_progress', 'resolved', 'closed'] as const).map((st) => (
@@ -280,7 +280,7 @@ export function ManagerTicketsTableClient() {
                     {format(new Date(t.createdAt), 'dd.MM.yy HH:mm')}
                   </TableCell>
                   <TableCell className="font-medium text-[var(--portal-text)]">
-                    <Link href={`/portal/manager/tickets/${t.id}`} className="hover:text-[#6366F1] transition-colors">
+                    <Link href={`/portal/manager/tickets/${t.id}`} className="hover:text-[var(--portal-accent)] transition-colors">
                       {t.subject}
                     </Link>
                   </TableCell>
@@ -295,7 +295,7 @@ export function ManagerTicketsTableClient() {
                   <TableCell>
                     <Link
                       href={`/portal/manager/tickets/${t.id}`}
-                      className="text-[var(--portal-text-soft)] hover:text-[#6366F1]"
+                      className="text-[var(--portal-text-soft)] hover:text-[var(--portal-accent)]"
                       aria-label="Открыть"
                     >
                       <ArrowRight className="h-4 w-4" />

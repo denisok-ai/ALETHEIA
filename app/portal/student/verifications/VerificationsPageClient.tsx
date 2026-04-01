@@ -594,7 +594,7 @@ export function VerificationsPageClient({
                 <>
                   <p className="text-xs text-[var(--portal-text-muted)]">
                     {v.assignmentType === 'text' ? (
-                      <span className="inline-block rounded bg-[#EEF2FF] px-1.5 py-0.5 font-medium text-[#4338CA]">Текст</span>
+                      <span className="inline-block rounded bg-[var(--portal-accent-soft)] px-1.5 py-0.5 font-medium text-[var(--portal-accent-dark)]">Текст</span>
                     ) : (
                       <span className="inline-block rounded bg-[#F1F5F9] px-1.5 py-0.5 font-medium text-[var(--portal-text)]">Видео</span>
                     )}

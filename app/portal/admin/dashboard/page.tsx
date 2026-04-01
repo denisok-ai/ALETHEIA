@@ -271,17 +271,17 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
         <div
           className="portal-card p-5 col-span-2 lg:col-span-1 flex items-center gap-4"
           style={{
-            background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 100%)',
-            borderColor: '#C7D2FE',
+            background: 'linear-gradient(135deg, var(--portal-accent-soft) 0%, var(--portal-accent-muted) 100%)',
+            borderColor: 'var(--portal-accent-muted)',
           }}
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#6366F1] text-white shadow-sm">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--portal-accent)] text-white shadow-sm">
             <svg viewBox="0 0 20 20" fill="currentColor" className="h-5 w-5">
               <path d="M10.75 10.818v2.614A3.13 3.13 0 0011.888 13c.482-.315.612-.648.612-.875 0-.227-.13-.56-.612-.875a3.13 3.13 0 00-1.138-.432zM8.33 8.62c.053.055.115.11.182.160.198.144.447.257.706.358V7.249a2.032 2.032 0 00-.892.5zM10 1a9 9 0 100 18A9 9 0 0010 1zm.75 4.495v.73a3.54 3.54 0 011.516.559c.481.304 1.234.94 1.234 2.216 0 1.275-.753 1.912-1.234 2.216a3.54 3.54 0 01-1.516.559v.73a.75.75 0 01-1.5 0v-.73a3.54 3.54 0 01-1.516-.56C7.253 11.912 6.5 11.275 6.5 10c0-1.275.753-1.912 1.234-2.215a3.54 3.54 0 011.516-.56v-.73a.75.75 0 011.5 0z" />
             </svg>
           </div>
           <div>
-            <p className="text-xs font-semibold text-[#4338CA] mb-0.5">Выручка (мес.)</p>
+            <p className="text-xs font-semibold text-[var(--portal-accent-dark)] mb-0.5">Выручка (мес.)</p>
             <p className="text-2xl font-bold text-[var(--portal-text)]">{revenueMonth.toLocaleString('ru')} ₽</p>
           </div>
         </div>

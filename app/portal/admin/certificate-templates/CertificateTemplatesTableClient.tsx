@@ -102,7 +102,7 @@ export function CertificateTemplatesTableClient({ templates }: { templates: Cert
               <TableRow key={t.id}>
                 <TableCell className="text-[var(--portal-text-muted)]">{start + idx + 1}</TableCell>
                 <TableCell className="font-medium text-[var(--portal-text)]">
-                  <Link href={`/portal/admin/certificate-templates/${t.id}`} className="text-[#6366F1] hover:underline">
+                  <Link href={`/portal/admin/certificate-templates/${t.id}`} className="text-[var(--portal-accent)] hover:underline">
                     {t.name}
                   </Link>
                 </TableCell>

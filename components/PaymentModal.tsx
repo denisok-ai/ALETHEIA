@@ -119,16 +119,17 @@ export function PaymentModal({ isOpen, onClose, tariff }: PaymentModalProps) {
               className="mt-1"
             />
           </div>
-          <div className="rounded-lg bg-[#F1F5F9] p-4">
+          <div className="rounded-lg bg-[var(--lavender-light)] p-4">
             <div className="flex justify-between items-center">
-              <span className="font-semibold text-[var(--portal-text)]">Итого:</span>
-              <span className="text-2xl font-bold text-accent">
+              <span className="font-semibold text-[var(--text)]">Итого:</span>
+              <span className="text-2xl font-bold text-plum">
                 {tariff.price <= 0 ? 'Бесплатно' : `${tariff.price.toLocaleString('ru-RU')} ₽`}
               </span>
             </div>
           </div>
           <Button
             type="submit"
+            variant="landingPlum"
             className="w-full"
             size="lg"
             disabled={loading}
@@ -144,11 +145,11 @@ export function PaymentModal({ isOpen, onClose, tariff }: PaymentModalProps) {
               'Перейти к оплате'
             )}
           </Button>
-          <p className="text-xs text-[var(--portal-text-muted)] text-center">
+          <p className="text-xs text-[var(--text-muted)] text-center">
             {tariff.price <= 0 ? (
               <>
                 Нажимая кнопку, вы соглашаетесь с{' '}
-                <a href="/privacy" className="underline hover:text-accent">
+                <a href="/privacy" className="underline hover:text-plum">
                   политикой конфиденциальности
                 </a>
                 .
@@ -156,9 +157,14 @@ export function PaymentModal({ isOpen, onClose, tariff }: PaymentModalProps) {
             ) : (
               <>
                 Нажимая кнопку, вы соглашаетесь с{' '}
-                <a href="/oferta#oplata" className="underline hover:text-accent">офертой</a>{' '}
+                <a href="/oferta#oplata" className="underline hover:text-plum">
+                  офертой
+                </a>{' '}
                 и{' '}
-                <a href="/privacy" className="underline hover:text-accent">политикой конфиденциальности</a>.
+                <a href="/privacy" className="underline hover:text-plum">
+                  политикой конфиденциальности
+                </a>
+                .
               </>
             )}
           </p>

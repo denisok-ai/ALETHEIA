@@ -85,7 +85,7 @@ export function NotificationSetEditForm({ setId, initial }: NotificationSetEditF
             id="ns-template"
             value={templateId}
             onChange={(e) => setTemplateId(e.target.value)}
-            className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[#6366F1]"
+            className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm focus:ring-2 focus:ring-[var(--portal-accent)]"
           >
             <option value="">— Без шаблона (использовать стандартный) —</option>
             {templates.map((t) => (

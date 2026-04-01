@@ -115,7 +115,7 @@ export function CourseCertificatesBlock({
                   <TableCell>
                     <Link
                       href={`/portal/admin/users/${c.userId}`}
-                      className="text-[#6366F1] hover:underline"
+                      className="text-[var(--portal-accent)] hover:underline"
                     >
                       {c.displayName || c.userEmail || c.userId}
                     </Link>
@@ -136,7 +136,7 @@ export function CourseCertificatesBlock({
                         href={downloadUrl(c.id)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--portal-text-muted)] hover:bg-[#F1F5F9] hover:text-[#6366F1]"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--portal-text-muted)] hover:bg-[#F1F5F9] hover:text-[var(--portal-accent)]"
                         title="Скачать PDF"
                       >
                         <Download className="h-4 w-4" />

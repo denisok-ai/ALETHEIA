@@ -67,7 +67,7 @@ export function KnowledgeBaseBlock() {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               rows={20}
-              className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 font-mono text-sm resize-y min-h-[320px] focus:ring-2 focus:ring-[#6366F1]"
+              className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 font-mono text-sm resize-y min-h-[320px] focus:ring-2 focus:ring-[var(--portal-accent)]"
               placeholder="# База знаний\n\n## Раздел 1\n..."
               spellCheck={false}
             />

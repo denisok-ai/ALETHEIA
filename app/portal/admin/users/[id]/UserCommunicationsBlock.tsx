@@ -150,7 +150,7 @@ export function UserCommunicationsBlock({
                         {format(new Date(row.createdAt), 'dd.MM.yyyy HH:mm')}
                       </span>
                       <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-xs">{row.type}</span>
-                      {!row.isRead ? <span className="text-xs text-[#6366F1]">не прочитано</span> : null}
+                      {!row.isRead ? <span className="text-xs text-[var(--portal-accent)]">не прочитано</span> : null}
                     </div>
                     <p className="mt-0.5 line-clamp-2 text-[var(--portal-text-muted)]">{preview}</p>
                   </div>

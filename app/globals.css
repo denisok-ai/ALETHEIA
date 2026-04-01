@@ -1,40 +1,64 @@
-/* Шрифты: <link> в app/layout.tsx (не @import — Turbopack; не next/font — баг с Turbopack). */
+/* Шрифты: <link> в app/layout.tsx — Lora + Inter (см. docs/design-notes-typography.md). */
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ─── Публичный сайт ─── */
+/* ─── Публичный сайт (палитра заказчика: лаванда, перивинкль, plum, rose, sand) ─── */
 :root {
-  --font-literata: 'Literata', Georgia, serif;
-  --font-outfit: 'Outfit', system-ui, sans-serif;
+  --font-heading: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  /* legacy aliases */
+  --font-literata: var(--font-heading);
+  --font-outfit: var(--font-body);
 
-  --bg: #fffefb;
-  --bg-soft: #faf8f5;
-  --bg-cream: #f5f2ec;
-  --lavender: #E5DAED;
-  --lavender-light: #f0eaf4;
-  --lavender-soft: #d4c4e0;
+  /* Фон и текст ближе к «чистому» лендингу Netlify: нейтральный светлый фон, контрастный текст */
+  --bg: #f4f4f6;
+  --bg-soft: #ececf0;
+  --bg-cream: #d0c3ab;
+  --sand: #d0c3ab;
+  --lavender: #e8e6ef;
+  --lavender-light: #faf9fc;
+  --lavender-soft: #b4b1d8;
+  --periwinkle: #b4b1d8;
+  --rose: #ce8fb0;
+  --plum: #856b92;
   --surface: #ffffff;
-  --text: #2c2a28;
-  --text-muted: #5c5854;
-  --text-soft: #8a8580;
-  --primary: #2D1B4E;
-  --secondary: #D4AF37;
-  --accent: #D4AF37;
-  --accent-hover: #b8942a;
-  --dark: #0A0E27;
-  --border: #e8e4de;
-  --cream: #f5f0e8;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --text-soft: #94a3b8;
+  --primary: #1e293b;
+  --secondary: #ce8fb0;
+  --accent: #b4b1d8;
+  --accent-hover: #9e9ac8;
+  --accent-rose-hover: #b87a9c;
+  --dark: #0f172a;
+  --border: rgba(15, 23, 42, 0.08);
+  --cream: #d0c3ab;
   --section-padding-y: 7rem;
   --section-padding-y-lg: 8rem;
   --content-gap: 1.5rem;
   --card-radius: 1.25rem;
-  --shadow-soft: 0 4px 24px -4px rgba(44, 42, 40, 0.06), 0 8px 32px -8px rgba(44, 42, 40, 0.04);
-  --shadow-card: 0 8px 32px -8px rgba(44, 42, 40, 0.08), 0 16px 48px -16px rgba(166, 139, 91, 0.08);
+  --shadow-soft: 0 4px 24px -4px rgba(15, 23, 42, 0.06), 0 8px 32px -8px rgba(15, 23, 42, 0.04);
+  --shadow-card: 0 8px 32px -8px rgba(15, 23, 42, 0.08), 0 16px 48px -16px rgba(133, 107, 146, 0.1);
+
+  /* Типографика MedTech: читаемый ритм */
+  --prose-max-width: 42rem;
+  --leading-body: 1.6;
 }
 
-/* Текст хедера поверх героя: читаем и на синем, и на светлом фоне */
+/* Хедер на светлом герое */
+.header-landing-text {
+  color: var(--text);
+}
+.header-landing-text-muted {
+  color: var(--text-muted);
+}
+.header-landing-text:hover {
+  color: var(--plum);
+}
+
+/* Legacy: тёмный герой (если где-то останется) */
 .header-overlay-text {
   color: #fff;
   text-shadow:
@@ -56,16 +80,15 @@
     -1px 0 2px var(--dark);
 }
 
-/* ─── Портал (LMS) — Modern Light 2026 ─── */
+/* ─── Портал (LMS) — единый бренд с лендингом (plum), нейтральный фон ─── */
 :root {
-  /* Акцентный цвет — Indigo (Linear / Notion style) */
-  --portal-accent:          #6366F1;   /* indigo-500  */
-  --portal-accent-dark:     #4F46E5;   /* indigo-600  */
-  --portal-accent-soft:     #EEF2FF;   /* indigo-50   */
-  --portal-accent-muted:    #C7D2FE;   /* indigo-200  */
+  --portal-accent:          #856B92;
+  --portal-accent-dark:     #6d5679;
+  --portal-accent-soft:     #f2f0f8;
+  --portal-accent-muted:    #d8cfe3;
 
   /* Фон */
-  --portal-bg:              #F8FAFC;   /* slate-50    */
+  --portal-bg:              #f6f4f9;
   --portal-sidebar-bg:      #ffffff;
   --portal-header-bg:       #ffffff;
   --portal-surface:         #ffffff;
@@ -80,16 +103,15 @@
 
   /* Sidebar (светлый) */
   --portal-sidebar-border:  #E2E8F0;   /* slate-200   */
-  --portal-sidebar-item:           rgba(99,102,241,0.06);
-  --portal-sidebar-item-active:    rgba(99,102,241,0.10);
-  --portal-sidebar-item-active-border: #6366F1;
-  --portal-sidebar-text:           #475569;   /* slate-600 */
-  --portal-sidebar-text-active:    #4F46E5;   /* indigo-600 */
-  --portal-sidebar-label:          #94A3B8;   /* slate-400  */
+  --portal-sidebar-item:           rgba(133,107,146,0.07);
+  --portal-sidebar-item-active:    rgba(133,107,146,0.12);
+  --portal-sidebar-item-active-border: #856B92;
+  --portal-sidebar-text:           #475569;
+  --portal-sidebar-text-active:    #6d5679;
+  --portal-sidebar-label:          #94A3B8;
 
-  /* Первичная кнопка = Indigo */
-  --portal-primary:         #6366F1;
-  --portal-primary-light:   #818CF8;   /* indigo-400 */
+  --portal-primary:         #856B92;
+  --portal-primary-light:   #a689b5;
 
   /* Статусы */
   --status-active-bg:       #DCFCE7;
@@ -100,14 +122,14 @@
   --status-error-text:      #BE123C;
   --status-neutral-bg:      #F1F5F9;
   --status-neutral-text:    #475569;
-  --status-info-bg:         #EEF2FF;
-  --status-info-text:       #4338CA;
+  --status-info-bg:         #f2f0f8;
+  --status-info-text:       #5c4a66;
   --status-purple-bg:       #F3E8FF;
   --status-purple-text:     #7E22CE;
 
   /* Прогресс */
   --progress-track:         #E2E8F0;
-  --progress-fill:          #6366F1;
+  --progress-fill:          #856B92;
   --progress-done:          #22C55E;
   --progress-mid:           #F59E0B;
 
@@ -122,7 +144,7 @@
   --portal-shadow:      0 4px 12px -2px rgba(15,23,42,0.08), 0 2px 6px -1px rgba(15,23,42,0.04);
   --portal-shadow-md:   0 8px 24px -4px rgba(15,23,42,0.10), 0 4px 12px -2px rgba(15,23,42,0.06);
   --portal-shadow-card: 0 0 0 1px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.06);
-  --portal-shadow-accent: 0 4px 16px rgba(99,102,241,0.30);
+  --portal-shadow-accent: 0 4px 16px rgba(133,107,146,0.28);
 
   /* Размеры */
   --portal-header-h:          56px;
@@ -134,12 +156,21 @@ html {
   scroll-behavior: smooth;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
 body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: var(--bg);
-  color: var(--text);
   letter-spacing: 0.01em;
+}
+
+/* Якоря под фиксированный header */
+section[id] {
+  scroll-margin-top: 5.5rem;
 }
 
 /* Секции: вертикальные и горизонтальные отступы (как у py-28 px-5 md:py-32 md:px-6) */
@@ -310,9 +341,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
   * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;

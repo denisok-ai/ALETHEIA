@@ -23,8 +23,11 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 
 if [ ! -d "$NGINX_CACHE_ROOT" ]; then
-  echo "Каталог кеша не найден: $NGINX_CACHE_ROOT (создайте или задайте NGINX_CACHE_ROOT)" >&2
-  exit 1
+  echo "Каталог кеша не найден: $NGINX_CACHE_ROOT — proxy_cache, вероятно, не используется; очистка пропущена."
+  if [ "$NGINX_RELOAD" = "1" ] && command -v nginx >/dev/null 2>&1; then
+    nginx -t && systemctl reload nginx && echo "nginx reload OK (после деплоя)." || true
+  fi
+  exit 0
 fi
 
 echo "Очистка proxy_cache: $NGINX_CACHE_ROOT"

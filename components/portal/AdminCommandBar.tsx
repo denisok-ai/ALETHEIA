@@ -11,7 +11,7 @@ export function AdminCommandBar() {
       <button
         type="button"
         onClick={() => window.dispatchEvent(new CustomEvent('portal-open-command-palette'))}
-        className="inline-flex min-h-9 w-full max-w-md items-center gap-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left text-sm text-[var(--portal-text-muted)] transition-colors hover:border-[#C7D2FE] hover:bg-[#EEF2FF] hover:text-[#4338CA]"
+        className="inline-flex min-h-9 w-full max-w-md items-center gap-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2 text-left text-sm text-[var(--portal-text-muted)] transition-colors hover:border-[var(--portal-accent-muted)] hover:bg-[var(--portal-accent-soft)] hover:text-[var(--portal-accent-dark)]"
       >
         <Search className="h-4 w-4 shrink-0" aria-hidden />
         <span>Поиск и переход по разделам…</span>

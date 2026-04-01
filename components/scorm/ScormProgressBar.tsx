@@ -20,7 +20,7 @@ export function ScormProgressBar({
     <div className={cn('flex items-center gap-2', className)}>
       <div className="h-2 w-24 overflow-hidden rounded-full bg-[#E2E8F0]">
         <div
-          className="h-full rounded-full bg-[#6366F1] transition-all duration-300"
+          className="h-full rounded-full bg-[var(--portal-accent)] transition-all duration-300"
           style={{ width: `${pct}%` }}
         />
       </div>

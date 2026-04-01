@@ -10,6 +10,7 @@ import { getSystemSettings } from '@/lib/settings';
 import { AnalyticsScripts } from '@/components/AnalyticsScripts';
 import { GoogleTagInHead } from '@/components/GoogleTagInHead';
 import { JsonLdOrganization } from '@/components/JsonLdOrganization';
+import { RootMain } from '@/components/RootMain';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
 /** Без этого Next отдаёт главную и оболочку как «вечный» статический кеш (s-maxage=31536000) — после деплоя видна старая сборка. */
@@ -20,9 +21,9 @@ const ChatBot = nextDynamic(
   { ssr: false }
 );
 
-/** Google Fonts через <link>: без @import в CSS (Turbopack) и без next/font (баг Turbopack с внутренним резолвером шрифтов). */
+/** Lora (заголовки) + Inter (тело/UI) — ближе к визуалу референса Netlify, полная кириллица; см. docs/design-notes-typography.md */
 const GOOGLE_FONTS_STYLESHEET =
-  'https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,100..900;1,7..72,100..900&family=Outfit:wght@100..900&display=swap';
+  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -39,11 +40,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase,
     title: {
-      default: 'AVATERRA.PRO — Phygital школа мышечного тестирования',
+      default: 'Школа Кинезиологии «AVATERRA» — Курс по мышечному тестированию',
       template: '%s | AVATERRA',
     },
     description:
-      'AVATERRA — Phygital школа мышечного тестирования: биохакинг через тело, работа с подсознанием, баланс. Курс «Тело не врет». Татьяна Стрельцова — более 20 лет практики, 15 000+ консультаций.',
+      'Курс по прикладному мышечному тестированию: узнайте истинную причину боли и стресса за 30 секунд без дорогостоящих обследований. Кинезиология, работа с телом и подсознанием. Татьяна Стрельцова — более 20 лет практики, 15 000+ выпускников.',
     keywords: [
       'кинезиология',
       'мышечное тестирование',
@@ -67,9 +68,9 @@ export async function generateMetadata(): Promise<Metadata> {
       canonical: siteUrl,
     },
     openGraph: {
-      title: 'AVATERRA.PRO — Phygital школа мышечного тестирования',
+      title: 'Школа Кинезиологии «AVATERRA» — Курс по мышечному тестированию',
       description:
-        'Мышечное тестирование, кинезиология, курсы и менторство. Тело не врет — проверьте на практике.',
+        'Научитесь понимать ответы тела: мышечное тестирование, кинезиология и программы школы AVATERRA.',
       type: 'website',
       url: siteUrl,
       locale: 'ru_RU',
@@ -77,8 +78,8 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'AVATERRA.PRO — школа мышечного тестирования',
-      description: 'Кинезиология и работа с телом. Курсы AVATERRA.',
+      title: 'Школа Кинезиологии «AVATERRA»',
+      description: 'Курс по мышечному тестированию и кинезиологии.',
     },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   };
@@ -99,13 +100,13 @@ export default async function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href={GOOGLE_FONTS_STYLESHEET} rel="stylesheet" />
       </head>
-      <body className="min-h-screen font-body bg-[#F8FAFC] text-[var(--portal-text)]">
+      <body className="min-h-screen font-body antialiased">
         <JsonLdOrganization siteUrl={siteUrl} phone={settings.contact_phone} />
         <AnalyticsScripts />
         <ChunkLoadRecovery />
         <SessionProvider>
           <Header />
-          <main>{children}</main>
+          <RootMain>{children}</RootMain>
           <ChatBot />
           <FooterOnPublicOnly contactPhone={settings.contact_phone || undefined} />
           <Toaster richColors position="top-center" />

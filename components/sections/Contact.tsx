@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import Link from 'next/link';
+import { motion, useInView, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +17,7 @@ export function Contact({ contactPhone }: ContactProps = {}) {
   const phoneHref = phone.replace(/\D/g, '').length >= 10 ? `tel:${phone.replace(/\D/g, '')}` : '#';
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
+  const reduceMotion = useReducedMotion();
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -66,47 +68,50 @@ export function Contact({ contactPhone }: ContactProps = {}) {
     <section
       id="contact"
       ref={ref}
-      className="relative py-28 px-5 bg-gradient-to-b from-lavender/20 to-bg md:py-32 md:px-6 scroll-mt-20 scroll-mb-[100px]"
+      className="relative scroll-mt-24 scroll-mb-[100px] border-t border-[var(--border)] bg-[var(--bg)] py-24 px-5 md:py-28 md:px-6"
     >
       <motion.div
-        style={{ perspective: 1200, transformStyle: 'preserve-3d' }}
-        initial={{ opacity: 0, rotateX: 18 }}
-        animate={isInView ? { opacity: 1, rotateX: 0 } : {}}
-        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        style={reduceMotion ? undefined : { perspective: 1200, transformStyle: 'preserve-3d' }}
+        initial={{ opacity: reduceMotion ? 1 : 0, rotateX: reduceMotion ? 0 : 18 }}
+        animate={isInView || reduceMotion ? { opacity: 1, rotateX: 0 } : {}}
+        transition={
+          reduceMotion ? { duration: 0 } : { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
+        }
         className="mx-auto max-w-6xl"
       >
         <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
           <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={isInView ? { opacity: 1, x: 0 } : {}}
+            initial={{ opacity: reduceMotion ? 1 : 0, x: reduceMotion ? 0 : -20 }}
+            animate={isInView || reduceMotion ? { opacity: 1, x: 0 } : {}}
+            transition={reduceMotion ? { duration: 0 } : undefined}
           >
-            <span className="block text-sm font-semibold uppercase tracking-widest text-accent">
+            <span className="block text-sm font-semibold uppercase tracking-widest text-plum">
               Записаться
             </span>
-            <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--portal-text)] sm:text-4xl">
+            <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">
               Оставьте заявку
             </h2>
-            <p className="mt-4 leading-relaxed text-[var(--portal-text-muted)]">
+            <p className="mt-4 max-w-[var(--prose-max-width)] leading-[var(--leading-body)] text-[var(--text-muted)]">
               Мы свяжемся с вами и подберём формат: консультация, тренинг или курс.
             </p>
             <div className="mt-8">
-              <p className="font-heading text-lg font-semibold text-[var(--portal-text)]">
+              <p className="font-heading text-lg font-semibold text-[var(--text)]">
                 Татьяна Стрельцова
               </p>
-              <ul className="mt-2 space-y-1 text-[var(--portal-text-muted)]">
+              <ul className="mt-2 space-y-1 text-[var(--text-muted)]">
                 <li>
-                  <a href={phoneHref} className="hover:text-accent transition-colors">
+                  <a href={phoneHref} className="hover:text-plum transition-colors">
                     {phone}
                   </a>
                 </li>
                 <li>
-                  <a href="mailto:info@avaterra.pro" className="hover:text-accent transition-colors">
+                  <a href="mailto:info@avaterra.pro" className="hover:text-plum transition-colors">
                     info@avaterra.pro
                   </a>
                 </li>
                 <li>Москва, ул. Здоровья, д. 10</li>
               </ul>
-              <p className="mt-4 text-sm text-[var(--portal-text-soft)]">
+              <p className="mt-4 text-sm text-[var(--text-soft)]">
                 Партнёры: Институт им. Энгельгардта, РНИМУ им. Пирогова
               </p>
             </div>
@@ -116,20 +121,20 @@ export function Contact({ contactPhone }: ContactProps = {}) {
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-[var(--shadow-soft)] md:p-8 text-center"
+              className="rounded-2xl border border-[var(--border)] bg-white p-7 shadow-[var(--shadow-soft)] md:p-8 text-center"
             >
-              <h3 className="font-heading text-xl font-semibold text-[var(--portal-text)]">Спасибо, заявка принята</h3>
-              <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
+              <h3 className="font-heading text-xl font-semibold text-[var(--text)]">Спасибо, заявка принята</h3>
+              <p className="mt-2 text-sm text-[var(--text-muted)]">
                 Мы свяжемся с вами в ближайшее время. Если указали email — вам пришло подтверждение.
               </p>
               <a href="#pricing" className="mt-6 inline-block">
-                <Button variant="primary">Оплатить консультацию или курс</Button>
+                <Button variant="landingRose">Оплатить консультацию или курс</Button>
               </a>
               <p className="mt-4">
                 <button
                   type="button"
                   onClick={() => setStatus('idle')}
-                  className="text-sm text-[#6366F1] hover:underline"
+                  className="text-sm text-plum hover:underline"
                 >
                   Отправить ещё одну заявку
                 </button>
@@ -137,11 +142,11 @@ export function Contact({ contactPhone }: ContactProps = {}) {
             </motion.div>
           ) : (
             <motion.form
-              initial={{ opacity: 0, x: 20 }}
-              animate={isInView ? { opacity: 1, x: 0 } : {}}
-              transition={{ delay: 0.1 }}
+              initial={{ opacity: reduceMotion ? 1 : 0, x: reduceMotion ? 0 : 20 }}
+              animate={isInView || reduceMotion ? { opacity: 1, x: 0 } : {}}
+              transition={reduceMotion ? { duration: 0 } : { delay: 0.1 }}
               onSubmit={handleSubmit}
-              className="rounded-2xl border border-[#E2E8F0] bg-white p-7 shadow-[var(--shadow-soft)] md:p-8"
+              className="rounded-2xl border border-[var(--border)] bg-white p-7 shadow-[var(--shadow-soft)] md:p-8"
             >
               <div className="space-y-4">
                 {/* Honeypot: скрытое поле против ботов (не заполнять) */}
@@ -168,7 +173,7 @@ export function Contact({ contactPhone }: ContactProps = {}) {
                     name="message"
                     rows={3}
                     placeholder="Интересующий формат или вопрос"
-                    className="mt-1 flex w-full rounded-lg border border-[#E2E8F0] bg-white px-4 py-2 text-[var(--portal-text)] placeholder:text-[var(--portal-text-soft)] focus:border-[#6366F1] focus:outline-none focus:ring-2 focus:ring-[#6366F1]/30"
+                    className="mt-1 flex w-full rounded-lg border border-[var(--border)] bg-white px-4 py-2 text-[var(--text)] placeholder:text-[var(--text-soft)] focus:border-plum focus:outline-none focus:ring-2 focus:ring-plum/25"
                   />
                 </div>
                 {errorMessage && (
@@ -178,7 +183,7 @@ export function Contact({ contactPhone }: ContactProps = {}) {
                 )}
                 <Button
                   type="submit"
-                  variant="primary"
+                  variant="landingPlum"
                   className="w-full"
                   disabled={status === 'sending'}
                 >
@@ -186,6 +191,13 @@ export function Contact({ contactPhone }: ContactProps = {}) {
                   {status === 'error' && 'Ошибка. Попробуйте снова'}
                   {status === 'idle' && 'Отправить заявку'}
                 </Button>
+                <p className="text-center text-xs leading-snug text-[var(--text-soft)]">
+                  Отправляя форму, вы соглашаетесь с{' '}
+                  <Link href="/privacy" className="text-plum underline underline-offset-2 hover:opacity-90">
+                    политикой конфиденциальности
+                  </Link>
+                  .
+                </p>
               </div>
             </motion.form>
           )}

@@ -126,7 +126,7 @@ export function PortalCommandPalette() {
                   onMouseEnter={() => setActiveIndex(idx)}
                   className={`w-full text-left rounded-lg px-3 py-2.5 text-sm transition-colors ${
                     idx === activeIndex
-                      ? 'bg-[#EEF2FF] text-[#4338CA]'
+                      ? 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]'
                       : 'text-[var(--portal-text)] hover:bg-[#F8FAFC]'
                   }`}
                 >

@@ -54,7 +54,7 @@ export function TicketAutoReplyBlock() {
             checked={enabled}
             disabled={saving}
             onChange={(e) => handleToggle(e.target.checked)}
-            className="h-4 w-4 rounded border-[#E2E8F0] text-[#6366F1] focus:ring-[#6366F1]"
+            className="h-4 w-4 rounded border-[#E2E8F0] text-[var(--portal-accent)] focus:ring-[var(--portal-accent)]"
           />
           <Label htmlFor="ticket-auto-reply" className="text-sm font-medium text-[var(--portal-text)] cursor-pointer flex items-center gap-2">
             <MessageSquare className="h-4 w-4 text-[var(--portal-text-muted)]" />

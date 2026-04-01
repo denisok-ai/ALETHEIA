@@ -173,7 +173,7 @@ export default async function StudentCourseDetailPage({ params }: Props) {
 
       {/* Обложка */}
       <div className="portal-card overflow-hidden p-0">
-        <div className="relative aspect-[21/9] w-full min-h-[180px] bg-[#EEF2FF]">
+        <div className="relative aspect-[21/9] w-full min-h-[180px] bg-[var(--portal-accent-soft)]">
           {course.thumbnailUrl ? (
             <Image
               src={course.thumbnailUrl}

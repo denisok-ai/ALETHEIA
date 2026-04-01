@@ -92,7 +92,7 @@ function LoginForm() {
         <div>
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Пароль</Label>
-            <Link href="/reset-password" className="text-xs text-[#6366F1] hover:underline">
+            <Link href="/reset-password" className="text-xs text-[var(--portal-accent)] hover:underline">
               Забыли пароль?
             </Link>
           </div>
@@ -117,7 +117,7 @@ function LoginForm() {
       </form>
       <p className="mt-4 text-center text-sm text-[var(--portal-text-muted)]">
         Нет аккаунта?{' '}
-        <Link href="/register" className="font-medium text-[#6366F1] underline">
+        <Link href="/register" className="font-medium text-[var(--portal-accent)] underline">
           Зарегистрироваться
         </Link>
       </p>

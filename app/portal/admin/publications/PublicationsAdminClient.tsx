@@ -250,7 +250,7 @@ export function PublicationsAdminClient({
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value)}
-          className="rounded-lg border border-[#E2E8F0] bg-white focus:ring-2 focus:ring-[#6366F1] px-3 py-2 text-sm"
+          className="rounded-lg border border-[#E2E8F0] bg-white focus:ring-2 focus:ring-[var(--portal-accent)] px-3 py-2 text-sm"
         >
           <option value="all">Все типы</option>
           <option value="news">Новость</option>
@@ -310,7 +310,7 @@ export function PublicationsAdminClient({
                         href={`/news/${p.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
                         title="Предпросмотр"
                       >
                         <ExternalLink className="h-4 w-4" />
@@ -318,7 +318,7 @@ export function PublicationsAdminClient({
                       <button
                         type="button"
                         onClick={() => openEdit(p)}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+                        className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
                         title="Редактировать"
                       >
                         <Pencil className="h-4 w-4" />
@@ -378,7 +378,7 @@ export function PublicationsAdminClient({
                 <select
                   value={formType}
                   onChange={(e) => setFormType(e.target.value as 'news' | 'announcement')}
-                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white focus:ring-2 focus:ring-[#6366F1] px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white focus:ring-2 focus:ring-[var(--portal-accent)] px-3 py-2 text-sm"
                 >
                   <option value="news">Новость</option>
                   <option value="announcement">Объявление</option>
@@ -389,7 +389,7 @@ export function PublicationsAdminClient({
                 <select
                   value={formStatus}
                   onChange={(e) => setFormStatus(e.target.value as 'active' | 'closed')}
-                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white focus:ring-2 focus:ring-[#6366F1] px-3 py-2 text-sm"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white focus:ring-2 focus:ring-[var(--portal-accent)] px-3 py-2 text-sm"
                 >
                   <option value="active">Действительна</option>
                   <option value="closed">Закрыта</option>
@@ -414,7 +414,7 @@ export function PublicationsAdminClient({
                   value={formTeaser}
                   onChange={(e) => setFormTeaser(e.target.value)}
                   rows={2}
-                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
                 />
               </div>
             )}
@@ -426,7 +426,7 @@ export function PublicationsAdminClient({
                 onChange={(e) => setFormContent(e.target.value)}
                 rows={8}
                 required
-                className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] font-mono"
+                className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] font-mono"
               />
             </div>
             <div>

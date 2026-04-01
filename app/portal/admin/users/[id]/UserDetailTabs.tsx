@@ -113,7 +113,7 @@ export function UserDetailTabs({
                 aria-current={activeTab === tab.id ? 'page' : undefined}
                 className={`inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
                   activeTab === tab.id
-                    ? 'border-[#6366F1] text-[#6366F1]'
+                    ? 'border-[var(--portal-accent)] text-[var(--portal-accent)]'
                     : 'border-transparent text-[var(--portal-text-muted)] hover:border-[#E2E8F0] hover:text-[var(--portal-text)]'
                 }`}
               >
@@ -174,7 +174,7 @@ export function UserDetailTabs({
                 <li key={e.id} className="flex items-center gap-2">
                   <Link
                     href={`/portal/admin/courses/${e.courseId}`}
-                    className="text-[#6366F1] hover:underline"
+                    className="text-[var(--portal-accent)] hover:underline"
                   >
                     {e.courseTitle ?? e.courseId}
                   </Link>
@@ -183,7 +183,7 @@ export function UserDetailTabs({
                   </span>
                   <Link
                     href={`/portal/admin/courses/${e.courseId}/enrollments/${userId}`}
-                    className="text-xs text-[#6366F1] hover:underline"
+                    className="text-xs text-[var(--portal-accent)] hover:underline"
                   >
                     Прогресс
                   </Link>
@@ -257,7 +257,7 @@ export function UserDetailTabs({
             <ul className="space-y-1">
               {tickets.map((t) => (
                 <li key={t.id}>
-                  <Link href={`/portal/manager/tickets/${t.id}`} className="text-[#6366F1] hover:underline">
+                  <Link href={`/portal/manager/tickets/${t.id}`} className="text-[var(--portal-accent)] hover:underline">
                     {t.subject}
                   </Link>
                   <span className="ml-2 text-xs text-[var(--portal-text-muted)]">{t.status}</span>

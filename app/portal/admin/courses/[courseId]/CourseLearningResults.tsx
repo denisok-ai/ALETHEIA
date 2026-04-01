@@ -330,7 +330,7 @@ export function CourseLearningResults({
                       <TableCell>
                         <Link
                           href={`/portal/admin/users/${row.userId}`}
-                          className="font-medium text-[#6366F1] hover:underline"
+                          className="font-medium text-[var(--portal-accent)] hover:underline"
                         >
                           {row.user.displayName || row.user.email}
                         </Link>
@@ -389,7 +389,7 @@ export function CourseLearningResults({
                     <TableCell>
                       <Link
                         href={`/portal/admin/courses/${courseId}/enrollments/${row.userId}`}
-                        className="text-sm text-[#6366F1] hover:underline"
+                        className="text-sm text-[var(--portal-accent)] hover:underline"
                       >
                         Подробные результаты
                       </Link>

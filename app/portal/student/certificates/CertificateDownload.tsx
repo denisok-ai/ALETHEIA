@@ -30,7 +30,7 @@ export function CertificateDownload({ certId, allowDownload = true }: { certId: 
         ))}
       </select>
       <a href={url} target="_blank" rel="noopener noreferrer">
-        <Button size="sm" className="bg-[#6366F1] text-white hover:bg-[#4F46E5]">
+        <Button size="sm" className="bg-[var(--portal-accent)] text-white hover:bg-[var(--portal-accent-dark)]">
           <Download className="mr-1.5 h-4 w-4" /> Скачать PDF
         </Button>
       </a>

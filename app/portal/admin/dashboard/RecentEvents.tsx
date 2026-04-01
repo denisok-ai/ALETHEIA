@@ -48,23 +48,23 @@ export function RecentEvents({ events }: { events: EventItem[] }) {
             {sorted.map((e) => (
               <tr key={`${e.type}-${'id' in e ? e.id : ''}`} className="border-b border-[#E2E8F0]/50">
                 <td className="py-2 pr-4">
-                  {e.type === 'payment' && <span className="text-[#6366F1]">Оплата</span>}
+                  {e.type === 'payment' && <span className="text-[var(--portal-accent)]">Оплата</span>}
                   {e.type === 'lead' && <span className="text-amber-700">Лид</span>}
                   {e.type === 'user' && <span className="text-green-700">Регистрация</span>}
                 </td>
                 <td className="py-2 pr-4">
                   {e.type === 'payment' && (
-                    <Link href="/portal/admin/payments" className="text-[#6366F1] hover:underline">
+                    <Link href="/portal/admin/payments" className="text-[var(--portal-accent)] hover:underline">
                       {e.orderNumber} — {e.amount.toLocaleString('ru')} ₽ · {e.email}
                     </Link>
                   )}
                   {e.type === 'lead' && (
-                    <Link href="/portal/admin/crm" className="text-[#6366F1] hover:underline">
+                    <Link href="/portal/admin/crm" className="text-[var(--portal-accent)] hover:underline">
                       {formatPersonName(e.name)} · {e.phone}
                     </Link>
                   )}
                   {e.type === 'user' && (
-                    <Link href={`/portal/admin/users/${e.id}`} className="text-[#6366F1] hover:underline">
+                    <Link href={`/portal/admin/users/${e.id}`} className="text-[var(--portal-accent)] hover:underline">
                       {e.email}
                     </Link>
                   )}

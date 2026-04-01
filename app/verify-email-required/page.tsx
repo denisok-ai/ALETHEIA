@@ -50,9 +50,9 @@ export default function VerifyEmailRequiredPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-[#F8FAFC] px-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] px-4 font-body">
       <div className="w-full max-w-md rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center">
-        <Mail className="mx-auto h-12 w-12 text-[#6366F1]" />
+        <Mail className="mx-auto h-12 w-12 text-[var(--portal-accent)]" />
         <h1 className="mt-4 font-heading text-2xl font-bold text-[var(--portal-text)]">
           Подтвердите email
         </h1>
@@ -85,7 +85,7 @@ export default function VerifyEmailRequiredPage() {
         )}
       </div>
       <p className="mt-6 text-center">
-        <Link href="/login" className="text-sm text-[#6366F1] hover:underline">
+        <Link href="/login" className="text-sm text-[var(--portal-accent)] hover:underline">
           ← Назад к входу
         </Link>
       </p>

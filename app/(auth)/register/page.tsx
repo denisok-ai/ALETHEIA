@@ -107,7 +107,7 @@ export default function RegisterPage() {
       </form>
       <p className="mt-4 text-center text-sm text-[var(--portal-text-muted)]">
         Уже есть аккаунт?{' '}
-        <Link href="/login" className="font-medium text-[#6366F1] underline">
+        <Link href="/login" className="font-medium text-[var(--portal-accent)] underline">
           Войти
         </Link>
       </p>

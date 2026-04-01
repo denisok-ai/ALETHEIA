@@ -82,7 +82,7 @@ export function TablePagination({
                   key={size}
                   type="button"
                   onClick={() => { onPageSizeChange(size); onPageChange(0); }}
-                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-[#EEF2FF] text-[#4F46E5] font-medium' : 'text-[var(--portal-text-muted)] hover:bg-[#F1F5F9]'}`}
+                  className={`rounded px-2 py-1 text-sm ${pageSize === size ? 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)] font-medium' : 'text-[var(--portal-text-muted)] hover:bg-[#F1F5F9]'}`}
                   aria-label={`Показать по ${size}`}
                   aria-pressed={pageSize === size}
                 >
@@ -105,7 +105,7 @@ export function TablePagination({
             <button
               type="button"
               onClick={() => setColumnSettingsOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[#6366F1]"
+              className="inline-flex items-center gap-1.5 rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[var(--portal-accent)]"
               aria-label="Настройка колонок"
               title="Настройка колонок"
             >
@@ -116,7 +116,7 @@ export function TablePagination({
             <button
               type="button"
               onClick={onExportExcel}
-              className="inline-flex items-center gap-1.5 rounded border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-sm text-[var(--portal-text)] hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[#6366F1]"
+              className="inline-flex items-center gap-1.5 rounded border border-[#E2E8F0] bg-white px-2.5 py-1.5 text-sm text-[var(--portal-text)] hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[var(--portal-accent)]"
               aria-label={`Выгрузить в ${exportLabel}`}
               title={`Выгрузить в ${exportLabel}`}
             >
@@ -129,7 +129,7 @@ export function TablePagination({
             type="button"
             onClick={() => onPageChange(0)}
             disabled={currentPage === 0 || totalPages <= 1}
-            className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[#6366F1]"
+            className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[var(--portal-accent)]"
             aria-label="В начало"
             title="В начало"
           >
@@ -139,7 +139,7 @@ export function TablePagination({
             type="button"
             onClick={() => onPageChange(Math.max(0, currentPage - 1))}
             disabled={currentPage === 0}
-            className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[#6366F1]"
+            className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[var(--portal-accent)]"
             aria-label="Предыдущая страница"
             title="Предыдущая"
           >
@@ -152,7 +152,7 @@ export function TablePagination({
             type="button"
             onClick={() => onPageChange(Math.min(totalPages - 1, currentPage + 1))}
             disabled={currentPage >= totalPages - 1}
-            className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[#6366F1]"
+            className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[var(--portal-accent)]"
             aria-label="Следующая страница"
             title="Следующая"
           >
@@ -162,7 +162,7 @@ export function TablePagination({
             type="button"
             onClick={() => onPageChange(totalPages - 1)}
             disabled={currentPage >= totalPages - 1 || totalPages <= 1}
-            className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[#6366F1]"
+            className="rounded border border-[#E2E8F0] bg-white p-1.5 text-[var(--portal-text)] disabled:opacity-50 hover:bg-[#F8FAFC] focus:ring-2 focus:ring-[var(--portal-accent)]"
             aria-label="В конец"
             title="В конец"
           >
@@ -191,7 +191,7 @@ export function TablePagination({
                     type="checkbox"
                     checked={visibleSet.has(col.id)}
                     onChange={() => handleToggleColumn(col.id)}
-                    className="rounded border-[#E2E8F0] text-[#6366F1] focus:ring-[#6366F1]"
+                    className="rounded border-[#E2E8F0] text-[var(--portal-accent)] focus:ring-[var(--portal-accent)]"
                   />
                   <span className="text-sm text-[var(--portal-text)]">{col.label}</span>
                 </label>

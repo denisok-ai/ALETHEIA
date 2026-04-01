@@ -55,7 +55,7 @@ export function ScormManifestViewer({
   return (
     <div className={cn('rounded-lg border border-[#E2E8F0] bg-white p-4', className)}>
       <div className="mb-3 flex items-center gap-2 text-sm font-medium text-[var(--portal-text)]">
-        <FolderOpen className="h-4 w-4 text-[#6366F1]" />
+        <FolderOpen className="h-4 w-4 text-[var(--portal-accent)]" />
         Структура курса
         {version && (
           <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-xs text-[var(--portal-text-muted)]">

@@ -29,7 +29,7 @@ function StatCard({
   color?: 'primary' | 'gold' | 'green' | 'blue';
 }) {
   const colorMap = {
-    primary: { bg: 'bg-[#EEF2FF]', text: 'text-[#4F46E5]' },
+    primary: { bg: 'bg-[var(--portal-accent-soft)]', text: 'text-[var(--portal-accent-dark)]' },
     gold:    { bg: 'bg-[#FEF9C3]', text: 'text-[#A16207]' },
     green:   { bg: 'bg-[#DCFCE7]', text: 'text-[#15803D]' },
     blue:    { bg: 'bg-[#DBEAFE]', text: 'text-[#1D4ED8]' },
@@ -136,12 +136,12 @@ export default async function StudentDashboardPage() {
       <div
         className="relative overflow-hidden rounded-[var(--portal-radius-xl)] p-6 md:p-8"
         style={{
-          background: 'linear-gradient(135deg, #EEF2FF 0%, #E0E7FF 50%, #F3E8FF 100%)',
-          border: '1px solid #C7D2FE',
+          background: 'linear-gradient(135deg, var(--portal-accent-soft) 0%, var(--portal-accent-muted) 50%, #F3E8FF 100%)',
+          border: '1px solid var(--portal-accent-muted)',
         }}
       >
         {/* Декор-круги */}
-        <span className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-[#6366F1]/10 blur-3xl" aria-hidden />
+        <span className="absolute -top-12 -right-12 h-48 w-48 rounded-full bg-[var(--portal-accent)]/10 blur-3xl" aria-hidden />
         <span className="absolute bottom-0 left-16 h-32 w-32 rounded-full bg-[#9333EA]/08 blur-2xl" aria-hidden />
 
         <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-5">
@@ -169,7 +169,7 @@ export default async function StudentDashboardPage() {
                 <span className="font-semibold text-[var(--portal-text)]">{xp} XP</span>
                 <span>ур. {level}</span>
               </div>
-              <div className="h-1.5 rounded-full bg-[#C7D2FE] overflow-hidden">
+              <div className="h-1.5 rounded-full bg-[var(--portal-accent-muted)] overflow-hidden">
                 <div
                   className="h-full rounded-full bg-[var(--portal-accent)] transition-all duration-500"
                   style={{ width: `${xpProgress}%` }}
@@ -191,7 +191,7 @@ export default async function StudentDashboardPage() {
               <span
                 key={b.minXp}
                 className="inline-flex items-center gap-1.5 rounded-full
-                  bg-white/80 border border-[#C7D2FE]
+                  bg-white/80 border border-[var(--portal-accent-muted)]
                   px-3 py-1 text-xs font-medium text-[var(--portal-accent-dark)]"
               >
                 {b.emoji} {b.label}
@@ -298,7 +298,7 @@ export default async function StudentDashboardPage() {
             {notifications.map((n) => (
               <div key={n.id} className="portal-card flex items-start gap-3 p-4">
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
-                  bg-[#EEF2FF] text-[#4F46E5]">
+                  bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]">
                   <Bell className="h-4 w-4" />
                 </span>
                 <div className="min-w-0">

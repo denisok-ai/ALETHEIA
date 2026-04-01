@@ -126,8 +126,8 @@ export function ResizableGroupsLayout({
         }}
         className={cn(
           'shrink-0 w-2 cursor-col-resize flex items-stretch justify-center select-none',
-          'hover:bg-[#E2E8F0]/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366F1] focus-visible:ring-offset-1',
-          dragging && 'bg-[#6366F1]/20'
+          'hover:bg-[#E2E8F0]/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--portal-accent)] focus-visible:ring-offset-1',
+          dragging && 'bg-[var(--portal-accent)]/20'
         )}
       >
         <span

@@ -462,7 +462,7 @@ export function ReportsClient() {
                 onClick={() => setReportType(t.id)}
                 className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                   reportType === t.id
-                    ? 'border-[#6366F1] bg-[#EEF2FF] text-[#4F46E5]'
+                    ? 'border-[var(--portal-accent)] bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]'
                     : 'border-[#E2E8F0] bg-white text-[var(--portal-text-muted)] hover:bg-[#F8FAFC]'
                 }`}
               >
@@ -736,7 +736,7 @@ export function ReportsClient() {
                   />
                   <Legend />
                   <Line yAxisId="left" type="monotone" dataKey="enrollments" stroke="#2D1B4E" name="Зачислений" strokeWidth={2} dot={{ r: 3 }} />
-                  <Line yAxisId="left" type="monotone" dataKey="completions" stroke="#6366F1" name="Завершений" strokeWidth={2} dot={{ r: 3 }} />
+                  <Line yAxisId="left" type="monotone" dataKey="completions" stroke="#856B92" name="Завершений" strokeWidth={2} dot={{ r: 3 }} />
                   <Line yAxisId="left" type="monotone" dataKey="certificates" stroke="#D4AF37" name="Сертификатов" strokeWidth={2} dot={{ r: 3 }} />
                   <Line yAxisId="left" type="monotone" dataKey="ordersCount" stroke="#10B981" name="Оплат" strokeWidth={2} dot={{ r: 3 }} />
                   <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#F59E0B" name="Выручка (₽)" strokeWidth={2} dot={{ r: 3 }} />

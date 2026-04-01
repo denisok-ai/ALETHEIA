@@ -148,7 +148,7 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
         <select
           value={eventFilter}
           onChange={(e) => setEventFilter(e.target.value)}
-          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
         >
           {EVENT_TYPES.map((e) => (
             <option key={e.value || 'all'} value={e.value}>{e.label}</option>
@@ -157,7 +157,7 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
         <select
           value={channelFilter}
           onChange={(e) => setChannelFilter(e.target.value)}
-          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
         >
           <option value="">Все каналы</option>
           <option value="internal">Внутренний</option>

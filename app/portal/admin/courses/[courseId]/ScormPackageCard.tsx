@@ -35,7 +35,7 @@ export function ScormPackageCard({
       {scormManifest ? (
         <p className="mb-2 text-xs text-[var(--portal-text-muted)]">
           Загрузка и версии ZIP — в блоке{' '}
-          <a href="#course-scorm-versions" className="text-[#6366F1] underline hover:no-underline">
+          <a href="#course-scorm-versions" className="text-[var(--portal-accent)] underline hover:no-underline">
             «Версии SCORM»
           </a>
           . Администратор может открыть плеер без записи на курс.
@@ -43,7 +43,7 @@ export function ScormPackageCard({
       ) : (
         <p className="mb-2 text-sm text-[var(--portal-text-muted)]">
           Пакет ещё не загружен.{' '}
-          <a href="#course-scorm-versions" className="font-medium text-[#6366F1] underline hover:no-underline">
+          <a href="#course-scorm-versions" className="font-medium text-[var(--portal-accent)] underline hover:no-underline">
             Перейти к загрузке ZIP
           </a>
         </p>

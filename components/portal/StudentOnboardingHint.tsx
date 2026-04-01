@@ -30,7 +30,7 @@ export function StudentOnboardingHint() {
   return (
     <div
       role="status"
-      className="portal-card flex flex-wrap items-start gap-4 p-4 border-[#6366F1]/30 bg-[#EEF2FF]/50"
+      className="portal-card flex flex-wrap items-start gap-4 p-4 border-[var(--portal-accent)]/30 bg-[var(--portal-accent-soft)]/50"
       aria-label="Подсказка по разделам личного кабинета"
     >
       <div className="flex-1 min-w-0">

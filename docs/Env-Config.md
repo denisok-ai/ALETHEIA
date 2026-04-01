@@ -6,7 +6,7 @@
 
 | Переменная | Назначение |
 |------------|------------|
-| `DATABASE_URL` | Подключение Prisma до чтения настроек |
+| `DATABASE_URL` | Подключение Prisma до чтения настроек. **VPS с SQLite (avaterra.pro):** предпочтительно абсолютный путь, например `file:/opt/ALETHEIA/prisma/dev.db` в `.env` — см. [Production-Server.md — §5](Production-Server.md). |
 | `NEXTAUTH_SECRET` | Подпись сессий NextAuth и расшифровка секретов в БД (≥ 32 символов в проде) |
 
 Опционально: `NODE_ENV`, переменные сборки (`NEXT_PUBLIC_APP_VERSION`, `VERCEL_GIT_COMMIT_SHA` и т.д. — см. `docs/Deploy.md`).

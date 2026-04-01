@@ -128,7 +128,7 @@ export function CourseMediaBlock({
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Медиа курса</h2>
         <Link
           href="/portal/admin/media"
-          className="text-sm text-[#6366F1] hover:underline flex items-center gap-1"
+          className="text-sm text-[var(--portal-accent)] hover:underline flex items-center gap-1"
         >
           Медиатека
           <ExternalLink className="h-3.5 w-3.5" />
@@ -184,7 +184,7 @@ export function CourseMediaBlock({
                       href={m.file_url.startsWith('/') ? m.file_url : `/${m.file_url}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[#6366F1] hover:underline font-medium truncate block"
+                      className="text-[var(--portal-accent)] hover:underline font-medium truncate block"
                     >
                       {m.title}
                     </a>
@@ -248,7 +248,7 @@ export function CourseMediaBlock({
                   {attaching === m.id ? (
                     <span className="text-[var(--portal-text-muted)]">…</span>
                   ) : (
-                    <Link2 className="h-4 w-4 text-[#6366F1]" />
+                    <Link2 className="h-4 w-4 text-[var(--portal-accent)]" />
                   )}
                 </button>
               );

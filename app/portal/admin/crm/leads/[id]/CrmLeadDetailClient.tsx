@@ -178,7 +178,7 @@ export function CrmLeadDetailClient({ initialLead }: { initialLead: CrmLeadDetai
         <div>
           <Link
             href="/portal/admin/crm"
-            className="mb-2 inline-flex items-center gap-1 text-sm text-[var(--portal-text-muted)] hover:text-[#6366F1]"
+            className="mb-2 inline-flex items-center gap-1 text-sm text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
           >
             <ArrowLeft className="h-4 w-4" />
             К списку CRM

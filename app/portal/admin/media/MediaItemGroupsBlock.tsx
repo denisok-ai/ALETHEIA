@@ -88,7 +88,7 @@ export function MediaItemGroupsBlock({ mediaId }: { mediaId: string }) {
         <select
           value={selectedGroupId}
           onChange={(e) => setSelectedGroupId(e.target.value)}
-          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-w-[160px] focus:ring-2 focus:ring-[#6366F1]"
+          className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-w-[160px] focus:ring-2 focus:ring-[var(--portal-accent)]"
         >
           <option value="">— Выберите группу</option>
           {availableGroups.map((g) => (

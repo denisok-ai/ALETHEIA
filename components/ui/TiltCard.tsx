@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { motion, useMotionTemplate, useMotionValue } from 'framer-motion';
+import { motion, useMotionTemplate, useMotionValue, useReducedMotion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 interface TiltCardProps {
@@ -11,6 +11,7 @@ interface TiltCardProps {
 }
 
 export function TiltCard({ children, className, maxTilt = 12 }: TiltCardProps) {
+  const reduceMotion = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const x = useMotionValue(0);
   const y = useMotionValue(0);
@@ -34,6 +35,10 @@ export function TiltCard({ children, className, maxTilt = 12 }: TiltCardProps) {
   };
 
   const transform = useMotionTemplate`perspective(800px) rotateX(${x}deg) rotateY(${y}deg) scale(${hover ? 1.02 : 1})`;
+
+  if (reduceMotion) {
+    return <div className={cn(className)}>{children}</div>;
+  }
 
   return (
     <motion.div

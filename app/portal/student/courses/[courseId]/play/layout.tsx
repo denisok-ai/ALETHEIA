@@ -49,7 +49,7 @@ export default async function PlayLayout({
           <div className="flex flex-wrap justify-center gap-3">
             <Link
               href={`/portal/student/courses/${courseId}`}
-              className="rounded-lg bg-[#6366F1] px-4 py-2 text-sm font-medium text-white hover:bg-[#4F46E5]"
+              className="rounded-lg bg-[var(--portal-accent)] px-4 py-2 text-sm font-medium text-white hover:bg-[var(--portal-accent-dark)]"
             >
               Страница курса
             </Link>

@@ -10,12 +10,13 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
-  { href: '#why', label: 'Почему мы' },
-  { href: '#formats', label: 'Форматы' },
+  { href: '#method', label: 'О методе' },
+  { href: '#why', label: 'О школе' },
+  { href: '#formats', label: 'Программа' },
   { href: '#master', label: 'О мастере' },
   { href: '#reviews', label: 'Отзывы' },
-  { href: '#pricing', label: 'Тарифы' },
-  { href: '#faq', label: 'Вопросы и ответы' },
+  { href: '#pricing', label: 'Цены' },
+  { href: '#faq', label: 'FAQ' },
 ];
 
 export function Header() {
@@ -33,11 +34,18 @@ export function Header() {
     return null;
   }
 
+  const linkClass = (extra?: string) =>
+    cn(
+      'text-sm font-medium transition-colors',
+      scrolled ? 'text-[var(--text-muted)] hover:text-[var(--text)]' : 'header-landing-text-muted hover:text-plum',
+      extra
+    );
+
   return (
     <header
       className={cn(
         'fixed top-0 left-0 right-0 z-[100] isolate transition-all duration-300',
-        scrolled ? 'bg-white/95 shadow-sm backdrop-blur-md' : 'bg-transparent'
+        scrolled ? 'bg-[var(--surface)] shadow-sm' : 'bg-transparent'
       )}
     >
       <div className="mx-auto flex min-h-[4.25rem] max-w-6xl items-center justify-between px-5 py-4 md:min-h-[5rem] md:px-6">
@@ -45,9 +53,7 @@ export function Header() {
           href="#hero"
           className={cn(
             'flex items-center gap-2.5 font-heading text-xl font-bold tracking-tight transition-colors',
-            scrolled
-              ? 'text-gray-900 hover:text-gray-700'
-              : 'header-overlay-text-strong hover:opacity-90'
+            scrolled ? 'text-[var(--text)] hover:text-plum' : 'header-landing-text hover:text-plum'
           )}
         >
           <Image
@@ -61,51 +67,29 @@ export function Header() {
           <span>AVATERRA</span>
         </Link>
 
-        <nav className="hidden md:flex items-center gap-8">
+        <nav className="hidden items-center gap-6 lg:flex xl:gap-7">
           {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                'text-sm font-medium transition-colors',
-                scrolled
-                  ? 'text-gray-600 hover:text-gray-900'
-                  : 'header-overlay-text hover:text-white/90'
-              )}
-            >
+            <Link key={link.href} href={link.href} className={linkClass()}>
               {link.label}
             </Link>
           ))}
-          <Link
-            href="/login"
-            className={cn(
-              'text-sm font-medium transition-colors',
-              scrolled
-                ? 'text-gray-600 hover:text-gray-900'
-                : 'header-overlay-text hover:text-white/90'
-            )}
-          >
+          <Link href="/login" className={linkClass()}>
             Вход
           </Link>
           <Link href="#contact">
-            <Button
-              size="sm"
-              className="rounded-xl bg-amber-700/90 text-white hover:bg-amber-800 shadow-md border-0"
-            >
-              Запишись
+            <Button size="sm" variant="landingPlum" className="rounded-xl">
+              Заказать звонок
             </Button>
           </Link>
         </nav>
 
-<button
-        type="button"
-        className={cn(
-          'md:hidden p-2 transition-colors',
-          scrolled
-            ? 'text-gray-900'
-            : 'header-overlay-text'
-        )}
-        aria-label="Меню"
+        <button
+          type="button"
+          className={cn(
+            'p-2 transition-colors lg:hidden',
+            scrolled ? 'text-[var(--text)]' : 'text-[var(--text)]'
+          )}
+          aria-label="Меню"
           aria-expanded={open}
           onClick={() => setOpen(!open)}
         >
@@ -119,14 +103,14 @@ export function Header() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-white/20 bg-violet-900/95 backdrop-blur-md"
+            className="border-t border-[var(--border)] bg-[var(--surface)] lg:hidden"
           >
-            <nav className="flex flex-col gap-2 p-4">
+            <nav className="flex flex-col gap-1 p-4">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={cn('py-3 text-white font-medium hover:text-white/90')}
+                  className="py-3 font-medium text-[var(--text)] hover:text-plum"
                   onClick={() => setOpen(false)}
                 >
                   {link.label}
@@ -134,17 +118,14 @@ export function Header() {
               ))}
               <Link
                 href="/login"
-                className="py-3 text-white font-medium hover:text-white/90"
+                className="py-3 font-medium text-[var(--text)] hover:text-plum"
                 onClick={() => setOpen(false)}
               >
                 Вход
               </Link>
               <Link href="#contact" onClick={() => setOpen(false)}>
-                <Button
-                  size="sm"
-                  className="mt-2 w-full rounded-xl bg-amber-700/90 text-white hover:bg-amber-800 border-0"
-                >
-                  Запишись
+                <Button size="sm" variant="landingPlum" className="mt-2 w-full rounded-xl">
+                  Заказать звонок
                 </Button>
               </Link>
             </nav>

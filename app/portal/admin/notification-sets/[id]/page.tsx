@@ -54,7 +54,7 @@ export default async function AdminNotificationSetPage({ params }: Props) {
         actions={
           <Link
             href="/portal/admin/notification-sets"
-            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[#6366F1]"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[var(--portal-accent)]"
           >
             <ArrowLeft className="h-4 w-4" />
             К каталогу

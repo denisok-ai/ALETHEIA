@@ -254,7 +254,7 @@ export function CertificatesAdminClient({
           <select
             value={courseFilter}
             onChange={(e) => setCourseFilter(e.target.value)}
-            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
           >
             <option value="all">Все курсы</option>
             {courses.map((c) => (
@@ -330,7 +330,7 @@ export function CertificatesAdminClient({
                           href={downloadUrl(c.id)}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 text-sm text-[#6366F1] hover:underline"
+                          className="inline-flex items-center gap-1 text-sm text-[var(--portal-accent)] hover:underline"
                         >
                           <Download className="h-4 w-4" />
                           PDF
@@ -428,7 +428,7 @@ export function CertificatesAdminClient({
                     if (issueSelectedUser) setIssueSelectedUser(null);
                   }}
                   placeholder="Поиск по имени или email…"
-                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
                 />
                 {issueUserSearch && !issueSelectedUser && issueUserResults.length > 0 && (
                   <ul className="mt-1 max-h-40 overflow-y-auto rounded border border-[#E2E8F0] bg-white">
@@ -453,7 +453,7 @@ export function CertificatesAdminClient({
                   <button
                     type="button"
                     onClick={() => setIssueSelectedUser(null)}
-                    className="mt-1 text-xs text-[#6366F1] hover:underline"
+                    className="mt-1 text-xs text-[var(--portal-accent)] hover:underline"
                   >
                     Сбросить выбор
                   </button>
@@ -464,7 +464,7 @@ export function CertificatesAdminClient({
                 <select
                   value={issueCourseId}
                   onChange={(e) => setIssueCourseId(e.target.value)}
-                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
                 >
                   <option value="">— Выберите курс —</option>
                   {courses.map((c) => (
@@ -480,7 +480,7 @@ export function CertificatesAdminClient({
                   value={issueValidityDays}
                   onChange={(e) => setIssueValidityDays(e.target.value === '' ? '' : parseInt(e.target.value, 10))}
                   placeholder="Без срока"
-                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1] focus:border-[#6366F1]"
+                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
                 />
               </div>
               <div className="flex gap-2 pt-2">
@@ -509,7 +509,7 @@ export function CertificatesAdminClient({
           <select
             value={generateCourseId}
             onChange={(e) => setGenerateCourseId(e.target.value)}
-            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-w-[200px] text-[var(--portal-text)] focus:ring-2 focus:ring-[#6366F1]"
+            className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-w-[200px] text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
           >
             <option value="">Выберите курс</option>
             {courses.map((c) => (
@@ -524,7 +524,7 @@ export function CertificatesAdminClient({
               href={downloadUrl(firstCertForPreview.id)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-[#6366F1] hover:underline"
+              className="inline-flex items-center gap-1 text-sm text-[var(--portal-accent)] hover:underline"
             >
               <ExternalLink className="h-4 w-4" />
               Предпросмотр PDF

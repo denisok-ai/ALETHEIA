@@ -46,16 +46,16 @@ export default function AdminGroupsHubPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {sections.map(({ href, title, description, icon: Icon }) => (
           <Link key={href} href={href}>
-            <Card className="h-full transition hover:border-[#6366F1] hover:shadow-[var(--portal-shadow)]">
+            <Card className="h-full transition hover:border-[var(--portal-accent)] hover:shadow-[var(--portal-shadow)]">
               <div className="flex flex-col gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[#EEF2FF] text-[#4F46E5]">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]">
                     <Icon className="h-5 w-5" aria-hidden />
                   </div>
                   <h2 className="text-base font-semibold text-[var(--portal-text)]">{title}</h2>
                 </div>
                 <p className="flex-1 text-sm text-[var(--portal-text-muted)]">{description}</p>
-                <span className="inline-flex items-center gap-1 text-sm font-medium text-[#6366F1]">
+                <span className="inline-flex items-center gap-1 text-sm font-medium text-[var(--portal-accent)]">
                   Перейти в раздел
                   <ArrowRight className="h-4 w-4" aria-hidden />
                 </span>

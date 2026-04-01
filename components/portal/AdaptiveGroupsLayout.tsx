@@ -78,7 +78,7 @@ export function AdaptiveGroupsLayout({
             type="button"
             variant="ghost"
             size="sm"
-            className="min-h-9 text-[#6366F1]"
+            className="min-h-9 text-[var(--portal-accent)]"
             onClick={onClearGroupFilter}
           >
             <X className="h-4 w-4 mr-1 shrink-0" aria-hidden />

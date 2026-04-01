@@ -8,10 +8,10 @@
 /* ── Курсы: 5 вариантов ── */
 const COURSE_VARIANTS = [
   {
-    id: 'indigo',
-    c1: '#4F46E5', c2: '#7C3AED', c3: '#818CF8',
-    bg: '#EEF2FF', blob1: '#C7D2FE', blob2: '#DDD6FE',
-    accent: '#6366F1',
+    id: 'plum',
+    c1: '#6d5679', c2: '#856B92', c3: '#a890ad',
+    bg: '#f2f0f8', blob1: '#d8cfe3', blob2: '#e4d9ea',
+    accent: '#856B92',
   },
   {
     id: 'violet',
@@ -137,7 +137,7 @@ export function CourseCoverPlaceholder({
       <text
         x="24"
         y="148"
-        fontFamily="'Outfit', 'Inter', system-ui, sans-serif"
+        fontFamily="'DM Sans', system-ui, sans-serif"
         fontSize="96"
         fontWeight="900"
         fill={v.c1}

@@ -136,7 +136,7 @@ export default async function AdminCourseEnrollmentProgressPage({ params }: Prop
         actions={
           <Link
             href={`/portal/admin/courses/${courseId}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[#6366F1] transition-colors"
+            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[var(--portal-accent)] transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             К курсу

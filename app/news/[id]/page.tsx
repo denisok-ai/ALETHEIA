@@ -22,11 +22,11 @@ export default async function NewsPage({ params }: { params: Promise<{ id: strin
   if (!pub) notFound();
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
+    <div className="min-h-screen bg-[var(--bg)] font-body">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <Link
           href="/"
-          className="text-sm text-[#6366F1] hover:underline mb-6 inline-block"
+          className="text-sm text-[var(--portal-accent)] hover:underline mb-6 inline-block"
         >
           ← На главную
         </Link>

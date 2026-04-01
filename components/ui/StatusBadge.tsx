@@ -21,7 +21,7 @@ export type StatusVariant =
   | 'default';
 
 const variantStyles: Record<StatusVariant, string> = {
-  new: 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]',
+  new: 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)] border-[var(--portal-accent-muted)]',
   active: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
   archived: 'bg-[#F1F5F9] text-[var(--portal-text-muted)] border-[#E2E8F0]',
   draft: 'bg-amber-500/10 text-amber-700 border-amber-500/20',
@@ -33,7 +33,7 @@ const variantStyles: Record<StatusVariant, string> = {
   closed: 'bg-[#F1F5F9] text-[var(--portal-text-muted)] border-[#E2E8F0]',
   contacted: 'bg-blue-500/10 text-blue-700 border-blue-500/20',
   qualified: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
-  converted: 'bg-[#EEF2FF] text-[#4F46E5] border-[#C7D2FE]',
+  converted: 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)] border-[var(--portal-accent-muted)]',
   paid: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20',
   default: 'bg-[#F8FAFC] text-[var(--portal-text)] border-[#E2E8F0]',
 };

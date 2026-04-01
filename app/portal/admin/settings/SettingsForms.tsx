@@ -434,7 +434,7 @@ export function SettingsForms() {
               onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_course_body: e.target.value }))}
               placeholder="<p>Здравствуйте!</p><p>Оплата по заказу {{orderid}} получена...</p>"
               rows={6}
-              className="mt-1 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:border-[#6366F1] focus:outline-none focus:ring-1 focus:ring-[#6366F1]"
+              className="mt-1 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:border-[var(--portal-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--portal-accent)]"
             />
           </div>
           <div>
@@ -453,7 +453,7 @@ export function SettingsForms() {
               onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_generic_body: e.target.value }))}
               placeholder="<p>Здравствуйте!</p><p>Оплата по заказу {{orderid}} получена...</p>"
               rows={4}
-              className="mt-1 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:border-[#6366F1] focus:outline-none focus:ring-1 focus:ring-[#6366F1]"
+              className="mt-1 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:border-[var(--portal-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--portal-accent)]"
             />
           </div>
           <Button type="submit" disabled={savingPaymentEmail}>
@@ -812,7 +812,7 @@ export function SettingsForms() {
               href="https://help.paykeeper.ru/"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-[#6366F1] hover:underline"
+              className="text-sm text-[var(--portal-accent)] hover:underline"
             >
               Документация PayKeeper
             </a>

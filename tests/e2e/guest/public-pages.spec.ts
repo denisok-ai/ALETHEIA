@@ -7,19 +7,25 @@ test.describe('Главная страница', () => {
   test('загружается с заголовком и навигацией', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/');
-    await expect(page).toHaveTitle(/AVATERRA|avaterra/i);
-    // Фактические ссылки: Почему мы, Форматы, О мастере, Отзывы, Тарифы, FAQ
-    await expect(page.getByRole('link', { name: /тарифы/i })).toBeVisible({ timeout: 5000 });
-    await expect(page.getByRole('link', { name: /faq/i })).toBeVisible();
-    // Секция контактов присутствует
-    await expect(page.locator('#contact')).toBeVisible();
+    await expect(page).toHaveTitle(/AVATERRA|avaterra|кинезиологии/i);
+    await expect(page.getByRole('link', { name: /^Цены$/i })).toBeVisible({ timeout: 5000 });
+    await expect(page.getByRole('link', { name: /^FAQ$/i })).toBeVisible();
+    await expect(page.locator('#method')).toBeAttached();
+    // Секция контактов в DOM (ниже первого экрана — без scroll toBeVisible может упасть)
+    const contact = page.locator('#contact');
+    await expect(contact).toBeAttached();
+    await contact.scrollIntoViewIfNeeded();
+    await expect(contact).toBeVisible();
   });
 
   test('секции About, Pricing, FAQ, Contact присутствуют', async ({ page }) => {
     await page.goto('/');
-    await expect(page.locator('#pricing')).toBeVisible();
-    await expect(page.locator('#faq')).toBeVisible();
-    await expect(page.locator('#contact')).toBeVisible();
+    for (const id of ['#pricing', '#faq', '#contact'] as const) {
+      const el = page.locator(id);
+      await expect(el).toBeAttached();
+      await el.scrollIntoViewIfNeeded();
+      await expect(el).toBeVisible();
+    }
   });
 });
 
@@ -58,10 +64,15 @@ test.describe('Модалка покупки', () => {
 test.describe('FAQ', () => {
   test('аккордеон раскрывает вопрос', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#faq').scrollIntoViewIfNeeded();
-    const firstQuestion = page.getByRole('button', { name: /что такое мышечное тестирование/i });
+    const faq = page.locator('#faq');
+    await faq.scrollIntoViewIfNeeded();
+    const firstQuestion = faq.getByRole('button', { name: /что такое мышечное тестирование/i });
+    await expect(firstQuestion).toBeVisible({ timeout: 10000 });
     await firstQuestion.click();
-    await expect(page.getByText(/метод кинезиологии/i)).toBeVisible();
+    // Ответ только внутри FAQ; ждём анимацию раскрытия
+    await expect(
+      faq.getByText(/Метод обратной связи с телом|обратной связи с телом|аппаратуры/i)
+    ).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -73,6 +84,7 @@ test.describe('Форма заявки', () => {
     await expect(page.getByLabel(/имя/i).first()).toBeVisible();
     await expect(page.getByLabel(/телефон/i)).toBeVisible();
     await expect(page.getByLabel(/email/i).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /политикой конфиденциальности/i })).toBeVisible();
   });
 
   test('валидация: пустая форма не отправляется (HTML5 required)', async ({ page }) => {
