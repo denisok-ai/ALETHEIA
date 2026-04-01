@@ -107,7 +107,7 @@ pm2 start npm --name aletheia-debug -- run start:debug
 Через SSH-туннель (без открытия порта 9229 в интернет):
 
 ```bash
-ssh -L 9229:127.0.0.1:9229 user@IP_СЕРВЕРА
+ssh -L 9229:127.0.0.1:9229 root@95.181.224.70
 ```
 
 На своей машине откройте Chrome: `chrome://inspect` → **Configure** → добавьте `localhost:9229`. Появится удалённый target, к нему можно подключиться.

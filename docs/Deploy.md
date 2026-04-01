@@ -143,7 +143,7 @@ npm run build
 ```bash
 cd ~/projects/AVATERRA
 npm run build
-scp -r out/* root@IP_СЕРВЕРА:/var/www/avaterra/
+scp -r out/* root@95.181.224.70:/var/www/avaterra/
 ```
 
 Папку `/var/www/avaterra/` на сервере создайте заранее (шаг 3).
@@ -153,12 +153,12 @@ scp -r out/* root@IP_СЕРВЕРА:/var/www/avaterra/
 На сервере по SSH:
 
 ```bash
-ssh root@IP_СЕРВЕРА
+ssh root@95.181.224.70
 
 sudo mkdir -p /var/www
 cd /var/www
-sudo git clone https://github.com/ВАШ_ЛОГИН/AVATERRA.git
-cd AVATERRA
+sudo git clone https://github.com/denisok-ai/ALETHEIA.git
+cd ALETHEIA
 sudo npm install
 sudo npm run build
 # Дальше — запуск через Node (pm2) или настройка Nginx на прокси к Next (шаг 3)
@@ -197,7 +197,7 @@ sudo mkdir -p /var/www/avaterra
 sudo nano /etc/nginx/sites-available/avaterra
 ```
 
-Вставьте (замените `ВАШ_IP` на реальный IP сервера или оставьте `_` — тогда будет слушать все адреса):
+Вставьте (замените `ВАШ_IP` на IP сервера, напр. `95.181.224.70`, или оставьте `_` — тогда будет слушать все адреса):
 
 ```nginx
 server {
@@ -247,35 +247,29 @@ sudo ufw enable
 
 ## Шаг 4. Тестовый адрес без домена
 
-Домена пока нет — сайт открывается по **IP-адресу сервера**:
+Домена пока нет — сайт открывается по **IP-адресу сервера**, например прод AVATERRA:
 
 ```
-http://IP_СЕРВЕРА
+http://95.181.224.70
 ```
 
-Пример: если IP сервера `185.100.50.25`, в браузере вводите:
-
-```
-http://185.100.50.25
-```
-
-Это и есть бесплатный тестовый адрес: платить за домен не нужно, пока вы тестируете по IP.
+Сейчас основной вход — с доменом: https://avaterra.pro.
 
 ---
 
 ## Удобный тестовый адрес с «именем» (опционально)
 
-Если хочется адрес вида `avaterra.185.100.50.25.sslip.io` (читается проще, чем голый IP), можно использовать бесплатный сервис **sslip.io** (или **nip.io**):
+Если хочется адрес вида `avaterra.95.181.224.70.sslip.io` (читается проще, чем голый IP), можно использовать бесплатный сервис **sslip.io** (или **nip.io**):
 
 - Подставьте свой IP вместо `IP`:
   - `http://IP.sslip.io` — открывает ваш сервер по IP.
   - `http://avaterra.IP.sslip.io` — тоже ведёт на тот же IP (Nginx отдаёт тот же сайт, т.к. `server_name _`).
 
-Пример для IP `185.100.50.25`:
+Пример для IP `95.181.224.70`:
 
 ```
-http://185.100.50.25.sslip.io
-http://avaterra.185.100.50.25.sslip.io
+http://95.181.224.70.sslip.io
+http://avaterra.95.181.224.70.sslip.io
 ```
 
 Регистрация не нужна: sslip.io и nip.io по имени сразу отдают ваш IP.
@@ -285,7 +279,7 @@ http://avaterra.185.100.50.25.sslip.io
 ## Проверка (тест)
 
 1. На сервере: `curl -I http://127.0.0.1` — должен вернуться ответ с `200 OK` или `304`.
-2. С вашего компьютера или телефона откройте в браузере: `http://IP_СЕРВЕРА`.
+2. С вашего компьютера или телефона откройте в браузере: `http://95.181.224.70` или https://avaterra.pro.
 3. Должна открыться главная страница AVATERRA; проверьте разделы и картинки.
 
 ---
@@ -306,7 +300,7 @@ http://avaterra.185.100.50.25.sslip.io
 - [ ] Установлен Nginx (и при необходимости PM2 для Next.js), конфиг с `root` или proxy.
 - [ ] Конфиг включён в `sites-enabled`, `nginx -t`, `systemctl reload nginx`.
 - [ ] Порт 80 открыт в ufw.
-- [ ] Сайт открывается по `http://IP_СЕРВЕРА`.
+- [ ] Сайт открывается по https://avaterra.pro или `http://95.181.224.70`.
 
 ---
 
@@ -317,39 +311,35 @@ http://avaterra.185.100.50.25.sslip.io
 ### 1. Подключиться к серверу по SSH
 
 ```bash
-ssh root@IP_СЕРВЕРА
-# или ssh ubuntu@IP_СЕРВЕРА
+ssh root@95.181.224.70
 ```
 
-### 2. Перейти в папку проекта и подтянуть код
+### 2. Перейти в каталог приложения и обновить (прод AVATERRA)
+
+Рекомендуется один скрипт вместо ручных шагов:
 
 ```bash
-cd /var/www/AVATERRA
+cd /opt/ALETHEIA
+sudo bash scripts/deploy-pull.sh
+```
+
+Вручную (эквивалент по смыслу):
+
+```bash
+cd /opt/ALETHEIA
 sudo git pull origin main
-```
-
-(Если ветка называется `master`, замените на `git pull origin master`.)
-
-### 3. Установить зависимости (если изменился package.json) и собрать
-
-```bash
-sudo npm install
+sudo npm ci 2>/dev/null || sudo npm install
+npx prisma generate
+npx prisma migrate deploy
 sudo npm run build
+sudo systemctl restart aletheia.service
 ```
 
-### 4. Перезапустить приложение
+### 3. Перезапустить приложение (если делали только `git pull` + `build` без скрипта)
 
-- **Если Next.js запущен через PM2:**
-
-  ```bash
-  sudo pm2 restart avaterra
-  # или как назвали процесс: pm2 list
-  ```
-
-- **Если отдаёте статику из папки `out/`:** после `npm run build` новые файлы уже в `out/`, Nginx отдаёт их автоматически — перезапуск не нужен.
-
-- **Если Next.js запущен через systemd:**  
-  `sudo systemctl restart avaterra` (или как назван ваш сервис).
+- **systemd (текущий прод):** `sudo systemctl restart aletheia.service`
+- **PM2 (если используете):** `sudo pm2 restart aletheia` — см. `pm2 list`
+- **Статика из `out/`:** после `npm run build` файлы в `out/`; перезапуск Node не нужен, если Nginx отдаёт только статику.
 
 Готово. Проверьте сайт в браузере по IP или домену.
 
@@ -359,14 +349,29 @@ sudo npm run build
 
 В папке `scripts/` есть скрипты для автоматизации обновления на сервере.
 
+**Продуктивный VPS:** `95.181.224.70`, каталог **`/opt/ALETHEIA`**, домен https://avaterra.pro. Подробные команды — в [Production-Server.md](Production-Server.md).
+
 ### Выгрузка с гита (pull + build + restart)
 
+На сервере (после `ssh root@95.181.224.70`):
+
 ```bash
-cd /opt/ALETHEIA   # или /var/www/AVATERRA
-bash scripts/deploy-pull.sh
+cd /opt/ALETHEIA
+sudo bash scripts/deploy-pull.sh
 ```
 
-Скрипт выполняет: `git pull` → `npm install` → `prisma generate` → `prisma migrate deploy` → `npm run build` → `pm2 restart`.
+Скрипт выполняет: `git pull` → `npm install` / `npm ci` → `prisma generate` → `prisma migrate deploy` → `npm run build` → рестарт `aletheia.service` (или PM2) → при наличии прав — сброс proxy-кеша nginx.
+
+### Деплой без git на сервере (rsync с WSL)
+
+Сборка локально, на `95.181.224.70` уезжают артефакты (см. `scripts/deploy-rsync-from-local.sh`):
+
+```bash
+cd ~/projects/ALETHEIA
+npm run deploy:rsync
+```
+
+По умолчанию цель — `root@95.181.224.70:/opt/ALETHEIA`. Переопределение: `export DEPLOY_SSH=...`.
 
 Переменные окружения (опционально):
 - `DEPLOY_ROOT` — путь к проекту (по умолчанию `/opt/ALETHEIA`)

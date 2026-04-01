@@ -2,6 +2,16 @@
 # Деплой без Git: локальная next build → rsync артефактов на VPS → npm ci, prisma generate,
 # сброс кеша nginx (каталог /var/cache/nginx при наличии), рестарт aletheia.
 #
+# ВАЖНО: запускать только на своём ПК (WSL), где есть ~/projects/ALETHEIA и npm run build.
+# НЕ запускать на VPS (там нет скрипта deploy:rsync в старом package.json и нет ~/projects/...).
+#
+# Запуск из WSL (прод: root@95.181.224.70 — значение по умолчанию):
+#   npm run deploy:rsync
+# Другой хост или ключ:
+#   export DEPLOY_SSH=root@другой.хост
+#   export DEPLOY_SSH_IDENTITY="$HOME/.ssh/ваш_ключ"
+#   npm run deploy:rsync
+#
 # Переменные окружения:
 #   DEPLOY_SSH           user@host (по умолчанию root@95.181.224.70)
 #   DEPLOY_ROOT          каталог на сервере (по умолчанию /opt/ALETHEIA)

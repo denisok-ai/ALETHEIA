@@ -21,6 +21,7 @@
     "lint": "next lint",
     "predeploy": "npm run lint && npm run build",
     "deploy:remote": "bash scripts/deploy-remote.sh",
+    "deploy:rsync": "bash scripts/deploy-rsync-from-local.sh",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui"
   },

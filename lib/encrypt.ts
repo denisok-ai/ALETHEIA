@@ -2,7 +2,7 @@
  * Simple encryption for sensitive values (e.g. API keys) stored in DB.
  * Uses AES-256-GCM; key derived from NEXTAUTH_SECRET.
  */
-import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
+import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'node:crypto';
 
 const ALG = 'aes-256-gcm';
 const KEY_LEN = 32;

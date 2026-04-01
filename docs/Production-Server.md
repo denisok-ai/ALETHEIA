@@ -11,6 +11,30 @@
 - **Домен:** https://avaterra.pro
 - **Приложение:** Next.js (ALETHEIA), путь на сервере: `/opt/ALETHEIA`
 
+### Быстрые команды (копирование)
+
+```bash
+# SSH на прод
+ssh root@95.181.224.70
+
+# Полный деплой на сервере (после git push): pull → install → prisma → build → restart → кеш nginx
+cd /opt/ALETHEIA && sudo bash scripts/deploy-pull.sh
+
+# Сброс локальных правок на сервере и выравнивание под origin/main (осторожно: теряются незакоммиченные правки в репо)
+cd /opt/ALETHEIA && sudo git fetch origin && sudo git reset --hard origin/main && sudo git clean -fd && sudo bash scripts/deploy-pull.sh
+```
+
+**Деплой без git на сервере** (сборка у вас в **WSL на ПК**, не на VPS; на `95.181.224.70` только принимает rsync):
+
+```bash
+# Только на рабочей машине (DenisOk / WSL), не под root@95.181.224.70:
+cd ~/projects/ALETHEIA
+# при необходимости: export DEPLOY_SSH_IDENTITY="$HOME/.ssh/ваш_ключ"
+npm run deploy:rsync
+```
+
+По умолчанию `deploy:rsync` использует `DEPLOY_SSH=root@95.181.224.70` и `DEPLOY_ROOT=/opt/ALETHEIA`. На сервере команда `npm run deploy:rsync` не сработает — это нормально.
+
 ---
 
 ## Выполненные изменения инфраструктуры

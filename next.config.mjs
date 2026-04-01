@@ -61,6 +61,19 @@ const nextConfig = {
     optimizePackageImports: ['lucide-react'],
     instrumentationHook: true,
   },
+  // instrumentation / server: встроенный `crypto` не должен резолвиться как npm-пакет.
+  webpack: (config, { isServer }) => {
+    if (!isServer) return config;
+    const ext = config.externals;
+    if (Array.isArray(ext)) {
+      ext.push('crypto', 'node:crypto');
+    } else if (ext != null) {
+      config.externals = [ext, 'crypto', 'node:crypto'];
+    } else {
+      config.externals = ['crypto', 'node:crypto'];
+    }
+    return config;
+  },
 };
 
 export default nextConfig;

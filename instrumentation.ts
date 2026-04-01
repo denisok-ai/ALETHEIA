@@ -4,7 +4,7 @@
 export async function register() {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return;
   try {
-    const { applyNextAuthUrlFromDatabaseStartup } = await import('@/lib/settings');
+    const { applyNextAuthUrlFromDatabaseStartup } = await import('@/lib/settings-startup');
     await applyNextAuthUrlFromDatabaseStartup();
   } catch {
     /* ignore */
