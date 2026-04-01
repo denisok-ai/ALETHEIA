@@ -19,6 +19,8 @@
 | `public/uploads/` | SCORM-пакеты, медиафайлы (локальное хранилище) |
 | `docs/` | Документация |
 | `docs/Local-Prisma.md` | **Локальный запуск** (Prisma + SQLite) |
+| `docs/Production-Server.md` | **Продуктивный VPS:** обновление, единый каталог `/opt/ALETHEIA`, диагностика `bash scripts/prod-diagnostics.sh` |
+| `docs/Server-Setup.md` | **Legacy** (старый сценарий `/var/www` + PM2) — не путать с текущим продом |
 | `docs/Portal-Redesign-Plan.md` | **План доработки портала** — эталон «Мои курсы», список страниц по ролям |
 | `docs/User-Journey-Audit.md` | **Аудит пользовательского пути** — от заявки/покупки до ЛК и поддержки, сценарии и план доработок |
 | `docs/Verification-Module.md` | **Модуль «Верификация заданий»** — что это, как работает, где студент прикрепляет задания, кто подсказывает (план доработок) |
@@ -220,7 +222,7 @@ npm run db:seed
 - `docs/Project.md` — цели, архитектура
 - `docs/Content.md` — тексты страниц
 - `docs/Local-Prisma.md` — локальный запуск
-- `docs/Deploy.md` — деплой (Vercel, VPS)
+- `docs/Deploy.md` — деплой (Vercel, VPS); продуктив и порядок обновления — `docs/Production-Server.md`
 - `docs/Server-Debug.md` — подготовка сборки для Git и запуск на сервере в режиме отладки
 - `docs/Production-Server.md` — текущая инфраструктура прод-сервера (PM2, Nginx)
 - `docs/Diary.md` — дневник решений

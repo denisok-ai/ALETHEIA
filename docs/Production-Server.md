@@ -1,139 +1,229 @@
-# Состояние продуктивного сервера AVATERRA
+# Продуктивный сервер AVATERRA (ALETHEIA)
 
-Документ фиксирует текущую инфраструктуру продакшен-сервера для Cursor и разработки.
+Документ описывает **текущую конфигурацию** VPS, **недавние изменения** в коде и деплое, **порядок обновления** и проверки. Детали Vercel и общий чек-лист — в [Deploy.md](Deploy.md); отладка и 502 — в [Server-Debug.md](Server-Debug.md).
 
 ---
 
-## Сервер
+## 1. Идентификация
 
-- **IP:** `95.181.224.70`
-- **ОС:** Ubuntu
-- **Домен:** https://avaterra.pro
-- **Приложение:** Next.js (ALETHEIA), путь на сервере: `/opt/ALETHEIA`
+| Параметр | Значение |
+|----------|-----------|
+| **IP** | `95.181.224.70` |
+| **Домен** | https://avaterra.pro |
+| **ОС** | Ubuntu |
+| **Каталог приложения** | `/opt/ALETHEIA` |
+| **Репозиторий GitHub** | `https://github.com/denisok-ai/ALETHEIA` (ветка `main`) |
+| **Доступ** | SSH по ключу (`ssh root@95.181.224.70`) |
 
-### Быстрые команды (копирование)
+Один «источник правды» для кода и `.next` на машине — **только** `/opt/ALETHEIA`. Второй клон в `/var/www/...` с параллельным процессом на том же порту приводит к 502 и «старой» админке.
+
+---
+
+## 2. Процесс приложения (Node / Next.js)
+
+- **Рекомендуемый запуск:** **systemd** — unit `aletheia.service`.
+- **Пример unit:** [`scripts/systemd/aletheia.service.example`](../scripts/systemd/aletheia.service.example) — поля **`WorkingDirectory=/opt/ALETHEIA`** и `ExecStart=npm run start` должны указывать на **тот же** каталог, где выполняли `npm run build`.
+- **Порт upstream для nginx:** по умолчанию **3000** (переопределяется `PORT` в `.env` — тогда в nginx `proxy_pass` должен совпадать).
+- **`NODE_ENV`:** `production` (в unit или окружении).
+- **Секреты и URL:** файл **`.env`** в `/opt/ALETHEIA` (в git не коммитится). Список переменных — [.env.example](../.env.example), подробнее — [Env-Config.md](Env-Config.md).
+- **Рекомендуется в `.env` на проде:** `NEXTAUTH_URL=https://avaterra.pro` (иначе предупреждение next-auth в логах).
+- **Опционально:** `npm install sharp` в каталоге приложения — ускорение оптимизации изображений Next.js.
+
+**PM2:** если ранее использовался, на проде должен остаться **либо** PM2, **либо** systemd, но не оба на порту 3000. При переходе на systemd: `pm2 delete aletheia`, `pm2 save`.
+
+---
+
+## 3. Nginx
+
+- **Конфиг сайта:** `/etc/nginx/sites-available/aletheia` → симлинк `sites-enabled/aletheia`.
+- **Схема:** HTTPS (443) и/или HTTP → `proxy_pass http://127.0.0.1:3000` (или другой порт из `.env`).
+- **Кеш `proxy_cache`:** если для `location /` включены `proxy_cache` и длинный `proxy_cache_valid 200`, nginx может отдавать **устаревший HTML/RSC** после деплоя. Рекомендация: для динамики не кешировать ответы приложения (`proxy_no_cache` / отдельный `location` только для `/_next/static/`). Пример без кеша HTML — [`scripts/nginx-aletheia.conf`](../scripts/nginx-aletheia.conf).
+- **После правок:** `sudo nginx -t && sudo systemctl reload nginx`.
+
+---
+
+## 4. SSL и доверие к CA
+
+- **Let's Encrypt** для `avaterra.pro` / `www` (certbot + nginx).
+- Дополнительно на сервер установлен корневой сертификат **GlobalSign** (системное хранилище `ca-certificates`), чтобы исходящие HTTPS-запросы Node/утилит доверяли нужным цепочкам.
+
+---
+
+## 5. База данных (Prisma)
+
+**Источник правды на конкретном сервере** — значение **`DATABASE_URL`** в окружении **процесса** Next.js (обычно из `/opt/ALETHEIA/.env` через `EnvironmentFile` в systemd), а не комментарии в репозитории.
+
+| Режим | Когда используется |
+|--------|-------------------|
+| **SQLite** | `DATABASE_URL="file:./dev.db"` — файл **`prisma/dev.db`** (путь относительно каталога со `schema.prisma`, см. документацию Prisma). Так может работать продуктивный VPS avaterra.pro до отдельной миграции на PostgreSQL. |
+| **PostgreSQL** | Явный URL `postgresql://…` — целевой вариант для масштабирования и нескольких воркеров; настройка — [Deploy.md — БД для продакшена](Deploy.md). |
+
+**Риск «две базы»:** скрипты и `sqlite3` правят тот `dev.db`, который соответствует **текущему** `cwd` и загруженному `.env`. Если unit systemd указывает **другой** `WorkingDirectory` или другой `DATABASE_URL`, сайт продолжит читать старую БД (типичный симптом: импорт пишет «Deleted 3», а `/api/shop/products` отдаёт пять старых slug). Полный снимок: [`scripts/prod-diagnostics.sh`](../scripts/prod-diagnostics.sh).
+
+В репозитории в `schema.prisma` для локальной разработки задан `provider = "sqlite"`; смена провайдера на PostgreSQL на VPS — отдельная процедура миграции данных, не обязательная для уже работающего SQLite.
+
+---
+
+## 6. Изменения в коде и инфраструктуре (релевантно проду)
+
+Кратко, что влияет на сборку и портал:
+
+| Тема | Суть |
+|------|------|
+| **Портал (RSC)** | Тонкие `app/portal/*/layout.tsx` + клиентские оболочки `AdminPortalShell` / `ManagerPortalShell` / `StudentPortalShell` — нельзя передавать **функции** в пропах клиентским компонентам (ошибка `navFooter: function`). |
+| **instrumentation** | `instrumentation.ts` вызывает только **`lib/settings-startup.ts`** (чтение `site_url` из БД для `NEXTAUTH_URL`), без импорта всего `lib/settings.ts` с `encrypt` — иначе при `next build` webpack ломался на модуле `crypto`. |
+| **encrypt** | Импорт из **`node:crypto`**; в **`next.config.mjs`** для server-бандла в `externals` добавлены `crypto` и `node:crypto` (страховка). |
+| **deploy-pull.sh** | Шаг **5b:** очистка **`/var/cache/nginx`** (или встроенная очистка, если нет `nginx-clear-proxy-cache.sh`) + `nginx reload` при наличии прав; шаги **6–7:** проверка `127.0.0.1:$PORT/api/health` и внешнего URL. |
+| **Деплой без git** | С ПК (WSL): **`npm run deploy:rsync`** → [`scripts/deploy-rsync-from-local.sh`](../scripts/deploy-rsync-from-local.sh) (по умолчанию `root@95.181.224.70:/opt/ALETHEIA`). **Не запускать** `deploy:rsync` на самом VPS. |
+
+---
+
+## 7. Порядок обновления продакшена
+
+### Вариант A — через Git (основной)
+
+1. На **рабочей машине:** закоммитить и отправить изменения:  
+   `git push origin main`.
+2. По SSH на сервер:  
+   `ssh root@95.181.224.70`
+3. Выполнить:  
+   `cd /opt/ALETHEIA && sudo bash scripts/deploy-pull.sh`
+
+Скрипт: `git pull` → зависимости → `prisma generate` → `prisma migrate deploy` → удаление `.next` → `npm run build` → рестарт `aletheia.service` (или PM2) → при возможности сброс proxy-кеша nginx.
+
+**Переменные (опционально):** `DEPLOY_ROOT`, `GIT_BRANCH`, `SKIP_NGINX_CACHE=1`, `APP_PORT` — см. комментарии в [`scripts/deploy-pull.sh`](../scripts/deploy-pull.sh).  
+**На тестовом стенде** (не на проде с реальными данными): `RESET_AND_SEED=1` — полный сброс БД и seed.
+
+### Вариант B — без `git pull` на сервере (rsync с WSL)
+
+1. На **ПК в WSL**, в корне репозитория:  
+   `cd ~/projects/ALETHEIA`
+2. При необходимости:  
+   `export DEPLOY_SSH_IDENTITY="$HOME/.ssh/ваш_ключ"`
+3. Запуск:  
+   `npm run deploy:rsync`
+
+Локально выполняется `next build`, на сервер синхронизируются `.next/`, `public/`, `prisma/` (без локальных `.db`), `package.json`, lockfile, `next.config.mjs`, `middleware.ts`; на сервере — `npm ci`, `prisma generate`, очистка кеша nginx (если есть), старт сервиса. Файл **`.env` на сервере не перезаписывается**.
+
+### Если `git pull` на сервере конфликтует с локальными правками
+
+Когда прод должен **полностью совпадать с `origin/main`**, а на диске сервера были ручные правки или неотслеживаемые файлы:
 
 ```bash
-# SSH на прод
-ssh root@95.181.224.70
-
-# Полный деплой на сервере (после git push): pull → install → prisma → build → restart → кеш nginx
-cd /opt/ALETHEIA && sudo bash scripts/deploy-pull.sh
-
-# Сброс локальных правок на сервере и выравнивание под origin/main (осторожно: теряются незакоммиченные правки в репо)
-cd /opt/ALETHEIA && sudo git fetch origin && sudo git reset --hard origin/main && sudo git clean -fd && sudo bash scripts/deploy-pull.sh
+cd /opt/ALETHEIA
+sudo git fetch origin
+sudo git reset --hard origin/main
+sudo git clean -fd
+sudo bash scripts/deploy-pull.sh
 ```
 
-**Деплой без git на сервере** (сборка у вас в **WSL на ПК**, не на VPS; на `95.181.224.70` только принимает rsync):
+**Внимание:** `git clean -fd` удаляет неотслеживаемые файлы в репозитории (игнорируемые git обычно не трогает без `-x`). Неотслеживаемые каталоги в `public/` (например загруженные картинки) могут пропасть — делайте бэкап при необходимости.
+
+---
+
+## 8. Проверка после выката
 
 ```bash
-# Только на рабочей машине (DenisOk / WSL), не под root@95.181.224.70:
-cd ~/projects/ALETHEIA
-# при необходимости: export DEPLOY_SSH_IDENTITY="$HOME/.ssh/ваш_ключ"
-npm run deploy:rsync
+# На сервере
+curl -sS -o /dev/null -w "localhost: %{http_code}\n" http://127.0.0.1:3000/api/health
+sudo systemctl status aletheia.service --no-pager -l
+
+# С любой машины
+curl -sS https://avaterra.pro/api/health
 ```
 
-По умолчанию `deploy:rsync` использует `DEPLOY_SSH=root@95.181.224.70` и `DEPLOY_ROOT=/opt/ALETHEIA`. На сервере команда `npm run deploy:rsync` не сработает — это нормально.
+В ответе `/api/health` — `version` и `commit` (и заголовки `X-App-Version` / `X-Build-Commit`). Убедиться, что админский layout обновился:  
+`head -n 12 /opt/ALETHEIA/app/portal/admin/layout.tsx` — ожидается обёртка **`AdminPortalShell`**, а не длинный список иконок Lucide в layout.
 
 ---
 
-## Выполненные изменения инфраструктуры
+## 9. Расширенная диагностика (VPS)
 
-### 1. Установка корневого сертификата
+Один запуск собирает **только чтение** (порты, systemd, nginx, кандидаты `.env` / `*.db`, выборка `Service` из найденных SQLite, `curl` health и shop).
 
-- На сервер добавлен корневой сертификат **GlobalSign** (`root_pem_globalsign_ssl_dv_free_1.pem`).
-- Сертификат установлен в системное хранилище Ubuntu:
-  - Файл скопирован в `/usr/local/share/ca-certificates/`.
-  - Выполнена команда `update-ca-certificates`, создан симлинк в `/etc/ssl/certs/`.
-- Системные утилиты и Node.js (приложение в `/opt/ALETHEIA`) доверяют цепочке GlobalSign.
+```bash
+cd /opt/ALETHEIA
+git pull origin main   # чтобы был актуальный prod-diagnostics.sh
+bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
+# эквивалентно: npm run prod:diagnostics
+```
 
-### 2. NGINX как reverse proxy для Next.js
+Другой корень приложения (редко): `PROD_ROOT=/path/to/app bash scripts/prod-diagnostics.sh`.
 
-- Установлен и включён **nginx**.
-- Приложение Next.js (проект ALETHEIA) запущено под **PM2** на `127.0.0.1:3000`.
-- Настроен виртуальный хост **avaterra.pro**:
-  - **HTTP** (порт 80) → редирект на HTTPS.
-  - **HTTPS** (порт 443) → прокси на `http://127.0.0.1:3000`.
-- Конфиг: `/etc/nginx/sites-available/aletheia`  
-  Симлинк: `/etc/nginx/sites-enabled/aletheia`.
-
-### 3. SSL-сертификат для avaterra.pro
-
-- Используется **Let's Encrypt**, установка через:
-  ```bash
-  certbot --nginx -d avaterra.pro -d www.avaterra.pro
-  ```
-- Сертификаты:
-  - `ssl_certificate /etc/letsencrypt/live/avaterra.pro/fullchain.pem;`
-  - `ssl_certificate_key /etc/letsencrypt/live/avaterra.pro/privkey.pem;`
-- **Certbot** настроил автоматическое продление сертификата.
-
-### 4. Базовая оптимизация и защита
-
-- NGINX:
-  - reverse proxy на Next.js;
-  - редиректы HTTP → HTTPS.
-- Дополнительно:
-  - настройки для работы под нагрузкой (proxy buffering);
-  - **limit_req** для защиты от простых DDoS/флуд-атак;
-  - кэширование статики `.next/static` через **proxy_cache**.
+Сохранённый лог приложить к тикету или внести факты в раздел **«12. Зафиксировано на сервере»** ниже (без секретов).
 
 ---
 
-## Итоговая схема
+## 10. Уборка дубликатов (чеклист)
+
+Делать **после** анализа отчёта диагностики. Не удалять каталоги и `.db`, пока не ясно, какой процесс слушает порт из `proxy_pass` и какой `WorkingDirectory` у unit.
+
+1. Оставить **один** корень деплоя для avaterra.pro — **`/opt/ALETHEIA`** (или задокументировать иной, но единственный).
+2. Остановить дубликаты: второй **PM2**-процесс на том же порту, старый клон с ручным `npm start`, лишний unit.
+3. В **`/etc/systemd/system/aletheia.service`**: `WorkingDirectory` = этот корень; **`EnvironmentFile=-/opt/ALETHEIA/.env`** (как в [`scripts/systemd/aletheia.service.example`](../scripts/systemd/aletheia.service.example)), чтобы те же `DATABASE_URL` использовали и приложение, и ручные `npx tsx scripts/…`.
+4. Бэкап канонической БД: `cp prisma/dev.db "prisma/dev.db.bak-$(date +%Y%m%d%H%M)"` в корне деплоя.
+5. Лишние **`*.db`** и **`.next`** в **неиспользуемых** клонах (`/var/www/…`) — удалять только если отчёт подтверждает, что на них не ссылается ни systemd, ни PM2, ни `lsof` на порту приложения.
+6. `sudo systemctl daemon-reload && sudo systemctl restart aletheia` (или имя вашего unit), затем `curl` `/api/health` и `/api/shop/products`.
+
+Синхронизация витрины тарифов: [`scripts/import-services-replace.ts`](../scripts/import-services-replace.ts) или [`prisma/data/replace-services-sqlite.sql`](../prisma/data/replace-services-sqlite.sql) (нужен `sqlite3` в PATH). См. также [`scripts/check-database-url.sh`](../scripts/check-database-url.sh).
+
+---
+
+## 11. Диагностика (кратко)
+
+| Симптом | Куда смотреть |
+|---------|----------------|
+| **502** от nginx | `curl` к `127.0.0.1:3000/api/health`; `journalctl -u aletheia.service -n 80`; совпадение порта с nginx. |
+| Старый UI после деплоя | Кеш nginx `proxy_cache`; жёсткое обновление браузера; очистка `/var/cache/nginx`. |
+| Импорт БД «сработал», сайт не меняется | Две копии проекта или разный `DATABASE_URL`; полный отчёт — §9. |
+| Ошибки RSC / `navFooter` | Актуальный код с клиентскими shell layout (см. п. 6). |
+
+Подробнее — [Server-Debug.md](Server-Debug.md).
+
+---
+
+## 12. Зафиксировано на сервере (шаблон)
+
+*После `git pull` на VPS: выполните **раздел 9** (диагностика); при расхождениях — **раздел 10** (уборка). Затем замените таблицу ниже фактическими значениями (без паролей и полных URL с секретами) и при необходимости закоммитьте в репозиторий.*
+
+| Поле | Значение |
+|------|-----------|
+| Дата аудита | _YYYY-MM-DD_ |
+| Активный корень приложения | _например /opt/ALETHEIA_ |
+| Unit systemd | _например aletheia.service_ |
+| Порт Node | _например 3000_ |
+| Тип БД | _SQLite prisma/dev.db / PostgreSQL …_ |
+| Файл nginx vhost | _например /etc/nginx/sites-enabled/aletheia_ |
+| Примечание | _например «второй клон в /var/www удалён»_ |
+
+---
+
+## 13. Скрипты (справочник)
+
+| Файл | Назначение |
+|------|------------|
+| [`scripts/prod-diagnostics.sh`](../scripts/prod-diagnostics.sh) | Расширенная диагностика VPS (read-only), §9. |
+| [`scripts/check-database-url.sh`](../scripts/check-database-url.sh) | Кратко: тип `DATABASE_URL` и путь к SQLite. |
+| [`scripts/deploy-pull.sh`](../scripts/deploy-pull.sh) | Полный цикл на **сервере** после `git push`. |
+| [`scripts/deploy-rsync-from-local.sh`](../scripts/deploy-rsync-from-local.sh) | Деплой с **WSL** без обновления git на VPS. |
+| [`scripts/nginx-clear-proxy-cache.sh`](../scripts/nginx-clear-proxy-cache.sh) | Только сброс proxy-кеша nginx + reload (нужен root). |
+| [`scripts/nginx-aletheia.conf`](../scripts/nginx-aletheia.conf) | Пример reverse proxy **без** кеша HTML для Next. |
+| [`scripts/systemd/aletheia.service.example`](../scripts/systemd/aletheia.service.example) | Пример unit systemd. |
+
+**npm на ПК:** `npm run deploy:rsync` — обёртка над rsync-скриптом.
+
+---
+
+## 14. Схема трафика
 
 ```
 Пользователь
-    → https://avaterra.pro:443 (NGINX + Let's Encrypt)
-    → http://127.0.0.1:3000 (Next.js под PM2)
+  → https://avaterra.pro:443 (nginx + TLS)
+  → http://127.0.0.1:3000 (Next.js, systemd aletheia.service)
 ```
 
-Система и приложение доверяют сертификатам GlobalSign через системное CA-хранилище.
-
 ---
 
-## Один каталог сборки и одна точка запуска
+## 15. CI / GitHub Actions
 
-Чтобы не крутилась **старая** админка при «успешном» деплое:
-
-1. **Один рабочий каталог** с актуальным кодом и `.next` — по документу это **`/opt/ALETHEIA`**. Не параллельно поднимайте второй экземпляр из `/var/www/...` или старой копии: nginx всегда должен проксировать на **тот** процесс, чей `WorkingDirectory` совпадает с каталогом, где выполняли `npm run build`.
-2. **systemd или PM2 — что-то одно** на порт `3000`. Если перешли на `aletheia.service`, отключите старый PM2-процесс (`pm2 delete aletheia`, `pm2 save`), чтобы не было двух Node с разными `cwd`.
-3. Пример unit для systemd: **`scripts/systemd/aletheia.service.example`** — поля `WorkingDirectory` и `ExecStart` должны указывать на **тот же** `/opt/ALETHEIA`.
-4. Версия на проде без гаданий по UI: **`curl -s https://avaterra.pro/api/health`** — поля `version` и `commit` (и заголовки `X-App-Version` / `X-Build-Commit`). В админке/менеджере версия также выводится **внизу бокового меню** после деплоя с актуальным `next build` (commit берётся из `git` при сборке или из `BUILD_COMMIT` / CI).
-
-Деплой: **`bash scripts/deploy-pull.sh`** (на сервере) или CI с переменной **`VPS_DEPLOY`** и секретом **`VPS_SSH_PRIVATE_KEY`** (см. `.github/workflows/build.yml`).
-
----
-
-## Полезные команды на сервере
-
-- Перезапуск приложения: `cd /opt/ALETHEIA && pm2 restart aletheia` (или имя из `pm2 list`)
-- Логи: `pm2 logs aletheia`
-- Статус NGINX: `sudo systemctl status nginx`
-- Проверка конфига NGINX: `sudo nginx -t`
-- **Полный деплой с Git** (миграции без сброса БД): `cd /opt/ALETHEIA && bash scripts/deploy-pull.sh`
-- **Деплой + сброс БД и тестовый seed** (только для стенда, см. `docs/Deploy.md`):  
-  `cd /opt/ALETHEIA && RESET_AND_SEED=1 bash scripts/deploy-pull.sh`
-
-### Если в консоли ChunkLoadError / `GET /_next/static/chunks/... 400`
-
-Обычно это **рассинхрон артефактов** после неполной сборки или **кеш nginx** со старыми ответами. Скрипт `deploy-pull.sh` перед сборкой удаляет каталог `.next` (чистая сборка).
-
-Если проблема уже на проде — по SSH:
-
-1. Очистить сборку и собрать заново, перезапустить приложение:
-   ```bash
-   cd /opt/ALETHEIA
-   git pull origin main
-   rm -rf .next
-   npm ci
-   npm run build:server
-   sudo systemctl restart aletheia.service
-   ```
-   (или `pm2 restart aletheia`, если без systemd.)
-
-2. **Сбросить proxy_cache nginx** (если в конфиге включён `proxy_cache` для прокси на Next): посмотреть путь в `sudo nginx -T | grep proxy_cache_path`, затем очистить этот каталог (например `sudo rm -rf /var/cache/nginx/next-static/*`) и выполнить `sudo nginx -s reload`.
-
-3. Проверка: `curl -sI https://avaterra.pro/ | head -1`, затем из HTML взять путь к любому `/_next/static/chunks/*.js` и убедиться, что `curl -sI` на него даёт **200**.
-
-Вход на сервер — по **SSH-ключу**; пароль root в открытом виде не хранить и не отправлять в мессенджеры.
+При настройке CI: секреты `DEPLOY_HOST`, пользователь, SSH-ключ; см. комментарии в [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) и [`.github/workflows/build.yml`](../.github/workflows/build.yml).

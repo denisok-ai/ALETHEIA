@@ -2,6 +2,8 @@
 
 Два варианта: **Vercel** (проще всего, репозиторий уже на GitHub) или **свой VPS** (ниже).
 
+**Текущий продуктивный VPS (IP, systemd, nginx, сценарии деплоя):** [Production-Server.md](Production-Server.md).
+
 **Подготовка сборки для Git и запуска на сервере (в т.ч. в режиме отладки):** см. **docs/Server-Debug.md** и скрипт `./scripts/prepare-for-server.sh`.
 
 ---
@@ -30,7 +32,7 @@ git push origin v3.0.0
 
 - [ ] `npm run predeploy` (или `npm run build`) проходит без ошибок
 - [ ] Git тег создан и запушен (см. раздел «Релиз v3.0.0»)
-- [ ] БД: Prisma миграции применены, для прода — PostgreSQL (сменить provider в schema.prisma)
+- [ ] БД: Prisma миграции применены; на VPS фактический режим — по `DATABASE_URL` (SQLite или PostgreSQL, см. [Production-Server.md](Production-Server.md))
 - [ ] Переменные окружения: DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, NEXT_PUBLIC_URL; PayKeeper (PAYKEEPER_*); Resend (RESEND_*); DEEPSEEK_API_KEY; TELEGRAM_BOT_TOKEN (опционально, для бота). См. .env.example.
 - [ ] PayKeeper: webhook URL указан в ЛК PayKeeper
 - [ ] Первый админ: через seed (admin@test.local) или создать вручную в БД
@@ -41,9 +43,13 @@ git push origin v3.0.0
 
 ---
 
-## БД для продакшена (PostgreSQL)
+## БД для продакшена (PostgreSQL и SQLite на VPS)
 
-Локально используется SQLite (`file:./dev.db`). На проде нужен PostgreSQL.
+Локально используется SQLite (`file:./dev.db`).
+
+**Продуктивный VPS (avaterra.pro):** фактический режим задаётся **`DATABASE_URL`** в `.env` процесса приложения. SQLite на одном сервере (`file:./dev.db` → файл в `prisma/` по правилам Prisma) может быть **текущим рабочим** вариантом; не считать его ошибкой, пока не запланирована миграция. Проверка и единый источник правды по каталогу и БД: [Production-Server.md](Production-Server.md), скрипт [`scripts/prod-diagnostics.sh`](../scripts/prod-diagnostics.sh).
+
+**Целевой вариант для масштабирования** (несколько инстансов, отказоустойчивость) — PostgreSQL:
 
 1. В `prisma/schema.prisma` заменить:
    ```prisma
@@ -61,7 +67,7 @@ git push origin v3.0.0
    ```
 4. При первом запуске (опционально): `npx prisma db seed` — тестовые пользователи (см. docs/Local-Prisma.md).
 
-Подробнее про прод-сервер: `docs/Production-Server.md`.
+Подробнее про прод-сервер: [Production-Server.md](Production-Server.md).
 
 ---
 

@@ -72,7 +72,7 @@ export function Pricing() {
   const [modalTariff, setModalTariff] = useState<TariffItem | null>(null);
 
   useEffect(() => {
-    fetch('/api/shop/products')
+    fetch('/api/shop/products', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
         const list = d?.products;

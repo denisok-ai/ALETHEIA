@@ -16,8 +16,9 @@ Type=simple
 User=root
 WorkingDirectory=/opt/ALETHEIA
 Environment=NODE_ENV=production
-# Раскомментируйте при необходимости подхвата переменных из файла:
-# EnvironmentFile=-/opt/ALETHEIA/.env
+# Рекомендуется: один и тот же .env, что при ручном запуске скриптов из /opt/ALETHEIA
+# (иначе импорт правит prisma/dev.db в /opt, а сервис стартует из другого каталога / с другим DATABASE_URL).
+EnvironmentFile=-/opt/ALETHEIA/.env
 ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=5

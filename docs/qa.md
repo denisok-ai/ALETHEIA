@@ -17,7 +17,7 @@
 | 7 | Персональные данные | Страница /privacy (политика конфиденциальности). |
 | 8 | Стек | Next.js 14, TypeScript, Tailwind, Prisma + SQLite, NextAuth. |
 | 9 | Редактирование контента | Админка: курсы, медиа, AI-настройки. Тексты — в коде. |
-| 10 | Хостинг | Vercel (Deploy.md), VPS (Server-Setup.md). |
+| 10 | Хостинг | Vercel (Deploy.md); VPS avaterra.pro — [Production-Server.md](Production-Server.md) (`/opt/ALETHEIA`, systemd). [Server-Setup.md](Server-Setup.md) — только legacy. |
 | 11 | Визуальный стиль | По прототипу. Цвета: primary #2D1B4E, secondary #D4AF37. |
 | 12 | Адаптивность | Адаптивная вёрстка (Tailwind). |
 | 13 | Защита форм | Honeypot, валидация на сервере. |

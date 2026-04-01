@@ -161,7 +161,7 @@ ALETHEIA/
 - **Аутентификация:** NextAuth (Credentials provider), bcryptjs.
 - **Портал:** Роли user/manager/admin, middleware RBAC, SCORM-плеер (iframe + API progress), сертификаты (PDF через @react-pdf/renderer), Resend для email, Telegram webhook для бота.
 - **Хранилище:** локальные файлы в `public/uploads/` (SCORM, медиа).
-- **Деплой:** Vercel или VPS (см. docs/Deploy.md)
+- **Деплой:** Vercel или VPS — общий чек-лист [Deploy.md](Deploy.md), продуктивный сервер и порядок обновления [Production-Server.md](Production-Server.md)
 
 ### 5.2 Стандарты кода и процесса
 - **Консистентность:** единый стиль именования (файлы, классы, переменные)
@@ -187,6 +187,8 @@ ALETHEIA/
 | `docs/Tasktracker.md` | Отслеживание задач и приоритетов |
 | `docs/Diary.md` | Дневник решений, наблюдений и проблем |
 | `docs/qa.md` | Вопросы по архитектуре и требованиям |
+| `docs/Production-Server.md` | Продуктивный VPS: `/opt/ALETHEIA`, systemd, расширенная диагностика `scripts/prod-diagnostics.sh` |
+| `docs/Server-Setup.md` | **Legacy:** сценарий `/var/www` + PM2 — не смешивать с текущим продом avaterra.pro |
 
 ---
 

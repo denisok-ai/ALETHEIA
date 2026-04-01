@@ -68,13 +68,15 @@ npm run build
 
 ## 3. Запуск на сервере
 
+**Продуктив avaterra.pro:** предпочтительно **systemd** и каталог **`/opt/ALETHEIA`** — см. [Production-Server.md](Production-Server.md). Ниже PM2 и ручной `npm run start` оставлены для отладки и **legacy**-сценариев; не запускайте второй процесс на том же порту, что и systemd.
+
 ### Обычный режим (production)
 
 ```bash
 npm run start
 ```
 
-Через PM2 (рекомендуется для постоянной работы):
+Через PM2 *(legacy / отладка; не дублировать вместе с `aletheia.service` на одном порту)*:
 
 ```bash
 pm2 start npm --name aletheia -- start
@@ -120,7 +122,7 @@ ssh -L 9229:127.0.0.1:9229 root@95.181.224.70
 
 Создайте на сервере файл `.env` (или задайте переменные в systemd/PM2) по образцу `.env.example`:
 
-- `DATABASE_URL` — для прода лучше PostgreSQL
+- `DATABASE_URL` — на VPS может быть SQLite или PostgreSQL (см. [Production-Server.md](Production-Server.md))
 - `NEXTAUTH_SECRET`, `NEXTAUTH_URL` (например `https://avaterra.pro`)
 - `NEXT_PUBLIC_URL` — публичный URL сайта
 - При необходимости: PayKeeper, Resend, DeepSeek, Telegram, `CRON_SECRET`
@@ -136,7 +138,7 @@ ssh -L 9229:127.0.0.1:9229 root@95.181.224.70
 | 1 | Локально: `npm run predeploy` или `./scripts/prepare-for-server.sh` |
 | 2 | `git add`, `commit`, `push` |
 | 3 | На сервере: `git pull`, `npm ci`, `npx prisma generate`, `npx prisma migrate deploy`, `npm run build` |
-| 4 | Запуск: `npm run start` или через PM2 |
+| 4 | Запуск: `systemctl start aletheia` (прод) или временно `npm run start` / PM2 без дублирования порта |
 | 5 | Для отладки: `npm run start:debug` и подключение по порту 9229 (лучше через SSH-туннель) |
 
 Подробнее про деплой и Nginx: **docs/Deploy.md**, про текущий прод-сервер: **docs/Production-Server.md**.

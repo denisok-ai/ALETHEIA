@@ -4,6 +4,10 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 
+/** Не кешировать: иначе nginx proxy_cache / CDN / браузер держат старый список тарифов. */
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 /** Первая строка description — краткий текст карточки; строки с «•» или с новой строки — пункты списка. */
 function descriptionToCardAndFeatures(
   raw: string | null | undefined,
@@ -66,5 +70,13 @@ export async function GET() {
     };
   });
 
-  return NextResponse.json({ products });
+  return NextResponse.json(
+    { products },
+    {
+      headers: {
+        'Cache-Control': 'private, no-store, no-cache, must-revalidate, max-age=0',
+        Pragma: 'no-cache',
+      },
+    }
+  );
 }

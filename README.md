@@ -11,7 +11,7 @@
 - **Prisma + SQLite** — локальная БД (портал, курсы, заявки)
 - **NextAuth** — аутентификация (Credentials)
 - **Resend**, **Telegram** — уведомления
-- Деплой: **Vercel** или VPS (см. docs/Deploy.md, docs/Server-Setup.md). Текущее состояние продуктивного сервера — docs/Production-Server.md.
+- Деплой: **Vercel** или VPS — [docs/Deploy.md](docs/Deploy.md). Продуктив avaterra.pro: [docs/Production-Server.md](docs/Production-Server.md), диагностика `bash scripts/prod-diagnostics.sh`. [docs/Server-Setup.md](docs/Server-Setup.md) — устаревший сценарий `/var/www` + PM2.
 
 ## Портал (v3.0)
 

@@ -35,6 +35,18 @@ function loadEnvFromCwd() {
 
 loadEnvFromCwd();
 
+/** Абсолютный путь к файлу SQLite (как у Prisma: относительно каталога со schema.prisma). */
+function resolvedSqlitePath(projectRoot: string): string | null {
+  const url = process.env.DATABASE_URL ?? '';
+  if (!url.startsWith('file:')) return null;
+  let rest = url.slice('file:'.length);
+  const q = rest.indexOf('?');
+  if (q >= 0) rest = rest.slice(0, q);
+  const prismaDir = path.join(projectRoot, 'prisma');
+  if (path.isAbsolute(rest)) return rest;
+  return path.resolve(prismaDir, rest.replace(/^\.\//, ''));
+}
+
 /** Должен совпадать с payload в export-services.ts / services-for-prod.json */
 type ServiceExportRow = {
   slug: string;
@@ -59,6 +71,17 @@ async function defaultCourseId(): Promise<string | null> {
 }
 
 async function main() {
+  const projectRoot = process.cwd();
+  const sqliteAbs = resolvedSqlitePath(projectRoot);
+  if (sqliteAbs) {
+    const ok = existsSync(sqliteAbs);
+    console.log(
+      `SQLite: ${sqliteAbs} (${ok ? 'файл есть' : 'НЕТ ФАЙЛА — проверьте DATABASE_URL и cwd'})`,
+    );
+  } else {
+    console.log('DATABASE_URL:', (process.env.DATABASE_URL ?? '(не задан)').slice(0, 64));
+  }
+
   const file =
     process.argv[2] ?? path.join(process.cwd(), 'prisma', 'data', 'services-for-prod.json');
   const raw = await readFile(file, 'utf8');
@@ -77,6 +100,9 @@ async function main() {
   if (!courseId) {
     console.warn('No Course in DB — services will be created with courseId=null');
   }
+
+  const before = await prisma.service.count();
+  console.log(`Сейчас в этой БД строк Service: ${before} (если на сайте другое число — приложение читает другой файл БД или другой DATABASE_URL)`);
 
   const deleted = await prisma.service.deleteMany({});
   console.log(`Deleted ${deleted.count} existing services`);
