@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { Button } from '@/components/ui/button';
+import { BRAND_SCHOOL_LINE, BRAND_SITE_NAME } from '@/lib/brand';
 
 export function Hero() {
   const reduceMotion = useReducedMotion();
@@ -24,7 +25,7 @@ export function Hero() {
               transition={t(0.45)}
               className="text-sm font-semibold uppercase tracking-[0.2em] text-plum"
             >
-              Школа Кинезиологии «AVATERRA»
+              {BRAND_SCHOOL_LINE}
             </motion.p>
             <motion.h1
               initial={{ opacity: 0 }}
@@ -71,7 +72,7 @@ export function Hero() {
             <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border-2 border-periwinkle/50 bg-[var(--surface)] shadow-[var(--shadow-card)]">
               <Image
                 src="/images/tatiana/tatiana-hero.png"
-                alt="Татьяна Стрельцова — основательница школы AVATERRA"
+                alt={`Татьяна Стрельцова — основательница школы «${BRAND_SITE_NAME}»`}
                 fill
                 className="object-cover object-center"
                 sizes="(max-width: 1024px) min(340px, 100vw), 420px"

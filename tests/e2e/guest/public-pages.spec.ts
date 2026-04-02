@@ -1,5 +1,5 @@
 /**
- * E2E: гость — публичные страницы, модалка покупки, FAQ, формы, защита портала.
+ * E2E: гость — публичные страницы, модалка покупки, вопросы и ответы, формы, защита портала.
  */
 import { test, expect } from '@playwright/test';
 
@@ -7,9 +7,9 @@ test.describe('Главная страница', () => {
   test('загружается с заголовком и навигацией', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/');
-    await expect(page).toHaveTitle(/AVATERRA|avaterra|кинезиологии/i);
+    await expect(page).toHaveTitle(/Аватера|AVATERRA|avaterra|кинезиологии/i);
     await expect(page.getByRole('link', { name: /^Цены$/i })).toBeVisible({ timeout: 5000 });
-    await expect(page.getByRole('link', { name: /^FAQ$/i })).toBeVisible();
+    await expect(page.getByRole('link', { name: /Вопросы и ответы/ })).toBeVisible();
     await expect(page.locator('#method')).toBeAttached();
     // Секция контактов в DOM (ниже первого экрана — без scroll toBeVisible может упасть)
     const contact = page.locator('#contact');
@@ -18,7 +18,7 @@ test.describe('Главная страница', () => {
     await expect(contact).toBeVisible();
   });
 
-  test('секции About, Pricing, FAQ, Contact присутствуют', async ({ page }) => {
+  test('секции About, Pricing, вопросы и ответы, Contact присутствуют', async ({ page }) => {
     await page.goto('/');
     for (const id of ['#pricing', '#faq', '#contact'] as const) {
       const el = page.locator(id);
@@ -61,7 +61,7 @@ test.describe('Модалка покупки', () => {
   });
 });
 
-test.describe('FAQ', () => {
+test.describe('Вопросы и ответы', () => {
   test('аккордеон раскрывает вопрос', async ({ page }) => {
     await page.goto('/');
     const faq = page.locator('#faq');
@@ -69,9 +69,8 @@ test.describe('FAQ', () => {
     const firstQuestion = faq.getByRole('button', { name: /что такое мышечное тестирование/i });
     await expect(firstQuestion).toBeVisible({ timeout: 10000 });
     await firstQuestion.click();
-    // Ответ только внутри FAQ; ждём анимацию раскрытия
     await expect(
-      faq.getByText(/Метод обратной связи с телом|обратной связи с телом|аппаратуры/i)
+      faq.getByText(/обратная биологическая связь|обратной связи с телом|аппаратуры/i)
     ).toBeVisible({ timeout: 10000 });
   });
 });

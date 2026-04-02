@@ -16,7 +16,7 @@ interface PortalHeaderProps {
   unreadNotificationCount?: number;
 }
 
-export function PortalHeader({ profile, portalTitle = 'AVATERRA', unreadNotificationCount = 0 }: PortalHeaderProps) {
+export function PortalHeader({ profile, portalTitle = 'Аватера', unreadNotificationCount = 0 }: PortalHeaderProps) {
   const { setMobileMenuOpen } = usePortalUI();
   const role = (profile?.role as string) ?? 'user';
 

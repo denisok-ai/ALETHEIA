@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { BrandLogo } from '@/components/BrandLogo';
+import { BRAND_SITE_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 const navLinks = [
@@ -16,7 +17,7 @@ const navLinks = [
   { href: '#master', label: 'О мастере' },
   { href: '#reviews', label: 'Отзывы' },
   { href: '#pricing', label: 'Цены' },
-  { href: '#faq', label: 'FAQ' },
+  { href: '#faq', label: 'Вопросы и ответы' },
 ];
 
 export function Header() {
@@ -56,15 +57,8 @@ export function Header() {
             scrolled ? 'text-[var(--text)] hover:text-plum' : 'header-landing-text hover:text-plum'
           )}
         >
-          <Image
-            src="/images/avaterra-logo.png"
-            alt=""
-            width={71}
-            height={71}
-            className="h-[4.4375rem] w-[4.4375rem] shrink-0 object-contain"
-            priority
-          />
-          <span>AVATERRA</span>
+          <BrandLogo priority knockout={scrolled} />
+          <span className="max-w-[9rem] leading-tight sm:max-w-none">{BRAND_SITE_NAME}</span>
         </Link>
 
         <nav className="hidden items-center gap-6 lg:flex xl:gap-7">

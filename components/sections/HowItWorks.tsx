@@ -7,18 +7,18 @@ import { ChevronRight } from 'lucide-react';
 const steps = [
   {
     n: 1,
-    title: 'Стимул',
-    text: 'Вы воздействуете на точку или задаёте вопрос.',
+    title: 'Контакт',
+    text: 'Вы касаетесь тела.',
   },
   {
     n: 2,
-    title: 'Тест',
-    text: 'Проверяете сопротивление мышцы-индикатора.',
+    title: 'Вопрос',
+    text: 'Задаете вопрос.',
   },
   {
     n: 3,
     title: 'Ответ',
-    text: 'Слабость или сила мышцы показывают готовность организма к нагрузке или наличие скрытых проблем.',
+    text: 'Слабость или сила мышцы показывают готовность тела к взаимодействию.',
   },
 ];
 
@@ -38,7 +38,7 @@ export function HowItWorks() {
           <span className="block text-sm font-semibold uppercase tracking-widest text-plum">Метод</span>
           <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">Как это работает?</h2>
           <p className="mt-4 text-[var(--text-muted)] leading-relaxed">
-            Три шага — от воздействия до ответа тела. Так вы получаете обратную связь без сложной аппаратуры.
+            Три шага взаимодействия с телом. Так вы получаете обратную связь без сложной аппаратуры.
           </p>
         </motion.div>
 

@@ -11,8 +11,6 @@ const Testimonials = dynamic(() => import('@/components/sections/Testimonials').
 const Pricing = dynamic(() => import('@/components/sections/Pricing').then((m) => m.Pricing), { ssr: true });
 const FAQ = dynamic(() => import('@/components/sections/FAQ').then((m) => m.FAQ), { ssr: true });
 const Contact = dynamic(() => import('@/components/sections/Contact').then((m) => m.Contact), { ssr: true });
-const NewsWidget = dynamic(() => import('@/components/sections/NewsWidget').then((m) => m.NewsWidget), { ssr: true });
-
 export default async function HomePage() {
   const settings = await getSystemSettings();
   const contactPhone = settings.contact_phone?.trim() || null;
@@ -26,7 +24,6 @@ export default async function HomePage() {
       <Testimonials />
       <Pricing />
       <FAQ />
-      <NewsWidget />
       <Contact contactPhone={contactPhone} />
     </>
   );

@@ -6,16 +6,19 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Clock, ListChecks, Video, ChevronDown } from 'lucide-react';
 
+/** Цифры в шапке секции — по согласованию с заказчиком. */
+const DISPLAY_PRACTICAL_LESSONS = 8;
+const DISPLAY_HOURS = 25;
+
 const modules = [
-  { title: 'Введение в кинезиологию', lessons: 3, hours: 2 },
-  { title: 'Мышечное тестирование: основы', lessons: 4, hours: 3 },
-  { title: 'Работа с подсознанием', lessons: 5, hours: 4 },
-  { title: 'Практика и интеграция', lessons: 4, hours: 3 },
+  { title: 'Введение в метод', lessons: 1, hours: 1 },
+  { title: 'Мышечное тестирование', lessons: 4, hours: 4 },
+  { title: 'Работа с подсознанием', lessons: 5, hours: 7 },
+  { title: 'Работа с подсознанием. Инструменты', lessons: 2, hours: 3 },
+  { title: 'Практика', lessons: 8, hours: 12 },
 ];
 
 const moduleCount = modules.length;
-const totalLessons = modules.reduce((s, m) => s + m.lessons, 0);
-const totalHours = modules.reduce((s, m) => s + m.hours, 0);
 
 export function Program() {
   const ref = useRef<HTMLElement>(null);
@@ -61,8 +64,8 @@ export function Program() {
               <ListChecks className="h-6 w-6 text-plum" aria-hidden />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-[var(--text)]">{totalLessons}</p>
-              <p className="text-sm text-[var(--text-muted)]">уроков</p>
+              <p className="text-2xl font-bold tabular-nums text-[var(--text)]">{DISPLAY_PRACTICAL_LESSONS}</p>
+              <p className="text-sm leading-snug text-[var(--text-muted)]">живых практических уроков</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -70,7 +73,7 @@ export function Program() {
               <Clock className="h-6 w-6 text-plum" aria-hidden />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-[var(--text)]">{totalHours}+</p>
+              <p className="text-2xl font-bold tabular-nums text-[var(--text)]">{DISPLAY_HOURS}+</p>
               <p className="text-sm text-[var(--text-muted)]">часов материала</p>
             </div>
           </div>
@@ -120,7 +123,7 @@ export function Program() {
                   >
                     <div className="flex items-center gap-2 p-4 text-sm text-[var(--text)]">
                       <Video className="h-4 w-4 shrink-0 text-plum" aria-hidden />
-                      Видеоуроки и практические задания
+                      Живые практические занятия и материалы для самостоятельной работы
                     </div>
                   </motion.div>
                 )}

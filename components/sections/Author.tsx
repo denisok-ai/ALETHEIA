@@ -65,7 +65,7 @@ export function Author() {
             <p className="mt-2 text-[var(--text-muted)]">22 года практики · более 15 000 консультаций</p>
             <p className="mt-7 text-[var(--text-muted)] leading-relaxed">
               С 2004 года я практикую кинезиологию и мышечный тест, помогая людям обрести внутренний баланс и силу жизни.
-              AVATERRA — это уникальная методика, которая получила признание среди коллег и экспертов.
+              «Аватера» — это уникальная методика, которая получила признание среди коллег и экспертов.
             </p>
             <p className="mt-6 border-l-4 border-rose pl-4 font-heading text-lg italic text-[var(--text)]">{quote}</p>
             <Link href="#contact" className="mt-8 inline-block">

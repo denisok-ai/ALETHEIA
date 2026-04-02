@@ -7,9 +7,9 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import { processPaidOrder } from '@/lib/paykeeper-webhook-process';
 
 const TARIFFS: Record<string, { name: string; price: number }> = {
-  'kod-tela-start': { name: 'Код тела: введение в мышечное тестирование', price: 0 },
-  'avaterra-praktik': { name: 'AVATERRA: Практик', price: 25_000 },
-  'avaterra-master-vip': { name: 'AVATERRA: Мастер. Менторство Татьяны Стрельцовой', price: 69_000 },
+  'kod-tela-start': { name: 'Тело знает всё: введение в мышечное тестирование', price: 0 },
+  'avaterra-praktik': { name: '«Аватера»: Практик', price: 25_000 },
+  'avaterra-master-vip': { name: '«Аватера»: Мастер. Наставничество Татьяны Стрельцовой', price: 69_000 },
 };
 
 export async function POST(request: NextRequest) {

@@ -12,11 +12,11 @@ export function JsonLdOrganization({
   const data = {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
-    name: 'AVATERRA',
-    alternateName: 'AVATERRA.PRO',
+    name: 'Школа кинезиологии «Аватера»',
+    alternateName: ['Аватера', 'AVATERRA', 'avaterra.pro'],
     url,
     description:
-      'Phygital школа мышечного тестирования и кинезиологии. Курс «Тело не врет». Основатель — Татьяна Стрельцова.',
+      'Школа мышечного тестирования и кинезиологии. Курс «Тело не врет». Основатель — Татьяна Стрельцова.',
     areaServed: 'RU',
     inLanguage: 'ru-RU',
     ...(phone?.trim()

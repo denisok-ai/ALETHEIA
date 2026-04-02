@@ -255,17 +255,17 @@ function SidebarLogo({ collapsed }: { collapsed: boolean }) {
     <Link
       href="/"
       className="flex items-center gap-2.5 px-1 mb-5 select-none group"
-      aria-label="AVATERRA — на главную"
+      aria-label="«Аватера» — на главную"
     >
       <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
         bg-[var(--portal-accent)] text-white font-bold text-sm shadow-sm
         group-hover:bg-[var(--portal-accent-dark)] transition-colors">
-        AV
+        А
       </span>
       {!collapsed && (
         <span className="font-heading font-bold text-[var(--portal-text)] text-[0.95rem] tracking-tight
           group-hover:text-[var(--portal-accent)] transition-colors">
-          AVATERRA
+          Аватера
         </span>
       )}
     </Link>

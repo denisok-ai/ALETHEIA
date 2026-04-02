@@ -1,7 +1,8 @@
 import Link from 'next/link';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Mail, MapPin, Phone } from 'lucide-react';
+import { BrandLogo } from '@/components/BrandLogo';
+import { BRAND_SCHOOL_LINE, BRAND_SITE_NAME } from '@/lib/brand';
 
 interface FooterProps {
   /** Из настроек портала (БД). Если не задан — показывается заглушка. */
@@ -20,16 +21,10 @@ export function Footer({ contactPhone }: FooterProps) {
               href="#hero"
               className="inline-flex items-center gap-2 font-heading text-xl font-semibold text-[var(--text)] hover:text-plum transition-colors"
             >
-              <Image
-                src="/images/avaterra-logo.png"
-                alt=""
-                width={63}
-                height={63}
-                className="h-[3.9375rem] w-[3.9375rem] shrink-0 object-contain"
-              />
-              AVATERRA
+              <BrandLogo heightClass="h-[3.9375rem]" knockout />
+              <span>{BRAND_SITE_NAME}</span>
             </Link>
-            <p className="mt-2 text-sm text-[var(--text-muted)]">Школа Кинезиологии «AVATERRA»</p>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">{BRAND_SCHOOL_LINE}</p>
             <p className="mt-1 text-xs text-[var(--text-soft)]">
               Партнёры: Институт им. Энгельгардта, РНИМУ им. Пирогова
             </p>
@@ -73,7 +68,7 @@ export function Footer({ contactPhone }: FooterProps) {
           </div>
         </div>
         <p className="mt-12 pt-8 border-t border-[var(--border)] text-center text-xs text-[var(--text-soft)]">
-          © AVATERRA. ИП Стрельцова Т. (ОГРН и реквизиты уточняются)
+          © {BRAND_SITE_NAME}. ИП Стрельцова Т. (ОГРН и реквизиты уточняются)
         </p>
       </div>
     </footer>
