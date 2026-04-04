@@ -79,7 +79,7 @@ export function HelpContent({ supportHref = '/portal/student/support', role = 's
               <Link href="/portal/admin/users" className="font-medium text-[var(--portal-accent)] hover:underline">
                 Пользователи
               </Link>
-              {' — карточка пользователя → вкладка «Уровень заряда».}
+              {' — карточка пользователя → вкладка «Уровень заряда».'}
             </p>
           </div>
         </div>
