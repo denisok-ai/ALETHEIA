@@ -55,6 +55,14 @@ export interface PubRow {
   createdAt: string;
 }
 
+const PUB_SORT_GETTERS: Record<string, (p: PubRow) => unknown> = {
+  title: (p) => p.title,
+  type: (p) => p.type,
+  publishAt: (p) => p.publishAt,
+  status: (p) => p.status,
+  views: (p) => p.viewsCount,
+};
+
 export function PublicationsAdminClient({
   initialPublications,
 }: {
@@ -110,16 +118,9 @@ export function PublicationsAdminClient({
     return list;
   }, [items, typeFilter, search]);
 
-  const pubSortGetters: Record<string, (p: PubRow) => unknown> = {
-    title: (p) => p.title,
-    type: (p) => p.type,
-    publishAt: (p) => p.publishAt,
-    status: (p) => p.status,
-    views: (p) => p.viewsCount,
-  };
   const sorted = useMemo(() => {
-    if (!sortKey || !pubSortGetters[sortKey]) return filtered;
-    return sortTableBy(filtered, pubSortGetters[sortKey], sortDir);
+    if (!sortKey || !PUB_SORT_GETTERS[sortKey]) return filtered;
+    return sortTableBy(filtered, PUB_SORT_GETTERS[sortKey], sortDir);
   }, [filtered, sortKey, sortDir]);
 
   const pubTotal = sorted.length;

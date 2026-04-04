@@ -6,7 +6,6 @@ import { prisma } from '@/lib/db';
 
 /** Не кешировать: иначе nginx proxy_cache / CDN / браузер держат старый список тарифов. */
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 /** Первая строка description — краткий текст карточки; строки с «•» или с новой строки — пункты списка. */
 function descriptionToCardAndFeatures(

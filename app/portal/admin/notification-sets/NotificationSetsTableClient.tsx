@@ -34,6 +34,11 @@ export interface NotificationSetRow {
   isDefault: boolean;
 }
 
+const NOTIFICATION_SET_SORT_GETTERS: Record<string, (s: NotificationSetRow) => unknown> = {
+  eventType: (s) => s.eventType,
+  name: (s) => s.name,
+  isDefault: (s) => (s.isDefault ? 1 : 0),
+};
 
 export function NotificationSetsTableClient({ sets }: { sets: NotificationSetRow[] }) {
   const [page, setPage] = useState(0);
@@ -57,14 +62,9 @@ export function NotificationSetsTableClient({ sets }: { sets: NotificationSetRow
     else { setSortKey(columnId); setSortDir('asc'); }
   };
 
-  const sortGetters: Record<string, (s: NotificationSetRow) => unknown> = {
-    eventType: (s) => s.eventType,
-    name: (s) => s.name,
-    isDefault: (s) => (s.isDefault ? 1 : 0),
-  };
   const sorted = useMemo(() => {
-    if (!sortKey || !sortGetters[sortKey]) return sets;
-    return sortTableBy(sets, sortGetters[sortKey], sortDir);
+    if (!sortKey || !NOTIFICATION_SET_SORT_GETTERS[sortKey]) return sets;
+    return sortTableBy(sets, NOTIFICATION_SET_SORT_GETTERS[sortKey], sortDir);
   }, [sets, sortKey, sortDir]);
 
   const total = sorted.length;

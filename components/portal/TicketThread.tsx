@@ -86,7 +86,7 @@ export function TicketThread({
 
   useEffect(() => {
     if (defaultKbSnippet && !kbFragment) setKbFragment(defaultKbSnippet);
-  }, [defaultKbSnippet]);
+  }, [defaultKbSnippet, kbFragment]);
 
   const canUseAiReply = canChangeStatus || canAssign;
 

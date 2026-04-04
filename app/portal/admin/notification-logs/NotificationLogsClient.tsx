@@ -45,6 +45,15 @@ export interface LogRow {
   createdAt: string;
 }
 
+const LOG_SORT_GETTERS: Record<string, (l: LogRow) => unknown> = {
+  date: (l) => l.createdAt,
+  recipient: (l) => l.userDisplayName ?? l.userEmail ?? l.userId ?? '',
+  event: (l) => l.eventType,
+  subject: (l) => l.subject ?? '',
+  channel: (l) => l.channel,
+  content: (l) => (l.content ?? '').slice(0, 100),
+};
+
 const EVENT_TYPES = [
   { value: '', label: 'Все события' },
   { value: 'enrollment', label: 'Запись на курс' },
@@ -89,17 +98,9 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
     return list;
   }, [initialLogs, eventFilter, channelFilter]);
 
-  const logSortGetters: Record<string, (l: LogRow) => unknown> = {
-    date: (l) => l.createdAt,
-    recipient: (l) => l.userDisplayName ?? l.userEmail ?? l.userId ?? '',
-    event: (l) => l.eventType,
-    subject: (l) => l.subject ?? '',
-    channel: (l) => l.channel,
-    content: (l) => (l.content ?? '').slice(0, 100),
-  };
   const sorted = useMemo(() => {
-    if (!sortKey || !logSortGetters[sortKey]) return filtered;
-    return sortTableBy(filtered, logSortGetters[sortKey], sortDir);
+    if (!sortKey || !LOG_SORT_GETTERS[sortKey]) return filtered;
+    return sortTableBy(filtered, LOG_SORT_GETTERS[sortKey], sortDir);
   }, [filtered, sortKey, sortDir]);
 
   const logsTotal = sorted.length;

@@ -38,6 +38,11 @@ export interface NotifTemplateRow {
   type: string;
 }
 
+const NOTIF_TEMPLATE_SORT_GETTERS: Record<string, (t: NotifTemplateRow) => unknown> = {
+  name: (t) => t.name,
+  subject: (t) => t.subject ?? '',
+  type: (t) => t.type,
+};
 
 export function NotificationTemplatesTableClient({ templates }: { templates: NotifTemplateRow[] }) {
   const [page, setPage] = useState(0);
@@ -56,14 +61,9 @@ export function NotificationTemplatesTableClient({ templates }: { templates: Not
     else { setSortKey(columnId); setSortDir('asc'); }
   };
 
-  const sortGetters: Record<string, (t: NotifTemplateRow) => unknown> = {
-    name: (t) => t.name,
-    subject: (t) => t.subject ?? '',
-    type: (t) => t.type,
-  };
   const sorted = useMemo(() => {
-    if (!sortKey || !sortGetters[sortKey]) return templates;
-    return sortTableBy(templates, sortGetters[sortKey], sortDir);
+    if (!sortKey || !NOTIF_TEMPLATE_SORT_GETTERS[sortKey]) return templates;
+    return sortTableBy(templates, NOTIF_TEMPLATE_SORT_GETTERS[sortKey], sortDir);
   }, [templates, sortKey, sortDir]);
 
   const total = sorted.length;

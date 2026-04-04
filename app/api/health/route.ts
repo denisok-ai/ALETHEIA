@@ -5,7 +5,6 @@
 import { NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
-export const revalidate = 0;
 
 export async function GET() {
   const version = process.env.NEXT_PUBLIC_APP_VERSION ?? null;
@@ -22,6 +21,7 @@ export async function GET() {
     {
       status: 200,
       headers: {
+        'Cache-Control': 'no-store, must-revalidate',
         ...(version ? { 'X-App-Version': String(version) } : {}),
         ...(commit ? { 'X-Build-Commit': String(commit) } : {}),
       },
