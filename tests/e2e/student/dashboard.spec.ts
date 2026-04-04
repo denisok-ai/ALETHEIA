@@ -4,10 +4,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Дашборд', () => {
-  test('метрики (курсы, XP)', async ({ page }) => {
+  test('метрики (курсы, заряд)', async ({ page }) => {
     await page.goto('/portal/student/dashboard');
     await expect(page.getByRole('main').first()).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(/курс|xp|балл|прогресс/i).first()).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/курс|заряд|уровень|прогресс/i).first()).toBeVisible({ timeout: 5000 });
   });
 });
 

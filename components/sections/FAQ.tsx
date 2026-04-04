@@ -5,29 +5,7 @@ import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Search, HelpCircle, MessageCircle, Send } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
-
-const items = [
-  {
-    q: 'Что такое мышечное тестирование?',
-    a: 'Это обратная биологическая связь с телом и системой организма. Метод позволяет выявить дисбаланс и напряжение, а также найти истинную причину любых проблем (на уровне тела и подсознания).',
-    category: 'Методика',
-  },
-  {
-    q: 'Как проходит личная консультация?',
-    a: 'Личная консультация предусмотрена в рамках VIP-тарифа (или при работе лично с мастером). Она проходит в формате индивидуальной встречи, где эксперт проводит персональную диагностику и детальный разбор вашего запроса.',
-    category: 'Формат',
-  },
-  {
-    q: 'Можно ли обучаться онлайн / дистанционно? Эффективно ли это?',
-    a: 'Да, можно. Онлайн-формат обучения никак не влияет на его эффективность, вы получаете полноценные знания и навыки.',
-    category: 'Формат',
-  },
-  {
-    q: 'Сколько длится курс?',
-    a: 'Курс длится 2 месяца. В программу входят 8 практических занятий и 25+ часов материала. Доступ к курсу остается с вами на 3 месяца.',
-    category: 'Курс',
-  },
-];
+import { FAQ_SECTION_ITEMS } from '@/lib/landing-faq';
 
 export function FAQ() {
   const ref = useRef<HTMLElement>(null);
@@ -39,7 +17,7 @@ export function FAQ() {
   const [askLoading, setAskLoading] = useState(false);
   const [askError, setAskError] = useState<string | null>(null);
 
-  const filtered = items.filter(
+  const filtered = FAQ_SECTION_ITEMS.filter(
     (item) =>
       item.q.toLowerCase().includes(search.toLowerCase()) ||
       item.a.toLowerCase().includes(search.toLowerCase())
@@ -71,7 +49,11 @@ export function FAQ() {
   };
 
   return (
-    <section id="faq" ref={ref} className="relative scroll-mt-24 border-t border-[var(--border)] bg-[var(--surface)] py-24 px-5 md:py-28 md:px-6">
+    <section
+      id="faq-extended"
+      ref={ref}
+      className="relative scroll-mt-24 border-t border-[var(--border)] bg-[var(--surface)] py-14 px-4 sm:px-5 md:py-20 md:px-6"
+    >
       <div className="relative mx-auto max-w-6xl">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
@@ -79,10 +61,12 @@ export function FAQ() {
           transition={{ duration: 0.5 }}
           className="max-w-3xl"
         >
-          <span className="block text-sm font-semibold uppercase tracking-widest text-plum">Вопросы и ответы</span>
-          <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">Частые вопросы</h2>
+          <span className="block text-sm font-semibold uppercase tracking-widest text-plum">Поиск и помощник</span>
+          <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">
+            Вопросы и помощник по курсу
+          </h2>
           <p className="mt-4 text-[var(--text-muted)] leading-relaxed">
-            Сначала поищите в списке; если нужно переформулировать — спросите помощника по базе знаний курса. Индивидуальную заявку можно оставить в конце страницы.
+            Сначала поищите в списке; если нужно переформулировать — спросите помощника по базе знаний курса или откройте чат справа внизу на экране.
           </p>
         </motion.div>
 
@@ -112,7 +96,7 @@ export function FAQ() {
                 </p>
               ) : (
                 filtered.map((item, idx) => {
-                  const originalIndex = items.indexOf(item);
+                  const originalIndex = FAQ_SECTION_ITEMS.indexOf(item);
                   return (
                     <motion.div
                       key={item.q}
@@ -172,7 +156,7 @@ export function FAQ() {
                 <h3 className="font-heading text-xl font-semibold text-[var(--text)]">Задайте вопрос по курсу</h3>
               </div>
               <p className="mt-2 text-sm text-[var(--text-muted)]">
-                Ответ по базе знаний курса школы «Аватера» (нейросеть). Не заменяет консультацию специалиста.
+                Ответ по базе знаний курса школы «АВАТЕРРА» (нейросеть). Не заменяет консультацию специалиста.
               </p>
               <div className="mt-5 flex flex-col gap-3">
                 <input

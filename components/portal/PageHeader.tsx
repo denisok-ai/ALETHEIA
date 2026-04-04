@@ -1,13 +1,16 @@
+'use client';
+
 /**
- * Единая шапка страницы портала — redesigned: breadcrumbs, title, actions.
+ * Единая шапка страницы портала (клиентский контейнер): breadcrumbs, title, actions.
  */
+import type { ReactNode } from 'react';
 import { Breadcrumbs, type BreadcrumbItem } from './Breadcrumbs';
 
 export interface PageHeaderProps {
   items: BreadcrumbItem[];
   title: string;
   description?: string | null;
-  actions?: React.ReactNode;
+  actions?: ReactNode;
 }
 
 export function PageHeader({ items, title, description, actions }: PageHeaderProps) {

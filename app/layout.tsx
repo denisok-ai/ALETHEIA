@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import nextDynamic from 'next/dynamic';
+import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import './globals.css';
 import { Header } from '@/components/sections/Header';
@@ -9,9 +10,11 @@ import { SessionProvider } from '@/components/providers/SessionProvider';
 import { getSystemSettings } from '@/lib/settings';
 import { AnalyticsScripts } from '@/components/AnalyticsScripts';
 import { GoogleTagInHead } from '@/components/GoogleTagInHead';
+import { YandexMetrika } from '@/components/YandexMetrika';
 import { JsonLdOrganization } from '@/components/JsonLdOrganization';
 import { RootMain } from '@/components/RootMain';
 import { normalizeSiteUrl } from '@/lib/site-url';
+import { BRAND_LOGO_URL } from '@/lib/brand';
 
 /** Без этого Next отдаёт главную и оболочку как «вечный» статический кеш (s-maxage=31536000) — после деплоя видна старая сборка. */
 export const dynamic = 'force-dynamic';
@@ -37,32 +40,35 @@ export async function generateMetadata(): Promise<Metadata> {
   } catch {
     metadataBase = new URL('https://avaterra.pro');
   }
+  const ogDescription =
+    'Ваше тело знает ответ — научитесь его понимать. Онлайн-курс по прикладному мышечному тестированию и кинезиологии от Татьяны Стрельцовой. 22 года практики, 16 модулей работы с подсознанием. Записывайтесь!';
+  const ogTitle = 'Обучение прикладному мышечному тестированию | Курсы кинезиологии AVATERRA';
+
   return {
     metadataBase,
     title: {
-      default: 'Школа кинезиологии «Аватера» — курс по мышечному тестированию',
-      template: '%s | Аватера',
+      default: ogTitle,
+      template: '%s | АВАТЕРРА',
     },
-    description:
-      'Курс по обучению мышечному тестированию: узнайте, как найти причину проблемы за 30 секунд без дорогостоящих обследований. Кинезиология, тело и подсознание. Татьяна Стрельцова — более 20 лет практики, 15 000+ выпускников.',
+    description: ogDescription,
     keywords: [
       'кинезиология',
       'мышечное тестирование',
-      'Аватера',
+      'АВАТЕРРА',
       'AVATERRA',
       'тело не врет',
       'Татьяна Стрельцова',
       'психосоматика',
       'онлайн курс кинезиология',
     ],
-    applicationName: 'Аватера',
+    applicationName: 'АВАТЕРРА',
     authors: [{ name: 'Татьяна Стрельцова', url: siteUrl }],
-    creator: 'Аватера',
-    publisher: 'Аватера',
+    creator: 'АВАТЕРРА',
+    publisher: 'АВАТЕРРА',
     icons: {
-      icon: [{ url: '/icon.svg', type: 'image/svg+xml' }],
-      shortcut: '/icon.svg',
-      apple: '/icon.svg',
+      icon: [{ url: BRAND_LOGO_URL, type: 'image/png', sizes: 'any' }],
+      shortcut: BRAND_LOGO_URL,
+      apple: BRAND_LOGO_URL,
     },
     formatDetection: { telephone: false },
     verification: {
@@ -71,20 +77,31 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     alternates: {
       canonical: siteUrl,
+      types: {
+        'application/rss+xml': `${siteUrl}/feed.xml`,
+      },
     },
     openGraph: {
-      title: 'Школа кинезиологии «Аватера» — курс по мышечному тестированию',
-      description:
-        'Тело помнит и знает всё: мышечное тестирование, кинезиология и программы школы «Аватера».',
+      title: ogTitle,
+      description: ogDescription,
       type: 'website',
       url: siteUrl,
       locale: 'ru_RU',
-      siteName: 'Аватера',
+      siteName: 'АВАТЕРРА',
+      images: [
+        {
+          url: '/images/tatiana/tatiana-hero.png',
+          width: 1024,
+          height: 1280,
+          alt: 'Татьяна Стрельцова — основательница школы кинезиологии АВАТЕРРА',
+        },
+      ],
     },
     twitter: {
       card: 'summary_large_image',
-      title: 'Школа кинезиологии «Аватера»',
-      description: 'Курс по мышечному тестированию и кинезиологии.',
+      title: ogTitle,
+      description: ogDescription,
+      images: ['/images/tatiana/tatiana-hero.png'],
     },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   };
@@ -107,13 +124,16 @@ export default async function RootLayout({
       </head>
       <body className="min-h-screen font-body antialiased">
         <JsonLdOrganization siteUrl={siteUrl} phone={settings.contact_phone} />
+        <YandexMetrika />
         <AnalyticsScripts />
         <ChunkLoadRecovery />
         <SessionProvider>
-          <Header />
-          <RootMain>{children}</RootMain>
-          <ChatBot />
-          <FooterOnPublicOnly contactPhone={settings.contact_phone || undefined} />
+          <Suspense fallback={<div className="min-h-[100dvh]" aria-hidden />}>
+            <Header />
+            <RootMain>{children}</RootMain>
+            <ChatBot />
+            <FooterOnPublicOnly contactPhone={settings.contact_phone || undefined} />
+          </Suspense>
           <Toaster richColors position="top-center" />
         </SessionProvider>
       </body>

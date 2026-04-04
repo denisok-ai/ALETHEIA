@@ -1,20 +1,36 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getSystemSettings } from '@/lib/settings';
+import { normalizeSiteUrl } from '@/lib/site-url';
 
-export const metadata: Metadata = {
-  title: 'Политика конфиденциальности',
-  description:
-    'Политика обработки персональных данных на сайте AVATERRA. Цели, объём данных, права пользователей, cookies.',
-  openGraph: { title: 'Политика конфиденциальности — AVATERRA', description: 'Обработка персональных данных на сайте школы.' },
-  robots: { index: true, follow: true },
-};
+const DESCRIPTION =
+  'Политика обработки персональных данных на сайте АВАТЕРРА. Цели, объём данных, права пользователей, cookies.';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSystemSettings();
+  const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
+  const canonical = `${base}/privacy`;
+  const title = 'Политика конфиденциальности';
+  return {
+    title,
+    description: DESCRIPTION,
+    alternates: { canonical },
+    openGraph: {
+      title: 'Политика конфиденциальности — АВАТЕРРА',
+      description: 'Обработка персональных данных на сайте школы.',
+      url: canonical,
+      locale: 'ru_RU',
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 /**
- * Политика конфиденциальности и обработки персональных данных школы AVATERRA.
+ * Политика конфиденциальности и обработки персональных данных школы АВАТЕРРА.
  */
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-24 font-body">
+    <div className="mx-auto max-w-3xl px-4 py-16 font-body">
       <h1 className="font-heading text-3xl font-semibold text-[var(--text)]">
         Политика конфиденциальности
       </h1>
@@ -26,7 +42,7 @@ export default function PrivacyPage() {
         <section>
           <h2 className="font-heading text-xl font-semibold text-[var(--text)]">1. Общие положения</h2>
           <p className="mt-2">
-            Настоящая политика определяет порядок обработки персональных данных посетителей сайта и пользователей портала школы AVATERRA (далее — Оператор). Обработка осуществляется в соответствии с Федеральным законом № 152-ФЗ «О персональных данных» и иными применимыми нормами.
+            Настоящая политика определяет порядок обработки персональных данных посетителей сайта и пользователей портала школы АВАТЕРРА (далее — Оператор). Обработка осуществляется в соответствии с Федеральным законом № 152-ФЗ «О персональных данных» и иными применимыми нормами.
           </p>
         </section>
 

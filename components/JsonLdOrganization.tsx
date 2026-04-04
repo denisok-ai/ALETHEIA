@@ -1,6 +1,8 @@
 /**
  * Разметка Schema.org для поисковиков (организация / образовательная школа).
  */
+import { BRAND_LOGO_URL } from '@/lib/brand';
+
 export function JsonLdOrganization({
   siteUrl,
   phone,
@@ -12,9 +14,10 @@ export function JsonLdOrganization({
   const data = {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
-    name: 'Школа кинезиологии «Аватера»',
-    alternateName: ['Аватера', 'AVATERRA', 'avaterra.pro'],
+    name: 'Школа кинезиологии «АВАТЕРРА»',
+    alternateName: ['АВАТЕРРА', 'AVATERRA', 'avaterra.pro'],
     url,
+    logo: `${url}${BRAND_LOGO_URL}`,
     description:
       'Школа мышечного тестирования и кинезиологии. Курс «Тело не врет». Основатель — Татьяна Стрельцова.',
     areaServed: 'RU',

@@ -7,20 +7,30 @@ test.describe('Главная страница', () => {
   test('загружается с заголовком и навигацией', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await page.goto('/');
-    await expect(page).toHaveTitle(/Аватера|AVATERRA|avaterra|кинезиологии/i);
+    await expect(page).toHaveTitle(/АВАТЕРРА|AVATERRA|avaterra|кинезиологии/i);
     await expect(page.getByRole('link', { name: /^Цены$/i })).toBeVisible({ timeout: 5000 });
     await expect(page.getByRole('link', { name: /Вопросы и ответы/ })).toBeVisible();
     await expect(page.locator('#method')).toBeAttached();
-    // Секция контактов в DOM (ниже первого экрана — без scroll toBeVisible может упасть)
-    const contact = page.locator('#contact');
-    await expect(contact).toBeAttached();
-    await contact.scrollIntoViewIfNeeded();
-    await expect(contact).toBeVisible();
+    const faqExtended = page.locator('#faq-extended');
+    await expect(faqExtended).toBeAttached();
+    await faqExtended.scrollIntoViewIfNeeded();
+    await expect(faqExtended).toBeVisible();
   });
 
-  test('секции About, Pricing, вопросы и ответы, Contact присутствуют', async ({ page }) => {
+  test('Hero: ссылка «Купить курс» ведёт на Lynda', async ({ page }) => {
     await page.goto('/');
-    for (const id of ['#pricing', '#faq', '#contact'] as const) {
+    const buyCourse = page.locator('#hero').getByRole('link', { name: /Купить курс/i });
+    await expect(buyCourse).toBeVisible({ timeout: 5000 });
+    const buyHref = await buyCourse.getAttribute('href');
+    expect(buyHref).toBeTruthy();
+    expect(buyHref).toMatch(/^(https?:\/\/|\/#)/);
+    await expect(buyCourse).toHaveAttribute('target', '_blank');
+    await expect(buyCourse).toHaveAttribute('rel', /noopener/);
+  });
+
+  test('секции About, Pricing, вопросы и ответы, блок помощника присутствуют', async ({ page }) => {
+    await page.goto('/');
+    for (const id of ['#pricing', '#faq', '#faq-extended'] as const) {
       const el = page.locator(id);
       await expect(el).toBeAttached();
       await el.scrollIntoViewIfNeeded();
@@ -75,25 +85,12 @@ test.describe('Вопросы и ответы', () => {
   });
 });
 
-test.describe('Форма заявки', () => {
-  test('форма видна с полями и кнопкой отправить', async ({ page }) => {
+test.describe('Блок помощника (FAQ extended)', () => {
+  test('заголовок и поле вопроса', async ({ page }) => {
     await page.goto('/');
-    await page.locator('#contact').scrollIntoViewIfNeeded();
-    await expect(page.getByRole('button', { name: /отправить заявку/i })).toBeVisible();
-    await expect(page.getByLabel(/имя/i).first()).toBeVisible();
-    await expect(page.getByLabel(/телефон/i)).toBeVisible();
-    await expect(page.getByLabel(/email/i).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /политикой конфиденциальности/i })).toBeVisible();
-  });
-
-  test('валидация: пустая форма не отправляется (HTML5 required)', async ({ page }) => {
-    await page.goto('/');
-    await page.locator('#contact').scrollIntoViewIfNeeded();
-    const submitBtn = page.getByRole('button', { name: /отправить заявку/i });
-    await submitBtn.click();
-    // HTML5 validation блокирует submit — остаёмся на странице, нет toast успеха
-    await expect(page).toHaveURL(/\/$/);
-    await expect(page.getByText(/заявка отправлена|спасибо/i)).not.toBeVisible();
+    await page.locator('#faq-extended').scrollIntoViewIfNeeded();
+    await expect(page.getByRole('heading', { name: /вопросы и помощник по курсу/i })).toBeVisible();
+    await expect(page.locator('#faq-extended').getByPlaceholder(/поиск по вопросам/i)).toBeVisible();
   });
 });
 

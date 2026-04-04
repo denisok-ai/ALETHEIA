@@ -1,16 +1,29 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { getSystemSettings } from '@/lib/settings';
+import { normalizeSiteUrl } from '@/lib/site-url';
 
-export const metadata: Metadata = {
-  title: 'Публичная оферта',
-  description:
-    'Публичная оферта AVATERRA: условия оплаты, доступа к курсам в личном кабинете и возврата средств. Образовательные и консультационные услуги.',
-  openGraph: {
-    title: 'Публичная оферта — AVATERRA',
-    description: 'Оплата, доступ к материалам, возвраты. Условия оказания услуг школы мышечного тестирования.',
-  },
-  robots: { index: true, follow: true },
-};
+const DESCRIPTION =
+  'Публичная оферта АВАТЕРРА: условия оплаты, доступа к курсам в личном кабинете и возврата средств. Образовательные и консультационные услуги.';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSystemSettings();
+  const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
+  const canonical = `${base}/oferta`;
+  const title = 'Публичная оферта';
+  return {
+    title,
+    description: DESCRIPTION,
+    alternates: { canonical },
+    openGraph: {
+      title: 'Публичная оферта — АВАТЕРРА',
+      description: 'Оплата, доступ к материалам, возвраты. Условия оказания услуг школы мышечного тестирования.',
+      url: canonical,
+      locale: 'ru_RU',
+    },
+    robots: { index: true, follow: true },
+  };
+}
 
 const tocItems = [
   { id: 'oplata' as const, label: 'Условия оплаты' },
@@ -19,16 +32,16 @@ const tocItems = [
 ];
 
 /**
- * Публичная оферта на оказание образовательных и консультационных услуг школы AVATERRA.
+ * Публичная оферта на оказание образовательных и консультационных услуг школы АВАТЕРРА.
  */
 export default function OfertaPage() {
   return (
-    <div className="mx-auto max-w-3xl px-4 py-24 font-body">
+    <div className="mx-auto max-w-3xl px-4 py-16 font-body">
       <h1 className="font-heading text-3xl font-semibold text-[var(--text)]">
         Публичная оферта
       </h1>
       <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
-        Школа AVATERRA (Phygital школа мышечного тестирования). Актуальная версия размещена на сайте.
+        Школа АВАТЕРРА (Phygital школа мышечного тестирования). Актуальная версия размещена на сайте.
       </p>
 
       <nav

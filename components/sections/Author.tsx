@@ -17,7 +17,7 @@ export function Author() {
     <section
       id="master"
       ref={ref}
-      className="relative scroll-mt-24 overflow-hidden border-t border-[var(--border)] bg-[var(--surface)] py-24 px-5 md:py-28 md:px-6"
+      className="relative overflow-hidden border-t border-[var(--border)] bg-[var(--surface)] py-14 px-4 sm:px-5 md:py-20 md:px-6"
     >
       <motion.div
         initial={{ opacity: 0, y: 24 }}
@@ -25,7 +25,7 @@ export function Author() {
         transition={{ duration: 0.55 }}
         className="relative mx-auto max-w-6xl"
       >
-        <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+        <div className="grid gap-8 lg:grid-cols-2 lg:items-center lg:gap-12">
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
@@ -36,7 +36,7 @@ export function Author() {
               <div className="relative overflow-hidden rounded-2xl border-2 border-periwinkle/50 shadow-[var(--shadow-card)]">
                 <Image
                   src="/images/tatiana/tatiana-about.png"
-                  alt="Татьяна Стрельцова"
+                  alt="Татьяна Стрельцова — основательница школы кинезиологии АВАТЕРРА, 22 года практики"
                   width={480}
                   height={640}
                   className="relative h-auto w-full object-cover"
@@ -51,7 +51,7 @@ export function Author() {
             </TiltCard>
           </motion.div>
 
-          <motion.div
+          <motion.article
             initial={{ opacity: 0, x: 30 }}
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.1 }}
@@ -65,13 +65,13 @@ export function Author() {
             <p className="mt-2 text-[var(--text-muted)]">22 года практики · более 15 000 консультаций</p>
             <p className="mt-7 text-[var(--text-muted)] leading-relaxed">
               С 2004 года я практикую кинезиологию и мышечный тест, помогая людям обрести внутренний баланс и силу жизни.
-              «Аватера» — это уникальная методика, которая получила признание среди коллег и экспертов.
+              «АВАТЕРРА» — это уникальная методика, которая получила признание среди коллег и экспертов.
             </p>
             <p className="mt-6 border-l-4 border-rose pl-4 font-heading text-lg italic text-[var(--text)]">{quote}</p>
-            <Link href="#contact" className="mt-8 inline-block">
+            <Link href="/#pricing" className="mt-8 inline-block">
               <Button variant="landingPlum">Связаться со мной</Button>
             </Link>
-          </motion.div>
+          </motion.article>
         </div>
       </motion.div>
     </section>

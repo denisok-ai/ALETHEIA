@@ -1,27 +1,29 @@
 /**
- * Schema.org BlogPosting для статей блога (SEO).
+ * Schema.org Article / NewsArticle для публичных публикаций (SEO).
  */
 import { BRAND_LOGO_URL } from '@/lib/brand';
 
-export function JsonLdBlogArticle({
+type Props = {
+  headline: string;
+  description: string;
+  pageUrl: string;
+  datePublished: string;
+  dateModified: string;
+  /** Абсолютный URL превью; по умолчанию — общий OG-кадр сайта */
+  imageUrl?: string;
+  /** schema.org: NewsArticle для type news, иначе Article */
+  useNewsArticle?: boolean;
+};
+
+export function JsonLdNewsArticle({
   headline,
   description,
   pageUrl,
   datePublished,
   dateModified,
   imageUrl,
-  authorName = 'Татьяна Стрельцова',
-}: {
-  headline: string;
-  description: string;
-  pageUrl: string;
-  datePublished: string;
-  /** Если не задано — совпадает с datePublished */
-  dateModified?: string;
-  /** Абсолютный URL изображения для превью */
-  imageUrl?: string;
-  authorName?: string;
-}) {
+  useNewsArticle = false,
+}: Props) {
   const origin = (() => {
     try {
       return new URL(pageUrl).origin;
@@ -30,18 +32,19 @@ export function JsonLdBlogArticle({
     }
   })();
   const logoUrl = origin ? `${origin}${BRAND_LOGO_URL}` : undefined;
+  const type = useNewsArticle ? 'NewsArticle' : 'Article';
 
   const data: Record<string, unknown> = {
     '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
+    '@type': type,
     headline,
     description,
     url: pageUrl,
     datePublished,
-    dateModified: dateModified ?? datePublished,
+    dateModified,
     author: {
       '@type': 'Person',
-      name: authorName,
+      name: 'Татьяна Стрельцова',
     },
     publisher: {
       '@type': 'Organization',

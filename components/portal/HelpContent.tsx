@@ -2,7 +2,7 @@
  * Общий контент страницы «Помощь» в портале — единый стиль с эталоном.
  */
 import Link from 'next/link';
-import { Headphones, BookOpen, Mail, MessageCircle, Video } from 'lucide-react';
+import { Headphones, BookOpen, Mail, MessageCircle, Video, Sparkles } from 'lucide-react';
 
 interface HelpContentProps {
   supportHref?: string;
@@ -33,6 +33,12 @@ const HELP_ITEMS: { id?: string; icon: typeof BookOpen; title: string; text: str
     title: 'Как отправить задание на проверку',
     text: 'Страница курса → блок «Задания на проверку». Видео в YouTube/облако, вставьте ссылку. Статус — в меню «Задания на проверку».',
   },
+  {
+    id: 'gamification',
+    icon: Sparkles,
+    title: 'Уровни заряда на дашборде',
+    text: 'Интуитивно понятно: заряд показывается как шкала «батарейки» ресурса обучения. За первое завершение урока начисляется прирост к уровню заряда; повтор по тому же уроку не добавляет. Порог следующего бейджа («Новичок», «Практик» и др.) виден в виде «+N к уровню заряда». Шаг шкалы настраивает администратор.',
+  },
 ];
 
 export function HelpContent({ supportHref = '/portal/student/support', role = 'student' }: HelpContentProps) {
@@ -55,6 +61,29 @@ export function HelpContent({ supportHref = '/portal/student/support', role = 's
           </div>
         ))}
       </div>
+
+      {role === 'admin' && (
+        <div className="portal-card flex gap-2.5 p-3 md:p-4 border border-[var(--portal-accent-muted)]/40">
+          <span className={iconCls} aria-hidden>
+            <Sparkles className="h-full w-full" />
+          </span>
+          <div className="min-w-0">
+            <p className="font-medium text-[var(--portal-text)] text-sm">Геймификация и заряд пользователей</p>
+            <p className="mt-0.5 text-xs text-[var(--portal-text-muted)] leading-snug">
+              Глобальные параметры (шаг уровня заряда, прирост за первое завершение урока): раздел{' '}
+              <Link href="/portal/admin/gamification" className="font-medium text-[var(--portal-accent)] hover:underline">
+                Настройки → Геймификация
+              </Link>{' '}
+              (<code className="rounded bg-[#F1F5F9] px-1">/portal/admin/gamification</code>) или ⌘K / Ctrl+K → «Геймификация».
+              Ручное начисление или списание заряда:{' '}
+              <Link href="/portal/admin/users" className="font-medium text-[var(--portal-accent)] hover:underline">
+                Пользователи
+              </Link>
+              {' — карточка пользователя → вкладка «Уровень заряда».}
+            </p>
+          </div>
+        </div>
+      )}
 
       {(role === 'student' || role === 'manager') && (
         <Link

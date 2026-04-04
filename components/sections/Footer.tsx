@@ -21,7 +21,7 @@ export function Footer({ contactPhone }: FooterProps) {
               href="#hero"
               className="inline-flex items-center gap-2 font-heading text-xl font-semibold text-[var(--text)] hover:text-plum transition-colors"
             >
-              <BrandLogo heightClass="h-[3.9375rem]" knockout />
+              <BrandLogo knockout={false} heightClass="h-[3.9375rem]" />
               <span>{BRAND_SITE_NAME}</span>
             </Link>
             <p className="mt-2 text-sm text-[var(--text-muted)]">{BRAND_SCHOOL_LINE}</p>
@@ -58,6 +58,9 @@ export function Footer({ contactPhone }: FooterProps) {
               <Button variant="landingRose">Купить курс</Button>
             </Link>
             <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-4 text-xs text-[var(--text-soft)]">
+              <Link href="/blog" className="hover:text-plum transition-colors">
+                Блог
+              </Link>
               <Link href="/oferta" className="hover:text-plum transition-colors">
                 Оферта
               </Link>
@@ -67,7 +70,7 @@ export function Footer({ contactPhone }: FooterProps) {
             </div>
           </div>
         </div>
-        <p className="mt-12 pt-8 border-t border-[var(--border)] text-center text-xs text-[var(--text-soft)]">
+        <p className="mt-8 pt-6 border-t border-[var(--border)] text-center text-xs text-[var(--text-soft)]">
           © {BRAND_SITE_NAME}. ИП Стрельцова Т. (ОГРН и реквизиты уточняются)
         </p>
       </div>

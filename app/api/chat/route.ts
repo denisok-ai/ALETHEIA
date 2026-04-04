@@ -2,10 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { getSystemSettings, getKnowledgeBase } from '@/lib/settings';
+import { getKnowledgeBase, getSystemSettings } from '@/lib/settings';
 import { getLlmApiKey } from '@/lib/llm';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logLlmRequest } from '@/lib/llm-request-log';
+import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
+import { normalizeSiteUrl } from '@/lib/site-url';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEFAULT_MODEL = 'deepseek-chat';
@@ -35,8 +37,12 @@ export async function POST(request: NextRequest) {
     }
 
     const systemSettings = await getSystemSettings();
-    const baseUrl = systemSettings.site_url || '';
-    const courseUrl = baseUrl ? baseUrl.replace(/\/$/, '') + '/#pricing' : '/#pricing';
+    const siteBase = normalizeSiteUrl(systemSettings.site_url || process.env.NEXT_PUBLIC_URL || 'https://avaterra.pro').replace(
+      /\/$/,
+      ''
+    );
+    /** Плейсхолдер {{COURSE_URL}} в базе знаний — тот же URL, что кнопки «Купить курс» / CTA. */
+    const courseUrl = absoluteCourseCheckoutUrl(siteBase);
 
     const knowledgeBase = await getKnowledgeBase();
     if (!knowledgeBase.trim()) {
@@ -54,15 +60,15 @@ export async function POST(request: NextRequest) {
     let maxTokens = 1024;
     let activeTemplateId: string | null = null;
 
-    const settings = await prisma.llmSetting.findUnique({
+    const chatbotLlmSetting = await prisma.llmSetting.findUnique({
       where: { key: 'chatbot' },
     });
-    if (settings) {
-      model = settings.model ?? DEFAULT_MODEL;
-      temperature = Number(settings.temperature) || 0.5;
-      maxTokens = Number(settings.maxTokens) || 1024;
-      if (settings.systemPrompt?.trim()) {
-        systemPrompt = settings.systemPrompt.trim() + '\n\n---\n\n';
+    if (chatbotLlmSetting) {
+      model = chatbotLlmSetting.model ?? DEFAULT_MODEL;
+      temperature = Number(chatbotLlmSetting.temperature) || 0.5;
+      maxTokens = Number(chatbotLlmSetting.maxTokens) || 1024;
+      if (chatbotLlmSetting.systemPrompt?.trim()) {
+        systemPrompt = chatbotLlmSetting.systemPrompt.trim() + '\n\n---\n\n';
       }
     }
 

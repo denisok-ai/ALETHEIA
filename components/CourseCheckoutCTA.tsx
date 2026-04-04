@@ -4,9 +4,13 @@ import Link from 'next/link';
 import { Gift } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { COURSE_CHECKOUT_URL } from '@/lib/content/course-lynda-teaser';
 
-/** Секция главной с тарифами и кнопкой «Купить» (модалка оплаты). */
+/** Секция главной с тарифами и ссылкой на блок цен. */
 export const COURSE_SALES_HREF = '/#pricing';
+
+/** Реэкспорт: канонический URL в {@link COURSE_CHECKOUT_URL} (`lib/content/course-lynda-teaser.ts`). */
+export { COURSE_CHECKOUT_URL };
 
 type CourseCheckoutCTAProps = {
   title?: string;
@@ -15,13 +19,15 @@ type CourseCheckoutCTAProps = {
 };
 
 /**
- * Блок призыва к покупке курса: переход к тарифам на главной.
+ * Блок призыва к покупке курса: основная кнопка — `COURSE_CHECKOUT_URL`; тарифы на главной — вторичная ссылка.
  */
 export function CourseCheckoutCTA({
   title = 'Готовы начать?',
-  subtitle = 'Курс «Навыки мышечного тестирования» — выберите тариф и оформите доступ на сайте школы.',
+  subtitle = 'Оформите доступ по ссылке ниже или посмотрите тарифы в блоке «Цены» на главной.',
   className = '',
 }: CourseCheckoutCTAProps) {
+  const href = COURSE_CHECKOUT_URL;
+  const external = /^https?:\/\//i.test(href);
   return (
     <aside
       className={`rounded-2xl border border-plum/25 bg-[var(--lavender-light)] p-6 shadow-[var(--shadow-soft)] md:p-8 ${className}`}
@@ -35,12 +41,21 @@ export function CourseCheckoutCTA({
           {subtitle ? (
             <p className="mt-2 text-sm leading-relaxed text-[var(--text-muted)] sm:text-base">{subtitle}</p>
           ) : null}
+          <p className="mt-3 text-sm">
+            <Link
+              href={COURSE_SALES_HREF}
+              className="font-medium text-plum underline decoration-plum/35 underline-offset-2 transition-colors hover:text-plum/90"
+            >
+              Тарифы и цены на главной
+            </Link>
+          </p>
         </div>
         <Link
-          href={COURSE_SALES_HREF}
+          href={href}
+          {...(external ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {})}
           className={cn(
             buttonVariants({ variant: 'landingRose', size: 'lg' }),
-            'w-full shrink-0 rounded-xl sm:w-auto sm:min-w-[240px]'
+            'w-full shrink-0 rounded-xl text-center sm:w-auto sm:min-w-[240px]'
           )}
         >
           Начать курс — 2 месяца практики

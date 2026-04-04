@@ -1,13 +1,14 @@
 /**
- * Генерация PDF сертификатов в стиле сайта AVATERRA.
+ * Генерация PDF сертификатов в стиле сайта АВАТЕРРА.
  * Цвета: primary #2D1B4E, secondary #D4AF37, dark #0A0E27.
  * Макеты: default/heritage — классика с логотипом и декоративной рамкой; prestige — премиум с тёмной шапкой;
- * minimal, elegant — компактные. Логотип: public/images/avaterra-logo.png.
+ * minimal, elegant — компактные. Логотип: тот же порядок файлов, что {@link BRAND_LOGO_PATHS} в lib/brand.ts.
  * Шрифт с кириллицей — Noto Sans 400/600 (@fontsource/noto-sans).
  */
 import path from 'path';
 import { existsSync } from 'fs';
 import React from 'react';
+import { BRAND_LOGO_PATHS } from '@/lib/brand';
 import { Document, Page, Text, View, Image, StyleSheet, renderToBuffer, Font } from '@react-pdf/renderer';
 
 const notoSans400 = path.join(
@@ -39,8 +40,22 @@ if (existsSync(notoSans400)) {
   }
 }
 
-const LOGO_PATH = path.join(process.cwd(), 'public', 'images', 'avaterra-logo.png');
-const LOGO_SRC = existsSync(LOGO_PATH) ? LOGO_PATH : null;
+/** Порядок совпадает с BrandLogo на сайте (см. BRAND_LOGO_PATHS). */
+function publicFilePathFromBrandUrl(urlPath: string): string {
+  const rel = urlPath.replace(/^\//, '');
+  try {
+    return path.join(process.cwd(), 'public', decodeURIComponent(rel));
+  } catch {
+    return path.join(process.cwd(), 'public', rel);
+  }
+}
+
+const CERTIFICATE_LOGO_CANDIDATES = BRAND_LOGO_PATHS.map(publicFilePathFromBrandUrl);
+
+/** Первый существующий файл из `BRAND_LOGO_PATHS` — пересчитывается при каждой генерации PDF (актуальный `LOGO.png` после копирования без перезапуска). */
+function getCertificateLogoSrc(): string | null {
+  return CERTIFICATE_LOGO_CANDIDATES.find((p) => existsSync(p)) ?? null;
+}
 
 const COLORS = {
   primary: '#2D1B4E',
@@ -147,8 +162,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   heritageLogo: {
-    width: 168,
-    height: 52,
+    width: 200,
+    height: 64,
     objectFit: 'contain',
     marginBottom: 10,
   },
@@ -254,8 +269,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   prestigeHeaderLogo: {
-    width: 120,
-    height: 40,
+    width: 132,
+    height: 52,
     objectFit: 'contain',
   },
   prestigeHeaderWordmark: {
@@ -395,8 +410,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   minimalLogo: {
-    width: 120,
-    height: 38,
+    width: 128,
+    height: 52,
     objectFit: 'contain',
     marginBottom: 12,
   },
@@ -470,8 +485,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   elegantLogo: {
-    width: 130,
-    height: 42,
+    width: 140,
+    height: 52,
     objectFit: 'contain',
     marginBottom: 14,
   },
@@ -566,6 +581,7 @@ function taglineFor(data: CertificateData) {
 }
 
 function CertificateHeritage({ data }: { data: CertificateData }) {
+  const logoSrc = getCertificateLogoSrc();
   const exp = data.expiryDate?.trim();
   return (
     <Page size="A4" style={styles.heritagePage}>
@@ -577,11 +593,11 @@ function CertificateHeritage({ data }: { data: CertificateData }) {
       <View style={styles.heritageCornerBL} />
       <View style={styles.heritageCornerBR} />
       <View style={styles.heritageBody}>
-        {LOGO_SRC ? (
+        {logoSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text -- PDF Image
-          <Image src={LOGO_SRC} style={styles.heritageLogo} />
+          <Image src={logoSrc} style={styles.heritageLogo} />
         ) : (
-          <Text style={styles.heritageWordmark}>AVATERRA</Text>
+          <Text style={styles.heritageWordmark}>АВАТЕРРА</Text>
         )}
         <Text style={styles.heritageTagline}>{taglineFor(data)}</Text>
         <Text style={styles.heritageCertLabel}>СЕРТИФИКАТ</Text>
@@ -604,18 +620,19 @@ function CertificateHeritage({ data }: { data: CertificateData }) {
 }
 
 function CertificatePrestige({ data }: { data: CertificateData }) {
+  const logoSrc = getCertificateLogoSrc();
   const exp = data.expiryDate?.trim();
   return (
     <Page size="A4" style={styles.page}>
       <View style={styles.prestigeHeader}>
-        {LOGO_SRC ? (
+        {logoSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image src={LOGO_SRC} style={styles.prestigeHeaderLogo} />
+          <Image src={logoSrc} style={styles.prestigeHeaderLogo} />
         ) : (
-          <Text style={styles.prestigeHeaderWordmark}>AVATERRA</Text>
+          <Text style={styles.prestigeHeaderWordmark}>АВАТЕРРА</Text>
         )}
         <View style={styles.prestigeHeaderRight}>
-          <Text style={styles.prestigeHeaderCaption}>AVATERRA</Text>
+          <Text style={styles.prestigeHeaderCaption}>АВАТЕРРА</Text>
           <Text style={styles.prestigeHeaderTitle}>СЕРТИФИКАТ О ПРОХОЖДЕНИИ</Text>
         </View>
       </View>
@@ -646,15 +663,16 @@ function CertificatePrestige({ data }: { data: CertificateData }) {
 }
 
 function CertificateMinimal({ data }: { data: CertificateData }) {
+  const logoSrc = getCertificateLogoSrc();
   const exp = data.expiryDate?.trim();
   return (
     <Page size="A4" style={styles.pageCream}>
       <View style={styles.minimalWrap}>
-        {LOGO_SRC ? (
+        {logoSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image src={LOGO_SRC} style={styles.minimalLogo} />
+          <Image src={logoSrc} style={styles.minimalLogo} />
         ) : null}
-        <Text style={styles.minimalTitle}>{LOGO_SRC ? 'Сертификат' : 'AVATERRA'}</Text>
+        <Text style={styles.minimalTitle}>{logoSrc ? 'Сертификат' : 'АВАТЕРРА'}</Text>
         <Text style={styles.minimalSubtitle}>{taglineFor(data)}</Text>
         <View style={styles.minimalDivider} />
         <Text style={styles.minimalName}>{data.userName}</Text>
@@ -669,17 +687,18 @@ function CertificateMinimal({ data }: { data: CertificateData }) {
 }
 
 function CertificateElegant({ data }: { data: CertificateData }) {
+  const logoSrc = getCertificateLogoSrc();
   const exp = data.expiryDate?.trim();
   return (
     <Page size="A4" style={styles.page}>
       <View style={styles.elegantBorder} />
       <View style={styles.elegantInner} />
       <View style={styles.elegantContent}>
-        {LOGO_SRC ? (
+        {logoSrc ? (
           // eslint-disable-next-line jsx-a11y/alt-text
-          <Image src={LOGO_SRC} style={styles.elegantLogo} />
+          <Image src={logoSrc} style={styles.elegantLogo} />
         ) : null}
-        <Text style={styles.elegantTitle}>{LOGO_SRC ? 'Сертификат' : 'AVATERRA'}</Text>
+        <Text style={styles.elegantTitle}>{logoSrc ? 'Сертификат' : 'АВАТЕРРА'}</Text>
         <Text style={styles.elegantSubtitle}>{taglineFor(data)}</Text>
         <Text style={styles.elegantName}>{data.userName}</Text>
         <Text style={styles.elegantCourse}>успешно прошёл(ла) курс</Text>

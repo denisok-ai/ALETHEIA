@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
 import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
 import { getSystemSettings } from '@/lib/settings';
@@ -22,9 +23,19 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default function BlogIndexPage() {
+export default async function BlogIndexPage() {
+  const settings = await getSystemSettings();
+  const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
+
   return (
-    <main className="mx-auto max-w-3xl px-4 pb-16 pt-20 font-body md:pt-24">
+    <>
+      <JsonLdBreadcrumbList
+        items={[
+          { name: 'Главная', url: `${base}/` },
+          { name: 'Блог', url: `${base}/blog` },
+        ]}
+      />
+      <main className="mx-auto max-w-3xl px-4 pb-16 pt-20 font-body md:pt-24">
       <nav className="mb-6 text-sm text-[var(--text-muted)]">
         <Link href="/" className="hover:text-plum">
           Главная
@@ -57,5 +68,6 @@ export default function BlogIndexPage() {
         <CourseCheckoutCTA />
       </div>
     </main>
+    </>
   );
 }

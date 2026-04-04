@@ -65,8 +65,8 @@ export function parseGamificationNumbers(raw: { xpPerLevel?: string | null; xpLe
 }
 
 /**
- * Начисляет XP за первое завершение урока (переход в completed/passed).
- * Только для роли student (`user`). Идемпотентно: повторные сохранения с тем же «завершён» не дают XP.
+ * Начисляет заряд (поле `userEnergy.xp`) за первое завершение урока (переход в completed/passed).
+ * Только для роли student (`user`). Идемпотентно: повторные сохранения с тем же «завершён» не добавляют заряд.
  */
 export async function awardXpForLessonCompletedIfNew(
   prisma: PrismaClient,

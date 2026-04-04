@@ -2,18 +2,26 @@
  * Student dashboard — redesigned: welcome banner, progress stats, course cards, notifications.
  */
 import type { Metadata } from 'next';
-import { getServerSession } from 'next-auth';
-
-export const metadata: Metadata = { title: 'Дашборд' };
-
+import type { ReactNode } from 'react';
 import Link from 'next/link';
+import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import {
+  getEarnedBadges,
+  getNextBadge,
+  levelFromTotalXp,
+  xpProgressPercentInCurrentLevel,
+} from '@/lib/gamification';
+import { getGamificationNumbers } from '@/lib/gamification-config';
 import { formatNotificationContent, formatNotificationType } from '@/lib/notification-content';
 import { pluralize } from '@/lib/pluralize';
 import { CourseCard } from '@/components/portal/CourseCard';
+import { ChargeBatteryGauge } from '@/components/portal/ChargeBatteryGauge';
 import { StudentOnboardingHint } from '@/components/portal/StudentOnboardingHint';
 import { BookOpen, Award, Clock, Zap, ChevronRight, Bell } from 'lucide-react';
+
+export const metadata: Metadata = { title: 'Дашборд' };
 
 function StatCard({
   icon,
@@ -22,7 +30,7 @@ function StatCard({
   sub,
   color = 'primary',
 }: {
-  icon: React.ReactNode;
+  icon: ReactNode;
   label: string;
   value: string | number;
   sub?: string;
@@ -62,7 +70,8 @@ export default async function StudentDashboardPage() {
     );
   }
 
-  const [enrollments, notifications, energy, progressByCourse, completedByCourse, certCount] = await Promise.all([
+  const [enrollments, notifications, energy, progressByCourse, completedByCourse, certCount, gamification] =
+    await Promise.all([
     prisma.enrollment.findMany({
       where: { userId, course: { status: 'published' } },
       include: {
@@ -91,6 +100,7 @@ export default async function StudentDashboardPage() {
       _count: { lessonId: true },
     }),
     prisma.certificate.count({ where: { userId, revokedAt: null } }),
+    getGamificationNumbers(),
   ]);
 
   function totalLessons(manifest: string | null): number {
@@ -105,10 +115,10 @@ export default async function StudentDashboardPage() {
     || (session?.user as { email?: string })?.email?.split('@')[0]
     || 'Слушатель';
 
-  const xp          = energy?.xp ?? 0;
-  const level       = energy?.level ?? 1;
-  const xpToNext    = 100;
-  const xpProgress  = ((xp % xpToNext) / xpToNext) * 100;
+  const xp = energy?.xp ?? 0;
+  const { xpPerLevel, xpLessonComplete } = gamification;
+  const level = levelFromTotalXp(xp, xpPerLevel);
+  const xpProgress = xpProgressPercentInCurrentLevel(xp, xpPerLevel);
   const totalTimeMin = Math.round(
     progressByCourse.reduce((acc, p) => acc + (p._sum.timeSpent ?? 0), 0) / 60
   );
@@ -119,15 +129,10 @@ export default async function StudentDashboardPage() {
     return done >= total && total > 0;
   }).length;
 
-  const BADGES = [
-    { minXp: 0,   label: 'Новичок',   emoji: '🌱' },
-    { minXp: 50,  label: 'Практик',   emoji: '💪' },
-    { minXp: 100, label: 'Уверенный', emoji: '⭐' },
-    { minXp: 200, label: 'Мастер',    emoji: '🏆' },
-    { minXp: 500, label: 'Эксперт',   emoji: '👑' },
-  ];
-  const earnedBadges = BADGES.filter((b) => xp >= b.minXp);
-  const nextBadge    = BADGES.find((b) => xp < b.minXp);
+  const earnedBadges = getEarnedBadges(xp);
+  const nextBadge = getNextBadge(xp);
+  const chargePercent = Math.min(100, Math.max(0, Math.round(xpProgress)));
+  const pointsToNextBadge = nextBadge ? Math.max(0, nextBadge.minXp - xp) : 0;
 
   return (
     <div className="space-y-6 max-w-6xl">
@@ -153,33 +158,38 @@ export default async function StudentDashboardPage() {
               {displayName} 👋
             </h1>
             <p className="mt-2 text-[var(--portal-text-muted)] text-sm max-w-md">
-              Продолжайте обучение — каждый день делает вас сильнее.
+              Продолжайте обучение — каждый день делает вас сильнее. За первое завершение урока: +{xpLessonComplete} к уровню
+              заряда · шкала пополняется каждые {xpPerLevel} единиц (
+              <Link href="/portal/student/help#gamification" className="text-[var(--portal-accent)] hover:underline">
+                как это работает
+              </Link>
+              )
             </p>
           </div>
 
-          {/* XP-блок */}
+          {/* Блок «уровень заряда» */}
           <div className="flex items-center gap-4 bg-white/70 backdrop-blur-sm
-            rounded-2xl px-5 py-4 min-w-[210px] border border-white/80 shadow-sm">
-            <div className="flex h-11 w-11 items-center justify-center rounded-full
-              bg-[var(--portal-accent)] text-white font-bold text-lg shadow-sm">
+            rounded-2xl px-5 py-4 min-w-[220px] max-w-[min(100%,20rem)] border border-white/80 shadow-sm">
+            <div
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full
+              bg-[var(--portal-accent)] text-white font-bold text-lg shadow-sm"
+              title={`Уровень заряда ${level}`}
+            >
               {level}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex justify-between text-xs text-[var(--portal-text-muted)] mb-1.5">
-                <span className="font-semibold text-[var(--portal-text)]">{xp} XP</span>
-                <span>ур. {level}</span>
-              </div>
-              <div className="h-1.5 rounded-full bg-[var(--portal-accent-muted)] overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-[var(--portal-accent)] transition-all duration-500"
-                  style={{ width: `${xpProgress}%` }}
-                />
-              </div>
-              {nextBadge && (
-                <p className="text-[0.68rem] text-[var(--portal-text-soft)] mt-1">
-                  до «{nextBadge.label}» ещё {nextBadge.minXp - xp} XP
-                </p>
-              )}
+              <p className="text-xs font-semibold leading-snug text-[var(--portal-text)]">
+                Заряд: {chargePercent}%
+                {pointsToNextBadge > 0 ? (
+                  <span className="font-medium text-[var(--portal-text-muted)]">
+                    , +{pointsToNextBadge} к уровню заряда
+                  </span>
+                ) : null}
+              </p>
+              <p className="text-[0.65rem] text-[var(--portal-text-soft)] mt-0.5 mb-2">
+                Уровень заряда {level}
+              </p>
+              <ChargeBatteryGauge percent={xpProgress} className="mt-0.5" />
             </div>
           </div>
         </div>
@@ -226,9 +236,9 @@ export default async function StudentDashboardPage() {
         />
         <StatCard
           icon={<Zap className="h-5 w-5" />}
-          label="Очки энергии"
-          value={`${xp} XP`}
-          sub={`Уровень ${level}`}
+          label="Уровни заряда"
+          value={`Заряд: ${chargePercent}%`}
+          sub={`Уровень заряда ${level}`}
           color="gold"
         />
       </div>

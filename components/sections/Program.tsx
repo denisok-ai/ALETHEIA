@@ -26,29 +26,29 @@ export function Program() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <section id="formats" ref={ref} className="relative scroll-mt-24 border-t border-[var(--border)] bg-[var(--bg)] py-24 px-5 md:py-28 md:px-6">
+    <section id="formats" ref={ref} className="relative border-t border-[var(--border)] bg-[var(--bg)] py-14 px-4 sm:px-5 md:py-20 md:px-6">
       <div className="relative mx-auto max-w-3xl">
-        <motion.span
-          initial={{ opacity: 0, y: 16 }}
-          animate={isInView ? { opacity: 1, y: 0 } : {}}
-          className="inline-block text-sm font-semibold uppercase tracking-widest text-plum"
-        >
-          Программа курса
-        </motion.span>
         <motion.h2
           initial={{ opacity: 0, y: 16 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
+          className="font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl"
+        >
+          Программа курса
+        </motion.h2>
+        <motion.p
+          initial={{ opacity: 0, y: 16 }}
+          animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.04 }}
-          className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl"
+          className="mt-2 text-lg text-[var(--text-muted)] sm:text-xl"
         >
           Что входит в программу
-        </motion.h2>
+        </motion.p>
 
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.08 }}
-          className="mt-10 grid gap-6 border-b border-[var(--border)] pb-10 sm:grid-cols-3"
+          className="mt-8 grid gap-5 border-b border-[var(--border)] pb-8 sm:grid-cols-3"
         >
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-periwinkle/30 p-3">
@@ -79,7 +79,7 @@ export function Program() {
           </div>
         </motion.div>
 
-        <div className="mt-8 space-y-3">
+        <div className="mt-6 space-y-3">
           {modules.map((mod, i) => (
             <motion.div
               key={mod.title}
@@ -98,7 +98,7 @@ export function Program() {
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-periwinkle/35 text-sm font-bold text-plum">
                     {i + 1}
                   </span>
-                  <span className="font-heading font-semibold text-[var(--text)]">{mod.title}</span>
+                  <h3 className="min-w-0 font-heading text-base font-semibold text-[var(--text)] sm:text-lg">{mod.title}</h3>
                 </span>
                 <span className="ml-auto hidden text-sm text-[var(--text-muted)] sm:block">
                   {mod.lessons} уроков · {mod.hours} ч
@@ -136,9 +136,9 @@ export function Program() {
           initial={{ opacity: 0, y: 16 }}
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ delay: 0.35 }}
-          className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center"
+          className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
         >
-          <Link href="#contact">
+          <Link href="/#pricing">
             <Button variant="landingRose" size="lg">
               Записаться на курс
             </Button>

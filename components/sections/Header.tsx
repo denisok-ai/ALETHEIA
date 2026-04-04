@@ -9,16 +9,27 @@ import { Button } from '@/components/ui/button';
 import { BrandLogo } from '@/components/BrandLogo';
 import { BRAND_SITE_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
+import { dispatchOpenAvaterraChat } from '@/lib/chat-events';
 
-const navLinks = [
+const navLinks: { href: string; label: string; shortLabel?: string }[] = [
   { href: '#method', label: 'О методе' },
-  { href: '#why', label: 'О школе' },
+  { href: '#why', label: 'О курсе' },
   { href: '#formats', label: 'Программа' },
-  { href: '#master', label: 'О мастере' },
+  { href: '#master', label: 'О мастере', shortLabel: 'Мастер' },
   { href: '#reviews', label: 'Отзывы' },
+  { href: '#faq', label: 'Вопросы и ответы', shortLabel: 'Вопросы' },
   { href: '#pricing', label: 'Цены' },
-  { href: '#faq', label: 'Вопросы и ответы' },
+  { href: '/course/navyki-myshechnogo-testirovaniya', label: 'Курс по тестированию', shortLabel: 'Курс' },
+  { href: '/blog', label: 'Блог' },
 ];
+
+/** Якоря главной: всегда `/#id` — в App Router чистый `#id` у Link часто не скроллит к секции. */
+function resolveNavHref(href: string): string {
+  if (href.startsWith('#')) {
+    return `/${href}`;
+  }
+  return href;
+}
 
 export function Header() {
   const pathname = usePathname();
@@ -37,10 +48,19 @@ export function Header() {
 
   const linkClass = (extra?: string) =>
     cn(
-      'text-sm font-medium transition-colors',
+      'shrink-0 whitespace-nowrap text-sm font-medium leading-snug tracking-tight transition-colors 3xl:text-[0.9375rem]',
       scrolled ? 'text-[var(--text-muted)] hover:text-[var(--text)]' : 'header-landing-text-muted hover:text-plum',
       extra
     );
+
+  const loginNavClass = cn(
+    'shrink-0 whitespace-nowrap text-sm font-semibold leading-snug tracking-tight transition-colors 3xl:text-[0.9375rem]',
+    'ml-0.5 rounded-lg border-2 border-plum/55 bg-plum/[0.08] px-3 py-2 text-plum shadow-sm ring-1 ring-plum/25',
+    'hover:border-plum hover:bg-plum/[0.14] hover:text-plum hover:ring-plum/40',
+    scrolled && 'border-plum/45 bg-plum/[0.06] ring-plum/20'
+  );
+
+  const logoHref = pathname === '/' ? '#hero' : '/';
 
   return (
     <header
@@ -49,38 +69,62 @@ export function Header() {
         scrolled ? 'bg-[var(--surface)] shadow-sm' : 'bg-transparent'
       )}
     >
-      <div className="mx-auto flex min-h-[4.25rem] max-w-6xl items-center justify-between px-5 py-4 md:min-h-[5rem] md:px-6">
+      <div className="mx-auto flex min-h-[4.5rem] max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:min-h-[4.75rem] sm:px-5 sm:py-4 md:min-h-[5.25rem] md:px-6">
         <Link
-          href="#hero"
+          href={logoHref}
           className={cn(
-            'flex items-center gap-2.5 font-heading text-xl font-bold tracking-tight transition-colors',
+            'flex shrink-0 items-center gap-2.5 font-heading text-lg font-bold tracking-tight transition-colors sm:text-xl',
             scrolled ? 'text-[var(--text)] hover:text-plum' : 'header-landing-text hover:text-plum'
           )}
         >
-          <BrandLogo priority knockout={scrolled} />
-          <span className="max-w-[9rem] leading-tight sm:max-w-none">{BRAND_SITE_NAME}</span>
+          <BrandLogo
+            priority
+            knockout={false}
+            heightClass="h-14 w-auto sm:h-16 md:h-[4.5rem]"
+            imgClassName="max-w-[min(100%,10rem)] sm:max-w-[11rem] md:max-w-[13rem]"
+          />
+          <span className="max-w-[8.5rem] truncate leading-tight sm:max-w-none sm:whitespace-nowrap">
+            {BRAND_SITE_NAME}
+          </span>
         </Link>
 
-        <nav className="hidden items-center gap-6 lg:flex xl:gap-7">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} className={linkClass()}>
-              {link.label}
-            </Link>
-          ))}
-          <Link href="/login" className={linkClass()}>
+        <nav
+          className="scrollbar-thin hidden min-w-0 max-w-[min(100vw-12rem,56rem)] flex-1 flex-nowrap items-center justify-end gap-x-2 overflow-x-auto 3xl:gap-x-[0.875rem] lg:flex"
+          aria-label="Основное меню"
+        >
+          {navLinks.map((link) => {
+            const href = resolveNavHref(link.href);
+            const compact = link.shortLabel ?? link.label;
+            const useTitle = link.shortLabel != null && link.shortLabel !== link.label;
+            return (
+              <Link
+                key={link.href + link.label}
+                href={href}
+                className={linkClass()}
+                title={useTitle ? link.label : undefined}
+              >
+                {compact}
+              </Link>
+            );
+          })}
+          <Link href="/login" className={loginNavClass}>
             Вход
           </Link>
-          <Link href="#contact">
-            <Button size="sm" variant="landingPlum" className="rounded-xl">
-              Заказать звонок
-            </Button>
-          </Link>
+          <Button
+            type="button"
+            size="sm"
+            variant="landingPlum"
+            className="ml-1 shrink-0 rounded-xl whitespace-nowrap text-sm 3xl:text-[0.9375rem]"
+            onClick={() => dispatchOpenAvaterraChat()}
+          >
+            Задать вопрос
+          </Button>
         </nav>
 
         <button
           type="button"
           className={cn(
-            'p-2 transition-colors lg:hidden',
+            'shrink-0 p-2 transition-colors lg:hidden',
             scrolled ? 'text-[var(--text)]' : 'text-[var(--text)]'
           )}
           aria-label="Меню"
@@ -99,12 +143,12 @@ export function Header() {
             exit={{ opacity: 0, height: 0 }}
             className="border-t border-[var(--border)] bg-[var(--surface)] lg:hidden"
           >
-            <nav className="flex flex-col gap-1 p-4">
+            <nav className="flex flex-col gap-0.5 p-4 text-base" aria-label="Мобильное меню">
               {navLinks.map((link) => (
                 <Link
-                  key={link.href}
-                  href={link.href}
-                  className="py-3 font-medium text-[var(--text)] hover:text-plum"
+                  key={link.href + link.label}
+                  href={resolveNavHref(link.href)}
+                  className="rounded-lg py-3 pl-1 font-medium text-[var(--text)] hover:text-plum"
                   onClick={() => setOpen(false)}
                 >
                   {link.label}
@@ -112,16 +156,23 @@ export function Header() {
               ))}
               <Link
                 href="/login"
-                className="py-3 font-medium text-[var(--text)] hover:text-plum"
+                className="mt-1 rounded-xl border border-plum/40 bg-plum/[0.08] px-3 py-3 text-center font-semibold text-plum shadow-sm hover:bg-plum/[0.14]"
                 onClick={() => setOpen(false)}
               >
                 Вход
               </Link>
-              <Link href="#contact" onClick={() => setOpen(false)}>
-                <Button size="sm" variant="landingPlum" className="mt-2 w-full rounded-xl">
-                  Заказать звонок
-                </Button>
-              </Link>
+              <Button
+                type="button"
+                size="sm"
+                variant="landingPlum"
+                className="mt-2 w-full rounded-xl"
+                onClick={() => {
+                  setOpen(false);
+                  dispatchOpenAvaterraChat();
+                }}
+              >
+                Задать вопрос
+              </Button>
             </nav>
           </motion.div>
         )}

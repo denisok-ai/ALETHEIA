@@ -1,10 +1,11 @@
 'use client';
 
 /**
- * Обёртка PortalHeader: скрывает хедер в админке (навигация в сайдбаре).
+ * Верхняя полоса с логотипом/названием убрана — навигация в сайдбаре.
+ * Студент и менеджер: только узкая мобильная полоса (бургер + колокольчик, `lg:hidden`).
  */
 import { usePathname } from 'next/navigation';
-import { PortalHeader } from './PortalHeader';
+import { PortalStudentManagerMobileBar } from './PortalStudentManagerMobileBar';
 import type { Profile } from '@/lib/auth';
 
 interface PortalHeaderWrapperProps {
@@ -16,6 +17,13 @@ interface PortalHeaderWrapperProps {
 
 export function PortalHeaderWrapper(props: PortalHeaderWrapperProps) {
   const pathname = usePathname();
-  if (pathname?.startsWith('/portal/admin')) return null;
-  return <PortalHeader {...props} />;
+  if (pathname?.startsWith('/portal/student') || pathname?.startsWith('/portal/manager')) {
+    return (
+      <PortalStudentManagerMobileBar
+        profile={props.profile}
+        unreadNotificationCount={props.unreadNotificationCount}
+      />
+    );
+  }
+  return null;
 }

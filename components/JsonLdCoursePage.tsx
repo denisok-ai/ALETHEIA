@@ -1,6 +1,8 @@
 /**
- * Schema.org Course для страницы лендинга конкретного курса (Lynda / внешняя оплата).
+ * Schema.org Course для страницы курса; Offer.url — канонический URL оформления (`COURSE_CHECKOUT_URL`).
  */
+import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
+
 export function JsonLdCoursePage({
   name,
   description,
@@ -10,6 +12,12 @@ export function JsonLdCoursePage({
   description: string;
   pageUrl: string;
 }) {
+  let offerUrl: string;
+  try {
+    offerUrl = absoluteCourseCheckoutUrl(new URL(pageUrl).origin);
+  } catch {
+    offerUrl = pageUrl;
+  }
   const data = {
     '@context': 'https://schema.org',
     '@type': 'Course',
@@ -18,9 +26,15 @@ export function JsonLdCoursePage({
     url: pageUrl,
     provider: {
       '@type': 'Organization',
-      name: 'АВАТЕРРА',
+      name: 'AVATERRA',
+      alternateName: 'АВАТЕРРА',
     },
     inLanguage: 'ru-RU',
+    offers: {
+      '@type': 'Offer',
+      url: offerUrl,
+      availability: 'https://schema.org/InStock',
+    },
   };
 
   return (

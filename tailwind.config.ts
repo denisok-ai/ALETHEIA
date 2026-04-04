@@ -73,7 +73,15 @@ const config: Config = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    function scrollbarThinPlugin({ addUtilities }: { addUtilities: (u: Record<string, Record<string, string>>) => void }) {
+      addUtilities({
+        '.scrollbar-thin': {
+          'scrollbar-width': 'thin',
+        },
+      });
+    },
+  ],
 };
 
 export default config;

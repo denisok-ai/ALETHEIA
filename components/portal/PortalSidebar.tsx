@@ -7,6 +7,8 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { BrandLogo } from '@/components/BrandLogo';
+import { BRAND_SITE_NAME } from '@/lib/brand';
 import { usePortalUI } from './PortalUIProvider';
 import { PortalAccountBlock } from './PortalAccountBlock';
 import { PortalBuildBadge } from './PortalBuildBadge';
@@ -33,6 +35,10 @@ interface PortalSidebarProps {
   navFooter?: ReactNode;
   /** Версия сборки в подвале сайдбара (рендерится на клиенте с учётом collapsed). */
   footerBuildBadge?: boolean;
+  /** Только изображение логотипа без названия (например админка). */
+  brandLogoOnly?: boolean;
+  /** Куда ведёт клик по логотипу. По умолчанию `/portal` (редирект на дашборд по роли). */
+  logoHref?: string;
 }
 
 const SIDEBAR_COLLAPSED_KEY = 'portal-sidebar-collapsed';
@@ -250,23 +256,91 @@ function SidebarNav({
 }
 
 /* ─── Логотип в сайдбаре ─── */
-function SidebarLogo({ collapsed }: { collapsed: boolean }) {
+function SidebarLogo({
+  collapsed,
+  brandLogoOnly,
+  className,
+  href = '/portal',
+  onNavigate,
+}: {
+  collapsed: boolean;
+  brandLogoOnly?: boolean;
+  /** Например mb-0 в шапке мобильного drawer (без отступа снизу). */
+  className?: string;
+  href?: string;
+  /** После перехода (закрыть мобильное меню). */
+  onNavigate?: () => void;
+}) {
+  const label = `«${BRAND_SITE_NAME}» — главная портала`;
+
+  if (brandLogoOnly) {
+    /* Тот же BrandLogo, что на лендинге: перебор BRAND_LOGO_PATHS при ошибке загрузки. */
+    return (
+      <Link
+        href={href}
+        onClick={() => onNavigate?.()}
+        className={cn(
+          'mb-5 flex w-full min-w-0 select-none items-center justify-center px-0 group',
+          !collapsed && 'px-1',
+          className
+        )}
+        aria-label={label}
+      >
+        {collapsed ? (
+          <BrandLogo
+            priority
+            knockout={false}
+            heightClass="h-7 w-7"
+            className="shrink-0 transition-opacity group-hover:opacity-90"
+            imgClassName="max-h-7 max-w-7 object-contain"
+          />
+        ) : (
+          <BrandLogo
+            priority
+            knockout={false}
+            heightClass="h-20 max-h-[5.5rem]"
+            className="transition-opacity group-hover:opacity-90"
+            imgClassName="mx-auto max-w-[min(100%,13.5rem)] object-contain"
+          />
+        )}
+      </Link>
+    );
+  }
+
   return (
     <Link
-      href="/"
-      className="flex items-center gap-2.5 px-1 mb-5 select-none group"
-      aria-label="«Аватера» — на главную"
+      href={href}
+      onClick={() => onNavigate?.()}
+      className={cn(
+        'group mb-5 flex select-none items-center gap-2.5 px-1',
+        collapsed && 'justify-center'
+      )}
+      aria-label={label}
     >
-      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg
-        bg-[var(--portal-accent)] text-white font-bold text-sm shadow-sm
-        group-hover:bg-[var(--portal-accent-dark)] transition-colors">
-        А
-      </span>
-      {!collapsed && (
-        <span className="font-heading font-bold text-[var(--portal-text)] text-[0.95rem] tracking-tight
-          group-hover:text-[var(--portal-accent)] transition-colors">
-          Аватера
-        </span>
+      {collapsed ? (
+        <BrandLogo
+          priority
+          knockout={false}
+          heightClass="h-8 w-8"
+          className="shrink-0 transition-opacity group-hover:opacity-90"
+          imgClassName="max-h-8 max-w-8 object-contain"
+        />
+      ) : (
+        <>
+          <BrandLogo
+            heightClass="h-10"
+            priority
+            knockout={false}
+            className="shrink-0"
+            imgClassName="max-h-10 max-w-[9rem] sm:max-w-[10rem]"
+          />
+          <span
+            className="min-w-0 font-heading text-[0.95rem] font-bold tracking-tight text-[var(--portal-text)] transition-colors
+            group-hover:text-[var(--portal-accent)]"
+          >
+            {BRAND_SITE_NAME}
+          </span>
+        </>
       )}
     </Link>
   );
@@ -324,6 +398,8 @@ function DesktopSidebar({
   onToggle,
   navFooter,
   footerBuildBadge,
+  brandLogoOnly,
+  logoHref,
 }: {
   items?: NavItem[];
   sections?: NavSection[];
@@ -333,6 +409,8 @@ function DesktopSidebar({
   onToggle: () => void;
   navFooter?: ReactNode;
   footerBuildBadge?: boolean;
+  brandLogoOnly?: boolean;
+  logoHref: string;
 }) {
   const footerSlot = renderNavFooterSlot(navFooter, footerBuildBadge, collapsed);
   return (
@@ -345,7 +423,7 @@ function DesktopSidebar({
       aria-label="Боковое меню"
     >
       <div className="flex flex-col flex-1 min-h-0 px-3 pt-5 pb-3 overflow-y-auto">
-        <SidebarLogo collapsed={collapsed} />
+        <SidebarLogo collapsed={collapsed} brandLogoOnly={brandLogoOnly} href={logoHref} />
         <SidebarNav
           items={items}
           sections={sections}
@@ -378,6 +456,8 @@ function MobileSidebar({
   collapsibleNavSections,
   navFooter,
   footerBuildBadge,
+  brandLogoOnly,
+  logoHref,
 }: {
   items?: NavItem[];
   sections?: NavSection[];
@@ -385,6 +465,8 @@ function MobileSidebar({
   collapsibleNavSections?: boolean;
   navFooter?: ReactNode;
   footerBuildBadge?: boolean;
+  brandLogoOnly?: boolean;
+  logoHref: string;
 }) {
   const footerSlot = renderNavFooterSlot(navFooter, footerBuildBadge, false);
   return (
@@ -406,13 +488,21 @@ function MobileSidebar({
         bg-[var(--portal-sidebar-bg)] shadow-xl
         w-[var(--portal-sidebar-w)]
         border-r border-[var(--portal-sidebar-border)]">
-        <div className="flex items-center justify-between px-4 pt-5 pb-3
-          border-b border-[var(--portal-sidebar-border)]">
-          <SidebarLogo collapsed={false} />
+        <div
+          className="relative flex items-center justify-center px-4 pt-5 pb-3
+          border-b border-[var(--portal-sidebar-border)]"
+        >
+          <SidebarLogo
+            collapsed={false}
+            brandLogoOnly={brandLogoOnly}
+            className="mb-0"
+            href={logoHref}
+            onNavigate={onClose}
+          />
           <button
             type="button"
             onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-lg
+            className="absolute right-4 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg
               text-[var(--portal-text-muted)] hover:bg-[var(--portal-surface-hover)]
               hover:text-[var(--portal-text)] transition"
             aria-label="Закрыть"
@@ -448,6 +538,8 @@ export function PortalSidebar({
   collapsibleNavSections,
   navFooter,
   footerBuildBadge,
+  brandLogoOnly,
+  logoHref = '/portal',
 }: PortalSidebarProps) {
   const { mobileMenuOpen, setMobileMenuOpen } = usePortalUI();
   const [collapsed, setCollapsed] = useState(false);
@@ -474,6 +566,8 @@ export function PortalSidebar({
         onToggle={() => setCollapsed((c) => !c)}
         navFooter={navFooter}
         footerBuildBadge={footerBuildBadge}
+        brandLogoOnly={brandLogoOnly}
+        logoHref={logoHref}
       />
       {mobileMenuOpen && (
         <MobileSidebar
@@ -483,6 +577,8 @@ export function PortalSidebar({
           collapsibleNavSections={collapsibleNavSections}
           navFooter={navFooter}
           footerBuildBadge={footerBuildBadge}
+          brandLogoOnly={brandLogoOnly}
+          logoHref={logoHref}
         />
       )}
     </>

@@ -1,5 +1,5 @@
 /**
- * Portal shell: header + role-specific sidebar. PortalUIProvider for mobile menu state.
+ * Portal shell: при необходимости мобильная полоса (студент/менеджер) + контент с сайдбаром по ролям.
  * Для студента при первом входе в сессию привязываем оплаченные заказы по email (через API + cookie).
  */
 import { redirect } from 'next/navigation';
@@ -14,9 +14,10 @@ import type { Metadata } from 'next';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
-  const title = settings?.portal_title || 'AVATERRA';
+  const title = settings?.portal_title || 'АВАТЕРРА';
   return {
     title: { default: `Портал ${title}`, template: `%s | ${title}` },
+    robots: { index: false, follow: false },
   };
 }
 
@@ -46,7 +47,7 @@ export default async function PortalLayout({
     }
   }
 
-  const portalTitle = settings.portal_title || 'AVATERRA';
+  const portalTitle = settings.portal_title || 'АВАТЕРРА';
 
   return (
     <PortalUIProvider user={user} profile={profile} portalTitle={portalTitle}>

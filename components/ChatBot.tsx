@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { AVATERRA_OPEN_CHAT_EVENT } from '@/lib/chat-events';
 
 type Message = { role: 'user' | 'bot'; text: string };
 
@@ -22,6 +23,12 @@ export function ChatBot() {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(AVATERRA_OPEN_CHAT_EVENT, onOpen);
+    return () => window.removeEventListener(AVATERRA_OPEN_CHAT_EVENT, onOpen);
+  }, []);
 
   const send = async () => {
     const text = input.trim();
@@ -70,7 +77,7 @@ export function ChatBot() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="fixed bottom-20 right-4 z-50 w-[calc(100vw-2rem)] max-w-md rounded-t-[1.75rem] rounded-b-xl border border-[#E2E8F0] bg-white/95 shadow-[var(--shadow-card)] backdrop-blur-md md:bottom-24 md:right-6"
+            className="fixed bottom-20 right-4 z-[110] w-[calc(100vw-2rem)] max-w-md rounded-t-[1.75rem] rounded-b-xl border border-[#E2E8F0] bg-white/95 shadow-[var(--shadow-card)] backdrop-blur-md md:bottom-24 md:right-6"
           >
             <div className="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4 rounded-t-[1.75rem] bg-white">
               <span className="font-bold text-[var(--portal-text)] text-base">
@@ -154,7 +161,7 @@ export function ChatBot() {
       <motion.button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-6 right-4 z-40 flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent/60 md:bottom-8 md:right-6 bg-[#b8a078] hover:bg-[#a08c64] focus:ring-accent"
+        className="fixed bottom-6 right-4 z-[105] flex h-14 w-14 items-center justify-center rounded-full text-white shadow-lg hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent/60 md:bottom-8 md:right-6 bg-[#b8a078] hover:bg-[#a08c64] focus:ring-accent"
         aria-label={open ? 'Закрыть чат' : 'Открыть чат с консультантом'}
       >
         {open ? (

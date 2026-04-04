@@ -2,6 +2,8 @@
 
 **Причина:** картинки лежат в папке **Cursor** (на диске C:), а не в папке проекта **AVATERRA**. Next.js отдаёт только файлы из `public/` вашего проекта — поэтому пока вы не скопируете файлы сюда, они не появятся на сайте.
 
+**Обязательно для продакшена:** канонический логотип — **`public/images/LOGO.png`** (первый в `BRAND_LOGO_PATHS` / `BRAND_LOGO_URL` в `lib/brand.ts`). При необходимости продублируйте тот же растр в **`public/images/avaterra-logo.png`** как запасной файл. PDF-сертификаты берут первый существующий файл из той же цепочки.
+
 Ниже — куда копировать и как скопировать.
 
 ## Папка с картинками (Windows)
@@ -14,7 +16,9 @@ C:\Users\user\.cursor\projects\wsl-localhost-Ubuntu-24-04-home-denisok-projects-
 
 | Файл в assets | Скопировать в |
 |---------------|----------------|
-| `avaterra-logo-e1b50adb-....png` (логотип: круг, A, мандала, спираль, ладони) | `public/images/avaterra-logo.png` |
+| Логотип (канон, первый в коде) | `public/images/LOGO.png` |
+| Запасной дубликат (опционально) | `public/images/avaterra-logo.png` (тот же растр, что и выше) |
+| `avaterra-logo-e1b50adb-....png` (исходник при необходимости) | → сохранить как `LOGO.png` или `avaterra-logo.png` |
 | `hero-bg.png` (картинка с кристаллами/алмазами) | `public/images/hero/hero-bg.png` |
 | `hero-banner.png` | `public/images/thematic/hero-banner.png` |
 | `about-path.png` | `public/images/thematic/about-path.png` |
