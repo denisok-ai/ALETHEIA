@@ -106,7 +106,7 @@ export function ResizableGroupsLayout({
         {sidebar}
       </aside>
       <div
-        role="separator"
+        role="slider"
         aria-orientation="vertical"
         aria-valuenow={width}
         aria-valuemin={MIN_WIDTH}

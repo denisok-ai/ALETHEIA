@@ -84,6 +84,8 @@ export interface NotificationTemplateDef {
   name: string;
   subject: string;
   body: string; // HTML-фрагмент с плейсхолдерами
+  /** Если задано, используется при отсутствии правила в БД (например только лента, без email). */
+  deliveryType?: 'internal' | 'email' | 'both';
 }
 
 export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateDef[] = [
@@ -142,6 +144,24 @@ export const DEFAULT_NOTIFICATION_TEMPLATES: NotificationTemplateDef[] = [
 <p>Основные разделы: <strong>Мои курсы</strong> — запуск материалов и прогресс; <strong>Поддержка</strong> — обращение в службу поддержки; <strong>Профиль</strong> — данные учётной записи.</p>
 <p>Дата регистрации: %date%.</p>
 <p>Команда ${SCHOOL_NAME}</p>`,
+  },
+  {
+    eventType: 'gamification_level_up',
+    name: 'Новый уровень заряда',
+    subject: 'Новый уровень заряда: %level% — %systemtitle%',
+    body: `<p>Здравствуйте, <strong>%recfirstname% %reclastname%</strong>!</p>
+<p>Ваш уровень заряда вырос до <strong>%level%</strong>. Накоплено единиц заряда: <strong>%total_xp%</strong>.</p>
+<p>Продолжайте обучение в личном кабинете.</p>`,
+    deliveryType: 'internal',
+  },
+  {
+    eventType: 'gamification_badge_unlocked',
+    name: 'Новый бейдж',
+    subject: 'Новый бейдж: %badgename% — %systemtitle%',
+    body: `<p>Здравствуйте, <strong>%recfirstname% %reclastname%</strong>!</p>
+<p>Вы получили бейдж <strong>%badgeemoji% %badgename%</strong>!</p>
+<p>Дата: %date%.</p>`,
+    deliveryType: 'internal',
   },
 ];
 

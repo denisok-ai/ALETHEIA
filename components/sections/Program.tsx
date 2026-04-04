@@ -3,7 +3,8 @@
 import { useRef, useState } from 'react';
 import Link from 'next/link';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { BookOpen, Clock, ListChecks, Video, ChevronDown } from 'lucide-react';
 
 /** Цифры в шапке секции — по согласованию с заказчиком. */
@@ -138,10 +139,8 @@ export function Program() {
           transition={{ delay: 0.35 }}
           className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
         >
-          <Link href="/#pricing">
-            <Button variant="landingRose" size="lg">
-              Записаться на курс
-            </Button>
+          <Link href="/#pricing" className={cn(buttonVariants({ variant: 'landingRose', size: 'lg' }))}>
+            Записаться на курс
           </Link>
           <Link href="#pricing" className="text-sm font-medium text-plum hover:underline">
             Смотреть тарифы

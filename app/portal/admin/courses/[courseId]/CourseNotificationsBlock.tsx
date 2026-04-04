@@ -8,7 +8,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { ChevronDown, Search, Bell } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -296,8 +297,11 @@ export function CourseNotificationsBlock({
           description="Добавьте набор из каталога через кнопку «Добавить набор уведомлений» выше."
           icon={<Bell className="h-10 w-10" />}
           action={
-            <Link href="/portal/admin/notification-sets">
-              <Button variant="secondary" size="sm">Открыть каталог наборов</Button>
+            <Link
+              href="/portal/admin/notification-sets"
+              className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+            >
+              Открыть каталог наборов
             </Link>
           }
         />

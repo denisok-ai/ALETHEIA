@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Download } from 'lucide-react';
 import {
   CERTIFICATE_TEMPLATE_LABELS,
@@ -29,10 +30,16 @@ export function CertificateDownload({ certId, allowDownload = true }: { certId: 
           <option key={t} value={t}>{CERTIFICATE_TEMPLATE_LABELS[t]}</option>
         ))}
       </select>
-      <a href={url} target="_blank" rel="noopener noreferrer">
-        <Button size="sm" className="bg-[var(--portal-accent)] text-white hover:bg-[var(--portal-accent-dark)]">
-          <Download className="mr-1.5 h-4 w-4" /> Скачать PDF
-        </Button>
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        className={cn(
+          buttonVariants({ size: 'sm' }),
+          'bg-[var(--portal-accent)] text-white hover:bg-[var(--portal-accent-dark)]'
+        )}
+      >
+        <Download className="mr-1.5 h-4 w-4" /> Скачать PDF
       </a>
     </div>
   );

@@ -39,7 +39,10 @@
 - **Конфиг сайта:** `/etc/nginx/sites-available/aletheia` → симлинк `sites-enabled/aletheia`.
 - **Схема:** HTTPS (443) и/или HTTP → `proxy_pass http://127.0.0.1:3000` (или другой порт из `.env`).
 - **Кеш `proxy_cache`:** если для `location /` включены `proxy_cache` и длинный `proxy_cache_valid 200`, nginx может отдавать **устаревший HTML/RSC** после деплоя. Рекомендация: для динамики не кешировать ответы приложения (`proxy_no_cache` / отдельный `location` только для `/_next/static/`). Пример без кеша HTML — [`scripts/nginx-aletheia.conf`](../scripts/nginx-aletheia.conf).
+- **Заголовки безопасности:** в приложении заданы `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` ([`next.config.mjs`](../next.config.mjs) → `headers`). При дублировании тех же имён в nginx убедитесь, что значения совпадают; **HSTS** и принудительный **HTTPS** обычно задаются в nginx/certbot, не в Next.js.
 - **После правок:** `sudo nginx -t && sudo systemctl reload nginx`.
+
+**Чеклист обзора (при инцидентах или раз в квартал):** убедиться, что для HTML/RSC не включён агрессивный `proxy_cache` на `location /`; при медленном `next/image` на сервере — установлен **sharp** в `/opt/ALETHEIA` (см. §2). План перехода на **PostgreSQL** при росте нагрузки — [Deploy.md](Deploy.md) (раздел про БД).
 
 ---
 

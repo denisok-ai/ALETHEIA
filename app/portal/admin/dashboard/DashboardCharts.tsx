@@ -2,6 +2,8 @@
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { PORTAL_PATH } from '@/lib/portal-paths';
+import { formatRub } from '@/lib/format-ru';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
 
 const PERIODS = [7, 30, 90] as const;
@@ -36,7 +38,7 @@ export function DashboardCharts({
   function setPeriod(p: number) {
     const next = new URLSearchParams(searchParams.toString());
     next.set('period', String(p));
-    router.push(`/portal/admin/dashboard?${next.toString()}`);
+    router.push(`${PORTAL_PATH.adminDashboard}?${next.toString()}`);
   }
 
   return (
@@ -62,7 +64,7 @@ export function DashboardCharts({
         </Link>
       </div>
 
-      <div className="mt-8 portal-card p-6">
+      <div className="mt-8 min-w-0 portal-card p-6">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-lg font-semibold text-[var(--portal-text)]">Выручка по дням</h2>
           <div className="flex rounded-lg border border-[#E2E8F0] p-0.5">
@@ -86,9 +88,9 @@ export function DashboardCharts({
               <BarChart data={revenueData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => v.slice(5)} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${Number(v ?? 0)} ₽`} />
+                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${formatRub(Number(v ?? 0))} ₽`} />
                 <Tooltip
-                  formatter={(value) => [`${Number(value ?? 0).toLocaleString('ru')} ₽`]}
+                  formatter={(value) => [`${formatRub(Number(value ?? 0))} ₽`]}
                   labelFormatter={(label) => label}
                 />
                 <Bar dataKey="revenue" fill="#2D1B4E" radius={[4, 4, 0, 0]} />
@@ -110,7 +112,7 @@ export function DashboardCharts({
       <div className="mt-6 portal-card p-6">
         <h2 className="mb-3 text-lg font-semibold text-[var(--portal-text)]">Активность по дням (записи и сертификаты)</h2>
         {activityData.length > 0 && hasActivity ? (
-          <div className="h-64 w-full min-h-[256px]" style={{ minWidth: 0 }}>
+          <div className="h-64 w-full min-h-[256px] min-w-0">
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
               <LineChart data={activityData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

@@ -87,6 +87,8 @@ export function CourseCoverBlock({
           {displayUrl ? (
             <div className="relative w-40 h-24 rounded-lg border border-[#E2E8F0] overflow-hidden bg-[var(--portal-bg)]">
               {isExternalUrl ? (
+                // Внешний URL: без настройки remotePatterns в next.config next/image не подходит
+                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={displayUrl}
                   alt="Обложка"

@@ -296,7 +296,7 @@ export function ManagerTicketsTableClient() {
                     <Link
                       href={`/portal/manager/tickets/${t.id}`}
                       className="text-[var(--portal-text-soft)] hover:text-[var(--portal-accent)]"
-                      aria-label="Открыть"
+                      aria-label={`Открыть тикет: ${t.subject}`}
                     >
                       <ArrowRight className="h-4 w-4" />
                     </Link>

@@ -1,6 +1,7 @@
 /**
  * Admin: list publications (GET), create publication (POST).
  */
+import type { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -24,9 +25,13 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type'); // all | news | announcement
   const search = searchParams.get('search')?.trim() ?? '';
 
-  const where: { type?: string; title?: { contains: string } } = {};
+  const where: Prisma.PublicationWhereInput = {};
   if (type && type !== 'all') where.type = type;
-  if (search) where.title = { contains: search };
+  // SQLite (локально): Prisma не типизирует и не поддерживает mode: 'insensitive'.
+  // На PostgreSQL при смене провайдера можно добавить mode: 'insensitive' для поиска без учёта регистра.
+  if (search) {
+    where.OR = [{ title: { contains: search } }, { keywords: { contains: search } }];
+  }
 
   const list = await prisma.publication.findMany({
     where,
@@ -40,6 +45,7 @@ export async function GET(request: NextRequest) {
       type: p.type,
       status: p.status,
       publishAt: p.publishAt.toISOString(),
+      keywords: p.keywords,
       viewsCount: p.viewsCount,
       ratingSum: p.ratingSum,
       ratingCount: p.ratingCount,

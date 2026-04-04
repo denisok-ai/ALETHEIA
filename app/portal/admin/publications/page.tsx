@@ -31,6 +31,7 @@ export default async function AdminPublicationsPage() {
     type: p.type,
     status: p.status,
     publishAt: p.publishAt.toISOString(),
+    keywords: p.keywords,
     viewsCount: p.viewsCount,
     ratingSum: p.ratingSum,
     ratingCount: p.ratingCount,

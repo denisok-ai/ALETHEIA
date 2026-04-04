@@ -1,6 +1,8 @@
 /**
  * Пункты для палитры команд портала (⌘K): те же маршруты, что в сайдбарах по ролям.
  */
+import { PORTAL_PATH } from '@/lib/portal-paths';
+
 export type PortalNavRole = 'admin' | 'manager' | 'user';
 
 export interface PortalNavCommandItem {
@@ -12,25 +14,36 @@ export interface PortalNavCommandItem {
 }
 
 export const PORTAL_NAV_COMMAND_ITEMS: readonly PortalNavCommandItem[] = [
-  { href: '/portal/student/dashboard', label: 'Дашборд', section: 'Студент', roles: ['user'] },
+  { href: PORTAL_PATH.studentDashboard, label: 'Дашборд', section: 'Студент', roles: ['user'] },
   { href: '/portal/student/courses', label: 'Мои курсы', section: 'Студент', roles: ['user'] },
   { href: '/portal/student/certificates', label: 'Сертификаты', section: 'Студент', roles: ['user'] },
   { href: '/portal/student/media', label: 'Медиатека', section: 'Студент', roles: ['user'] },
   { href: '/portal/student/verifications', label: 'Задания на проверку', section: 'Студент', roles: ['user'] },
   { href: '/portal/student/notifications', label: 'Уведомления', section: 'Студент', roles: ['user'] },
+  { href: '/portal/student/gamification', label: 'История заряда', section: 'Студент', roles: ['user'] },
   { href: '/portal/student/support', label: 'Поддержка', section: 'Студент', roles: ['user'] },
   { href: '/portal/student/help', label: 'Помощь', section: 'Студент', roles: ['user'] },
+  { href: '/portal/student/help#ai-tutor', label: 'Помощь: AI-тьютор в курсе', section: 'Студент', roles: ['user'] },
   { href: '/portal/student/profile', label: 'Профиль', section: 'Студент', roles: ['user'] },
 
-  { href: '/portal/manager/dashboard', label: 'Дашборд', section: 'Менеджер', roles: ['manager'] },
+  { href: PORTAL_PATH.managerDashboard, label: 'Дашборд', section: 'Менеджер', roles: ['manager'] },
   { href: '/portal/manager/tickets', label: 'Тикеты', section: 'Менеджер', roles: ['manager', 'admin'] },
   { href: '/portal/manager/users', label: 'Пользователи', section: 'Менеджер', roles: ['manager'] },
-  { href: '/portal/manager/verifications', label: 'Верификация заданий', section: 'Менеджер', roles: ['manager'] },
+  { href: '/portal/manager/verifications', label: 'Верификация заданий (журнал)', section: 'Менеджер', roles: ['manager'] },
   { href: '/portal/manager/help', label: 'Помощь', section: 'Менеджер', roles: ['manager'] },
+  { href: '/portal/manager/help#ai-tutor', label: 'Помощь: AI-тьютор в курсе', section: 'Менеджер', roles: ['manager'] },
 
-  { href: '/portal/admin/dashboard', label: 'Дашборд', section: 'Администрирование', roles: ['admin'] },
+  /** Те же URL, что в сайдбаре ЛК студента — для admin/manager под своим пользователем. */
+  { href: PORTAL_PATH.studentDashboard, label: 'ЛК студента — дашборд', section: 'Как у студента', roles: ['admin', 'manager'] },
+  { href: '/portal/student/courses', label: 'Мои курсы', section: 'Как у студента', roles: ['admin', 'manager'] },
+  { href: '/portal/student/gamification', label: 'История заряда', section: 'Как у студента', roles: ['admin', 'manager'] },
+
+  { href: PORTAL_PATH.adminDashboard, label: 'Дашборд', section: 'Администрирование', roles: ['admin'] },
   { href: '/portal/admin/groups', label: 'Группы', section: 'Контент и обучение', roles: ['admin'] },
   { href: '/portal/admin/courses', label: 'Курсы', section: 'Контент и обучение', roles: ['admin'] },
+  { href: '/portal/admin/gamification', label: 'Геймификация', section: 'Контент и обучение', roles: ['admin'] },
+  { href: '/portal/admin/gamification/courses', label: 'Заряд по курсам', section: 'Контент и обучение', roles: ['admin'] },
+  { href: '/portal/admin/verifications', label: 'Верификация заданий (журнал)', section: 'Контент и обучение', roles: ['admin'] },
   { href: '/portal/admin/certificates', label: 'Сертификаты', section: 'Контент и обучение', roles: ['admin'] },
   { href: '/portal/admin/certificate-templates', label: 'Шаблоны сертификатов', section: 'Контент и обучение', roles: ['admin'] },
   { href: '/portal/admin/publications', label: 'Публикации', section: 'Контент и обучение', roles: ['admin'] },
@@ -50,6 +63,8 @@ export const PORTAL_NAV_COMMAND_ITEMS: readonly PortalNavCommandItem[] = [
   { href: '/portal/admin/ai-settings', label: 'Настройки AI', section: 'Настройки', roles: ['admin'] },
   { href: '/portal/admin/settings', label: 'Настройки', section: 'Настройки', roles: ['admin'] },
   { href: '/portal/admin/help', label: 'Помощь', section: 'Настройки', roles: ['admin'] },
+  { href: '/portal/admin/help#ai-tutor', label: 'Помощь: AI-тьютор в курсе', section: 'Настройки', roles: ['admin'] },
+  { href: '/portal/admin/help#ai-tutor-admin', label: 'Помощь: AI-тьютор (настройка и беседы)', section: 'Настройки', roles: ['admin'] },
 ] as const;
 
 export function getPortalNavCommandsForRole(role: string | undefined): PortalNavCommandItem[] {

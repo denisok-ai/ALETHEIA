@@ -15,12 +15,13 @@ const navLinks: { href: string; label: string; shortLabel?: string }[] = [
   { href: '#method', label: 'О методе' },
   { href: '#why', label: 'О курсе' },
   { href: '#formats', label: 'Программа' },
-  { href: '#master', label: 'О мастере', shortLabel: 'Мастер' },
   { href: '#reviews', label: 'Отзывы' },
-  { href: '#faq', label: 'Вопросы и ответы', shortLabel: 'Вопросы' },
   { href: '#pricing', label: 'Цены' },
   { href: '/course/navyki-myshechnogo-testirovaniya', label: 'Курс по тестированию', shortLabel: 'Курс' },
   { href: '/blog', label: 'Блог' },
+  { href: '/about', label: 'О мастере', shortLabel: 'Мастер' },
+  { href: '/faq', label: 'Вопросы и ответы' },
+  { href: '/contacts', label: 'Контакты' },
 ];
 
 /** Якоря главной: всегда `/#id` — в App Router чистый `#id` у Link часто не скроллит к секции. */
@@ -80,6 +81,7 @@ export function Header() {
           <BrandLogo
             priority
             knockout={false}
+            withVisibleBrandText
             heightClass="h-14 w-auto sm:h-16 md:h-[4.5rem]"
             imgClassName="max-w-[min(100%,10rem)] sm:max-w-[11rem] md:max-w-[13rem]"
           />

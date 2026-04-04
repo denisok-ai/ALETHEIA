@@ -5,7 +5,8 @@
  */
 import Link from 'next/link';
 import { Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { ScormManifestViewer } from '@/components/admin/ScormManifestViewer';
 
 export function ScormPackageCard({
@@ -23,11 +24,14 @@ export function ScormPackageCard({
         <span className="text-sm font-medium text-[var(--portal-text)]">Структура пакета (манифест)</span>
         <div className="flex flex-wrap items-center justify-end gap-2">
           {scormManifest ? (
-            <Link href={`/portal/student/courses/${courseId}/play`} target="_blank" rel="noopener noreferrer">
-              <Button type="button" variant="primary" size="sm" className="gap-1.5">
-                <Play className="h-4 w-4" />
-                Запустить плеер (проверка)
-              </Button>
+            <Link
+              href={`/portal/student/courses/${courseId}/play`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5')}
+            >
+              <Play className="h-4 w-4" />
+              Запустить плеер (проверка)
             </Link>
           ) : null}
         </div>

@@ -171,6 +171,7 @@ export function CourseMediaBlock({
                 </div>
                 <div className="w-12 h-12 rounded-lg bg-[#E2E8F0] flex items-center justify-center shrink-0 overflow-hidden">
                   {thumbUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- превью из uploads/динамические пути
                     <img src={thumbUrl.startsWith('/') ? thumbUrl : `/${thumbUrl}`} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <Icon className="h-6 w-6 text-[var(--portal-text-muted)]" />

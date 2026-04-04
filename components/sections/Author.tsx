@@ -4,10 +4,10 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { TiltCard } from '@/components/ui/TiltCard';
-
-const quote = 'Я передаю знания и опыт тем, кто готов меняться.';
+import { ABOUT_MASTER } from '@/lib/content/about-master';
 
 export function Author() {
   const ref = useRef<HTMLElement>(null);
@@ -35,8 +35,8 @@ export function Author() {
             <TiltCard maxTilt={10} className="w-full max-w-sm">
               <div className="relative overflow-hidden rounded-2xl border-2 border-periwinkle/50 shadow-[var(--shadow-card)]">
                 <Image
-                  src="/images/tatiana/tatiana-about.png"
-                  alt="Татьяна Стрельцова — основательница школы кинезиологии АВАТЕРРА, 22 года практики"
+                  src={ABOUT_MASTER.imageSrc}
+                  alt={ABOUT_MASTER.imageAlt}
                   width={480}
                   height={640}
                   className="relative h-auto w-full object-cover"
@@ -57,19 +57,22 @@ export function Author() {
             transition={{ duration: 0.5, delay: 0.1 }}
           >
             <span className="block text-sm font-semibold uppercase tracking-widest text-plum">
-              Основательница и ведущий мастер
+              {ABOUT_MASTER.eyebrow}
             </span>
             <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">
-              Татьяна Стрельцова
+              {ABOUT_MASTER.name}
             </h2>
-            <p className="mt-2 text-[var(--text-muted)]">22 года практики · более 15 000 консультаций</p>
-            <p className="mt-7 text-[var(--text-muted)] leading-relaxed">
-              С 2004 года я практикую кинезиологию и мышечный тест, помогая людям обрести внутренний баланс и силу жизни.
-              «АВАТЕРРА» — это уникальная методика, которая получила признание среди коллег и экспертов.
+            <p className="mt-2 text-[var(--text-muted)]">{ABOUT_MASTER.subtitle}</p>
+            {ABOUT_MASTER.paragraphs.map((p, i) => (
+              <p key={p.slice(0, 24)} className={`text-[var(--text-muted)] leading-relaxed ${i === 0 ? 'mt-7' : 'mt-6'}`}>
+                {p}
+              </p>
+            ))}
+            <p className="mt-6 border-l-4 border-rose pl-4 font-heading text-lg italic text-[var(--text)]">
+              {ABOUT_MASTER.quote}
             </p>
-            <p className="mt-6 border-l-4 border-rose pl-4 font-heading text-lg italic text-[var(--text)]">{quote}</p>
-            <Link href="/#pricing" className="mt-8 inline-block">
-              <Button variant="landingPlum">Связаться со мной</Button>
+            <Link href="/#pricing" className={cn(buttonVariants({ variant: 'landingPlum' }), 'mt-8')}>
+              Связаться со мной
             </Link>
           </motion.article>
         </div>

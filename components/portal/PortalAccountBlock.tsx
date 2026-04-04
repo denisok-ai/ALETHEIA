@@ -9,12 +9,13 @@ import { usePathname } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { LogOut, LayoutDashboard, Users, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PORTAL_PATH } from '@/lib/portal-paths';
 import { usePortalUI } from './PortalUIProvider';
 
 const SWITCH_LINKS = [
-  { href: '/portal/admin/dashboard', label: 'Админка', role: 'admin' as const, icon: LayoutDashboard },
-  { href: '/portal/manager/dashboard', label: 'Кабинет менеджера', role: 'manager' as const, icon: Users },
-  { href: '/portal/student/dashboard', label: 'ЛК студента', role: 'user' as const, icon: BookOpen },
+  { href: PORTAL_PATH.adminDashboard, label: 'Админка', role: 'admin' as const, icon: LayoutDashboard },
+  { href: PORTAL_PATH.managerDashboard, label: 'Кабинет менеджера', role: 'manager' as const, icon: Users },
+  { href: PORTAL_PATH.studentDashboard, label: 'ЛК студента', role: 'user' as const, icon: BookOpen },
 ];
 
 export function PortalAccountBlock({ collapsed, className }: { collapsed?: boolean; className?: string }) {

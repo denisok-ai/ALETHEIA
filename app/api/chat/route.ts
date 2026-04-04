@@ -2,14 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { getKnowledgeBase, getSystemSettings } from '@/lib/settings';
+import { getEnvOverrides, getKnowledgeBase, getSystemSettings } from '@/lib/settings';
 import { getLlmApiKey } from '@/lib/llm';
+import {
+  completeLlmChat,
+  parseLlmErrorHint,
+  resolveChatbotProvider,
+  resolveEffectiveChatModel,
+} from '@/lib/llm-chat-completion';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { logLlmRequest } from '@/lib/llm-request-log';
+import { applyPublicChatPlaceholders } from '@/lib/ai-placeholders';
 import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const DEFAULT_MODEL = 'deepseek-chat';
 
 export async function POST(request: NextRequest) {
@@ -41,8 +47,10 @@ export async function POST(request: NextRequest) {
       /\/$/,
       ''
     );
-    /** Плейсхолдер {{COURSE_URL}} в базе знаний — тот же URL, что кнопки «Купить курс» / CTA. */
+    /** {{COURSE_URL}} — URL оформления курса (как CTA на лендинге). */
     const courseUrl = absoluteCourseCheckoutUrl(siteBase);
+    const supportEmail =
+      (systemSettings.resend_notify_email || 'info@avaterra.pro').trim() || 'info@avaterra.pro';
 
     const knowledgeBase = await getKnowledgeBase();
     if (!knowledgeBase.trim()) {
@@ -52,8 +60,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const systemContent = knowledgeBase.replace(/\{\{COURSE_URL\}\}/g, courseUrl);
-
     let systemPrompt = 'Ты консультант курса «Тело не врёт». Отвечай ТОЛЬКО на основе приведённой ниже базы знаний. Строго следуй правилам из базы: медицинский дисклеймер при ответах про здоровье/психику; при отсутствии информации — не выдумывай, предложи уточнить у кураторов; своди к мышечному тесту и базовому курсу; в конце давай ссылку на курс.\n\n---\n\n';
     let model = DEFAULT_MODEL;
     let temperature = 0.5;
@@ -62,7 +68,10 @@ export async function POST(request: NextRequest) {
 
     const chatbotLlmSetting = await prisma.llmSetting.findUnique({
       where: { key: 'chatbot' },
+      include: { apiKey: { select: { provider: true } } },
     });
+    const envOverrides = await getEnvOverrides();
+    const provider = resolveChatbotProvider(chatbotLlmSetting, envOverrides);
     if (chatbotLlmSetting) {
       model = chatbotLlmSetting.model ?? DEFAULT_MODEL;
       temperature = Number(chatbotLlmSetting.temperature) || 0.5;
@@ -70,6 +79,9 @@ export async function POST(request: NextRequest) {
       if (chatbotLlmSetting.systemPrompt?.trim()) {
         systemPrompt = chatbotLlmSetting.systemPrompt.trim() + '\n\n---\n\n';
       }
+    } else {
+      if (provider === 'openai') model = 'gpt-4o-mini';
+      else if (provider === 'anthropic') model = 'claude-3-5-haiku-20240307';
     }
 
     const activeTemplate = await prisma.promptTemplate.findFirst({
@@ -80,40 +92,53 @@ export async function POST(request: NextRequest) {
       activeTemplateId = activeTemplate.id;
     }
 
-    const fullSystemContent = systemPrompt + systemContent;
+    const fullSystemContent = applyPublicChatPlaceholders(systemPrompt + knowledgeBase, {
+      siteBase,
+      courseUrl,
+      supportEmail,
+    });
     const startMs = Date.now();
+    const effectiveModel = resolveEffectiveChatModel(provider, model);
 
-    const response = await fetch(DEEPSEEK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: fullSystemContent },
-          { role: 'user', content: message },
-        ],
-        max_tokens: maxTokens,
-        temperature,
-      }),
+    const llmResult = await completeLlmChat({
+      provider,
+      apiKey,
+      model,
+      messages: [
+        { role: 'system', content: fullSystemContent },
+        { role: 'user', content: message },
+      ],
+      maxTokens,
+      temperature,
     });
 
-    if (!response.ok) {
-      const errText = await response.text();
-      console.error('DeepSeek API error:', response.status, errText);
-      return NextResponse.json(
-        { error: 'Сервис ответов временно недоступен. Попробуйте позже.' },
-        { status: 502 }
+    if (!llmResult.ok) {
+      console.error(
+        'LLM chat API error:',
+        provider,
+        '(configured model:',
+        model,
+        '→',
+        effectiveModel,
+        ')',
+        llmResult.status,
+        llmResult.bodySnippet
       );
+      const apiHint = parseLlmErrorHint(llmResult.status, llmResult.bodySnippet);
+      let error =
+        'Сервис ответов временно недоступен. Проверьте ключ и что для чат-бота выбран ключ того же провайдера (DeepSeek / OpenAI / Anthropic), что и в списке «Ключи моделей».';
+      if (llmResult.status === 401 || llmResult.status === 403) {
+        error =
+          'Провайдер не принял API-ключ (ошибка авторизации). Частая причина: выбран ключ OpenAI, а в настройках чат-бота указан провайдер DeepSeek — выберите в списке ключей тот, который соответствует вашему ключу, или вставьте верный ключ DeepSeek.';
+      }
+      if (apiHint) {
+        error = `${error} Детали: ${apiHint}`;
+      }
+      return NextResponse.json({ error }, { status: 502 });
     }
 
-    const data = (await response.json()) as {
-      choices?: Array<{ message?: { content?: string } }>;
-    };
     const answer =
-      data?.choices?.[0]?.message?.content?.trim() ||
+      llmResult.content ||
       'Не удалось получить ответ. Попробуйте переформулировать вопрос.';
 
     if (activeTemplateId) {
@@ -129,7 +154,7 @@ export async function POST(request: NextRequest) {
     if (session?.user) {
       logLlmRequest({
         source: 'chatbot',
-        model,
+        model: effectiveModel,
         promptChars: fullSystemContent.length + message.length,
         responseChars: answer.length,
         durationMs: Date.now() - startMs,

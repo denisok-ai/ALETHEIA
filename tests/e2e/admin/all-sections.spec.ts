@@ -20,9 +20,11 @@ const ADMIN_PAGES = [
 ];
 
 test.describe('Дашборд', () => {
-  test('загружается с метриками', async ({ page }) => {
+  test('загружается с метриками и клиентским блоком графиков', async ({ page }) => {
     await page.goto('/portal/admin/dashboard');
     await expect(page.getByRole('main').first()).toBeVisible({ timeout: 10000 });
+    // DashboardCharts — dynamic(ssr: false); заголовок появляется после гидрации
+    await expect(page.getByRole('heading', { name: /выручка по дням/i })).toBeVisible({ timeout: 15000 });
   });
 });
 

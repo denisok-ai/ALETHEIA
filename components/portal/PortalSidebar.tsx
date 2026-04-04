@@ -88,6 +88,7 @@ function SidebarNav({
   collapsed,
   firstRowAction,
   collapsibleNavSections,
+  navAriaLabel = 'Разделы портала',
 }: {
   items?: NavItem[];
   sections?: NavSection[];
@@ -95,6 +96,8 @@ function SidebarNav({
   collapsed?: boolean;
   firstRowAction?: React.ReactNode;
   collapsibleNavSections?: boolean;
+  /** У мобильного оверлея — своё имя, чтобы не дублировать landmark с десктопным сайдбаром в дереве доступности. */
+  navAriaLabel?: string;
 }) {
   const pathname = usePathname();
   const useSections = sections && sections.length > 0;
@@ -123,7 +126,7 @@ function SidebarNav({
   };
 
   return (
-    <nav className="flex flex-col gap-0.5" aria-label="Разделы портала">
+    <nav className="flex flex-col gap-0.5" aria-label={navAriaLabel}>
       {/* Кнопка сворачивания (если collapsed) */}
       {firstRowAction && collapsed && (
         <div className="flex w-full justify-center py-2">{firstRowAction}</div>
@@ -290,6 +293,7 @@ function SidebarLogo({
           <BrandLogo
             priority
             knockout={false}
+            withVisibleBrandText
             heightClass="h-7 w-7"
             className="shrink-0 transition-opacity group-hover:opacity-90"
             imgClassName="max-h-7 max-w-7 object-contain"
@@ -298,6 +302,7 @@ function SidebarLogo({
           <BrandLogo
             priority
             knockout={false}
+            withVisibleBrandText
             heightClass="h-20 max-h-[5.5rem]"
             className="transition-opacity group-hover:opacity-90"
             imgClassName="mx-auto max-w-[min(100%,13.5rem)] object-contain"
@@ -321,6 +326,7 @@ function SidebarLogo({
         <BrandLogo
           priority
           knockout={false}
+          withVisibleBrandText
           heightClass="h-8 w-8"
           className="shrink-0 transition-opacity group-hover:opacity-90"
           imgClassName="max-h-8 max-w-8 object-contain"
@@ -331,6 +337,7 @@ function SidebarLogo({
             heightClass="h-10"
             priority
             knockout={false}
+            withVisibleBrandText
             className="shrink-0"
             imgClassName="max-h-10 max-w-[9rem] sm:max-w-[10rem]"
           />
@@ -420,7 +427,7 @@ function DesktopSidebar({
         bg-[var(--portal-sidebar-bg)]
         border-r border-[var(--portal-sidebar-border)]
         transition-[width] duration-200 overflow-hidden"
-      aria-label="Боковое меню"
+      aria-label="Боковое меню портала (десктоп)"
     >
       <div className="flex flex-col flex-1 min-h-0 px-3 pt-5 pb-3 overflow-y-auto">
         <SidebarLogo collapsed={collapsed} brandLogoOnly={brandLogoOnly} href={logoHref} />
@@ -429,6 +436,7 @@ function DesktopSidebar({
           sections={sections}
           collapsed={collapsed}
           collapsibleNavSections={collapsibleNavSections}
+          navAriaLabel="Разделы портала, боковая панель"
           firstRowAction={
             collapsible
               ? <CollapseButton collapsed={collapsed} onClick={onToggle} />
@@ -474,7 +482,7 @@ function MobileSidebar({
       className="fixed inset-0 z-50 lg:hidden"
       aria-modal="true"
       role="dialog"
-      aria-label="Меню навигации"
+      aria-label="Меню навигации портала (мобильное)"
     >
       {/* backdrop */}
       <button
@@ -517,6 +525,7 @@ function MobileSidebar({
             onLinkClick={onClose}
             collapsed={false}
             collapsibleNavSections={collapsibleNavSections}
+            navAriaLabel="Разделы портала, мобильное меню"
           />
           {footerSlot && (
             <div className="mt-4 border-t border-[var(--portal-sidebar-border)] pt-3">{footerSlot}</div>

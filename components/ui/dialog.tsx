@@ -100,12 +100,20 @@ const DialogHeader = ({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 const DialogTitle = React.forwardRef<
   HTMLHeadingElement,
   React.HTMLAttributes<HTMLHeadingElement>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <h2
     ref={ref}
     className={cn('text-xl font-heading font-semibold text-[var(--portal-text)]', className)}
     {...props}
-  />
+  >
+    {children != null &&
+    children !== false &&
+    (typeof children !== 'string' || children.trim().length > 0)
+      ? children
+      : (
+          <span className="sr-only">Диалог</span>
+        )}
+  </h2>
 ));
 DialogTitle.displayName = 'DialogTitle';
 

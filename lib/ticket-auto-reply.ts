@@ -2,12 +2,14 @@
  * Автоответ при создании тикета: вызов LLM по теме и первому сообщению, проверка «уверенности» ответа.
  * Используется в POST /api/portal/tickets при включённой настройке ticket_auto_reply_enabled.
  */
+import { applyPublicChatPlaceholders } from '@/lib/ai-placeholders';
+import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
 import { getLlmApiKey } from '@/lib/llm';
-import { getKnowledgeBase } from '@/lib/settings';
+import { completeLlmChat, resolveChatbotProvider } from '@/lib/llm-chat-completion';
+import { getEnvOverrides, getKnowledgeBase, getSystemSettings } from '@/lib/settings';
+import { normalizeSiteUrl } from '@/lib/site-url';
 import { prisma } from '@/lib/db';
 import { logLlmRequest } from '@/lib/llm-request-log';
-
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 const KB_MAX_CHARS = 6000;
 const MAX_REPLY_LENGTH = 800;
 
@@ -39,12 +41,20 @@ export async function generateAutoReply(subject: string, firstMessage: string): 
   const apiKey = await getLlmApiKey('chatbot');
   if (!apiKey) return null;
 
+  const systemSettings = await getSystemSettings();
+  const siteBase = normalizeSiteUrl(
+    systemSettings.site_url || process.env.NEXT_PUBLIC_URL || 'https://avaterra.pro'
+  ).replace(/\/$/, '');
+  const courseUrl = absoluteCourseCheckoutUrl(siteBase);
+  const supportEmail =
+    (systemSettings.resend_notify_email || 'info@avaterra.pro').trim() || 'info@avaterra.pro';
+
   let knowledgeSnippet = '';
   try {
     const kb = await getKnowledgeBase();
     if (kb.trim()) {
-      knowledgeSnippet =
-        kb.trim().length > KB_MAX_CHARS ? kb.trim().slice(0, KB_MAX_CHARS) + '\n\n[...]' : kb.trim();
+      const raw = kb.trim().length > KB_MAX_CHARS ? kb.trim().slice(0, KB_MAX_CHARS) + '\n\n[...]' : kb.trim();
+      knowledgeSnippet = applyPublicChatPlaceholders(raw, { siteBase, courseUrl, supportEmail });
     }
   } catch {
     // ignore
@@ -63,40 +73,41 @@ export async function generateAutoReply(subject: string, firstMessage: string): 
   const sys = sysParts.join('\n');
   const userContent = `Тема обращения: ${subject}\n\nСообщение клиента:\n${firstMessage}\n\n---\nДай краткий ответ от имени поддержки.`;
 
-  const settings = await prisma.llmSetting.findUnique({ where: { key: 'chatbot' } });
-  const model = settings?.model ?? 'deepseek-chat';
+  const settings = await prisma.llmSetting.findUnique({
+    where: { key: 'chatbot' },
+    include: { apiKey: { select: { provider: true } } },
+  });
+  const envOverrides = await getEnvOverrides();
+  const provider = resolveChatbotProvider(settings, envOverrides);
+  let model = settings?.model ?? 'deepseek-chat';
+  if (!settings) {
+    if (provider === 'openai') model = 'gpt-4o-mini';
+    else if (provider === 'anthropic') model = 'claude-3-5-haiku-20240307';
+  }
   const startMs = Date.now();
 
   try {
-    const response = await fetch(DEEPSEEK_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: sys },
-          { role: 'user', content: userContent },
-        ],
-        max_tokens: 400,
-        temperature: 0.4,
-      }),
+    const result = await completeLlmChat({
+      provider,
+      apiKey,
+      model,
+      messages: [
+        { role: 'system', content: sys },
+        { role: 'user', content: userContent },
+      ],
+      maxTokens: 400,
+      temperature: 0.4,
     });
 
-    if (!response.ok) return null;
-    const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
-    const content = data?.choices?.[0]?.message?.content?.trim() ?? null;
-    if (content !== null) {
-      logLlmRequest({
-        source: 'ticket-auto-reply',
-        model,
-        promptChars: sys.length + userContent.length,
-        responseChars: content.length,
-        durationMs: Date.now() - startMs,
-      });
-    }
+    if (!result.ok) return null;
+    const content = result.content;
+    logLlmRequest({
+      source: 'ticket-auto-reply',
+      model,
+      promptChars: sys.length + userContent.length,
+      responseChars: content.length,
+      durationMs: Date.now() - startMs,
+    });
     return content || null;
   } catch {
     return null;

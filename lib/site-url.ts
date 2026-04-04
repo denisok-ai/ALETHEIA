@@ -19,9 +19,21 @@ export function siteUrlHostForRobots(raw: string): string {
   }
 }
 
+/** Локальная разработка: не затирать NEXTAUTH_URL продакшен-URL из БД (иначе next-auth/react: CLIENT_FETCH_ERROR). */
+function isLoopbackHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '::1';
+}
+
 /**
- * NextAuth читает NEXTAUTH_URL из process.env на запросах; подставляем из БД (URL сайта в настройках).
- * Приоритет: явный nextauth_url из overrides → site_url → NEXT_PUBLIC_URL.
+ * NextAuth читает `NEXTAUTH_URL` из `process.env` на запросах.
+ *
+ * **Приоритет источников:** `nextauth_url` в БД (Портал → Настройки) → `site_url` в БД →
+ * `NEXT_PUBLIC_URL` → `NEXTAUTH_URL` в `.env` (только если из БД не задано ни одного URL).
+ *
+ * В `development`, если в БД **нет** поля `nextauth_url`, не подставляем продакшен-`site_url`
+ * (иначе next-auth/react: `CLIENT_FETCH_ERROR` при открытии с localhost). Явный `nextauth_url`
+ * в БД (например `http://localhost:3000`) в dev применяется всегда.
  */
 export function applyNextAuthUrlToProcessEnv(params: {
   explicitNextAuthUrl?: string | null;
@@ -30,7 +42,22 @@ export function applyNextAuthUrlToProcessEnv(params: {
   const explicit = params.explicitNextAuthUrl?.trim();
   const site = params.siteUrl?.trim();
   const pub = process.env.NEXT_PUBLIC_URL?.trim() || '';
-  const raw = explicit || site || pub;
+  const envFallback = process.env.NEXTAUTH_URL?.trim() || '';
+  const raw = explicit || site || pub || envFallback;
   if (!raw) return;
+
+  if (process.env.NODE_ENV === 'development') {
+    if (explicit) {
+      process.env.NEXTAUTH_URL = normalizeSiteUrl(explicit);
+      return;
+    }
+    try {
+      const host = new URL(normalizeSiteUrl(raw)).hostname;
+      if (!isLoopbackHost(host)) return;
+    } catch {
+      return;
+    }
+  }
+
   process.env.NEXTAUTH_URL = normalizeSiteUrl(raw);
 }

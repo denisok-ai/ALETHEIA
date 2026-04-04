@@ -5,7 +5,8 @@
  * Раньше использовался после перехода по ссылке Supabase recovery.
  */
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function UpdatePasswordPage() {
   return (
@@ -14,8 +15,8 @@ export default function UpdatePasswordPage() {
       <p className="mt-2 text-[var(--portal-text-muted)]">
         В локальном режиме смена пароля по ссылке недоступна. Обратитесь к администратору.
       </p>
-      <Link href="/login" className="mt-6 inline-block">
-        <Button variant="secondary">← Назад к входу</Button>
+      <Link href="/login" className={cn(buttonVariants({ variant: 'secondary' }), 'mt-6')}>
+        ← Назад к входу
       </Link>
     </div>
   );

@@ -8,6 +8,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { triggerNotification } from '@/lib/notifications';
+import { awardXpForLessonCompletedIfNew } from '@/lib/gamification';
+import { getGamificationNumbers } from '@/lib/gamification-config';
+import { recordGamificationXpEvent } from '@/lib/gamification-ledger';
+import { notifyGamificationAfterXpChange } from '@/lib/gamification-milestones';
 import { nanoid } from 'nanoid';
 
 /** SCORM 1.2/2004: "passed" и "completed" считаем завершённым уроком. */
@@ -250,28 +254,88 @@ export async function POST(request: NextRequest) {
   const cmiData: Record<string, unknown> =
     (rawCmi && typeof rawCmi === 'object' ? rawCmi : cmi_data) ?? {};
 
-  await prisma.scormProgress.upsert({
-    where: {
-      userId_courseId_lessonId: { userId, courseId, lessonId },
-    },
-    create: {
+  const [previousProgress, gamificationNumbers, courseRow] = await Promise.all([
+    prisma.scormProgress.findUnique({
+      where: { userId_courseId_lessonId: { userId, courseId, lessonId } },
+      select: { completionStatus: true },
+    }),
+    getGamificationNumbers(),
+    prisma.course.findUnique({ where: { id: courseId }, select: { title: true } }),
+  ]);
+
+  let awardResult: {
+    awarded: boolean;
+    oldXp?: number;
+    newXp?: number;
+    newLevel?: number;
+  } = { awarded: false };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.scormProgress.upsert({
+      where: {
+        userId_courseId_lessonId: { userId, courseId, lessonId },
+      },
+      create: {
+        userId,
+        courseId,
+        lessonId,
+        cmiData: JSON.stringify(cmiData),
+        completionStatus,
+        score: scoreVal,
+        timeSpent: timeSpentVal,
+      },
+      update: {
+        cmiData: JSON.stringify(cmiData),
+        completionStatus,
+        score: scoreVal,
+        timeSpent: timeSpentVal,
+      },
+    });
+
+    const xpAward = await awardXpForLessonCompletedIfNew(tx, {
       userId,
-      courseId,
-      lessonId,
-      cmiData: JSON.stringify(cmiData),
-      completionStatus,
-      score: scoreVal,
-      timeSpent: timeSpentVal,
-    },
-    update: {
-      cmiData: JSON.stringify(cmiData),
-      completionStatus,
-      score: scoreVal,
-      timeSpent: timeSpentVal,
-    },
+      role,
+      previousCompletionStatus: previousProgress?.completionStatus,
+      newCompletionStatus: completionStatus,
+      xpDelta: gamificationNumbers.xpLessonComplete,
+      xpPerLevel: gamificationNumbers.xpPerLevel,
+    });
+
+    if (xpAward.awarded && xpAward.newXp != null && xpAward.oldXp !== undefined) {
+      await recordGamificationXpEvent(tx, {
+        userId,
+        source: 'lesson_complete',
+        delta: gamificationNumbers.xpLessonComplete,
+        balanceAfter: xpAward.newXp,
+        meta: {
+          courseId,
+          lessonId,
+          courseTitle: courseRow?.title ?? null,
+        },
+      });
+    }
+
+    awardResult = xpAward;
   });
 
   console.log('[SCORM progress] saved', { userId, courseId, lessonId, completionStatus, score: scoreVal, timeSpent: timeSpentVal });
+
+  if (
+    awardResult.awarded &&
+    awardResult.oldXp !== undefined &&
+    awardResult.newXp !== undefined
+  ) {
+    try {
+      await notifyGamificationAfterXpChange({
+        userId,
+        oldXp: awardResult.oldXp,
+        newXp: awardResult.newXp,
+        xpPerLevel: gamificationNumbers.xpPerLevel,
+      });
+    } catch (e) {
+      console.error('[SCORM progress] gamification notify error:', e);
+    }
+  }
 
   if (isLessonCompleted(completionStatus)) {
     try {

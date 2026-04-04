@@ -6,7 +6,12 @@ import { Button } from '@/components/ui/button';
 export function GamificationSettingsForm() {
   const [xpPerLevel, setXpPerLevel] = useState(100);
   const [xpLessonComplete, setXpLessonComplete] = useState(25);
-  const [defaults, setDefaults] = useState({ xpPerLevel: 100, xpLessonComplete: 25 });
+  const [xpVerificationApproved, setXpVerificationApproved] = useState(20);
+  const [defaults, setDefaults] = useState({
+    xpPerLevel: 100,
+    xpLessonComplete: 25,
+    xpVerificationApproved: 20,
+  });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -21,6 +26,7 @@ export function GamificationSettingsForm() {
         if (cancelled) return;
         setXpPerLevel(data.xpPerLevel);
         setXpLessonComplete(data.xpLessonComplete);
+        setXpVerificationApproved(data.xpVerificationApproved ?? data.defaults?.xpVerificationApproved ?? 20);
         if (data.defaults) setDefaults(data.defaults);
       } catch {
         if (!cancelled) setMessage('Не удалось загрузить настройки');
@@ -42,7 +48,7 @@ export function GamificationSettingsForm() {
         method: 'PATCH',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ xpPerLevel, xpLessonComplete }),
+        body: JSON.stringify({ xpPerLevel, xpLessonComplete, xpVerificationApproved }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -99,6 +105,24 @@ export function GamificationSettingsForm() {
           className="mt-1 w-full rounded-lg border border-[var(--portal-border)] bg-white px-3 py-2 text-sm"
           value={xpLessonComplete}
           onChange={(e) => setXpLessonComplete(Number(e.target.value))}
+        />
+      </div>
+      <div>
+        <label htmlFor="gamification-verification" className="block text-sm font-medium text-[var(--portal-text)]">
+          Прирост заряда за одобренное задание на проверку
+        </label>
+        <p className="text-xs text-[var(--portal-text-muted)] mt-0.5">
+          Начисляется студенту один раз при нажатии «Одобрить» в очереди верификации (видео/текст). Подробности в журнале
+          «История заряда». По умолчанию: {defaults.xpVerificationApproved}.
+        </p>
+        <input
+          id="gamification-verification"
+          type="number"
+          min={0}
+          max={100_000}
+          className="mt-1 w-full rounded-lg border border-[var(--portal-border)] bg-white px-3 py-2 text-sm"
+          value={xpVerificationApproved}
+          onChange={(e) => setXpVerificationApproved(Number(e.target.value))}
         />
       </div>
       <Button type="submit" disabled={saving}>

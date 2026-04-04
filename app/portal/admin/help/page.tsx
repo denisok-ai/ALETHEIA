@@ -19,7 +19,7 @@ export default function AdminHelpPage() {
         title="Помощь"
         description="Справка и документация"
       />
-      <HelpContent role="admin" />
+      <HelpContent portalRole="admin" />
     </div>
   );
 }

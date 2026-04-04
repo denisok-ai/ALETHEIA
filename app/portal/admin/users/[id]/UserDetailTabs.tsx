@@ -6,7 +6,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { format } from 'date-fns';
-import { User, BookOpen, Award, CreditCard, MessageSquare, FolderTree, Send } from 'lucide-react';
+import { User, BookOpen, Award, CreditCard, MessageSquare, FolderTree, Send, Zap } from 'lucide-react';
+import { UserEnergyAdminBlock } from '@/components/portal/admin/UserEnergyAdminBlock';
 import { UserDetailClient } from './UserDetailClient';
 import {
   UserCommunicationsBlock,
@@ -25,6 +26,7 @@ const TABS = [
   { id: 'groups', label: 'Группы', icon: FolderTree },
   { id: 'communications', label: 'Коммуникации', icon: Send },
   { id: 'enrollments', label: 'Записи на курсы', icon: BookOpen },
+  { id: 'energy', label: 'Уровень заряда', icon: Zap },
   { id: 'certificates', label: 'Сертификаты', icon: Award },
   { id: 'orders', label: 'Заказы', icon: CreditCard },
   { id: 'tickets', label: 'Тикеты', icon: MessageSquare },
@@ -152,6 +154,10 @@ export function UserDetailTabs({
             <UserRecentActions userId={userId} />
           </Card>
         </div>
+      )}
+
+      {activeTab === 'energy' && (
+        <UserEnergyAdminBlock userId={userId} profileRole={initialRole} />
       )}
 
       {activeTab === 'enrollments' && (

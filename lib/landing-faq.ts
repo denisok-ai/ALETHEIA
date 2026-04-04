@@ -38,7 +38,8 @@ export const FAQ_SECTION_ITEMS = [
   },
 ] as const;
 
-const FAQ_JSON_LD_ITEMS: readonly { q: string; a: string }[] = [
+/** Все вопросы для JSON-LD и страницы /faq (единый источник). */
+export const FAQ_JSON_LD_ITEMS: readonly { q: string; a: string }[] = [
   ...LANDING_FAQ_ITEMS,
   ...FAQ_SECTION_ITEMS.map(({ q, a }) => ({ q, a })),
 ];

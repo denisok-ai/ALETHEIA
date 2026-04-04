@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { BookOpen, Headphones, X } from 'lucide-react';
 
 const STORAGE_KEY = 'avaterra_student_onboarding_seen';
@@ -39,17 +40,19 @@ export function StudentOnboardingHint() {
           Ваши курсы и прогресс — в разделе <strong>«Мои курсы»</strong>. Вопросы и обращение в поддержку — в разделе <strong>«Поддержка»</strong>.
         </p>
         <div className="mt-3 flex flex-wrap items-center gap-2">
-          <Link href="/portal/student/courses">
-            <Button variant="secondary" size="sm">
-              <BookOpen className="h-3.5 w-3.5 mr-1.5" />
-              Мои курсы
-            </Button>
+          <Link
+            href="/portal/student/courses"
+            className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+          >
+            <BookOpen className="h-3.5 w-3.5 mr-1.5 shrink-0" aria-hidden />
+            Мои курсы
           </Link>
-          <Link href="/portal/student/support">
-            <Button variant="ghost" size="sm">
-              <Headphones className="h-3.5 w-3.5 mr-1.5" />
-              Поддержка
-            </Button>
+          <Link
+            href="/portal/student/support"
+            className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
+          >
+            <Headphones className="h-3.5 w-3.5 mr-1.5 shrink-0" aria-hidden />
+            Поддержка
           </Link>
           <Button variant="ghost" size="sm" onClick={dismiss}>
             Понятно

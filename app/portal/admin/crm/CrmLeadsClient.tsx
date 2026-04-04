@@ -27,6 +27,7 @@ import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/c
 import { downloadXlsx } from '@/lib/export-xlsx';
 import { formatPersonName } from '@/lib/format-person-name';
 import { Pencil, Users } from 'lucide-react';
+import { CRM_LEAD_STATUSES, CRM_LEAD_STATUS_LABEL } from '@/lib/crm-lead-status';
 
 interface Lead {
   id: number;
@@ -41,8 +42,6 @@ interface Lead {
   last_order_number?: string | null;
   created_at: string;
 }
-
-const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'lost'] as const;
 
 const LEADS_TABLE_COLUMNS: ColumnConfigItem[] = [
   { id: 'num', label: '№' },
@@ -240,8 +239,8 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
           className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
         >
           <option value="all">Все статусы</option>
-          {STATUSES.map((s) => (
-            <option key={s} value={s}>{s}</option>
+          {CRM_LEAD_STATUSES.map((s) => (
+            <option key={s} value={s}>{CRM_LEAD_STATUS_LABEL[s]}</option>
           ))}
         </select>
         <select
@@ -259,9 +258,9 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-[var(--portal-accent-muted)] bg-[var(--portal-accent-soft)] px-3 py-2">
           <span className="text-sm font-medium text-[var(--portal-text)]">Выбрано: {selectedIds.size}</span>
           <span className="text-sm text-[var(--portal-text-muted)]">Сменить статус:</span>
-          {STATUSES.map((s) => (
+          {CRM_LEAD_STATUSES.map((s) => (
             <Button key={s} size="sm" variant="secondary" disabled={bulkUpdating} onClick={() => handleBulkStatus(s)}>
-              {s}
+              {CRM_LEAD_STATUS_LABEL[s]}
             </Button>
           ))}
           <Button size="sm" variant="ghost" onClick={() => setSelectedIds(new Set())}>Снять выбор</Button>
@@ -349,8 +348,10 @@ export function CrmLeadsClient({ initialLeads }: { initialLeads: Lead[] }) {
                       disabled={updating === l.id}
                       className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
                     >
-                      {STATUSES.map((s) => (
-                        <option key={s} value={s}>{s}</option>
+                      {CRM_LEAD_STATUSES.map((s) => (
+                        <option key={s} value={s}>
+                          {CRM_LEAD_STATUS_LABEL[s]}
+                        </option>
                       ))}
                     </select>
                   </TableCell>

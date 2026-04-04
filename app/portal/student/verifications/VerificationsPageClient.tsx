@@ -1,18 +1,23 @@
 'use client';
 
 import { useState, useMemo, useRef } from 'react';
+import type { ThreadCommentSerialized } from '@/lib/verification-thread-comments';
+import { VerificationThreadComments } from '@/components/portal/VerificationThreadComments';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Video, ExternalLink, CheckCircle2, XCircle, Clock, Plus, Pencil, Save, X, Upload, Loader2 } from 'lucide-react';
+import { Video, ExternalLink, CheckCircle2, XCircle, Clock, Plus, Pencil, Save, X, Upload, Loader2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
+import { isOpenableVideoMaterialUrl } from '@/lib/verification-submission';
 
 const STATUS_CONFIG: Record<string, { label: string; icon: typeof Clock; className: string }> = {
   pending: { label: 'На проверке', icon: Clock, className: 'text-amber-600 bg-amber-50' },
   approved: { label: 'Одобрено', icon: CheckCircle2, className: 'text-green-600 bg-green-50' },
   rejected: { label: 'Отклонено', icon: XCircle, className: 'text-red-600 bg-red-50' },
 };
+
+type StudentVerificationsSortKey = 'date_desc' | 'date_asc' | 'course' | 'status';
 
 interface VerificationItem {
   id: string;
@@ -24,6 +29,7 @@ interface VerificationItem {
   status: string;
   comment: string | null;
   createdAt: string;
+  threadComments: ThreadCommentSerialized[];
 }
 
 interface EnrolledCourse {
@@ -48,13 +54,18 @@ function lessonOptionsFromManifest(manifest: string | null): { id: string; title
 }
 
 export function VerificationsPageClient({
+  viewerUserId,
   initialList,
   enrolledCourses,
+  xpVerificationApproved = 0,
 }: {
+  viewerUserId: string;
   initialList: VerificationItem[];
   enrolledCourses: EnrolledCourse[];
+  xpVerificationApproved?: number;
 }) {
   const [list, setList] = useState<VerificationItem[]>(initialList);
+  const [sortKey, setSortKey] = useState<StudentVerificationsSortKey>('date_desc');
   const [showAddForm, setShowAddForm] = useState(false);
   const [addCourseId, setAddCourseId] = useState('');
   const [addLessonId, setAddLessonId] = useState('');
@@ -78,6 +89,24 @@ export function VerificationsPageClient({
   }, [enrolledCourses]);
 
   const currentLessonOptions = addCourseId ? lessonOptionsByCourse[addCourseId] ?? [] : [];
+
+  const sortedList = useMemo(() => {
+    const arr = [...list];
+    const statusOrder = (s: string) => (s === 'pending' ? 0 : s === 'approved' ? 1 : s === 'rejected' ? 2 : 3);
+    switch (sortKey) {
+      case 'date_asc':
+        return arr.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      case 'course':
+        return arr.sort((a, b) =>
+          (a.courseTitle || '').localeCompare(b.courseTitle || '', 'ru', { sensitivity: 'base' })
+        );
+      case 'status':
+        return arr.sort((a, b) => statusOrder(a.status) - statusOrder(b.status));
+      case 'date_desc':
+      default:
+        return arr.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+  }, [list, sortKey]);
 
   async function handleUploadVideo(e: React.ChangeEvent<HTMLInputElement>, setUrl: (url: string) => void) {
     const file = e.target.files?.[0];
@@ -144,6 +173,7 @@ export function VerificationsPageClient({
         status: 'pending',
         comment: null,
         createdAt: data.createdAt,
+        threadComments: [],
       };
       setList((prev) => [newItem, ...prev]);
       setAddVideoUrl('');
@@ -215,6 +245,17 @@ export function VerificationsPageClient({
   if (list.length === 0 && !showAddForm) {
     return (
       <div className="w-full space-y-4">
+        {xpVerificationApproved > 0 && (
+          <div className="portal-card flex gap-3 p-4 border border-[var(--portal-accent-muted)]/50 bg-[var(--portal-accent-soft)]/40">
+            <Zap className="h-5 w-5 shrink-0 text-[var(--portal-accent-dark)] mt-0.5" aria-hidden />
+            <p className="text-sm text-[var(--portal-text)]">
+              После одобрения задания менеджером начисляется <strong>+{xpVerificationApproved}</strong> к заряду.{' '}
+              <Link href="/portal/student/gamification" className="text-[var(--portal-accent)] font-medium hover:underline">
+                История заряда
+              </Link>
+            </p>
+          </div>
+        )}
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Button
             type="button"
@@ -358,6 +399,23 @@ export function VerificationsPageClient({
 
   return (
     <div className="w-full space-y-4">
+      {xpVerificationApproved > 0 && (
+        <div className="portal-card flex gap-3 p-4 border border-[var(--portal-accent-muted)]/50 bg-[var(--portal-accent-soft)]/40">
+          <Zap className="h-5 w-5 shrink-0 text-[var(--portal-accent-dark)] mt-0.5" aria-hidden />
+          <div className="min-w-0 text-sm text-[var(--portal-text)]">
+            <p className="font-medium">Геймификация</p>
+            <p className="text-[var(--portal-text-muted)] mt-0.5">
+              Когда менеджер одобрит задание, к вашему заряду добавится <strong>+{xpVerificationApproved}</strong> ед.
+              (один раз за эту отправку). Смотрите{' '}
+              <Link href="/portal/student/gamification" className="text-[var(--portal-accent)] font-medium hover:underline">
+                историю заряда
+              </Link>
+              .
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Button
           type="button"
@@ -368,6 +426,24 @@ export function VerificationsPageClient({
           <Plus className="h-4 w-4 mr-2" />
           Добавить задание
         </Button>
+        {list.length > 1 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="student-verif-sort" className="text-sm text-[var(--portal-text-muted)]">
+              Сортировка
+            </label>
+            <select
+              id="student-verif-sort"
+              value={sortKey}
+              onChange={(e) => setSortKey(e.target.value as StudentVerificationsSortKey)}
+              className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm min-h-10 max-w-[220px]"
+            >
+              <option value="date_desc">Сначала новые</option>
+              <option value="date_asc">Сначала старые</option>
+              <option value="course">По курсу (А–Я)</option>
+              <option value="status">По статусу (на проверке первыми)</option>
+            </select>
+          </div>
+        )}
       </div>
 
       {showAddForm && (
@@ -487,7 +563,7 @@ export function VerificationsPageClient({
       )}
 
       <ul className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 md:gap-4">
-        {list.map((v) => {
+        {sortedList.map((v) => {
           const cfg = STATUS_CONFIG[v.status] ?? STATUS_CONFIG.pending;
           const Icon = cfg.icon;
           const isEditing = editingId === v.id;
@@ -604,7 +680,7 @@ export function VerificationsPageClient({
                     <p className="text-sm text-[var(--portal-text)] line-clamp-6 whitespace-pre-wrap break-words">
                       {v.videoUrl}
                     </p>
-                  ) : (
+                  ) : isOpenableVideoMaterialUrl(v.videoUrl) ? (
                     <a
                       href={v.videoUrl}
                       target="_blank"
@@ -614,10 +690,31 @@ export function VerificationsPageClient({
                       <ExternalLink className="h-4 w-4 shrink-0" />
                       <span className="truncate">Смотреть видео</span>
                     </a>
+                  ) : (
+                    <p className="text-sm text-[var(--portal-text-muted)]">
+                      Ссылка на видео недоступна. Отредактируйте отправку и укажите ссылку или загрузите файл.
+                    </p>
                   )}
                   {v.status === 'rejected' && v.comment && (
                     <p className="text-sm text-[var(--portal-text-muted)] bg-red-50/50 rounded-lg px-3 py-2 border border-red-100">
                       {v.comment}
+                    </p>
+                  )}
+                  <VerificationThreadComments
+                    verificationId={v.id}
+                    viewerUserId={viewerUserId}
+                    initialComments={v.threadComments}
+                    canPost
+                  />
+                  {v.status === 'approved' && xpVerificationApproved > 0 && (
+                    <p className="text-xs text-[#15803D] flex flex-wrap items-center gap-1 rounded-lg border border-green-200 bg-green-50/80 px-2.5 py-1.5">
+                      <Zap className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                      <span>
+                        К заряду начислено <strong>+{xpVerificationApproved}</strong> за это одобрение.{' '}
+                        <Link href="/portal/student/gamification" className="font-medium underline">
+                          История заряда
+                        </Link>
+                      </span>
                     </p>
                   )}
                   <div className="flex items-center justify-between gap-2 mt-auto">

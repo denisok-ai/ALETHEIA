@@ -54,6 +54,10 @@ export async function triggerNotification(params: TriggerNotificationParams): Pr
     systemtitle: SYSTEM_TITLE,
     objectname,
   };
+  for (const [k, v] of Object.entries(metadata)) {
+    if (v === undefined || v === null) continue;
+    vars[k] = String(v);
+  }
 
   let subject: string;
   let body: string;
@@ -83,6 +87,7 @@ export async function triggerNotification(params: TriggerNotificationParams): Pr
       );
       subject = rendered.subject;
       body = rendered.body;
+      deliveryType = defaultTpl.deliveryType ?? 'both';
     }
   }
 

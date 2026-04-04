@@ -8,6 +8,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { getLlmApiKey } from '@/lib/llm';
+import { applyCourseTutorPlaceholders } from '@/lib/ai-placeholders';
+import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
+import { getSystemSettings } from '@/lib/settings';
+import { normalizeSiteUrl } from '@/lib/site-url';
 import { streamText, convertToModelMessages } from 'ai';
 import { createDeepSeek } from '@ai-sdk/deepseek';
 
@@ -117,7 +121,40 @@ export async function POST(request: NextRequest) {
   }
 
   const currentLessonTitle = lessonId ?? 'текущий урок';
-  const systemPrompt = `Ты AI-тьютор курса «${course.title}».
+
+  const systemSettings = await getSystemSettings();
+  const siteBase = normalizeSiteUrl(
+    systemSettings.site_url || process.env.NEXT_PUBLIC_URL || 'https://avaterra.pro'
+  ).replace(/\/$/, '');
+  const courseUrl = absoluteCourseCheckoutUrl(siteBase);
+  const supportEmail =
+    (systemSettings.resend_notify_email || 'info@avaterra.pro').trim() || 'info@avaterra.pro';
+
+  const tutorLlmRow = await prisma.llmSetting.findUnique({
+    where: { key: 'course-tutor' },
+  });
+  const activeTutorTemplate = await prisma.promptTemplate.findFirst({
+    where: { scope: 'course-tutor', isActive: true },
+  });
+  /** Активный шаблон «course-tutor» имеет приоритет над полем playbook в настройках LLM. */
+  const playbookRaw =
+    activeTutorTemplate?.content?.trim() ?? tutorLlmRow?.systemPrompt?.trim() ?? '';
+  const tutorTemplateIdForStats = playbookRaw && activeTutorTemplate?.content?.trim()
+    ? activeTutorTemplate.id
+    : null;
+
+  let playbookPrefix = '';
+  if (playbookRaw) {
+    playbookPrefix =
+      applyCourseTutorPlaceholders(playbookRaw, {
+        siteBase,
+        courseUrl,
+        supportEmail,
+        courseId,
+      }) + '\n\n---\n\n';
+  }
+
+  const systemPrompt = `${playbookPrefix}Ты AI-тьютор курса «${course.title}».
 Отвечай ТОЛЬКО на основе содержимого курса ниже.
 Текущий урок студента: ${currentLessonTitle}.
 Прогресс студента: ${completedLessons}/${totalLessons} уроков.
@@ -135,13 +172,10 @@ ${contentText}`;
     );
   }
 
-  const settings = await prisma.llmSetting.findUnique({
-    where: { key: 'course-tutor' },
-  });
   const fallback = await prisma.llmSetting.findUnique({
     where: { key: 'chatbot' },
   });
-  const s = settings ?? fallback;
+  const s = tutorLlmRow ?? fallback;
   const modelId = s?.model ?? DEFAULT_MODEL;
   const temperature = Number(s?.temperature) ?? 0.5;
   const maxTokens = Number(s?.maxTokens) ?? 1024;
@@ -165,6 +199,14 @@ ${contentText}`;
           });
         } catch (e) {
           console.error('Failed to save AI tutor message:', e);
+        }
+        if (tutorTemplateIdForStats) {
+          await prisma.promptTemplate
+            .update({
+              where: { id: tutorTemplateIdForStats },
+              data: { usageCount: { increment: 1 }, lastUsedAt: new Date() },
+            })
+            .catch(() => {});
         }
       }
     },

@@ -3,7 +3,7 @@
 /**
  * Tab "Группы": список групп, в которых состоит курс; добавление/удаление привязки.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/portal/Card';
@@ -17,6 +17,7 @@ interface GroupRef {
 }
 
 export function CourseGroupsBlock({ courseId }: { courseId: string }) {
+  const addGroupSelectId = useId();
   const [groups, setGroups] = useState<GroupRef[]>([]);
   const [allGroups, setAllGroups] = useState<Array<{ id: string; name: string }>>([]);
   const [loading, setLoading] = useState(true);
@@ -102,8 +103,11 @@ export function CourseGroupsBlock({ courseId }: { courseId: string }) {
       <div className="space-y-4">
         <div className="flex flex-wrap items-end gap-2">
           <div className="min-w-[200px]">
-            <label className="block text-sm font-medium text-[var(--portal-text)] mb-1">Добавить в группу</label>
+            <label htmlFor={addGroupSelectId} className="block text-sm font-medium text-[var(--portal-text)] mb-1">
+              Добавить в группу
+            </label>
             <select
+              id={addGroupSelectId}
               value={selectedGroupId}
               onChange={(e) => setSelectedGroupId(e.target.value)}
               className="w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"

@@ -2,6 +2,8 @@
 
 Цель: операционные параметры (почта, PayKeeper, интеграции) хранятся в **БД** (`SystemSetting`) и редактируются в **Портал → Настройки**. Секреты в БД **шифруются** (ключ — `NEXTAUTH_SECRET`).
 
+**Локально и на текущем проде с SQLite** «БД» — это **файл** по `DATABASE_URL` (например `file:./dev.db` в каталоге `prisma/`). Таблица `SystemSetting` с ключами `site_url`, `nextauth_url` и др. лежит в этом же файле: бэкап настроек = копия `.db` (плюс по желанию экспорт из админки). При смене PostgreSQL в `schema.prisma` смысл не меняется — данные по-прежнему в БД, меняется только движок.
+
 ## Только в `.env` / панели хостинга (bootstrap)
 
 | Переменная | Назначение |
@@ -13,10 +15,18 @@
 
 ## Слой чтения
 
-- `getSystemSettings()` — общие поля портала: сначала БД, при пустых значениях — fallback из `NEXT_PUBLIC_URL`, `RESEND_FROM`, `RESEND_NOTIFY_EMAIL`.
+- `getSystemSettings()` — общие поля портала: сначала БД, при пустых значениях — fallback из `NEXT_PUBLIC_URL`, `RESEND_FROM`, `RESEND_NOTIFY_EMAIL`. В том же запросе читается **`nextauth_url`** и через `applyNextAuthUrlToProcessEnv` задаётся `NEXTAUTH_URL` для NextAuth (приоритет над `site_url`).
 - `getEnvOverrides()` — ключи API и URL интеграций: сначала БД (с расшифровкой), при отсутствии — `process.env` (`RESEND_API_KEY`, `DEEPSEEK_API_KEY`, `TELEGRAM_BOT_TOKEN`, …).
 
 Список ключей в коде: `lib/settings.ts` (`ENV_OVERRIDE_KEYS`).
+
+## NEXTAUTH_URL
+
+Операционный URL для NextAuth (CSRF, callback) хранится в БД: ключ **`nextauth_url`**, поле в админке **Портал → Настройки** (блок переменных окружения / интеграций). Приоритет при подстановке в `process.env.NEXTAUTH_URL`: **`nextauth_url` из БД → `site_url` из БД → `NEXT_PUBLIC_URL` → `NEXTAUTH_URL` в `.env`** (последний — только если из БД не задано ни одного URL).
+
+Логика в `lib/site-url.ts` (`applyNextAuthUrlToProcessEnv`), вызовы из `getSystemSettings`, `getEnvOverrides` и `instrumentation` (`applyNextAuthUrlFromDatabaseStartup`).
+
+**Локальная разработка:** если в SQLite в поле `site_url` указан продакшен, а вы открываете сайт с `http://localhost:…`, задайте в настройках **`nextauth_url` = `http://localhost:3000`** (своим портом) — значение запишется в тот же файл БД, иначе возможна ошибка **`CLIENT_FETCH_ERROR`** в консоли браузера. Дублировать URL в `.env` не обязательно, если поле уже сохранено в БД.
 
 ## Импорт на сервере
 
@@ -27,6 +37,7 @@
 | Ключ в БД | Типичная переменная ОС |
 |-----------|-------------------------|
 | `site_url` | `NEXT_PUBLIC_URL` |
+| `nextauth_url` | `NEXTAUTH_URL` |
 | `portal_title` | `PORTAL_TITLE` |
 | `resend_from` | `RESEND_FROM` |
 | `resend_notify_email` | `RESEND_NOTIFY_EMAIL` |

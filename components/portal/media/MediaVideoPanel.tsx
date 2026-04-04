@@ -61,6 +61,11 @@ export function MediaVideoPanel({ src, title, poster }: Props) {
 
   return (
     <div ref={wrapRef} className="plyr-portal-scope w-full rounded-lg">
+      <p className="mb-2 text-xs text-[var(--portal-text-muted)]">
+        Скорость воспроизведения и полноэкранный режим — в панели управления (иконка шестерёнки — скорость).
+      </p>
+      {/* Учебные ролики без отдельного VTT; правило отключено осознанно. */}
+      {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video
         key={src}
         className="block w-full max-h-[min(75vh,720px)]"

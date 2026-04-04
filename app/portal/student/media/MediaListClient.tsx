@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Card } from '@/components/portal/Card';
 import { MediaCoverPlaceholder } from '@/components/portal/CourseCoverPlaceholder';
 import { Play, Download, Star } from 'lucide-react';
@@ -173,16 +174,21 @@ export function MediaListClient({ items }: { items: MediaListItem[] }) {
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Link href={`/portal/student/media/${m.id}`}>
-                    <Button variant="primary" size="sm">
-                      <Play className="h-3.5 w-3.5" /> Смотреть
-                    </Button>
+                  <Link
+                    href={`/portal/student/media/${m.id}`}
+                    className={cn(buttonVariants({ variant: 'primary', size: 'sm' }))}
+                  >
+                    <Play className="h-3.5 w-3.5" /> Смотреть
                   </Link>
                   {m.allowDownload && !isPlaceholderOrExampleUrl(m.fileUrl) && (
-                    <a href={m.fileUrl} download target="_blank" rel="noopener noreferrer">
-                      <Button variant="ghost" size="sm">
-                        <Download className="h-3.5 w-3.5" /> Скачать
-                      </Button>
+                    <a
+                      href={m.fileUrl}
+                      download
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
+                    >
+                      <Download className="h-3.5 w-3.5" /> Скачать
                     </a>
                   )}
                 </div>

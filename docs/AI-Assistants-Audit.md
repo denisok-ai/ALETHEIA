@@ -8,8 +8,8 @@
 
 | Место | Назначение | Ключ/API |
 |-------|------------|----------|
-| **Чат-бот на сайте** | Публичный чат на главной (ChatBot.tsx → /api/chat) | LlmSetting `chatbot` |
-| **AI-тьютор в курсе** | Чат в SCORM-плеере по контенту курса (CourseAIChat → /api/portal/scorm/ai-assist) | LlmSetting `course-tutor` или `chatbot` |
+| **Чат-бот на сайте** | Публичный чат на главной (ChatBot.tsx → /api/chat); ответы через `ChatMarkdown` + linkify голых URL | LlmSetting `chatbot` |
+| **AI-тьютор в курсе** | Чат в SCORM-плеере по контенту курса (CourseAIChat → /api/portal/scorm/ai-assist); ответы рендерятся через `ChatMarkdown` (кликабельные URL). Активный шаблон `PromptTemplate` с `scope=course-tutor` перекрывает playbook в `LlmSetting`; учёт использования шаблона в `ai-assist`. | LlmSetting `course-tutor` или `chatbot`; шаблоны в админке |
 | **Генерация промптов** | Кнопка «Сгенерировать» в шаблонах промптов (PromptTemplatesBlock) | `chatbot` |
 | **Генерация обложки курса** | Кнопка «AI Сгенерировать обложку» в карточке курса (CourseCoverBlock) | OPENAI_API_KEY (DALL-E 3) |
 | **Настройки AI** | Страница /portal/admin/ai-settings: ключи, модели, шаблоны, база знаний, тест чата | — |

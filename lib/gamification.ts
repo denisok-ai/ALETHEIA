@@ -3,10 +3,15 @@
  * В коде и БД поля userEnergy.xp — условные единицы накопленного заряда (метафора «батарейки»).
  * Числовые параметры по умолчанию переопределяются через БД (см. getGamificationNumbers).
  */
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
+
+/** Клиент БД для транзакций и обычных вызовов. */
+export type GamificationDb = PrismaClient | Prisma.TransactionClient;
 
 export const DEFAULT_XP_PER_LEVEL = 100;
 export const DEFAULT_XP_LESSON_COMPLETE = 25;
+/** Начисление при одобрении практического задания (верификация). */
+export const DEFAULT_XP_VERIFICATION_APPROVED = 20;
 
 export interface GamificationBadge {
   /** Порог по суммарному накопленному заряду (условные единицы; поле в БД — xp). */
@@ -50,6 +55,7 @@ export function getNextBadge(totalXp: number): GamificationBadge | undefined {
 export interface GamificationNumbers {
   xpPerLevel: number;
   xpLessonComplete: number;
+  xpVerificationApproved: number;
 }
 
 function clampInt(n: number, min: number, max: number): number {
@@ -58,10 +64,61 @@ function clampInt(n: number, min: number, max: number): number {
 }
 
 /** Парсинг настроек из строк БД. */
-export function parseGamificationNumbers(raw: { xpPerLevel?: string | null; xpLessonComplete?: string | null }): GamificationNumbers {
+export function parseGamificationNumbers(raw: {
+  xpPerLevel?: string | null;
+  xpLessonComplete?: string | null;
+  xpVerificationApproved?: string | null;
+}): GamificationNumbers {
   const xpPerLevel = clampInt(parseInt(raw.xpPerLevel ?? '', 10) || DEFAULT_XP_PER_LEVEL, 1, 1_000_000);
   const xpLessonComplete = clampInt(parseInt(raw.xpLessonComplete ?? '', 10) || DEFAULT_XP_LESSON_COMPLETE, 0, 100_000);
-  return { xpPerLevel, xpLessonComplete };
+  const xpVerificationApproved = clampInt(
+    parseInt(raw.xpVerificationApproved ?? '', 10) || DEFAULT_XP_VERIFICATION_APPROVED,
+    0,
+    100_000
+  );
+  return { xpPerLevel, xpLessonComplete, xpVerificationApproved };
+}
+
+/**
+ * Начисляет заряд пользователю (без проверки роли сессии). Для одобрения верификации, ручных сценариев.
+ */
+export async function applyXpDeltaToUser(
+  db: GamificationDb,
+  opts: { userId: string; xpDelta: number; xpPerLevel: number }
+): Promise<{ applied: boolean; oldXp: number; newXp: number; newLevel: number }> {
+  const { userId, xpDelta, xpPerLevel } = opts;
+  if (xpDelta <= 0) {
+    const existing = await db.userEnergy.findUnique({ where: { userId } });
+    const oldXp = existing?.xp ?? 0;
+    return {
+      applied: false,
+      oldXp,
+      newXp: oldXp,
+      newLevel: levelFromTotalXp(oldXp, xpPerLevel),
+    };
+  }
+
+  const existing = await db.userEnergy.findUnique({ where: { userId } });
+  const oldXp = existing?.xp ?? 0;
+  const newXp = oldXp + xpDelta;
+  const newLevel = levelFromTotalXp(newXp, xpPerLevel);
+
+  await db.userEnergy.upsert({
+    where: { userId },
+    create: {
+      userId,
+      xp: newXp,
+      level: newLevel,
+      lastPracticeAt: new Date(),
+    },
+    update: {
+      xp: newXp,
+      level: newLevel,
+      lastPracticeAt: new Date(),
+    },
+  });
+
+  return { applied: true, oldXp, newXp, newLevel };
 }
 
 /**
@@ -69,7 +126,7 @@ export function parseGamificationNumbers(raw: { xpPerLevel?: string | null; xpLe
  * Только для роли student (`user`). Идемпотентно: повторные сохранения с тем же «завершён» не добавляют заряд.
  */
 export async function awardXpForLessonCompletedIfNew(
-  prisma: PrismaClient,
+  db: GamificationDb,
   opts: {
     userId: string;
     role: string | undefined;
@@ -78,7 +135,7 @@ export async function awardXpForLessonCompletedIfNew(
     xpDelta: number;
     xpPerLevel: number;
   }
-): Promise<{ awarded: boolean; newXp?: number; newLevel?: number }> {
+): Promise<{ awarded: boolean; oldXp?: number; newXp?: number; newLevel?: number }> {
   const { userId, role, previousCompletionStatus, newCompletionStatus, xpDelta, xpPerLevel } = opts;
 
   if (role !== 'user') {
@@ -95,13 +152,13 @@ export async function awardXpForLessonCompletedIfNew(
     return { awarded: false };
   }
 
-  const existing = await prisma.userEnergy.findUnique({ where: { userId } });
+  const existing = await db.userEnergy.findUnique({ where: { userId } });
   const oldXp = existing?.xp ?? 0;
   const newXp = oldXp + xpDelta;
 
   const newLevel = levelFromTotalXp(newXp, xpPerLevel);
 
-  await prisma.userEnergy.upsert({
+  await db.userEnergy.upsert({
     where: { userId },
     create: {
       userId,
@@ -116,5 +173,5 @@ export async function awardXpForLessonCompletedIfNew(
     },
   });
 
-  return { awarded: true, newXp, newLevel };
+  return { awarded: true, oldXp, newXp, newLevel };
 }

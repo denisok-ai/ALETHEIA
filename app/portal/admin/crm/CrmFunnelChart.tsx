@@ -1,15 +1,7 @@
 'use client';
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-
-const STAGES = ['new', 'contacted', 'qualified', 'converted', 'lost'] as const;
-const STAGE_LABELS: Record<string, string> = {
-  new: 'Новые',
-  contacted: 'Контакт',
-  qualified: 'Квалифицированы',
-  converted: 'Конвертированы',
-  lost: 'Потеряны',
-};
+import { CRM_LEAD_STATUSES, CRM_LEAD_STATUS_FUNNEL_LABEL } from '@/lib/crm-lead-status';
 const COLORS = ['#f59e0b', '#3b82f6', '#8b5cf6', '#10b981', '#6b7280'];
 
 interface FunnelData {
@@ -19,15 +11,15 @@ interface FunnelData {
 }
 
 export function CrmFunnelChart({ byStatus }: { byStatus: Record<string, number> }) {
-  const data: FunnelData[] = STAGES.map((s) => ({
+  const data: FunnelData[] = CRM_LEAD_STATUSES.map((s) => ({
     stage: s,
     count: byStatus[s] ?? 0,
-    label: STAGE_LABELS[s] ?? s,
+    label: CRM_LEAD_STATUS_FUNNEL_LABEL[s],
   }));
 
   return (
-    <div className="h-48 w-full">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="h-48 w-full min-h-[192px] min-w-0">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
         <BarChart data={data} layout="vertical" margin={{ top: 8, right: 8, left: 60, bottom: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
           <XAxis type="number" tick={{ fontSize: 11 }} />

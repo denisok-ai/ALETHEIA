@@ -243,6 +243,8 @@ export function CourseLearningResults({
               <ChevronDown className="h-4 w-4" />
             </Button>
             {bulkOpen && (
+              // Панель меню: клик только останавливает всплытие к document.
+              // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
               <div
                 className="absolute left-0 top-full z-10 mt-1 min-w-[220px] rounded-lg border border-[#E2E8F0] bg-white py-1 shadow-lg"
                 onClick={(e) => e.stopPropagation()}

@@ -160,7 +160,9 @@ export default function ScormPlayPage() {
           aiTutorEnabled?: boolean;
         };
         if (structData.noScormContent) {
-          setError('У этого курса пока нет загруженного SCORM-контента. Загрузите пакет в разделе Админка → Курсы.');
+          setError(
+            'У этого курса пока нет учебных материалов. Если вы уже оплатили доступ, напишите в поддержку — мы поможем.'
+          );
           return;
         }
         setStructure(structData);
@@ -295,7 +297,6 @@ export default function ScormPlayPage() {
   const totalCount = structure?.items.length ?? 1;
 
   if (error) {
-    const isNoScorm = error.includes('нет загруженного SCORM');
     return (
       <div className="p-6">
         <p className="text-[var(--portal-text-muted)]">{error}</p>
@@ -306,14 +307,6 @@ export default function ScormPlayPage() {
           >
             ← Назад к курсу
           </Link>
-          {isNoScorm && (
-            <Link
-              href={`/portal/admin/courses/${courseId}`}
-              className="inline-block text-[var(--portal-accent)] hover:underline"
-            >
-              Админка → загрузить SCORM
-            </Link>
-          )}
         </div>
       </div>
     );

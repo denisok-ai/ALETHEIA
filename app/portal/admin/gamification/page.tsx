@@ -17,14 +17,14 @@ export default function AdminGamificationPage() {
           { label: 'Геймификация' },
         ]}
         title="Геймификация"
-        description="Уровни заряда на дашборде студента: подписи вроде «Заряд: 78%», «+15 к уровню заряда», шкала-батарейка. Ниже — числовые пороги из базы; бейджи — в коде."
+        description="Уровни заряда на дашборде студента: SCORM, одобренные задания на проверку, ручная правка. Числа в базе; бейджи — в коде."
       />
 
       <div className="portal-card p-6 space-y-4">
         <div>
           <h2 className="text-base font-semibold text-[var(--portal-text)]">Параметры заряда</h2>
           <p className="text-sm text-[var(--portal-text-muted)] mt-1">
-            Эти значения совпадают с подсказками на дашборде и с начислением за SCORM (первое завершение урока).
+            Дашборд, SCORM, одобрение верификации менеджером и журнал заряда используют эти параметры.
           </p>
         </div>
         <GamificationSettingsForm />

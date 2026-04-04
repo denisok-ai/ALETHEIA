@@ -58,8 +58,9 @@ export default defineConfig({
       dependencies: ['setup'],
     },
   ],
+  // Webpack вместо `--turbo`: в next.config задан webpack(), иначе Next пишет предупреждение при каждом прогоне E2E.
   webServer: {
-    command: 'PORT=3001 npm run dev',
+    command: 'PORT=3001 npm run dev:webpack',
     url: 'http://localhost:3001',
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,

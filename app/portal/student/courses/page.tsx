@@ -6,11 +6,11 @@ import { getServerSession } from 'next-auth';
 
 export const metadata: Metadata = { title: 'Мои курсы' };
 
-import Link from 'next/link';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { CourseCard } from '@/components/portal/CourseCard';
-import { BookOpen } from 'lucide-react';
+import { isLiveEventCourse } from '@/lib/course-format';
+import { StudentCoursesEmptyState } from './StudentCoursesEmptyState';
 
 function totalLessons(manifest: string | null): number {
   if (!manifest) return 1;
@@ -38,7 +38,7 @@ export default async function StudentCoursesPage() {
     where: { userId, course: { status: 'published' } },
     include: {
       course: {
-        select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true },
+        select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true, courseFormat: true },
       },
     },
     orderBy: { enrolledAt: 'desc' },
@@ -47,7 +47,14 @@ export default async function StudentCoursesPage() {
 
   type CourseItem = {
     enrollId: string;
-    course: { id: string; title: string; description: string | null; thumbnailUrl: string | null; scormManifest: string | null };
+    course: {
+      id: string;
+      title: string;
+      description: string | null;
+      thumbnailUrl: string | null;
+      scormManifest: string | null;
+      courseFormat: string;
+    };
     accessClosed?: boolean;
   };
 
@@ -56,7 +63,7 @@ export default async function StudentCoursesPage() {
   if (isAdmin) {
     const allCourses = await prisma.course.findMany({
       where: { status: 'published' },
-      select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true },
+      select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true, courseFormat: true },
       orderBy: { sortOrder: 'asc' },
       take: 500,
     });
@@ -120,32 +127,7 @@ export default async function StudentCoursesPage() {
       </div>
 
       {list.length === 0 ? (
-        <div className="portal-card p-10 text-center">
-          <BookOpen className="h-12 w-12 mx-auto mb-4 text-[var(--portal-text-soft)]" />
-          <h2 className="text-lg font-semibold text-[var(--portal-text)]">Курсов пока нет</h2>
-          <p className="mt-2 text-[var(--portal-text-muted)] text-sm max-w-sm mx-auto">
-            {isAdmin
-              ? 'Создайте первый курс в Админка → Курсы.'
-              : 'Запишитесь на курс, чтобы начать обучение.'}
-          </p>
-          <div className="mt-5">
-            {isAdmin ? (
-              <Link
-                href="/portal/admin/courses"
-                className="course-launch-btn primary inline-flex"
-              >
-                Управление курсами
-              </Link>
-            ) : (
-              <Link
-                href="/#pricing"
-                className="course-launch-btn gold inline-flex"
-              >
-                Выбрать курс
-              </Link>
-            )}
-          </div>
-        </div>
+        <StudentCoursesEmptyState isAdmin={isAdmin} />
       ) : (
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((e, idx) => {
@@ -155,6 +137,10 @@ export default async function StudentCoursesPage() {
             const prog    = progressByCourse.find((x) => x.courseId === c.id);
             const timeSec = prog?._sum.timeSpent ?? 0;
             const avgScore = prog?._avg?.score != null ? Math.round(prog._avg.score) : undefined;
+            const hasScorm = !!(c.scormManifest?.trim());
+            const live     = isLiveEventCourse(c.courseFormat);
+            const liveNoScorm = live && !hasScorm;
+            const detailHref = `/portal/student/courses/${c.id}`;
             return (
               <CourseCard
                 key={e.enrollId}
@@ -169,6 +155,10 @@ export default async function StudentCoursesPage() {
                 accessClosed={e.accessClosed}
                 index={idx}
                 adminHref={isAdmin ? `/portal/admin/courses/${c.id}` : undefined}
+                formatBadge={live ? 'Мероприятие' : null}
+                hideLessonProgress={liveNoScorm}
+                playHref={liveNoScorm ? detailHref : undefined}
+                primaryCtaLabel={liveNoScorm ? 'Подробности' : undefined}
               />
             );
           })}

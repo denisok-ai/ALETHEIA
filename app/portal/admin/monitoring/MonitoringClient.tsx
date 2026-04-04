@@ -72,6 +72,19 @@ interface VisitsItem {
   visitsCount: number;
 }
 
+const ONLINE_SORT_GETTERS: Record<string, (r: OnlineItem) => unknown> = {
+  user: (r) => r.displayName ?? r.email ?? r.userId,
+  role: (r) => r.role,
+  loginAt: (r) => r.loginAt,
+  lastActivityAt: (r) => r.lastActivityAt,
+  ip: (r) => r.ipAddress ?? '',
+};
+
+const VISITS_SORT_GETTERS: Record<string, (r: VisitsItem) => unknown> = {
+  user: (r) => r.displayName ?? r.email ?? r.userId,
+  count: (r) => r.visitsCount,
+};
+
 interface ChartDay {
   day: number;
   uniqueVisitors: number;
@@ -115,16 +128,9 @@ export function MonitoringClient() {
     if (onlineSortKey === columnId) setOnlineSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setOnlineSortKey(columnId); setOnlineSortDir('asc'); }
   };
-  const onlineSortGetters: Record<string, (r: OnlineItem) => unknown> = {
-    user: (r) => r.displayName ?? r.email ?? r.userId,
-    role: (r) => r.role,
-    loginAt: (r) => r.loginAt,
-    lastActivityAt: (r) => r.lastActivityAt,
-    ip: (r) => r.ipAddress ?? '',
-  };
   const sortedOnlineItems = useMemo(() => {
-    if (!onlineSortKey || !onlineSortGetters[onlineSortKey]) return onlineItems;
-    return sortTableBy(onlineItems, onlineSortGetters[onlineSortKey], onlineSortDir);
+    if (!onlineSortKey || !ONLINE_SORT_GETTERS[onlineSortKey]) return onlineItems;
+    return sortTableBy(onlineItems, ONLINE_SORT_GETTERS[onlineSortKey], onlineSortDir);
   }, [onlineItems, onlineSortKey, onlineSortDir]);
 
   const [visitsDateFrom, setVisitsDateFrom] = useState(() => {
@@ -152,13 +158,9 @@ export function MonitoringClient() {
     if (visitsSortKey === columnId) setVisitsSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
     else { setVisitsSortKey(columnId); setVisitsSortDir('asc'); }
   };
-  const visitsSortGetters: Record<string, (r: VisitsItem) => unknown> = {
-    user: (r) => r.displayName ?? r.email ?? r.userId,
-    count: (r) => r.visitsCount,
-  };
   const sortedVisitsItems = useMemo(() => {
-    if (!visitsSortKey || !visitsSortGetters[visitsSortKey]) return visitsItems;
-    return sortTableBy(visitsItems, visitsSortGetters[visitsSortKey], visitsSortDir);
+    if (!visitsSortKey || !VISITS_SORT_GETTERS[visitsSortKey]) return visitsItems;
+    return sortTableBy(visitsItems, VISITS_SORT_GETTERS[visitsSortKey], visitsSortDir);
   }, [visitsItems, visitsSortKey, visitsSortDir]);
 
   const [chartYear, setChartYear] = useState(new Date().getFullYear());
@@ -604,18 +606,22 @@ export function MonitoringClient() {
               ) : chartData.length === 0 ? (
                 <EmptyState title="Нет данных" description="Выберите год и месяц и нажмите «Построить»." />
               ) : (
-                <div className="flex items-end gap-1 overflow-x-auto py-4">
-                  {chartData.map((d) => (
-                    <div key={d.day} className="flex min-w-[24px] flex-1 flex-col items-center">
-                      <span className="mb-1 text-xs text-[var(--portal-text-muted)]">{d.uniqueVisitors}</span>
-                      <div
-                        className="w-full min-w-[8px] rounded-t bg-[var(--portal-accent)]/70 transition-all"
-                        style={{ height: `${(d.uniqueVisitors / maxChart) * 120}px` }}
-                        title={`${d.day}: ${d.uniqueVisitors} уникальных посетителей`}
-                      />
-                      <span className="mt-1 text-xs text-[var(--portal-text-muted)]">{d.day}</span>
-                    </div>
-                  ))}
+                <div className="flex items-end gap-1 overflow-x-auto rounded-lg border border-[#E8E4EF] bg-[#FAF8FC] px-2 py-4">
+                  {chartData.map((d) => {
+                    const barH = Math.round((d.uniqueVisitors / maxChart) * 120);
+                    const h = d.uniqueVisitors > 0 ? Math.max(barH, 4) : 0;
+                    return (
+                      <div key={d.day} className="flex min-w-[24px] flex-1 flex-col items-center">
+                        <span className="mb-1 text-xs font-medium tabular-nums text-[var(--portal-text)]">{d.uniqueVisitors}</span>
+                        <div
+                          className="w-full min-w-[8px] rounded-t bg-[var(--portal-accent-dark)] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.25)] ring-1 ring-[var(--portal-accent-muted)] transition-all hover:brightness-110"
+                          style={{ height: `${h}px` }}
+                          title={`${d.day}: ${d.uniqueVisitors} уникальных посетителей`}
+                        />
+                        <span className="mt-1 text-xs text-[var(--portal-text-muted)]">{d.day}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </Card>

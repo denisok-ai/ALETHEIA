@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useChat } from '@ai-sdk/react';
 import { DefaultChatTransport } from 'ai';
 import { MessageCircle, X, Send } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { ChatMarkdown } from '@/components/ChatMarkdown';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -50,7 +51,17 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
           </div>
           <div className="flex-1 overflow-y-auto p-3 space-y-3">
             {messages.length === 0 && (
-              <p className="text-sm text-[var(--portal-text-muted)]">Задайте вопрос по материалам курса.</p>
+              <div className="text-sm text-[var(--portal-text-muted)] space-y-2">
+                <p>Задайте вопрос по материалам курса.</p>
+                <p className="text-xs leading-snug">
+                  <Link
+                    href="/portal/student/help#ai-tutor"
+                    className="text-[var(--portal-accent)] font-medium hover:underline"
+                  >
+                    Как устроен AI-тьютор
+                  </Link>
+                </p>
+              </div>
             )}
             {messages.map((m) => (
               <div
@@ -65,8 +76,8 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
                 {m.role === 'user' ? (
                   <p className="whitespace-pre-wrap">{String((m as { content?: string }).content ?? (m as { text?: string }).text ?? '')}</p>
                 ) : (
-                  <div className="prose prose-sm max-w-none dark:prose-invert">
-                    <ReactMarkdown>{String((m as { content?: string }).content ?? (m as { text?: string }).text ?? '')}</ReactMarkdown>
+                  <div className="prose prose-sm max-w-none dark:prose-invert [&_a]:text-[var(--portal-accent)] [&_a]:underline">
+                    <ChatMarkdown>{String((m as { content?: string }).content ?? (m as { text?: string }).text ?? '')}</ChatMarkdown>
                   </div>
                 )}
               </div>
@@ -121,6 +132,7 @@ export function CourseAIChat({ courseId, lessonId = 'main', className }: CourseA
         onClick={() => setOpen((v) => !v)}
         className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--portal-accent)] text-white shadow-lg hover:bg-[var(--portal-accent-dark)]"
         aria-label={open ? 'Закрыть чат' : 'Открыть AI-тьютор'}
+        title={open ? undefined : 'AI-тьютор: вопрос по материалам текущего урока'}
       >
         <MessageCircle className="h-5 w-5" />
       </button>

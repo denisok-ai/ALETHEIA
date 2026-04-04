@@ -2,6 +2,72 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-04-05 — Релиз 3.3.0: AI-чаты, справка портала, шаблоны тьютора
+
+**Задача:** зафиксировать в продукте и документации доработки вокруг публичного чата, AI-тьютора в SCORM, ЛК студента и админской справки.
+
+**Сделано (код, кратко):** `ChatMarkdown` + `lib/linkify-bare-urls.ts` для кликабельных URL в ответах LLM; шаблоны промптов с `scope` `chatbot` | `course-tutor`, приоритет активного шаблона тьютора в `ai-assist`, учёт usage; удалён неиспользуемый `CourseTutorForm.tsx`; `/portal/student/gamification` без редиректа admin/manager из ЛК студента; убрана кнопка «Админка» со страницы курса студента; `HelpContent` — карточки и якоря `#ai-tutor`, `#ai-tutor-admin`, прокрутка по hash; палитра ⌘K (`portal-nav-commands`); UX подсказок на странице курса, в `CourseAIChat`, ссылки из `CourseAiTutorBlock` и `LlmAndChatbotBlock`.
+
+**Документация и версия:** `package.json` → **3.3.0**; `CHANGELOG.md` — секция **[3.3.0] - 2026-04-05**; обновлены `docs/Project.md` (в. 3.3, блок про AI), `docs/Support.md` (помощь и якоря), `docs/Tasktracker.md` (версия продукта), `docs/AI-Assistants-Audit.md` (чат и тьютор).
+
+---
+
+## 2026-04-04 — Медиатека (админ): просмотры и рейтинг в сетке
+
+**Задача:** в режиме «плитки» не было видно `viewsCount` / рейтинг (в таблице колонки уже были).
+
+**Сделано:** под описанием карточки ресурса — строка с иконкой «глаз» и числом просмотров; при наличии голосов — звезда, среднее (один знак) и число голосов в скобках.
+
+---
+
+## 2026-04-04 — Журнал уведомлений: срок очистки
+
+**Задача:** доработать UX очистки журнала (бэклог: retention).
+
+**Сделано:** в `NotificationLogsClient` выбор срока «старше N дней» (7, 30, 90, 180, 365) и кнопка «Очистить журнал»; подтверждение с динамическим текстом; тело запроса к существующему POST `/api/portal/admin/notification-logs/purge` без изменений API.
+
+---
+
+## 2026-04-04 — Админка публикаций: поиск по ключевым словам
+
+**Задача:** в каталоге публикаций искать не только по названию, но и по полю «ключевые слова».
+
+**Сделано:** в `PubRow` и ответе GET `/api/portal/admin/publications` добавлено поле `keywords`; клиентский фильтр учитывает название и keywords; серверный `?search=` — `OR` по `title` и `keywords` (`mode: insensitive`). Плейсхолдер поиска обновлён.
+
+---
+
+## 2026-04-04 — GET /api/health: проверка SQLite через Prisma
+
+**Задача:** smoke после деплоя и мониторинг должны видеть не только ответ Node, но и доступность файла БД (SQLite).
+
+**Сделано:** `GET /api/health` выполняет `SELECT 1` через Prisma; при успехе — `200`, `{ ok: true, database: "ok", ... }`; при ошибке БД — `503`, `database: "error"`, `databaseError`. В админке блок «О системе» (`HealthStatus`) показывает «база данных доступна» или текст ошибки. [Deploy.md](Deploy.md) обновлён; в `.env.example` уточнён комментарий к `DATABASE_URL`.
+
+---
+
+## 2026-04-04 — NEXTAUTH_URL из БД: приоритет nextauth_url, dev без CLIENT_FETCH_ERROR
+
+**Задача:** операционные URL хранятся в БД; не опираться на `.env` как основной источник для NextAuth.
+
+**Сделано:** `getSystemSettings` и `applyNextAuthUrlFromDatabaseStartup` читают из БД и `nextauth_url`, и `site_url`; `applyNextAuthUrlToProcessEnv` задаёт приоритет `nextauth_url` → `site_url` → `NEXT_PUBLIC_URL` → `.env`; в development явный `nextauth_url` из БД применяется всегда, без него продакшен-`site_url` не подставляется на localhost. Документация: [Env-Config.md](Env-Config.md); подсказка под полем в `SettingsForms.tsx`.
+
+---
+
+## 2026-04-04 — Сводный бэклог: документация деплоя, Plyr, Tasktracker
+
+**Задача:** закрыть пункты сводного плана (деплой — документация; медиатека Plyr; синхронизация трекера; инфра-чеклист; опциональный бэклог).
+
+**Сделано:** в [Deploy.md](Deploy.md) добавлена секция **«Проверка после выката на прод (smoke)»** с критериями закрытия строки «Деплой на прод» в Tasktracker. [Tasktracker.md](Tasktracker.md): этап 5 — строка про расширенное SEO; этап 3.0 — Plyr в превью **Завершена**; этап 6 — уточнено описание деплоя. [Production-Server.md](Production-Server.md) — краткий чеклист обзора (nginx cache, sharp, PostgreSQL). Добавлен [Backlog-Optional.md](Backlog-Optional.md). Превью видео в админке: `DialogContent` без `overflow-hidden`, чтобы меню скорости Plyr не обрезалось; подсказка в `MediaVideoPanel`.
+
+---
+
+## 2026-04-04 — SEO: публичные страницы, sitemap, JSON-LD, аналитика
+
+**Задача:** план SEO для avaterra.pro — маршруты `/courses`, `/about`, `/faq`, `/contacts`, кастомная 404, метаданные главной, расширение карты сайта, перелинковка блог↔курс (якоря `#module-N`), заголовки HTTP в `next.config.mjs`, события GA4/Метрики (`lib/analytics-events.ts`), eslint `jsx-a11y`.
+
+**Сделано:** новые страницы в `app/`, общие тексты о мастере в `lib/content/about-master.ts`, FAQ из `FAQ_JSON_LD_ITEMS`, компоненты `Breadcrumbs`, `BlogArticleCourseLinks`, трекеры `AnalyticsCourseView`, `AnalyticsHomeEngagement`; отзывы вынесены в `lib/content/testimonials.ts` и связаны с JSON-LD на главной.
+
+---
+
 ## 2026-04-01 — Документация прода: VPS, деплой, nginx, сборка
 
 **Задача:** зафиксировать конфигурацию продуктивного сервера (`95.181.224.70`, `/opt/ALETHEIA`, https://avaterra.pro), порядок обновления (Git + `deploy-pull.sh` и альтернатива `npm run deploy:rsync` с WSL), риски `proxy_cache`, systemd vs PM2, исправления вокруг `instrumentation` / `crypto` / портальных layout.

@@ -5,6 +5,7 @@ import { motion, useInView } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { TiltCard } from '@/components/ui/TiltCard';
 import { PaymentModal } from '@/components/PaymentModal';
+import { ANALYTICS, trackGa4AndYm } from '@/lib/analytics-events';
 
 export type TariffItem = {
   id: string;
@@ -68,8 +69,15 @@ const FALLBACK_TARIFFS: TariffItem[] = [
 export function Pricing() {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
+  const pricingScrollTracked = useRef(false);
   const [products, setProducts] = useState<TariffItem[]>(FALLBACK_TARIFFS);
   const [modalTariff, setModalTariff] = useState<TariffItem | null>(null);
+
+  useEffect(() => {
+    if (!isInView || pricingScrollTracked.current) return;
+    pricingScrollTracked.current = true;
+    trackGa4AndYm(ANALYTICS.SCROLL_PRICING, ANALYTICS.SCROLL_PRICING);
+  }, [isInView]);
 
   useEffect(() => {
     fetch('/api/shop/products', { cache: 'no-store' })

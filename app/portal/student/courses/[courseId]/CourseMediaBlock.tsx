@@ -6,7 +6,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { MediaCoverPlaceholder } from '@/components/portal/CourseCoverPlaceholder';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Play, Download, Star, Film, ExternalLink } from 'lucide-react';
@@ -103,10 +104,11 @@ export function CourseMediaBlock({ items }: { items: CourseMediaItem[] }) {
           description="К этому курсу пока не добавлены дополнительные материалы."
           icon={<Film className="h-10 w-10" />}
           action={
-            <Link href="/portal/student/media">
-              <Button variant="secondary" size="sm">
-                <ExternalLink className="h-3.5 w-3.5 mr-1" /> Открыть медиатеку
-              </Button>
+            <Link
+              href="/portal/student/media"
+              className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+            >
+              <ExternalLink className="h-3.5 w-3.5 mr-1" /> Открыть медиатеку
             </Link>
           }
         />
@@ -195,16 +197,21 @@ export function CourseMediaBlock({ items }: { items: CourseMediaItem[] }) {
                   </div>
 
                   <div className="mt-3 flex flex-wrap items-center gap-2">
-                    <Link href={`/portal/student/media/${m.id}`}>
-                      <Button variant="primary" size="sm">
-                        <Play className="h-3.5 w-3.5" /> Смотреть
-                      </Button>
+                    <Link
+                      href={`/portal/student/media/${m.id}`}
+                      className={cn(buttonVariants({ variant: 'primary', size: 'sm' }))}
+                    >
+                      <Play className="h-3.5 w-3.5" /> Смотреть
                     </Link>
                     {m.allowDownload && !isPlaceholderOrExampleUrl(m.fileUrl) && (
-                      <a href={m.fileUrl} download target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="sm">
-                          <Download className="h-3.5 w-3.5" /> Скачать
-                        </Button>
+                      <a
+                        href={m.fileUrl}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
+                      >
+                        <Download className="h-3.5 w-3.5" /> Скачать
                       </a>
                     )}
                   </div>

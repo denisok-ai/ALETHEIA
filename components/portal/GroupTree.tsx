@@ -61,11 +61,20 @@ function TreeRow({
   return (
     <div className="select-none">
       <div
+        role="treeitem"
+        tabIndex={0}
+        aria-selected={isSelected}
         className={`flex items-center gap-1 py-1.5 px-2 rounded-lg cursor-pointer group ${
           isSelected ? 'bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]' : 'hover:bg-[#F8FAFC] text-[var(--portal-text)]'
         }`}
         style={{ paddingLeft: `${level * 12 + 8}px` }}
         onClick={() => onSelect(node.id, node.name)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onSelect(node.id, node.name);
+          }
+        }}
       >
         <button
           type="button"

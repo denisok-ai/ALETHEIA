@@ -35,6 +35,9 @@ export async function PATCH(
   const data: Record<string, unknown> = {};
   if (parsed.data.title !== undefined) data.title = parsed.data.title;
   if (parsed.data.description !== undefined) data.description = parsed.data.description;
+  if (parsed.data.courseFormat !== undefined) data.courseFormat = parsed.data.courseFormat;
+  if (parsed.data.eventVenue !== undefined) data.eventVenue = parsed.data.eventVenue?.trim() || null;
+  if (parsed.data.eventUrl !== undefined) data.eventUrl = parsed.data.eventUrl?.trim() || null;
   if (parsed.data.price !== undefined) data.price = parsed.data.price;
   if (parsed.data.status !== undefined) data.status = parsed.data.status;
   if (parsed.data.thumbnailUrl !== undefined) data.thumbnailUrl = parsed.data.thumbnailUrl?.trim() || null;
@@ -68,6 +71,9 @@ export async function PATCH(
       id: course.id,
       title: course.title,
       description: course.description,
+      course_format: course.courseFormat,
+      event_venue: course.eventVenue,
+      event_url: course.eventUrl,
       starts_at: course.startsAt?.toISOString() ?? null,
       ends_at: course.endsAt?.toISOString() ?? null,
       scorm_path: course.scormPath,

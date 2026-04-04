@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { isValidTextSubmission, isValidVideoSubmissionUrl } from '@/lib/verification-submission';
+import { serializeThreadComment } from '@/lib/verification-thread-comments';
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -97,6 +98,7 @@ export async function GET(request: NextRequest) {
     where: { userId },
     include: {
       course: { select: { id: true, title: true } },
+      threadComments: { orderBy: { createdAt: 'asc' } },
     },
     orderBy: { createdAt: 'desc' },
   });
@@ -112,6 +114,7 @@ export async function GET(request: NextRequest) {
     comment: v.comment,
     reviewedAt: v.reviewedAt?.toISOString() ?? null,
     createdAt: v.createdAt.toISOString(),
+    threadComments: v.threadComments.map((c) => serializeThreadComment(c, v.userId)),
   }));
 
   return NextResponse.json({ items });

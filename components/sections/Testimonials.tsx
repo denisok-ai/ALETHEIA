@@ -3,24 +3,7 @@
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Star, Quote } from 'lucide-react';
-
-const reviews = [
-  {
-    text: '«Помнишь, мы года 4 назад делали групповое на сбычу желаний. У меня почти всё сбылось на 70% — именно то, что я просила и хотела. Осталось ещё немного.»',
-    author: 'Марина П.',
-    rating: 5,
-  },
-  {
-    text: '«После курса я по-другому слышу тело: меньше тревоги, больше ясности в решениях. Татьяна даёт и инструмент, и человеческую поддержку — рекомендую всем, кто готов к честному диалогу с собой.»',
-    author: 'Ирина Г.',
-    rating: 5,
-  },
-  {
-    text: '«Из отличных новостей: диагноз дисплазия снят! Анализы пришли отличные — это счастье.»',
-    author: 'Елена С.',
-    rating: 5,
-  },
-];
+import { LANDING_REVIEWS } from '@/lib/content/testimonials';
 
 export function Testimonials() {
   const ref = useRef<HTMLElement>(null);
@@ -50,7 +33,7 @@ export function Testimonials() {
         </motion.div>
 
         <ul className="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3 lg:gap-8">
-          {reviews.map((review, i) => (
+          {LANDING_REVIEWS.map((review, i) => (
             <motion.li
               key={review.author}
               initial={{ opacity: 0, y: 24 }}

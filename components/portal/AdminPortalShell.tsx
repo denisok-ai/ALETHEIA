@@ -26,22 +26,29 @@ import {
   HelpCircle,
   FolderTree,
   Package,
+  Zap,
+  TrendingUp,
+  CheckCircle,
 } from 'lucide-react';
 import { PortalSidebar, type NavSection } from '@/components/portal/PortalSidebar';
 import { AdminMobileMenuBar } from '@/components/portal/AdminMobileMenuBar';
 import { AdminCommandBar } from '@/components/portal/AdminCommandBar';
+import { PORTAL_PATH } from '@/lib/portal-paths';
 
 const icon = (El: React.ComponentType<{ className?: string }>) => <El className="h-4 w-4" />;
 
 const adminSections: NavSection[] = [
   {
-    items: [{ href: '/portal/admin/dashboard', label: 'Дашборд', icon: icon(LayoutDashboard) }],
+    items: [{ href: PORTAL_PATH.adminDashboard, label: 'Дашборд', icon: icon(LayoutDashboard) }],
   },
   {
     sectionLabel: 'Контент и обучение',
     items: [
       { href: '/portal/admin/groups', label: 'Группы', icon: icon(FolderTree) },
       { href: '/portal/admin/courses', label: 'Курсы', icon: icon(BookOpen) },
+      { href: '/portal/admin/gamification', label: 'Геймификация', icon: icon(Zap) },
+      { href: '/portal/admin/gamification/courses', label: 'Заряд по курсам', icon: icon(TrendingUp) },
+      { href: '/portal/admin/verifications', label: 'Верификация заданий', icon: icon(CheckCircle) },
       { href: '/portal/admin/certificates', label: 'Сертификаты', icon: icon(Award) },
       { href: '/portal/admin/certificate-templates', label: 'Шаблоны сертификатов', icon: icon(LayoutTemplate) },
       { href: '/portal/admin/publications', label: 'Публикации', icon: icon(Newspaper) },

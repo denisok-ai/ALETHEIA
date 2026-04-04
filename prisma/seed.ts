@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
+import { readFileSync } from 'fs';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
@@ -175,7 +176,8 @@ async function main() {
   });
   const publishedCourses = courses.filter((_, i) => statuses[i % statuses.length] === 'published');
   const scormCourseIds: string[] = [];
-  for (let i = 0; i < Math.min(5, publishedCourses.length); i++) {
+  /** Все опубликованные курсы: иначе у части записей (например course-seed-16) есть enrollment, но нет SCORM в БД/на диске. */
+  for (let i = 0; i < publishedCourses.length; i++) {
     const c = publishedCourses[i];
     if (!c) continue;
     await prisma.course.update({
@@ -189,7 +191,7 @@ async function main() {
     scormCourseIds.push(c.id);
   }
 
-  // Минимальный SCORM-контент для демо (course-seed-1, course-seed-2)
+  // Минимальный SCORM-контент для демо — папка и HTML для каждого курса из scormCourseIds
   const scormDir = path.join(process.cwd(), 'public', 'uploads', 'scorm');
   const lessons = [
     { id: 'lesson-1', title: 'Урок 1. Введение', file: 'lesson1.html', body: 'Добро пожаловать в тестовый курс. Это минимальный SCORM-контент для проверки плеера.' },
@@ -197,7 +199,7 @@ async function main() {
     { id: 'lesson-3', title: 'Урок 3. Итоги', file: 'lesson3.html', body: 'Поздравляем с завершением курса! Прогресс будет сохранён автоматически.' },
   ];
   const indexHtml = scormLessonHtml('Тестовый курс', 'Выберите урок в навигации слева или начните с первого урока.');
-  for (const courseId of scormCourseIds.slice(0, 2)) {
+  for (const courseId of scormCourseIds) {
     const dir = path.join(scormDir, `courses-${courseId}`);
     try {
       await mkdir(dir, { recursive: true });
@@ -683,13 +685,26 @@ async function main() {
   }
 
   // ——— PhygitalVerification: часть пользователей по курсам ———
+  const verifUploadDir = path.join(process.cwd(), 'public', 'uploads', 'verifications');
+  await mkdir(verifUploadDir, { recursive: true }).catch(() => {});
+  const seedVerifPlaceholder = path.join(verifUploadDir, 'seed-verification-placeholder.mp4');
+  try {
+    await writeFile(seedVerifPlaceholder, Buffer.alloc(0));
+  } catch {
+    /* ignore */
+  }
+  const seedVideoMaterialUrl = '/uploads/verifications/seed-verification-placeholder.mp4';
   for (let i = 0; i < 25; i++) {
+    const isText = i % 4 === 0;
     await prisma.phygitalVerification.create({
       data: {
         userId: students[i % students.length].id,
         courseId: courses[i % courses.length].id,
         lessonId: `lesson-${(i % 3) + 1}`,
-        videoUrl: `/portal/manager/verifications#video-${i + 1}`,
+        assignmentType: isText ? 'text' : 'video',
+        videoUrl: isText
+          ? `Текстовый ответ (seed #${i + 1}): краткое описание выполнения практического задания для проверки менеджером.`
+          : seedVideoMaterialUrl,
         status: ['pending', 'approved', 'rejected'][i % 3],
         reviewedBy: i % 3 !== 0 ? manager1.id : null,
         reviewedAt: i % 3 !== 0 ? new Date() : null,
@@ -796,11 +811,36 @@ async function main() {
     create: { key: 'chatbot', provider: 'deepseek', model: 'deepseek-chat', systemPrompt: 'You are a helpful assistant for AVATERRA.', temperature: 0.7, maxTokens: 2000 },
     update: {},
   });
+  let defaultTutorPlaybook = '';
+  try {
+    defaultTutorPlaybook = readFileSync(
+      path.join(process.cwd(), 'content', 'course-tutor-playbook.md'),
+      'utf-8'
+    );
+  } catch {
+    // файл отсутствует — оставляем пусто
+  }
   await prisma.llmSetting.upsert({
     where: { key: 'course-tutor' },
-    create: { key: 'course-tutor', provider: 'deepseek', model: 'deepseek-chat', temperature: 0.5, maxTokens: 1500 },
+    create: {
+      key: 'course-tutor',
+      provider: 'deepseek',
+      model: 'deepseek-chat',
+      temperature: 0.5,
+      maxTokens: 1500,
+      systemPrompt: defaultTutorPlaybook.trim() || null,
+    },
     update: {},
   });
+  if (defaultTutorPlaybook.trim()) {
+    const row = await prisma.llmSetting.findUnique({ where: { key: 'course-tutor' } });
+    if (row && !row.systemPrompt?.trim()) {
+      await prisma.llmSetting.update({
+        where: { key: 'course-tutor' },
+        data: { systemPrompt: defaultTutorPlaybook.trim() },
+      });
+    }
+  }
 
   // ——— PasswordToken: тестовые токены для проверки /set-password (валидный и истёкший) ———
   const student1 = students[0];

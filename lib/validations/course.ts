@@ -6,6 +6,9 @@ import { z } from 'zod';
 export const courseCreateSchema = z.object({
   title: z.string().min(1, 'Название обязательно').max(500),
   description: z.string().max(5000).optional().nullable(),
+  courseFormat: z.enum(['scorm', 'live_event']).optional(),
+  eventVenue: z.string().max(2000).optional().nullable(),
+  eventUrl: z.string().max(2000).optional().nullable(),
   startsAt: z.string().optional().nullable(), // ISO date/datetime string
   endsAt: z.string().optional().nullable(),
   price: z.number().int().min(0).optional().nullable(),

@@ -4,16 +4,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { getLlmApiKey } from '@/lib/llm';
+import { completeLlmChat, resolveChatbotProvider } from '@/lib/llm-chat-completion';
+import { getEnvOverrides } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 import { logLlmRequest } from '@/lib/llm-request-log';
-
-const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  let body: { instruction?: string };
+  let body: { instruction?: string; scope?: string };
   try {
     body = await request.json();
   } catch {
@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
   }
 
   const instruction = typeof body.instruction === 'string' ? body.instruction.trim() : '';
+  const scope = body.scope === 'course-tutor' ? 'course-tutor' : 'chatbot';
   if (!instruction) {
     return NextResponse.json({ error: 'Укажите описание или инструкцию для генерации промпта' }, { status: 400 });
   }
@@ -30,38 +31,43 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Настройте API-ключ в блоке «Ключи моделей»' }, { status: 503 });
   }
 
-  const settings = await prisma.llmSetting.findUnique({ where: { key: 'chatbot' } });
-  const model = settings?.model ?? 'deepseek-chat';
-  const sys = 'Ты помогаешь создавать system prompt для консультанта курса «Тело не врёт» (школа мышечного тестирования). Ответь только текстом самого промпта, без пояснений и кавычек.';
+  const settings = await prisma.llmSetting.findUnique({
+    where: { key: 'chatbot' },
+    include: { apiKey: { select: { provider: true } } },
+  });
+  const envOverrides = await getEnvOverrides();
+  const provider = resolveChatbotProvider(settings, envOverrides);
+  let model = settings?.model ?? 'deepseek-chat';
+  if (!settings) {
+    if (provider === 'openai') model = 'gpt-4o-mini';
+    else if (provider === 'anthropic') model = 'claude-3-5-haiku-20240307';
+  }
+  const sys =
+    scope === 'course-tutor'
+      ? 'Ты помогаешь создавать playbook (инструкцию) для AI-тьютора в онлайн-курсе: ответы только по материалам уроков, без выдумывания; при необходимости — направить к куратору. Школа — мышечное тестирование, курс «Тело не врёт». Можно использовать плейсхолдеры {{PORTAL_URL}}, {{PORTAL_COURSE_URL}}, {{SUPPORT_EMAIL}}, {{PRICING_URL}} и т.п. Ответь только текстом промпта, без пояснений и кавычек.'
+      : 'Ты помогаешь создавать system prompt для консультанта курса «Тело не врёт» (школа мышечного тестирования). Ответь только текстом самого промпта, без пояснений и кавычек.';
 
   const startMs = Date.now();
-  const response = await fetch(DEEPSEEK_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: sys },
-        { role: 'user', content: instruction },
-      ],
-      max_tokens: 1024,
-      temperature: 0.5,
-    }),
+  const llmResult = await completeLlmChat({
+    provider,
+    apiKey,
+    model,
+    messages: [
+      { role: 'system', content: sys },
+      { role: 'user', content: instruction },
+    ],
+    maxTokens: 1024,
+    temperature: 0.5,
   });
 
-  if (!response.ok) {
-    const errText = await response.text();
+  if (!llmResult.ok) {
     return NextResponse.json(
-      { error: 'Ошибка вызова модели. Проверьте ключ и модель.' },
+      { error: 'Ошибка вызова модели. Проверьте ключ, провайдера и модель в Настройках AI.' },
       { status: 502 }
     );
   }
 
-  const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
-  const content = data?.choices?.[0]?.message?.content?.trim() ?? '';
+  const content = llmResult.content;
 
   logLlmRequest({
     source: 'prompt-generate',

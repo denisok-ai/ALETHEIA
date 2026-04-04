@@ -44,9 +44,11 @@ test.describe('Плеер SCORM', () => {
       await page.goto('/portal/student/courses/course-seed-1/play');
     }
     await expect(
-      page.getByRole('link', { name: /выход из курса|назад к курсу/i })
+      page
+        .getByRole('link', { name: /выход из курса|назад к курсу/i })
         .or(page.locator('iframe[title="SCORM курс"]'))
         .or(page.getByText(/загрузка плеера|нет загруженного/i))
+        .first()
     ).toBeVisible({ timeout: 15000 });
   });
 });

@@ -9,6 +9,7 @@ import { ru } from 'date-fns/locale';
 import { ChargeBatteryGauge } from '@/components/portal/ChargeBatteryGauge';
 import { Card } from '@/components/portal/Card';
 import { Button } from '@/components/ui/button';
+import { gamificationSourceLabelRu } from '@/lib/gamification-source-labels';
 
 type BadgeRow = { minXp: number; label: string; emoji: string };
 
@@ -23,6 +24,17 @@ type HistoryRow = {
   note: string | null;
 };
 
+type GamificationEventRow = {
+  id: string;
+  source: string;
+  delta: number;
+  balanceAfter: number;
+  meta: Record<string, unknown>;
+  createdAt: string;
+  /** Подпись курса: из meta или из справочника Course по meta.courseId */
+  courseTitle?: string | null;
+};
+
 type EnergyPayload = {
   userId: string;
   xp: number;
@@ -30,10 +42,12 @@ type EnergyPayload = {
   chargePercent: number;
   xpPerLevel: number;
   xpLessonComplete: number;
+  xpVerificationApproved: number;
   lastPracticeAt: string | null;
   updatedAt: string | null;
   badges: BadgeRow[];
   history: HistoryRow[];
+  gamificationEvents?: GamificationEventRow[];
 };
 
 export function UserEnergyAdminBlock({ userId, profileRole }: { userId: string; profileRole: string }) {
@@ -55,7 +69,11 @@ export function UserEnergyAdminBlock({ userId, profileRole }: { userId: string; 
         throw new Error((j as { error?: string }).error ?? `Ошибка ${res.status}`);
       }
       const json = (await res.json()) as EnergyPayload;
-      setData(json);
+      setData({
+        ...json,
+        xpVerificationApproved: json.xpVerificationApproved ?? 0,
+        gamificationEvents: json.gamificationEvents ?? [],
+      });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось загрузить');
       setData(null);
@@ -182,6 +200,10 @@ export function UserEnergyAdminBlock({ userId, profileRole }: { userId: string; 
             <p className="font-medium text-[var(--portal-text)]">+{data.xpLessonComplete} ед.</p>
           </div>
           <div>
+            <p className="text-[var(--portal-text-muted)]">За одобр. верификацию (справка)</p>
+            <p className="font-medium text-[var(--portal-text)]">+{data.xpVerificationApproved} ед.</p>
+          </div>
+          <div>
             <p className="text-[var(--portal-text-muted)]">Последняя активность (SCORM)</p>
             <p className="font-medium text-[var(--portal-text)]">
               {data.lastPracticeAt
@@ -210,6 +232,55 @@ export function UserEnergyAdminBlock({ userId, profileRole }: { userId: string; 
                 </span>
               ))}
             </div>
+          </div>
+        )}
+      </Card>
+
+      <Card
+        title="События заряда"
+        description="Уроки (SCORM), одобренные задания, ручные правки — для проверки данных на проде."
+      >
+        {!data.gamificationEvents || data.gamificationEvents.length === 0 ? (
+          <p className="text-sm text-[var(--portal-text-muted)]">Записей пока нет (или миграция журнала не применена).</p>
+        ) : (
+          <div className="overflow-x-auto max-h-80 overflow-y-auto">
+            <table className="w-full text-sm text-left border-collapse">
+              <thead>
+                <tr className="border-b border-[#E2E8F0] text-[var(--portal-text-muted)]">
+                  <th className="py-2 pr-3 font-medium">Дата</th>
+                  <th className="py-2 pr-3 font-medium">Источник</th>
+                  <th className="py-2 pr-2 font-medium text-right">Δ</th>
+                  <th className="py-2 pr-2 font-medium text-right">Баланс</th>
+                  <th className="py-2 font-medium">Контекст</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.gamificationEvents.map((ev) => {
+                  const title =
+                    (ev.courseTitle && String(ev.courseTitle).trim()) ||
+                    (typeof ev.meta.courseTitle === 'string' && ev.meta.courseTitle
+                      ? ev.meta.courseTitle
+                      : ev.source === 'verification_approved'
+                        ? 'Домашнее задание'
+                        : '—');
+                  return (
+                    <tr key={ev.id} className="border-b border-[#F1F5F9]">
+                      <td className="py-2 pr-3 whitespace-nowrap text-xs">
+                        {format(new Date(ev.createdAt), 'dd.MM.yyyy HH:mm')}
+                      </td>
+                      <td className="py-2 pr-3">{gamificationSourceLabelRu(ev.source)}</td>
+                      <td className="py-2 pr-2 text-right tabular-nums">
+                        {ev.delta > 0 ? `+${ev.delta}` : ev.delta}
+                      </td>
+                      <td className="py-2 pr-2 text-right tabular-nums">{ev.balanceAfter}</td>
+                      <td className="py-2 text-xs text-[var(--portal-text-muted)] max-w-[14rem] truncate" title={title}>
+                        {title}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </Card>
@@ -299,7 +370,7 @@ export function UserEnergyAdminBlock({ userId, profileRole }: { userId: string; 
         </form>
       </Card>
 
-      <Card title="Журнал ручных правок" description="Последние записи; начисления за уроки в журнале не отображаются.">
+      <Card title="Журнал ручных правок (аудит)" description="Только изменения через форму выше; полный поток — в «События заряда».">
         {data.history.length === 0 ? (
           <p className="text-sm text-[var(--portal-text-muted)]">Пока нет ручных изменений.</p>
         ) : (

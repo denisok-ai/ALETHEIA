@@ -49,6 +49,7 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
           key: {
             in: [
               'site_url',
+              'nextauth_url',
               'portal_title',
               'resend_from',
               'resend_notify_email',
@@ -62,6 +63,8 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
       const byKey: Record<string, string> = {};
       for (const r of rows) byKey[r.key] = r.value;
 
+      const nextauthUrlFromDb = byKey.nextauth_url?.trim() || '';
+
       const data: SystemSettings = {
         site_url: byKey.site_url || process.env.NEXT_PUBLIC_URL?.trim() || ENV_FALLBACK.site_url,
         portal_title: byKey.portal_title || ENV_FALLBACK.portal_title,
@@ -72,9 +75,28 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
         company_legal_address: byKey.company_legal_address || ENV_FALLBACK.company_legal_address,
       };
 
-      applyNextAuthUrlToProcessEnv({ siteUrl: data.site_url });
+      applyNextAuthUrlToProcessEnv({
+        explicitNextAuthUrl: nextauthUrlFromDb || undefined,
+        siteUrl: data.site_url,
+      });
 
       settingsMemCache = { at: Date.now(), data };
+      return data;
+    } catch (e) {
+      console.error('[getSystemSettings] БД недоступна или ошибка чтения — используем fallback из env', e);
+      const data: SystemSettings = {
+        site_url: process.env.NEXT_PUBLIC_URL?.trim() || ENV_FALLBACK.site_url,
+        portal_title: ENV_FALLBACK.portal_title,
+        resend_from: process.env.RESEND_FROM?.trim() || ENV_FALLBACK.resend_from,
+        resend_notify_email: process.env.RESEND_NOTIFY_EMAIL?.trim() || ENV_FALLBACK.resend_notify_email,
+        contact_phone: ENV_FALLBACK.contact_phone,
+        company_legal_address: ENV_FALLBACK.company_legal_address,
+      };
+      try {
+        applyNextAuthUrlToProcessEnv({ siteUrl: data.site_url });
+      } catch {
+        /* ignore */
+      }
       return data;
     } finally {
       settingsInFlight = null;

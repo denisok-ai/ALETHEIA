@@ -1,27 +1,26 @@
 /**
- * Student: course detail — cover, progress, launch button. Portal design.
+ * Student: course detail — данные на сервере, разметка с lucide в StudentCourseDetailView.
  */
 import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
-import Image from 'next/image';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { PageHeader } from '@/components/portal/PageHeader';
-import { CourseCoverPlaceholder } from '@/components/portal/CourseCoverPlaceholder';
-import { CourseVerificationBlock } from './CourseVerificationBlock';
-import { CourseMediaBlock, type CourseMediaItem } from './CourseMediaBlock';
-import { Button } from '@/components/ui/button';
-import { Play, CheckCircle2, ArrowLeft, Settings } from 'lucide-react';
 import { parseVerificationLessons } from '@/lib/verification-lessons';
+import { getGamificationNumbers } from '@/lib/gamification-config';
+import { isLiveEventCourse } from '@/lib/course-format';
+import { CourseMediaBlock, type CourseMediaItem } from './CourseMediaBlock';
+import { StudentCourseAccessDenied } from './StudentCourseAccessDenied';
+import { StudentCourseDetailView } from './StudentCourseDetailView';
 
 function totalLessons(manifest: string | null): number {
   if (!manifest) return 1;
   try {
     const p = JSON.parse(manifest) as { items?: unknown[] };
     return Array.isArray(p?.items) && p.items.length > 0 ? p.items.length : 1;
-  } catch { return 1; }
+  } catch {
+    return 1;
+  }
 }
 
 function lessonOptionsFromManifest(manifest: string | null): { id: string; title?: string }[] {
@@ -34,7 +33,9 @@ function lessonOptionsFromManifest(manifest: string | null): { id: string; title
       id: typeof it.identifier === 'string' ? it.identifier : 'main',
       title: typeof it.title === 'string' ? it.title : undefined,
     }));
-  } catch { return []; }
+  } catch {
+    return [];
+  }
 }
 
 type Props = { params: Promise<{ courseId: string }> };
@@ -66,7 +67,7 @@ export default async function StudentCourseDetailPage({ params }: Props) {
   const course = await prisma.course.findUnique({ where: { id: courseId } });
   if (!course) notFound();
 
-  const [enrollment, progressByLesson, completedByLesson, courseMedia] = await Promise.all([
+  const [enrollment, progressByLesson, completedByLesson, courseMedia, gamification] = await Promise.all([
     prisma.enrollment.findUnique({
       where: { userId_courseId: { userId, courseId } },
     }),
@@ -96,28 +97,12 @@ export default async function StudentCourseDetailPage({ params }: Props) {
         ratingCount: true,
       },
     }),
+    getGamificationNumbers(),
   ]);
 
   const canAccess = !!enrollment || role === 'admin';
   if (!canAccess) {
-    return (
-      <div className="space-y-6 max-w-2xl">
-        <PageHeader
-          items={[
-            { href: '/portal/student/dashboard', label: 'Дашборд' },
-            { href: '/portal/student/courses', label: 'Мои курсы' },
-            { label: 'Доступ закрыт' },
-          ]}
-          title="Нет доступа"
-          description="У вас нет доступа к этому курсу. Запишитесь на курс или обратитесь к администратору."
-        />
-        <div className="portal-card p-6">
-          <Link href="/portal/student/courses">
-            <Button variant="secondary"><ArrowLeft className="h-4 w-4 mr-2" /> К моим курсам</Button>
-          </Link>
-        </div>
-      </div>
-    );
+    return <StudentCourseAccessDenied />;
   }
 
   const total = totalLessons(course.scormManifest);
@@ -126,9 +111,10 @@ export default async function StudentCourseDetailPage({ params }: Props) {
   const timeSpentSec = progressByLesson.reduce((s, p) => s + p.timeSpent, 0);
   const timeSpentMin = Math.round(timeSpentSec / 60);
   const scoresWithValue = progressByLesson.filter((p): p is typeof p & { score: number } => p.score != null);
-  const avgScore = scoresWithValue.length > 0
-    ? Math.round(scoresWithValue.reduce((s, p) => s + p.score, 0) / scoresWithValue.length)
-    : null;
+  const avgScore =
+    scoresWithValue.length > 0
+      ? Math.round(scoresWithValue.reduce((s, p) => s + p.score, 0) / scoresWithValue.length)
+      : null;
 
   const isCompleted = total > 0 && completed >= total;
   const hasProgress = completed > 0 || progressByLesson.length > 0;
@@ -138,6 +124,9 @@ export default async function StudentCourseDetailPage({ params }: Props) {
     (course as { verificationRequiredLessonIds?: string | null }).verificationRequiredLessonIds
   );
   const verificationRequiredIds = verificationConfigs.map((c) => c.lessonId);
+
+  const isLive = isLiveEventCourse(course.courseFormat);
+  const hasScorm = !!(course.scormPath?.trim() || course.scormManifest?.trim());
 
   const mediaItems: CourseMediaItem[] = courseMedia.map((m) => ({
     id: m.id,
@@ -155,109 +144,30 @@ export default async function StudentCourseDetailPage({ params }: Props) {
   }));
 
   return (
-    <div className="space-y-6 w-full max-w-5xl">
-      <PageHeader
-        items={[
-          { href: '/portal/student/dashboard', label: 'Дашборд' },
-          { href: '/portal/student/courses', label: 'Мои курсы' },
-          { label: course.title },
-        ]}
-        title={course.title}
-        description={course.description ?? undefined}
-        actions={
-          <Link href="/portal/student/courses">
-            <Button variant="ghost" size="sm"><ArrowLeft className="h-4 w-4 mr-1" /> Назад</Button>
-          </Link>
-        }
-      />
-
-      {/* Обложка */}
-      <div className="portal-card overflow-hidden p-0">
-        <div className="relative aspect-[21/9] w-full min-h-[180px] bg-[var(--portal-accent-soft)]">
-          {course.thumbnailUrl ? (
-            <Image
-              src={course.thumbnailUrl}
-              alt=""
-              fill
-              className="object-cover"
-              sizes="(max-width: 1024px) 100vw, 896px"
-            />
-          ) : (
-            <CourseCoverPlaceholder title={course.title} variant={0} className="absolute inset-0 w-full h-full" />
-          )}
-        </div>
-      </div>
-
-      {/* Прогресс и действия */}
-      <div className="portal-card p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[var(--portal-text-muted)] mb-1">Прогресс прохождения (SCORM)</p>
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-2xl font-bold text-[var(--portal-text)]">{pct}%</span>
-              <span className="text-sm text-[var(--portal-text-muted)]">
-                {completed} из {total} уроков
-              </span>
-              {timeSpentMin > 0 && (
-                <span className="text-xs text-[var(--portal-text-soft)]">
-                  Время: {timeSpentMin < 60 ? `${timeSpentMin} мин` : `${Math.floor(timeSpentMin / 60)} ч`}
-                </span>
-              )}
-              {avgScore != null && (
-                <span className="text-xs text-[var(--portal-text-soft)]">
-                  Балл: {avgScore}%
-                </span>
-              )}
-            </div>
-            <div className="mt-2 progress-track max-w-md">
-              <div
-                className={`progress-fill ${pct === 100 ? 'done' : pct >= 30 ? 'mid' : ''}`}
-                style={{ width: `${pct}%` }}
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
-            <Link href={`/portal/student/courses/${courseId}/play`}>
-              {isCompleted ? (
-                <Button variant="secondary" size="lg">
-                  <CheckCircle2 className="h-4 w-4 mr-2" /> Курс завершён
-                </Button>
-              ) : hasProgress ? (
-                <Button variant="primary" size="lg">
-                  <Play className="h-4 w-4 mr-2" /> Продолжить
-                </Button>
-              ) : (
-                <Button variant="primary" size="lg">
-                  <Play className="h-4 w-4 mr-2" /> Начать курс
-                </Button>
-              )}
-            </Link>
-            {role === 'admin' && (
-              <Link href={`/portal/admin/courses/${courseId}`}>
-                <Button variant="ghost" size="lg">
-                  <Settings className="h-4 w-4 mr-2" /> Управлять
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {course.description && (
-        <div className="portal-card p-6">
-          <h2 className="text-sm font-semibold text-[var(--portal-text)] mb-2">О курсе</h2>
-          <p className="text-sm text-[var(--portal-text-muted)] whitespace-pre-wrap">{course.description}</p>
-        </div>
-      )}
-
-      <CourseMediaBlock items={mediaItems} />
-
-      <CourseVerificationBlock
-        courseId={courseId}
-        lessonOptions={verificationLessonOptions}
-        requiredLessonIds={verificationRequiredIds}
-        verificationConfigs={verificationConfigs}
-      />
-    </div>
+    <StudentCourseDetailView
+      courseId={courseId}
+      title={course.title}
+      description={course.description}
+      thumbnailUrl={course.thumbnailUrl}
+      isLive={isLive}
+      hasScorm={hasScorm}
+      startsAt={course.startsAt?.toISOString() ?? null}
+      endsAt={course.endsAt?.toISOString() ?? null}
+      eventVenue={course.eventVenue}
+      eventUrl={course.eventUrl}
+      pct={pct}
+      completed={completed}
+      total={total}
+      timeSpentMin={timeSpentMin}
+      avgScore={avgScore}
+      isCompleted={isCompleted}
+      hasProgress={hasProgress}
+      mediaItems={mediaItems}
+      verificationLessonOptions={verificationLessonOptions}
+      verificationRequiredIds={verificationRequiredIds}
+      verificationConfigs={verificationConfigs}
+      xpVerificationApproved={gamification.xpVerificationApproved}
+      aiTutorEnabled={course.aiTutorEnabled !== false}
+    />
   );
 }

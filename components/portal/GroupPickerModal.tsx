@@ -3,7 +3,7 @@
 /**
  * Modal to pick one group by moduleType (for bulk "add to group").
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -35,6 +35,7 @@ export function GroupPickerModal({
   title = 'Добавить в группу',
   confirmLabel = 'Добавить',
 }: GroupPickerModalProps) {
+  const groupSelectId = useId();
   const [groups, setGroups] = useState<GroupOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedId, setSelectedId] = useState('');
@@ -69,8 +70,11 @@ export function GroupPickerModal({
             <p className="text-sm text-[var(--portal-text-muted)]">Нет доступных групп. Создайте группу в сайдбаре.</p>
           ) : (
             <>
-              <label className="text-sm font-medium text-[var(--portal-text)]">Выберите группу</label>
+              <label htmlFor={groupSelectId} className="text-sm font-medium text-[var(--portal-text)]">
+                Выберите группу
+              </label>
               <select
+                id={groupSelectId}
                 value={selectedId}
                 onChange={(e) => setSelectedId(e.target.value)}
                 className="mt-2 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"

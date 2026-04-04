@@ -40,7 +40,8 @@ export async function middleware(request: NextRequest) {
   if (path.startsWith(`${PORTAL_PREFIX}/admin`)) {
     if (role !== 'admin') {
       const url = request.nextUrl.clone();
-      url.pathname = '/portal/student/dashboard';
+      url.pathname = '/portal/access-denied';
+      url.searchParams.set('section', 'admin');
       return NextResponse.redirect(url);
     }
   }
@@ -48,7 +49,8 @@ export async function middleware(request: NextRequest) {
   if (path.startsWith(`${PORTAL_PREFIX}/manager`)) {
     if (role !== 'manager' && role !== 'admin') {
       const url = request.nextUrl.clone();
-      url.pathname = '/portal/student/dashboard';
+      url.pathname = '/portal/access-denied';
+      url.searchParams.set('section', 'manager');
       return NextResponse.redirect(url);
     }
   }

@@ -78,6 +78,14 @@ npm run db:seed
 npm run db:studio
 ```
 
+Если в таблице верификаций остались старые тестовые URL вида `/portal/manager/verifications#video-…` (до правок seed), можно однократно заменить их на путь-заглушку для видео-заявок:
+
+```bash
+npm run db:fix-verification-urls
+```
+
+Скрипт: `scripts/fix-verification-material-urls.ts`. Убедитесь, что в `public/uploads/verifications/` есть файл `seed-verification-placeholder.mp4` (его создаёт `npm run db:seed`).
+
 ---
 
 ## Шаг 3. Переменные окружения

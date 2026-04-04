@@ -1,5 +1,8 @@
+'use client';
+
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import { BrandLogo } from '@/components/BrandLogo';
 import { BRAND_SCHOOL_LINE, BRAND_SITE_NAME } from '@/lib/brand';
@@ -21,7 +24,7 @@ export function Footer({ contactPhone }: FooterProps) {
               href="#hero"
               className="inline-flex items-center gap-2 font-heading text-xl font-semibold text-[var(--text)] hover:text-plum transition-colors"
             >
-              <BrandLogo knockout={false} heightClass="h-[3.9375rem]" />
+              <BrandLogo knockout={false} withVisibleBrandText heightClass="h-[3.9375rem]" />
               <span>{BRAND_SITE_NAME}</span>
             </Link>
             <p className="mt-2 text-sm text-[var(--text-muted)]">{BRAND_SCHOOL_LINE}</p>
@@ -54,12 +57,30 @@ export function Footer({ contactPhone }: FooterProps) {
             </ul>
           </div>
           <div>
-            <Link href="#pricing" className="inline-block">
-              <Button variant="landingRose">Купить курс</Button>
+            <Link href="#pricing" className={cn(buttonVariants({ variant: 'landingRose' }))}>
+              Купить курс
             </Link>
-            <div className="mt-4 flex flex-wrap justify-center md:justify-start gap-4 text-xs text-[var(--text-soft)]">
+            <nav
+              className="mt-4 flex flex-wrap justify-center md:justify-start gap-x-4 gap-y-2 text-xs text-[var(--text-soft)]"
+              aria-label="Разделы сайта"
+            >
+              <Link href="/" className="hover:text-plum transition-colors">
+                Главная
+              </Link>
+              <Link href="/course/navyki-myshechnogo-testirovaniya" className="hover:text-plum transition-colors">
+                Курс «Навыки мышечного тестирования»
+              </Link>
+              <Link href="/about" className="hover:text-plum transition-colors">
+                О мастере
+              </Link>
               <Link href="/blog" className="hover:text-plum transition-colors">
                 Блог
+              </Link>
+              <Link href="/faq" className="hover:text-plum transition-colors">
+                Вопросы и ответы
+              </Link>
+              <Link href="/contacts" className="hover:text-plum transition-colors">
+                Контакты
               </Link>
               <Link href="/oferta" className="hover:text-plum transition-colors">
                 Оферта
@@ -67,11 +88,11 @@ export function Footer({ contactPhone }: FooterProps) {
               <Link href="/privacy" className="hover:text-plum transition-colors">
                 Политика конфиденциальности
               </Link>
-            </div>
+            </nav>
           </div>
         </div>
         <p className="mt-8 pt-6 border-t border-[var(--border)] text-center text-xs text-[var(--text-soft)]">
-          © {BRAND_SITE_NAME}. ИП Стрельцова Т. (ОГРН и реквизиты уточняются)
+          ©&nbsp;{BRAND_SITE_NAME}. ИП Стрельцова Т. (ОГРН и реквизиты уточняются)
         </p>
       </div>
     </footer>

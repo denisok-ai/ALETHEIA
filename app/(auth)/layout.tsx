@@ -15,7 +15,7 @@ export default function AuthLayout({
         href="/"
         className="absolute top-6 left-6 text-[var(--portal-accent)] font-semibold hover:underline"
       >
-        ← Аватера
+        ← На сайт
       </Link>
       <div className="w-full max-w-md">{children}</div>
     </div>

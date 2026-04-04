@@ -29,6 +29,12 @@ interface CourseCardProps {
   detailHref?: string;
   playHref?: string;
   adminHref?: string;
+  /** Бейдж рядом со статусом: например «Мероприятие» */
+  formatBadge?: string | null;
+  /** Не показывать шкалу уроков (только мероприятие без SCORM) */
+  hideLessonProgress?: boolean;
+  /** Подпись главной кнопки вместо «Начать курс» / «Продолжить» */
+  primaryCtaLabel?: string;
 }
 
 const STATUS_CONFIG: Record<CourseStatus, { label: string; badgeClass: string; icon: React.ReactNode }> = {
@@ -53,6 +59,9 @@ export function CourseCard({
   detailHref,
   playHref,
   adminHref,
+  formatBadge,
+  hideLessonProgress = false,
+  primaryCtaLabel,
 }: CourseCardProps) {
   const router = useRouter();
 
@@ -71,7 +80,7 @@ export function CourseCard({
   const detail = detailHref ?? `/portal/student/courses/${id}`;
   const play   = playHref   ?? `/portal/student/courses/${id}/play`;
 
-  function handleCoverClick() {
+  function goToCourseDetail() {
     if (!accessClosed) router.push(detail);
   }
   function handlePlayClick(e: React.MouseEvent) {
@@ -90,7 +99,17 @@ export function CourseCard({
 
       {/* ── Обложка (div, не Link — чтобы не было вложенных <a>) ── */}
       <div
-        onClick={handleCoverClick}
+        role={accessClosed ? undefined : 'button'}
+        tabIndex={accessClosed ? undefined : 0}
+        aria-label={accessClosed ? undefined : `Открыть страницу курса: ${title}`}
+        onClick={goToCourseDetail}
+        onKeyDown={(e) => {
+          if (accessClosed) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            goToCourseDetail();
+          }
+        }}
         className={cn(
           'relative aspect-[16/9] w-full overflow-hidden shrink-0',
           !accessClosed && 'cursor-pointer'
@@ -109,11 +128,16 @@ export function CourseCard({
         )}
 
         {/* Статус-бейдж */}
-        <div className="absolute top-2.5 left-2.5 pointer-events-none">
+        <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5 items-start pointer-events-none">
           <span className={cn('status-badge', cfg.badgeClass)}>
             {cfg.icon}
             {cfg.label}
           </span>
+          {formatBadge && (
+            <span className="status-badge badge-neutral text-[0.65rem] py-0.5">
+              {formatBadge}
+            </span>
+          )}
         </div>
 
         {/* Play-кнопка: overlay с pointer-events-none, кнопка — pointer-events-auto.
@@ -164,26 +188,34 @@ export function CourseCard({
           )}
         </div>
 
-        {/* Прогресс прохождения — всегда показываем */}
+        {/* Прогресс SCORM или подсказка для мероприятия без онлайн-уроков */}
         <div className="mt-3">
-          <div className="flex items-center justify-between text-xs mb-1.5">
-            <span className="text-[var(--portal-text-muted)]">Прогресс: {completedLessons} из {totalLessons} уроков</span>
-            <span className="font-semibold text-[var(--portal-text)]">{pct}%</span>
-          </div>
-          <div className="progress-track">
-            <div
-              className={cn('progress-fill', pct === 100 ? 'done' : pct >= 30 ? 'mid' : '')}
-              style={{ width: `${Math.max(0, pct)}%` }}
-            />
-          </div>
-          {(timeSpentMin > 0 || scorePct != null) && (
-            <p className="mt-1.5 text-xs text-[var(--portal-text-soft)]">
-              {timeSpentMin > 0 && (
-                <>Время: {timeSpentMin < 60 ? `${timeSpentMin} мин` : `${Math.floor(timeSpentMin / 60)} ч ${timeSpentMin % 60} мин`}</>
-              )}
-              {timeSpentMin > 0 && scorePct != null && ' · '}
-              {scorePct != null && <>Балл: {scorePct}%</>}
+          {hideLessonProgress ? (
+            <p className="text-xs text-[var(--portal-text-muted)] leading-relaxed">
+              Очное мероприятие или вебинар — расписание и ссылка на странице курса.
             </p>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-[var(--portal-text-muted)]">Прогресс: {completedLessons} из {totalLessons} уроков</span>
+                <span className="font-semibold text-[var(--portal-text)]">{pct}%</span>
+              </div>
+              <div className="progress-track">
+                <div
+                  className={cn('progress-fill', pct === 100 ? 'done' : pct >= 30 ? 'mid' : '')}
+                  style={{ width: `${Math.max(0, pct)}%` }}
+                />
+              </div>
+              {(timeSpentMin > 0 || scorePct != null) && (
+                <p className="mt-1.5 text-xs text-[var(--portal-text-soft)]">
+                  {timeSpentMin > 0 && (
+                    <>Время: {timeSpentMin < 60 ? `${timeSpentMin} мин` : `${Math.floor(timeSpentMin / 60)} ч ${timeSpentMin % 60} мин`}</>
+                  )}
+                  {timeSpentMin > 0 && scorePct != null && ' · '}
+                  {scorePct != null && <>Балл: {scorePct}%</>}
+                </p>
+              )}
+            </>
           )}
         </div>
 
@@ -206,11 +238,11 @@ export function CourseCard({
             </Link>
           ) : derivedStatus === 'in_progress' ? (
             <Link href={play} className="course-launch-btn primary flex-1 justify-center">
-              <Play className="h-3.5 w-3.5" /> Продолжить
+              <Play className="h-3.5 w-3.5" /> {primaryCtaLabel ?? 'Продолжить'}
             </Link>
           ) : (
             <Link href={play} className="course-launch-btn start flex-1 justify-center">
-              <Play className="h-3.5 w-3.5" /> Начать курс
+              <Play className="h-3.5 w-3.5" /> {primaryCtaLabel ?? 'Начать курс'}
             </Link>
           )}
 

@@ -24,9 +24,12 @@ import { GroupPickerModal } from '@/components/portal/GroupPickerModal';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { COURSE_STATUS_OPTIONS, getCourseStatusLabel, type CourseStatusKey } from '@/lib/course-status';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
+import { getCourseFormatLabel, COURSE_FORMAT_OPTIONS } from '@/lib/course-format';
+import type { CourseFormatValue } from '@/lib/course-format';
 
 const COURSES_TABLE_COLUMNS: ColumnConfigItem[] = [
   { id: 'title', label: 'Название' },
+  { id: 'format', label: 'Формат' },
   { id: 'starts_at', label: 'Начало' },
   { id: 'ends_at', label: 'Окончание' },
   { id: 'status', label: 'Статус' },
@@ -47,6 +50,9 @@ interface Course {
   id: string;
   title: string;
   description: string | null;
+  course_format?: string;
+  event_venue?: string | null;
+  event_url?: string | null;
   starts_at: string | null;
   ends_at: string | null;
   scorm_path: string | null;
@@ -56,6 +62,16 @@ interface Course {
   sort_order: number;
   created_at: string;
 }
+
+const COURSE_SORT_GETTERS: Record<string, (c: Course) => unknown> = {
+  title: (c) => c.title,
+  format: (c) => c.course_format ?? 'scorm',
+  starts_at: (c) => c.starts_at ?? '',
+  ends_at: (c) => c.ends_at ?? '',
+  status: (c) => c.status,
+  price: (c) => c.price ?? -1,
+  scorm: (c) => (c.scorm_path ? 1 : 0),
+};
 
 interface CoursesAdminClientProps {
   initialCourses: Course[];
@@ -74,6 +90,9 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
   const [newEndsAt, setNewEndsAt] = useState('');
   const [newStatus, setNewStatus] = useState<CourseStatusKey>('published');
   const [newPrice, setNewPrice] = useState('');
+  const [newCourseFormat, setNewCourseFormat] = useState<CourseFormatValue>('scorm');
+  const [newEventVenue, setNewEventVenue] = useState('');
+  const [newEventUrl, setNewEventUrl] = useState('');
   const [newScormFile, setNewScormFile] = useState<File | null>(null);
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Course | null>(null);
@@ -91,9 +110,10 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
   const handleExportExcel = () => {
-    const headers = ['Название', 'Начало', 'Окончание', 'Статус', 'Цена', 'SCORM'];
+    const headers = ['Название', 'Формат', 'Начало', 'Окончание', 'Статус', 'Цена', 'SCORM'];
     const rows = sortedCourses.map((c) => [
       c.title,
+      getCourseFormatLabel(c.course_format),
       c.starts_at ? formatDateTime(c.starts_at) : '—',
       c.ends_at ? formatDateTime(c.ends_at) : '—',
       getCourseStatusLabel(c.status),
@@ -108,19 +128,11 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
     else { setSortKey(columnId); setSortDir('asc'); }
   };
 
-  const courseSortGetters: Record<string, (c: Course) => unknown> = {
-    title: (c) => c.title,
-    starts_at: (c) => c.starts_at ?? '',
-    ends_at: (c) => c.ends_at ?? '',
-    status: (c) => c.status,
-    price: (c) => c.price ?? -1,
-    scorm: (c) => (c.scorm_path ? 1 : 0),
-  };
   const sortedCourses = useMemo(() => {
-    if (!sortKey || !courseSortGetters[sortKey]) {
+    if (!sortKey || !COURSE_SORT_GETTERS[sortKey]) {
       return [...courses].sort((a, b) => a.sort_order - b.sort_order);
     }
-    return sortTableBy(courses, courseSortGetters[sortKey], sortDir);
+    return sortTableBy(courses, COURSE_SORT_GETTERS[sortKey], sortDir);
   }, [courses, sortKey, sortDir]);
 
   async function handleDuplicate(c: Course) {
@@ -132,6 +144,9 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
         body: JSON.stringify({
           title: `${c.title} (копия)`,
           description: c.description,
+          courseFormat: c.course_format === 'live_event' ? 'live_event' : 'scorm',
+          eventVenue: c.event_venue ?? null,
+          eventUrl: c.event_url ?? null,
           startsAt: c.starts_at,
           endsAt: c.ends_at,
           status: 'draft',
@@ -144,6 +159,9 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
         id: data.course.id,
         title: data.course.title,
         description: data.course.description ?? null,
+        course_format: data.course.course_format ?? 'scorm',
+        event_venue: data.course.event_venue ?? null,
+        event_url: data.course.event_url ?? null,
         starts_at: data.course.starts_at ?? null,
         ends_at: data.course.ends_at ?? null,
         scorm_path: null,
@@ -251,6 +269,9 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
         body: JSON.stringify({
           title: newTitle,
           description: newDesc || null,
+          courseFormat: newCourseFormat,
+          eventVenue: newCourseFormat === 'live_event' && newEventVenue.trim() ? newEventVenue.trim() : null,
+          eventUrl: newCourseFormat === 'live_event' && newEventUrl.trim() ? newEventUrl.trim() : null,
           startsAt: newStartsAt || null,
           endsAt: newEndsAt || null,
           status: newStatus,
@@ -263,6 +284,9 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
         id: data.course.id,
         title: data.course.title,
         description: data.course.description ?? null,
+        course_format: data.course.course_format ?? 'scorm',
+        event_venue: data.course.event_venue ?? null,
+        event_url: data.course.event_url ?? null,
         starts_at: data.course.starts_at ?? null,
         ends_at: data.course.ends_at ?? null,
         scorm_path: data.course.scorm_path ?? null,
@@ -273,7 +297,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
         created_at: data.course.created_at ?? new Date().toISOString(),
       };
       setCourses((prev) => [newCourse, ...prev]);
-      if (newScormFile) {
+      if (newScormFile && newCourseFormat === 'scorm') {
         await handleUpload(newCourse.id, newScormFile);
       }
       setShowCreate(false);
@@ -283,8 +307,11 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
       setNewEndsAt('');
       setNewStatus('published');
       setNewPrice('');
+      setNewCourseFormat('scorm');
+      setNewEventVenue('');
+      setNewEventUrl('');
       setNewScormFile(null);
-      toast.success(newScormFile ? 'Курс создан, SCORM загружен' : 'Курс создан');
+      toast.success(newScormFile && newCourseFormat === 'scorm' ? 'Курс создан, SCORM загружен' : 'Курс создан');
     } catch (err) {
       console.error(err);
       toast.error('Ошибка создания курса');
@@ -319,7 +346,21 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
     setUploading(null);
   }
 
-  async function handleUpdate(courseId: string, data: { title?: string; description?: string | null; startsAt?: string | null; endsAt?: string | null; price?: number | null; status?: string; thumbnailUrl?: string | null }) {
+  async function handleUpdate(
+    courseId: string,
+    data: {
+      title?: string;
+      description?: string | null;
+      courseFormat?: CourseFormatValue;
+      eventVenue?: string | null;
+      eventUrl?: string | null;
+      startsAt?: string | null;
+      endsAt?: string | null;
+      price?: number | null;
+      status?: string;
+      thumbnailUrl?: string | null;
+    }
+  ) {
     try {
       const res = await fetch(`/api/portal/admin/courses/${courseId}`, {
         method: 'PATCH',
@@ -464,6 +505,50 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                 rows={3}
               />
             </div>
+            <div>
+              <Label htmlFor="new-format">Формат проведения</Label>
+              <select
+                id="new-format"
+                value={newCourseFormat}
+                onChange={(e) => {
+                  const v = e.target.value as CourseFormatValue;
+                  setNewCourseFormat(v);
+                  if (v === 'live_event') setNewScormFile(null);
+                }}
+                className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
+              >
+                {COURSE_FORMAT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {newCourseFormat === 'live_event' && (
+              <>
+                <div>
+                  <Label htmlFor="new-venue">Площадка или «Онлайн»</Label>
+                  <textarea
+                    id="new-venue"
+                    value={newEventVenue}
+                    onChange={(e) => setNewEventVenue(e.target.value)}
+                    rows={2}
+                    placeholder="Очный адрес или укажите, что подключение только по ссылке ниже"
+                    className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="new-event-url">Ссылка на вебинар</Label>
+                  <Input
+                    id="new-event-url"
+                    value={newEventUrl}
+                    onChange={(e) => setNewEventUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="mt-1"
+                  />
+                </div>
+              </>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="startsAt">Начало</Label>
@@ -511,20 +596,22 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                 className="mt-1"
               />
             </div>
-            <div>
-              <Label htmlFor="newScorm">SCORM-пакет (ZIP)</Label>
-              <Input
-                id="newScorm"
-                type="file"
-                accept=".zip"
-                onChange={(e) => setNewScormFile(e.target.files?.[0] ?? null)}
-                className="mt-1"
-              />
-              <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Можно загрузить SCORM после создания курса или сейчас.</p>
-            </div>
+            {newCourseFormat === 'scorm' && (
+              <div>
+                <Label htmlFor="newScorm">SCORM-пакет (ZIP)</Label>
+                <Input
+                  id="newScorm"
+                  type="file"
+                  accept=".zip"
+                  onChange={(e) => setNewScormFile(e.target.files?.[0] ?? null)}
+                  className="mt-1"
+                />
+                <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Можно загрузить SCORM после создания курса или сейчас.</p>
+              </div>
+            )}
             <div className="flex gap-2">
               <Button type="submit" disabled={creating}>
-                {creating ? (newScormFile ? 'Создание и загрузка…' : 'Создание…') : 'Создать'}
+                {creating ? (newScormFile && newCourseFormat === 'scorm' ? 'Создание и загрузка…' : 'Создание…') : 'Создать'}
               </Button>
               <Button type="button" variant="ghost" onClick={() => { setShowCreate(false); setNewScormFile(null); }}>
                 Отмена
@@ -564,17 +651,38 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
         <table className="w-full text-left text-sm">
           <thead>
             <tr className="border-b border-[#E2E8F0] bg-[#F8FAFC]">
-              <th className="w-10 px-2 py-2">
-                <button type="button" onClick={toggleSelectAll} className="p-1" title={selectedIds.size >= courses.length ? 'Снять выбор' : 'Выбрать все'}>
-                  {selectedIds.size >= courses.length && courses.length > 0 ? <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
+              <th scope="col" className="w-10 px-2 py-2">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  className="p-1"
+                  title={selectedIds.size >= courses.length ? 'Снять выбор' : 'Выбрать все'}
+                  aria-label={
+                    selectedIds.size >= courses.length && courses.length > 0
+                      ? 'Снять выбор со всех курсов на странице'
+                      : 'Выбрать все курсы на странице'
+                  }
+                >
+                  {selectedIds.size >= courses.length && courses.length > 0 ? <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" aria-hidden /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" aria-hidden />}
                 </button>
               </th>
-              <th className="px-4 py-2 font-medium text-[var(--portal-text)] w-8">↑↓</th>
+              <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)] w-8">
+                <span className="sr-only">Порядок в каталоге</span>
+                <span aria-hidden className="text-[var(--portal-text-muted)]">↑↓</span>
+              </th>
               {visibleColumnIds.includes('title') && (
                 <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
                   <button type="button" onClick={() => handleSort('title')} className="inline-flex items-center gap-1.5 text-left hover:text-[var(--portal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
                     Название
                     {sortKey === 'title' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[var(--portal-accent)]" /> : <ChevronDown className="h-4 w-4 text-[var(--portal-accent)]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
+                  </button>
+                </th>
+              )}
+              {visibleColumnIds.includes('format') && (
+                <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">
+                  <button type="button" onClick={() => handleSort('format')} className="inline-flex items-center gap-1.5 text-left hover:text-[var(--portal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)] focus:ring-offset-1 rounded px-1 -mx-1 cursor-pointer">
+                    Формат
+                    {sortKey === 'format' ? (sortDir === 'asc' ? <ChevronUp className="h-4 w-4 text-[var(--portal-accent)]" /> : <ChevronDown className="h-4 w-4 text-[var(--portal-accent)]" />) : <ArrowUpDown className="h-3.5 w-3.5 text-[var(--portal-text-muted)]" />}
                   </button>
                 </th>
               )}
@@ -618,7 +726,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                   </button>
                 </th>
               )}
-              <th className="px-4 py-2 font-medium text-[var(--portal-text)]">Действия</th>
+              <th scope="col" className="px-4 py-2 font-medium text-[var(--portal-text)]">Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -630,8 +738,13 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
               return pageCourses.map((c) => (
               <tr key={c.id} className="border-b border-[#E2E8F0] hover:bg-[#F8FAFC]">
                 <td className="px-2 py-2">
-                  <button type="button" onClick={() => toggleSelect(c.id)} className="p-1">
-                    {selectedIds.has(c.id) ? <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
+                  <button
+                    type="button"
+                    onClick={() => toggleSelect(c.id)}
+                    className="p-1"
+                    aria-label={selectedIds.has(c.id) ? `Снять выбор с курса «${c.title}»` : `Выбрать курс «${c.title}»`}
+                  >
+                    {selectedIds.has(c.id) ? <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" aria-hidden /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" aria-hidden />}
                   </button>
                 </td>
                 <td className="px-2 py-2">
@@ -666,6 +779,11 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                     </Link>
                   </td>
                 )}
+                {visibleColumnIds.includes('format') && (
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)] whitespace-nowrap">
+                    {getCourseFormatLabel(c.course_format)}
+                  </td>
+                )}
                 {visibleColumnIds.includes('starts_at') && (
                   <td className="px-4 py-2 text-[var(--portal-text-muted)] whitespace-nowrap">
                     {c.starts_at ? formatDateTime(c.starts_at) : '—'}
@@ -683,7 +801,10 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                   <td className="px-4 py-2 text-[var(--portal-text-muted)]">{c.price != null ? `${c.price} ₽` : '—'}</td>
                 )}
                 {visibleColumnIds.includes('scorm') && (
-                  <td className="px-4 py-2 text-[var(--portal-text-muted)]">{c.scorm_path ? 'Загружен' : '—'}</td>
+                  <td className="px-4 py-2 text-[var(--portal-text-muted)]">
+                    <span className="sr-only">SCORM-пакет: </span>
+                    {c.scorm_path ? 'Загружен' : '—'}
+                  </td>
                 )}
                 <td className="px-4 py-2">
                   <div className="flex flex-wrap items-center gap-1">
@@ -694,8 +815,9 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                         rel="noopener noreferrer"
                         className="inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--portal-text-muted)] hover:bg-[#F8FAFC] hover:text-[var(--portal-accent)]"
                         title="Просмотр SCORM-курса"
+                        aria-label={`Открыть плеер SCORM курса «${c.title}» в новой вкладке`}
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-4 w-4" aria-hidden />
                       </Link>
                     )}
                     <Button
@@ -735,6 +857,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                       onChange={(e) => handleStatusChange(c, e.target.value as CourseStatusKey)}
                       className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-xs"
                       title="Изменить статус"
+                      aria-label={`Статус курса «${c.title}»`}
                     >
                       {COURSE_STATUS_OPTIONS.map((o) => (
                         <option key={o.value} value={o.value}>
@@ -743,6 +866,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                       ))}
                     </select>
                     <label className="cursor-pointer">
+                      <span className="sr-only">Загрузить SCORM-пакет (ZIP) для курса «{c.title}»</span>
                       <input
                         type="file"
                         accept=".zip"
@@ -754,7 +878,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
                           e.target.value = '';
                         }}
                       />
-                      <span className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-2 py-1 text-xs hover:bg-[#F8FAFC]">
+                      <span className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-2 py-1 text-xs hover:bg-[#F8FAFC]" aria-hidden>
                         <Upload className="h-3 w-3" />
                         {uploading === c.id ? '…' : 'ZIP'}
                       </span>
@@ -802,7 +926,18 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
           course={editing}
           onClose={() => setEditing(null)}
           onSave={(data) => {
-            handleUpdate(editing.id, data);
+            handleUpdate(editing.id, {
+              title: data.title,
+              description: data.description,
+              courseFormat: data.courseFormat,
+              eventVenue: data.eventVenue,
+              eventUrl: data.eventUrl,
+              startsAt: data.startsAt,
+              endsAt: data.endsAt,
+              price: data.price,
+              status: data.status,
+              thumbnailUrl: data.thumbnailUrl,
+            });
           }}
         />
       )}
@@ -850,11 +985,27 @@ function EditCourseDialog({
 }: {
   course: Course;
   onClose: () => void;
-  onSave: (data: { title: string; description: string | null; startsAt: string | null; endsAt: string | null; price: number | null; status: string; thumbnailUrl: string | null }) => void;
+  onSave: (data: {
+    title: string;
+    description: string | null;
+    courseFormat: CourseFormatValue;
+    eventVenue: string | null;
+    eventUrl: string | null;
+    startsAt: string | null;
+    endsAt: string | null;
+    price: number | null;
+    status: string;
+    thumbnailUrl: string | null;
+  }) => void;
 }) {
   const [title, setTitle] = useState(course.title);
   const [description, setDescription] = useState(course.description ?? '');
   const [aiLoading, setAiLoading] = useState(false);
+  const [courseFormat, setCourseFormat] = useState<CourseFormatValue>(
+    course.course_format === 'live_event' ? 'live_event' : 'scorm'
+  );
+  const [eventVenue, setEventVenue] = useState(course.event_venue ?? '');
+  const [eventUrl, setEventUrl] = useState(course.event_url ?? '');
   const [startsAt, setStartsAt] = useState(toDatetimeLocal(course.starts_at));
   const [endsAt, setEndsAt] = useState(toDatetimeLocal(course.ends_at));
   const [price, setPrice] = useState(course.price ?? '');
@@ -863,7 +1014,7 @@ function EditCourseDialog({
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Редактировать курс</DialogTitle>
         </DialogHeader>
@@ -919,6 +1070,44 @@ function EditCourseDialog({
               rows={3}
             />
           </div>
+          <div>
+            <Label htmlFor="edit-format">Формат</Label>
+            <select
+              id="edit-format"
+              value={courseFormat}
+              onChange={(e) => setCourseFormat(e.target.value as CourseFormatValue)}
+              className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
+            >
+              {COURSE_FORMAT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {courseFormat === 'live_event' && (
+            <>
+              <div>
+                <Label htmlFor="edit-venue">Площадка / онлайн</Label>
+                <textarea
+                  id="edit-venue"
+                  value={eventVenue}
+                  onChange={(e) => setEventVenue(e.target.value)}
+                  rows={2}
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-event-url">Ссылка на вебинар</Label>
+                <Input
+                  id="edit-event-url"
+                  value={eventUrl}
+                  onChange={(e) => setEventUrl(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </>
+          )}
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <Label htmlFor="edit-startsAt">Начало</Label>
@@ -982,6 +1171,9 @@ function EditCourseDialog({
                 onSave({
                   title,
                   description: description || null,
+                  courseFormat,
+                  eventVenue: courseFormat === 'live_event' ? eventVenue.trim() || null : null,
+                  eventUrl: courseFormat === 'live_event' ? eventUrl.trim() || null : null,
                   startsAt: startsAt || null,
                   endsAt: endsAt || null,
                   price: price === '' ? null : typeof price === 'number' ? price : parseInt(String(price), 10),

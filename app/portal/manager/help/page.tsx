@@ -19,7 +19,7 @@ export default function ManagerHelpPage() {
         title="Помощь"
         description="Справка и тикеты"
       />
-      <HelpContent supportHref="/portal/manager/tickets" role="manager" />
+      <HelpContent supportHref="/portal/manager/tickets" portalRole="manager" />
     </div>
   );
 }

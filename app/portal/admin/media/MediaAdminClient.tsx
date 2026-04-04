@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useId } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,22 @@ import {
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { Pencil, Trash2, ExternalLink, Image as ImageIcon, Search, FolderOpen, CheckSquare, Square, FolderPlus, FolderMinus, Upload, Sparkles } from 'lucide-react';
+import {
+  Pencil,
+  Trash2,
+  ExternalLink,
+  Image as ImageIcon,
+  Search,
+  FolderOpen,
+  CheckSquare,
+  Square,
+  FolderPlus,
+  FolderMinus,
+  Upload,
+  Sparkles,
+  Eye,
+  Star,
+} from 'lucide-react';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsx } from '@/lib/export-xlsx';
 import { isPlaceholderOrExampleUrl } from '@/lib/placeholder-url';
@@ -79,6 +94,9 @@ interface MediaAdminClientProps {
 }
 
 export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroupsChanged }: MediaAdminClientProps) {
+  const filterFieldId = useId();
+  const mediaTypeFilterId = `${filterFieldId}-type`;
+  const mediaCategoryFilterId = `${filterFieldId}-category`;
   const [items, setItems] = useState(initialItems);
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState('');
@@ -499,8 +517,11 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
 
       <section>
         <div className="mb-3 flex flex-wrap items-center gap-3">
-          <label className="text-sm font-medium text-[var(--portal-text)]">Тип:</label>
+          <label htmlFor={mediaTypeFilterId} className="text-sm font-medium text-[var(--portal-text)]">
+            Тип:
+          </label>
           <select
+            id={mediaTypeFilterId}
             value={resourceTypeFilter}
             onChange={(e) => { setResourceTypeFilter(e.target.value); setPage(0); }}
             className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
@@ -509,8 +530,11 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
               <option key={f.value} value={f.value}>{f.label}</option>
             ))}
           </select>
-          <label className="text-sm font-medium text-[var(--portal-text)]">Категория:</label>
+          <label htmlFor={mediaCategoryFilterId} className="text-sm font-medium text-[var(--portal-text)]">
+            Категория:
+          </label>
           <select
+            id={mediaCategoryFilterId}
             value={categoryFilter}
             onChange={(e) => { setCategoryFilter(e.target.value); setPage(0); }}
             className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
@@ -659,7 +683,12 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                     onClick={() => setPreviewItem(m)}
                   >
                     <TableCell className="w-10" onClick={(e) => e.stopPropagation()}>
-                      <button type="button" onClick={() => toggleSelect(m.id)} className="p-1 min-h-9 min-w-9 inline-flex items-center justify-center">
+                      <button
+                        type="button"
+                        onClick={() => toggleSelect(m.id)}
+                        className="p-1 min-h-9 min-w-9 inline-flex items-center justify-center"
+                        aria-label={selectedIds.has(m.id) ? `Снять выбор: ${m.title}` : `Выбрать: ${m.title}`}
+                      >
                         {selectedIds.has(m.id) ? <CheckSquare className="h-4 w-4 text-[var(--portal-accent)]" /> : <Square className="h-4 w-4 text-[var(--portal-text-muted)]" />}
                       </button>
                     </TableCell>
@@ -707,7 +736,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                           size="sm"
                           className="h-9 w-9 min-h-9 min-w-9 p-0 shrink-0"
                           onClick={() => setPreviewItem(m)}
-                          aria-label="Превью"
+                          aria-label={`Превью: ${m.title}`}
                         >
                           <ImageIcon className="h-[18px] w-[18px]" />
                         </Button>
@@ -725,7 +754,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
-                            aria-label="Открыть"
+                            aria-label={`Открыть в новой вкладке: ${m.title}`}
                           >
                             <ExternalLink className="h-[18px] w-[18px]" />
                           </a>
@@ -735,7 +764,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                           size="sm"
                           className="h-9 w-9 min-h-9 min-w-9 p-0 shrink-0"
                           onClick={() => setEditing(m)}
-                          aria-label="Редактировать"
+                          aria-label={`Редактировать: ${m.title}`}
                         >
                           <Pencil className="h-[18px] w-[18px]" />
                         </Button>
@@ -744,7 +773,7 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                           size="sm"
                           className="h-9 w-9 min-h-9 min-w-9 p-0 shrink-0 text-red-600"
                           onClick={() => setDeleteTarget(m)}
-                          aria-label="Удалить"
+                          aria-label={`Удалить: ${m.title}`}
                         >
                           <Trash2 className="h-[18px] w-[18px]" />
                         </Button>
@@ -811,10 +840,32 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                               </p>
                             ) : null}
                             <p className="mt-1 text-[10px] text-[var(--portal-text-soft)] truncate" title={m.mime_type ?? ''}>{m.mime_type ?? '—'}</p>
+                            <div className="mt-2 flex flex-wrap items-center gap-3 text-[11px] text-[var(--portal-text-muted)]">
+                              <span className="inline-flex items-center gap-0.5 tabular-nums" title="Просмотры">
+                                <Eye className="h-3.5 w-3.5 shrink-0 opacity-75" aria-hidden />
+                                {m.views_count ?? 0}
+                              </span>
+                              {(m.rating_count ?? 0) > 0 ? (
+                                <span
+                                  className="inline-flex items-center gap-0.5 tabular-nums text-[var(--portal-text)]"
+                                  title="Средняя оценка · число голосов"
+                                >
+                                  <Star className="h-3.5 w-3.5 shrink-0 fill-amber-400 text-amber-600" aria-hidden />
+                                  {((m.rating_sum ?? 0) / (m.rating_count ?? 1)).toFixed(1)}
+                                  <span className="text-[var(--portal-text-soft)]">({m.rating_count})</span>
+                                </span>
+                              ) : null}
+                            </div>
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-1 border-t border-[#E2E8F0] pt-2">
-                          <Button variant="ghost" size="sm" className="h-9 min-h-9 px-2" onClick={() => setPreviewItem(m)} aria-label="Превью">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 min-h-9 px-2"
+                            onClick={() => setPreviewItem(m)}
+                            aria-label={`Превью: ${m.title}`}
+                          >
                             <ImageIcon className="h-[18px] w-[18px]" />
                           </Button>
                           {isPlaceholderOrExampleUrl(m.file_url) ? (
@@ -827,15 +878,27 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
                               target="_blank"
                               rel="noopener noreferrer"
                               className="inline-flex h-9 w-9 min-h-9 min-w-9 items-center justify-center rounded text-[var(--portal-text-muted)] hover:text-[var(--portal-accent)]"
-                              aria-label="Открыть файл"
+                              aria-label={`Открыть файл в новой вкладке: ${m.title}`}
                             >
                               <ExternalLink className="h-[18px] w-[18px]" />
                             </a>
                           )}
-                          <Button variant="ghost" size="sm" className="h-9 min-h-9 px-2" onClick={() => setEditing(m)} aria-label="Редактировать">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 min-h-9 px-2"
+                            onClick={() => setEditing(m)}
+                            aria-label={`Редактировать: ${m.title}`}
+                          >
                             <Pencil className="h-[18px] w-[18px]" />
                           </Button>
-                          <Button variant="ghost" size="sm" className="h-9 min-h-9 px-2 text-red-600" onClick={() => setDeleteTarget(m)} aria-label="Удалить">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 min-h-9 px-2 text-red-600"
+                            onClick={() => setDeleteTarget(m)}
+                            aria-label={`Удалить: ${m.title}`}
+                          >
                             <Trash2 className="h-[18px] w-[18px]" />
                           </Button>
                         </div>
@@ -978,11 +1041,11 @@ export function MediaAdminClient({ initialItems, selectedGroupId = null, onGroup
 function PreviewDialog({ item, onClose }: { item: MediaItem; onClose: () => void }) {
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col gap-2 overflow-hidden p-6">
+      <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col gap-2 overflow-y-auto p-6">
         <DialogHeader className="shrink-0">
           <DialogTitle>{item.title}</DialogTitle>
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="min-h-0 flex-1">
           <MediaViewerLazy
             title={item.title}
             src={item.file_url}

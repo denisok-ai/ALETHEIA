@@ -3,12 +3,11 @@
  */
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
-import { ArrowLeft } from 'lucide-react';
+import { PortalBackLink } from '@/components/portal/PortalBackLink';
 import { getNotificationSetEventLabel } from '@/lib/notification-set-events';
 import { NotificationSetEditForm } from './NotificationSetEditForm';
 
@@ -52,13 +51,9 @@ export default async function AdminNotificationSetPage({ params }: Props) {
         title={set.name}
         description={getNotificationSetEventLabel(set.eventType)}
         actions={
-          <Link
-            href="/portal/admin/notification-sets"
-            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[var(--portal-accent)]"
-          >
-            <ArrowLeft className="h-4 w-4" />
+          <PortalBackLink href="/portal/admin/notification-sets" className="bg-white">
             К каталогу
-          </Link>
+          </PortalBackLink>
         }
       />
       <div className="rounded-xl border border-[#E2E8F0] bg-white p-4">

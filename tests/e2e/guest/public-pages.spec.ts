@@ -9,7 +9,10 @@ test.describe('Главная страница', () => {
     await page.goto('/');
     await expect(page).toHaveTitle(/АВАТЕРРА|AVATERRA|avaterra|кинезиологии/i);
     await expect(page.getByRole('link', { name: /^Цены$/i })).toBeVisible({ timeout: 5000 });
-    await expect(page.getByRole('link', { name: /Вопросы и ответы/ })).toBeVisible();
+    // Два одинаковых пункта в шапке и футере — привязываемся к основной навигации
+    await expect(
+      page.getByLabel('Основное меню').getByRole('link', { name: /Вопросы и ответы/ })
+    ).toBeVisible();
     await expect(page.locator('#method')).toBeAttached();
     const faqExtended = page.locator('#faq-extended');
     await expect(faqExtended).toBeAttached();
@@ -17,15 +20,34 @@ test.describe('Главная страница', () => {
     await expect(faqExtended).toBeVisible();
   });
 
-  test('Hero: ссылка «Купить курс» ведёт на Lynda', async ({ page }) => {
+  test('Hero: CTA — ссылки без вложенных button (валидная разметка)', async ({ page }) => {
+    await page.goto('/');
+    const hero = page.locator('#hero');
+    const ctaLinks = hero.locator('a').filter({
+      hasText: /Записаться на бесплатный пробный урок|Купить курс/i,
+    });
+    const count = await ctaLinks.count();
+    expect(count).toBeGreaterThanOrEqual(2);
+    for (let i = 0; i < count; i++) {
+      await expect(ctaLinks.nth(i).locator('button')).toHaveCount(0);
+    }
+  });
+
+  test('Hero: ссылка «Купить курс» ведёт на оформление (внешнее или блок цен)', async ({ page }) => {
     await page.goto('/');
     const buyCourse = page.locator('#hero').getByRole('link', { name: /Купить курс/i });
     await expect(buyCourse).toBeVisible({ timeout: 5000 });
     const buyHref = await buyCourse.getAttribute('href');
     expect(buyHref).toBeTruthy();
     expect(buyHref).toMatch(/^(https?:\/\/|\/#)/);
-    await expect(buyCourse).toHaveAttribute('target', '_blank');
-    await expect(buyCourse).toHaveAttribute('rel', /noopener/);
+    // При NEXT_PUBLIC_COURSE_CHECKOUT_URL=https://… — новая вкладка; по умолчанию /#pricing — без target
+    if (buyHref?.startsWith('http://') || buyHref?.startsWith('https://')) {
+      await expect(buyCourse).toHaveAttribute('target', '_blank');
+      await expect(buyCourse).toHaveAttribute('rel', /noopener/);
+    } else {
+      const target = await buyCourse.getAttribute('target');
+      expect(target === null || target === '').toBeTruthy();
+    }
   });
 
   test('секции About, Pricing, вопросы и ответы, блок помощника присутствуют', async ({ page }) => {
@@ -76,11 +98,13 @@ test.describe('Вопросы и ответы', () => {
     await page.goto('/');
     const faq = page.locator('#faq');
     await faq.scrollIntoViewIfNeeded();
-    const firstQuestion = faq.getByRole('button', { name: /что такое мышечное тестирование/i });
-    await expect(firstQuestion).toBeVisible({ timeout: 10000 });
-    await firstQuestion.click();
+    // Первый пункт в LandingFAQ открыт по умолчанию — клик по нему закрывает панель.
+    // Проверяем раскрытие на втором пункте (изначально закрыт).
+    const secondQuestion = faq.getByRole('button', { name: /кому подойдёт этот курс/i });
+    await expect(secondQuestion).toBeVisible({ timeout: 10000 });
+    await secondQuestion.click();
     await expect(
-      faq.getByText(/обратная биологическая связь|обратной связи с телом|аппаратуры/i)
+      faq.getByText(/тело и подсознание|саморазвития/i)
     ).toBeVisible({ timeout: 10000 });
   });
 });

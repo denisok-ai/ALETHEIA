@@ -12,6 +12,7 @@ import {
 const KEYS = {
   xpPerLevel: 'gamification_xp_per_level',
   xpLessonComplete: 'gamification_xp_lesson_complete',
+  xpVerificationApproved: 'gamification_xp_verification_approved',
 } as const;
 
 let mem: { at: number; data: GamificationNumbers } | null = null;
@@ -28,12 +29,13 @@ export async function getGamificationNumbers(): Promise<GamificationNumbers> {
   }
 
   const rows = await prisma.systemSetting.findMany({
-    where: { key: { in: [KEYS.xpPerLevel, KEYS.xpLessonComplete] } },
+    where: { key: { in: [KEYS.xpPerLevel, KEYS.xpLessonComplete, KEYS.xpVerificationApproved] } },
   });
   const byKey = Object.fromEntries(rows.map((r) => [r.key, r.value])) as Record<string, string>;
   const data = parseGamificationNumbers({
     xpPerLevel: byKey[KEYS.xpPerLevel],
     xpLessonComplete: byKey[KEYS.xpLessonComplete],
+    xpVerificationApproved: byKey[KEYS.xpVerificationApproved],
   });
 
   mem = { at: Date.now(), data };

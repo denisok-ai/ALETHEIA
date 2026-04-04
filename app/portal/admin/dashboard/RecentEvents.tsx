@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { formatPersonName } from '@/lib/format-person-name';
+import { formatRub } from '@/lib/format-ru';
 
 function formatEventAt(iso: string): string {
   try {
@@ -55,7 +56,7 @@ export function RecentEvents({ events }: { events: EventItem[] }) {
                 <td className="py-2 pr-4">
                   {e.type === 'payment' && (
                     <Link href="/portal/admin/payments" className="text-[var(--portal-accent)] hover:underline">
-                      {e.orderNumber} — {e.amount.toLocaleString('ru')} ₽ · {e.email}
+                      {e.orderNumber} — {formatRub(e.amount)} ₽ · {e.email}
                     </Link>
                   )}
                   {e.type === 'lead' && (

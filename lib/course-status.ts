@@ -3,7 +3,7 @@
  */
 export const COURSE_STATUS = {
   draft: 'В разработке',
-  published: 'Действительно',
+  published: 'Опубликован',
   cancelled: 'Отменено',
   archived: 'В архиве',
 } as const;

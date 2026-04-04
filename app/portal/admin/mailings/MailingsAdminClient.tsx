@@ -53,6 +53,14 @@ export interface MailingRow {
   logsCount: number;
 }
 
+const MAILINGS_SORT_GETTERS: Record<string, (m: MailingRow) => unknown> = {
+  title: (m) => m.internalTitle,
+  subject: (m) => m.emailSubject,
+  status: (m) => m.status,
+  createdAt: (m) => m.createdAt,
+  recipients: (m) => m.logsCount,
+};
+
 interface UserOption {
   id: string;
   email: string | null;
@@ -102,16 +110,9 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
     else { setSortKey(columnId); setSortDir('asc'); }
   };
 
-  const mailingsSortGetters: Record<string, (m: MailingRow) => unknown> = {
-    title: (m) => m.internalTitle,
-    subject: (m) => m.emailSubject,
-    status: (m) => m.status,
-    createdAt: (m) => m.createdAt,
-    recipients: (m) => m.logsCount,
-  };
   const sortedItems = useMemo(() => {
-    if (!sortKey || !mailingsSortGetters[sortKey]) return items;
-    return sortTableBy(items, mailingsSortGetters[sortKey], sortDir);
+    if (!sortKey || !MAILINGS_SORT_GETTERS[sortKey]) return items;
+    return sortTableBy(items, MAILINGS_SORT_GETTERS[sortKey], sortDir);
   }, [items, sortKey, sortDir]);
 
   useEffect(() => {

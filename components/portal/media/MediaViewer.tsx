@@ -74,9 +74,12 @@ export default function MediaViewer({ title, src, mimeType, poster }: MediaViewe
 
   if (isAudio && !isVideo) {
     return (
-      <audio controls className="w-full" src={src} preload="metadata" aria-label={title}>
-        Ваш браузер не поддерживает аудио.
-      </audio>
+      <>
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption -- озвучка/музыка без субтитров */}
+        <audio controls className="w-full" src={src} preload="metadata" aria-label={title}>
+          Ваш браузер не поддерживает аудио.
+        </audio>
+      </>
     );
   }
 

@@ -16,6 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { BarChart3, BookOpen, Users, Calendar, Download, List, FileSpreadsheet, Layers } from 'lucide-react';
 import { format } from 'date-fns';
+import { formatRub, formatIsoDateRu, formatIsoDayMonth } from '@/lib/format-ru';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 import { toast } from 'sonner';
@@ -720,17 +721,22 @@ export function ReportsClient() {
         <>
           <Card className="p-6">
             <h3 className="mb-4 font-heading text-lg font-semibold text-[var(--portal-text)]">Динамика по дням</h3>
-            <div className="h-64 w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <div className="h-64 w-full min-h-[256px] min-w-0">
+              <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
                 <LineChart data={byPeriod.rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                  <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => (v as string).slice(5)} />
+                  <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v) => formatIsoDayMonth(String(v))} />
                   <YAxis yAxisId="left" tick={{ fontSize: 11 }} />
-                  <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 11 }} tickFormatter={(v) => `${Number(v ?? 0)} ₽`} />
+                  <YAxis
+                    yAxisId="right"
+                    orientation="right"
+                    tick={{ fontSize: 11 }}
+                    tickFormatter={(v) => `${formatRub(Number(v ?? 0))} ₽`}
+                  />
                   <Tooltip
-                    labelFormatter={(label) => label}
+                    labelFormatter={(label) => formatIsoDateRu(String(label))}
                     formatter={(value, name) => [
-                      name === 'revenue' ? `${Number(value ?? 0).toLocaleString('ru')} ₽` : (value ?? 0),
+                      name === 'revenue' ? `${formatRub(Number(value ?? 0))} ₽` : (value ?? 0),
                       name === 'enrollments' ? 'Зачислений' : name === 'completions' ? 'Завершений' : name === 'certificates' ? 'Сертификатов' : name === 'ordersCount' ? 'Оплат' : 'Выручка (₽)',
                     ]}
                   />
@@ -747,7 +753,7 @@ export function ReportsClient() {
           <Card className="overflow-hidden p-0">
             {byPeriod.totals && (
               <div className="border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2 text-sm font-medium text-[var(--portal-text)]">
-                Итого за период: зачислений {byPeriod.totals.enrollments}, завершений {byPeriod.totals.completions}, сертификатов {byPeriod.totals.certificates}, оплат {byPeriod.totals.ordersCount}, выручка {byPeriod.totals.revenue} ₽
+                Итого за период: зачислений {byPeriod.totals.enrollments}, завершений {byPeriod.totals.completions}, сертификатов {byPeriod.totals.certificates}, оплат {byPeriod.totals.ordersCount}, выручка {formatRub(byPeriod.totals.revenue)} ₽
               </div>
             )}
             <div className="overflow-x-auto">
@@ -763,16 +769,20 @@ export function ReportsClient() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {byPeriod.rows.map((row) => (
-                  <TableRow key={String((row as Record<string, unknown>).date)}>
-                    <TableCell className="font-medium">{(row as Record<string, unknown>).date as string}</TableCell>
-                    <TableCell className="text-right">{(row as Record<string, unknown>).enrollments as number}</TableCell>
-                    <TableCell className="text-right">{(row as Record<string, unknown>).completions as number}</TableCell>
-                    <TableCell className="text-right">{(row as Record<string, unknown>).certificates as number}</TableCell>
-                    <TableCell className="text-right">{(row as Record<string, unknown>).ordersCount as number}</TableCell>
-                    <TableCell className="text-right">{(row as Record<string, unknown>).revenue as number}</TableCell>
+                {byPeriod.rows.map((row) => {
+                  const r = row as Record<string, unknown>;
+                  const dateStr = String(r.date ?? '');
+                  return (
+                  <TableRow key={dateStr}>
+                    <TableCell className="font-medium">{formatIsoDateRu(dateStr)}</TableCell>
+                    <TableCell className="text-right">{r.enrollments as number}</TableCell>
+                    <TableCell className="text-right">{r.completions as number}</TableCell>
+                    <TableCell className="text-right">{r.certificates as number}</TableCell>
+                    <TableCell className="text-right">{r.ordersCount as number}</TableCell>
+                    <TableCell className="text-right tabular-nums">{formatRub(r.revenue as number)}</TableCell>
                   </TableRow>
-                ))}
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

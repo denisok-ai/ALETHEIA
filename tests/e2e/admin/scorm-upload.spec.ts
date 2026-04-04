@@ -15,8 +15,10 @@ test.describe('Загрузка SCORM', () => {
     await page.goto(`/portal/admin/courses/${COURSE_ID}`);
     await expect(page.getByRole('heading', { name: /курс|тело|вводный|поток/i }).first()).toBeVisible({ timeout: 10000 });
 
-    const fileInput = page.locator('input[type="file"][accept=".zip"]').first();
-    await expect(fileInput).toBeAttached();
+    // ScormVersionsBlock: accept=".zip,application/zip" — не только ".zip"
+    const fileInput = page.locator('input[type="file"][accept*=".zip"]').first();
+    await expect(fileInput).toBeAttached({ timeout: 15000 });
+    await fileInput.scrollIntoViewIfNeeded();
     await fileInput.setInputFiles(SCORM_ZIP);
     await page.waitForLoadState('networkidle');
 

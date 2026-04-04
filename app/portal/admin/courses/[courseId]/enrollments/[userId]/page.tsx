@@ -3,12 +3,11 @@
  */
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
-import { ArrowLeft } from 'lucide-react';
+import { PortalBackLink } from '@/components/portal/PortalBackLink';
 
 function formatTime(seconds: number): string {
   if (seconds >= 3600) {
@@ -133,15 +132,7 @@ export default async function AdminCourseEnrollmentProgressPage({ params }: Prop
         ]}
         title="Результаты прохождения"
         description={`${course.title} — ${displayName}`}
-        actions={
-          <Link
-            href={`/portal/admin/courses/${courseId}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[var(--portal-accent)] transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            К курсу
-          </Link>
-        }
+        actions={<PortalBackLink href={`/portal/admin/courses/${courseId}`}>К курсу</PortalBackLink>}
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

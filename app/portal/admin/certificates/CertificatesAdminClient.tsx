@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useId } from 'react';
 import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -79,6 +80,10 @@ export function CertificatesAdminClient({
   const [issueCourseId, setIssueCourseId] = useState('');
   const [issueValidityDays, setIssueValidityDays] = useState<number | ''>('');
   const [issueSubmitting, setIssueSubmitting] = useState(false);
+  const issueFormId = useId();
+  const issueUserFieldId = `${issueFormId}-user`;
+  const issueCourseFieldId = `${issueFormId}-course`;
+  const issueValidityFieldId = `${issueFormId}-validity`;
 
   useEffect(() => {
     if (!issueModalOpen || !issueUserSearch.trim()) {
@@ -387,8 +392,14 @@ export function CertificatesAdminClient({
                 <>
                   <span className="text-sm text-[var(--portal-text-muted)] mr-1 self-center">Шаблон PDF:</span>
                   {CERTIFICATE_TEMPLATE_IDS_FOR_SELECT.map((tpl) => (
-                    <a key={tpl} href={downloadUrl(detailCert.id, tpl)} target="_blank" rel="noopener noreferrer">
-                      <Button variant="secondary" size="sm"><Download className="mr-1 h-4 w-4" /> {CERTIFICATE_TEMPLATE_LABELS[tpl]}</Button>
+                    <a
+                      key={tpl}
+                      href={downloadUrl(detailCert.id, tpl)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+                    >
+                      <Download className="mr-1 h-4 w-4" /> {CERTIFICATE_TEMPLATE_LABELS[tpl]}
                     </a>
                   ))}
                   <Button variant="secondary" size="sm" className="text-red-600" onClick={() => setRevokeTarget(detailCert)} disabled={revoking}>
@@ -419,8 +430,11 @@ export function CertificatesAdminClient({
             </DialogHeader>
             <div className="space-y-4 pt-2">
               <div>
-                <label className="block text-sm font-medium text-[var(--portal-text)]">Пользователь</label>
+                <label htmlFor={issueUserFieldId} className="block text-sm font-medium text-[var(--portal-text)]">
+                  Пользователь
+                </label>
                 <input
+                  id={issueUserFieldId}
                   type="text"
                   value={issueSelectedUser ? (issueSelectedUser.display_name || issueSelectedUser.email) : issueUserSearch}
                   onChange={(e) => {
@@ -460,8 +474,11 @@ export function CertificatesAdminClient({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--portal-text)]">Курс</label>
+                <label htmlFor={issueCourseFieldId} className="block text-sm font-medium text-[var(--portal-text)]">
+                  Курс
+                </label>
                 <select
+                  id={issueCourseFieldId}
                   value={issueCourseId}
                   onChange={(e) => setIssueCourseId(e.target.value)}
                   className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)]"
@@ -473,8 +490,11 @@ export function CertificatesAdminClient({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--portal-text)]">Срок действия (дней, необязательно)</label>
+                <label htmlFor={issueValidityFieldId} className="block text-sm font-medium text-[var(--portal-text)]">
+                  Срок действия (дней, необязательно)
+                </label>
                 <input
+                  id={issueValidityFieldId}
                   type="number"
                   min={1}
                   value={issueValidityDays}

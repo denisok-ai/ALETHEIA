@@ -5,7 +5,8 @@
  */
 import { useState } from 'react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -39,8 +40,8 @@ export default function ResetPasswordPage() {
         <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
           Если аккаунт с указанным email существует, вы получите письмо со ссылкой для установки нового пароля. Ссылка действует 48 часов.
         </p>
-        <Link href="/login" className="mt-6 inline-block">
-          <Button variant="secondary">← Назад к входу</Button>
+        <Link href="/login" className={cn(buttonVariants({ variant: 'secondary' }), 'mt-6')}>
+          ← Назад к входу
         </Link>
       </div>
     );

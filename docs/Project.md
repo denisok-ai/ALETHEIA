@@ -2,8 +2,8 @@
 
 **Проект:** Веб-сайт школы AVATERRA (Phygital школа мышечного тестирования, курс «Тело не врет»)  
 **Домен:** https://avaterra.pro  
-**Версия документа:** 3.1  
-**Дата:** 2025-03-09
+**Версия документа:** 3.3  
+**Дата:** 2026-04-05
 
 ---
 
@@ -89,7 +89,7 @@ graph TB
 
 *Конкретный выбор зафиксировать после ответов на вопросы в `qa.md`.*
 
-### 3.3 Структура проекта (текущая, v3.1)
+### 3.3 Структура проекта (текущая, v3.3)
 
 **Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, **Prisma + SQLite** (локально), NextAuth, Resend, Telegram Bot API. Версионирование: SemVer, CHANGELOG.md.
 
@@ -160,6 +160,7 @@ ALETHEIA/
 - **Данные:** Prisma + SQLite (локально). Модели: User, Profile, Course, Enrollment, ScormProgress, Certificate, Media, Notification, Ticket, AuditLog, CommsTemplate, LlmSetting, Service, UserEnergy, Lead, Order.
 - **Аутентификация:** NextAuth (Credentials provider), bcryptjs.
 - **Портал:** Роли user/manager/admin, middleware RBAC, SCORM-плеер (iframe + API progress), сертификаты (PDF через @react-pdf/renderer), Resend для email, Telegram webhook для бота.
+- **AI и чаты:** публичный чат на лендинге (`/api/chat`, база знаний и шаблоны промптов `scope=chatbot`); AI-тьютор в плеере (`/api/portal/scorm/ai-assist`, `LlmSetting` / шаблон `course-tutor`); рендер ответов через `ChatMarkdown` + linkify для кликабельных URL; справка в портале (`HelpContent`, якоря `#ai-tutor`, `#ai-tutor-admin`, прокрутка по hash); палитра команд ⌘K (`lib/portal-nav-commands.ts`).
 - **Хранилище:** локальные файлы в `public/uploads/` (SCORM, медиа).
 - **Деплой:** Vercel или VPS — общий чек-лист [Deploy.md](Deploy.md), продуктивный сервер и порядок обновления [Production-Server.md](Production-Server.md)
 

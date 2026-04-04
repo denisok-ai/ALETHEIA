@@ -11,12 +11,22 @@ import {
   levelFromTotalXp,
   xpProgressPercentInCurrentLevel,
 } from '@/lib/gamification';
+import { recordGamificationXpEvent } from '@/lib/gamification-ledger';
+import { notifyGamificationAfterXpChange } from '@/lib/gamification-milestones';
 
 const ACTION = 'user.energy.adjust';
 const ENTITY = 'UserEnergy';
 const HISTORY_LIMIT = 20;
 const MAX_NOTE = 500;
 const MAX_XP = 10_000_000;
+
+function safeParseMetaJson(s: string): Record<string, unknown> {
+  try {
+    return JSON.parse(s) as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
 
 function parseAuditDiff(diff: string | null): {
   oldXp?: number;
@@ -58,6 +68,17 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     }),
   ]);
 
+  let xpEvents: Awaited<ReturnType<typeof prisma.gamificationXpEvent.findMany>> = [];
+  try {
+    xpEvents = await prisma.gamificationXpEvent.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 40,
+    });
+  } catch (e) {
+    console.warn('[admin energy GET] gamificationXpEvent unavailable (migrate DB?):', e);
+  }
+
   const xp = energyRow?.xp ?? 0;
   const { xpPerLevel, xpLessonComplete } = numbers;
   const level = levelFromTotalXp(xp, xpPerLevel);
@@ -89,6 +110,44 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     };
   });
 
+  const gamificationEventsRaw = xpEvents.map((e) => ({
+    id: e.id,
+    source: e.source,
+    delta: e.delta,
+    balanceAfter: e.balanceAfter,
+    meta: safeParseMetaJson(e.meta),
+    createdAt: e.createdAt.toISOString(),
+  }));
+
+  const courseIdsForLabels = Array.from(
+    new Set(
+      gamificationEventsRaw
+        .map((ev) => {
+          const cid = ev.meta.courseId;
+          return typeof cid === 'string' && cid ? cid : null;
+        })
+        .filter((id): id is string => Boolean(id))
+    )
+  );
+  const courseRows =
+    courseIdsForLabels.length > 0
+      ? await prisma.course.findMany({
+          where: { id: { in: courseIdsForLabels } },
+          select: { id: true, title: true },
+        })
+      : [];
+  const titleByCourseId = Object.fromEntries(courseRows.map((c) => [c.id, c.title]));
+
+  const gamificationEvents = gamificationEventsRaw.map((ev) => {
+    const cid = typeof ev.meta.courseId === 'string' ? ev.meta.courseId : null;
+    const fromMeta =
+      typeof ev.meta.courseTitle === 'string' && ev.meta.courseTitle.trim()
+        ? ev.meta.courseTitle
+        : null;
+    const courseTitle = fromMeta ?? (cid ? titleByCourseId[cid] ?? null : null);
+    return { ...ev, courseTitle };
+  });
+
   return NextResponse.json({
     userId,
     xp,
@@ -96,10 +155,12 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
     chargePercent,
     xpPerLevel,
     xpLessonComplete,
+    xpVerificationApproved: numbers.xpVerificationApproved,
     lastPracticeAt: energyRow?.lastPracticeAt?.toISOString() ?? null,
     updatedAt: energyRow?.updatedAt?.toISOString() ?? null,
     badges: getEarnedBadges(xp).map((b) => ({ minXp: b.minXp, label: b.label, emoji: b.emoji })),
     history,
+    gamificationEvents,
   });
 }
 
@@ -175,6 +236,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     },
   });
 
+  const xpDelta = newXp - oldXp;
+  if (xpDelta !== 0) {
+    try {
+      await recordGamificationXpEvent(prisma, {
+        userId,
+        source: mode === 'delta' ? 'admin_delta' : 'admin_set',
+        delta: xpDelta,
+        balanceAfter: newXp,
+        meta: { note, mode },
+      });
+      await notifyGamificationAfterXpChange({
+        userId,
+        oldXp,
+        newXp,
+        xpPerLevel,
+      });
+    } catch (e) {
+      console.error('[admin energy] ledger/notify error:', e);
+    }
+  }
+
   await writeAuditLog({
     actorId: auth.userId,
     action: ACTION,
@@ -200,6 +282,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     chargePercent,
     xpPerLevel: numbers.xpPerLevel,
     xpLessonComplete: numbers.xpLessonComplete,
+    xpVerificationApproved: numbers.xpVerificationApproved,
     badges: getEarnedBadges(newXp).map((b) => ({ minXp: b.minXp, label: b.label, emoji: b.emoji })),
   });
 }

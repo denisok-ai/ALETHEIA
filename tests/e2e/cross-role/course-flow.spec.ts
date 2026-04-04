@@ -16,7 +16,9 @@ test('админ загружает SCORM → студент видит курс
   await page.goto(`/portal/admin/courses/${COURSE_ID}`);
   await expect(page.getByRole('heading', { name: /курс|тело|вводный|поток/i }).first()).toBeVisible({ timeout: 10000 });
 
-  const fileInput = page.locator('input[type="file"][accept=".zip"]').first();
+  const fileInput = page.locator('input[type="file"][accept*=".zip"]').first();
+  await expect(fileInput).toBeAttached({ timeout: 15000 });
+  await fileInput.scrollIntoViewIfNeeded();
   await fileInput.setInputFiles(SCORM_ZIP);
   await page.waitForLoadState('networkidle');
   await expect(
@@ -30,6 +32,9 @@ test('админ загружает SCORM → студент видит курс
   await playLink.click();
   await expect(page).toHaveURL(/\/play/);
   await expect(
-    page.getByRole('link', { name: /выход из курса|назад к курсу/i }).or(page.locator('iframe[title="SCORM курс"]'))
+    page
+      .getByRole('link', { name: /выход из курса|назад к курсу/i })
+      .or(page.locator('iframe[title="SCORM курс"]'))
+      .first()
   ).toBeVisible({ timeout: 15000 });
 });

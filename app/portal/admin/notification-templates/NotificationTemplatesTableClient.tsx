@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/table';
 import { SortableTableHead } from '@/components/ui/SortableTableHead';
 import { sortTableBy, type SortDir } from '@/lib/table-sort';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 
@@ -97,8 +98,11 @@ export function NotificationTemplatesTableClient({ templates }: { templates: Not
                 <TableCell className="max-w-[200px] truncate text-[var(--portal-text-muted)]">{t.subject ?? '—'}</TableCell>
                 <TableCell className="text-[var(--portal-text-muted)]">{TYPE_LABEL[t.type] ?? t.type}</TableCell>
                 <TableCell>
-                  <Link href={`/portal/admin/notification-templates/${t.id}`}>
-                    <Button variant="secondary" size="sm">Изменить</Button>
+                  <Link
+                    href={`/portal/admin/notification-templates/${t.id}`}
+                    className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+                  >
+                    Изменить
                   </Link>
                 </TableCell>
               </TableRow>

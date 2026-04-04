@@ -16,7 +16,9 @@ import { CourseMediaBlock } from './CourseMediaBlock';
 import { CourseVerificationLessonsBlock } from './CourseVerificationLessonsBlock';
 import { CourseDetailTabs } from './CourseDetailTabs';
 import { CourseCardActions } from './CourseCardActions';
+import { CourseLiveEventBlock } from './CourseLiveEventBlock';
 import { getCourseStatusLabel } from '@/lib/course-status';
+import { getCourseFormatLabel, isLiveEventCourse } from '@/lib/course-format';
 
 type PageProps = { params: Promise<{ courseId: string }> };
 
@@ -140,8 +142,19 @@ export default async function AdminCourseDetailPage({ params }: PageProps) {
               <dd className="inline ml-1 text-[var(--portal-text)]">{course.endsAt.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</dd>
             </div>
           )}
+          <div>
+            <dt className="inline font-medium text-[var(--portal-text-muted)]">Формат:</dt>
+            <dd className="inline ml-1 text-[var(--portal-text)]">{getCourseFormatLabel(course.courseFormat)}</dd>
+          </div>
         </dl>
       </div>
+
+      <CourseLiveEventBlock
+        courseId={courseId}
+        initialFormat={course.courseFormat}
+        initialVenue={course.eventVenue}
+        initialUrl={course.eventUrl}
+      />
 
       <CourseDetailTabs courseId={courseId} courseTitle={course.title}>
         {/* Tab: Обзор — сгруппировано по смыслу */}
@@ -153,6 +166,11 @@ export default async function AdminCourseDetailPage({ params }: PageProps) {
             >
               Обучение и проверка
             </h2>
+            {isLiveEventCourse(course.courseFormat) && !course.scormManifest && (
+              <p className="text-sm text-[var(--portal-text-muted)] rounded-lg border border-amber-200 bg-amber-50/80 px-3 py-2">
+                Для мероприятия SCORM не загружен — плеер у студентов не показывается. При необходимости загрузите пакет ниже как дополнительные материалы после события.
+              </p>
+            )}
             <div className="grid gap-6 grid-cols-1 xl:grid-cols-2">
               <CourseAiTutorBlock courseId={courseId} initialEnabled={course.aiTutorEnabled ?? true} />
               <CourseVerificationLessonsBlock

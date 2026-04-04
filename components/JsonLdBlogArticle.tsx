@@ -33,7 +33,7 @@ export function JsonLdBlogArticle({
 
   const data: Record<string, unknown> = {
     '@context': 'https://schema.org',
-    '@type': 'BlogPosting',
+    '@type': 'Article',
     headline,
     description,
     url: pageUrl,

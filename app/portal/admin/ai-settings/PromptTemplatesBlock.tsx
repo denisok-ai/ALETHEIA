@@ -21,13 +21,17 @@ type Template = {
   id: string;
   name: string;
   content: string;
+  scope: string;
   isActive: boolean;
   usageCount: number;
   lastUsedAt: string | null;
   updatedAt: string;
 };
 
+type TemplateScope = 'chatbot' | 'course-tutor';
+
 export function PromptTemplatesBlock() {
+  const [scope, setScope] = useState<TemplateScope>('chatbot');
   const [templates, setTemplates] = useState<Template[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
@@ -41,14 +45,17 @@ export function PromptTemplatesBlock() {
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
 
   const fetchTemplates = useCallback(() => {
-    fetch('/api/portal/admin/ai-settings/prompt-templates')
-      .then((r) => r.ok ? r.json() : null)
+    setLoading(true);
+    fetch(`/api/portal/admin/ai-settings/prompt-templates?scope=${encodeURIComponent(scope)}`)
+      .then((r) => (r.ok ? r.json() : null))
       .then((d) => setTemplates(d?.templates ?? []))
       .catch(() => toast.error('Не удалось загрузить шаблоны'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [scope]);
 
-  useEffect(() => { fetchTemplates(); }, [fetchTemplates]);
+  useEffect(() => {
+    fetchTemplates();
+  }, [fetchTemplates]);
 
   function openCreate() {
     setEditingId(null);
@@ -80,7 +87,7 @@ export function PromptTemplatesBlock() {
         const res = await fetch('/api/portal/admin/ai-settings/prompt-templates', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name, content: formContent }),
+          body: JSON.stringify({ name, content: formContent, scope }),
         });
         if (!res.ok) throw new Error();
         toast.success('Шаблон создан');
@@ -136,7 +143,7 @@ export function PromptTemplatesBlock() {
       const res = await fetch('/api/portal/admin/ai-settings/prompt-templates/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ instruction }),
+        body: JSON.stringify({ instruction, scope }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -157,11 +164,31 @@ export function PromptTemplatesBlock() {
     }
   }
 
+  const scopeDescription =
+    scope === 'chatbot'
+      ? 'Для виджета на сайте: один активный шаблон подставляется вместо резервного system prompt в блоке «Чат на лендинге». Плейсхолдеры как в базе знаний: {{COURSE_URL}}, {{PRICING_URL}}, {{PORTAL_URL}}, {{SUPPORT_EMAIL}} и др.'
+      : 'Для AI-тьютора в SCORM-плеере: активный шаблон имеет приоритет над полем «Инструкции тьютора» в блоке LLM ниже. Плейсхолдеры: {{PORTAL_COURSE_URL}}, {{PORTAL_COURSE_PLAY_URL}}, {{COURSE_URL}}, {{SUPPORT_EMAIL}} и др.';
+
   return (
-    <Card
-      title="Шаблоны промптов"
-      description="Варианты system prompt для чат-бота. Один шаблон — активный (используется в чате). Генерируйте с помощью AI, сравнивайте статистику и выбирайте более эффективный."
-    >
+    <Card title="Шаблоны промптов" description={scopeDescription}>
+      <div className="mb-4 flex flex-wrap gap-2" role="tablist" aria-label="Область шаблонов">
+        <Button
+          type="button"
+          variant={scope === 'chatbot' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => setScope('chatbot')}
+        >
+          Лендинг (публичный чат)
+        </Button>
+        <Button
+          type="button"
+          variant={scope === 'course-tutor' ? 'primary' : 'secondary'}
+          size="sm"
+          onClick={() => setScope('course-tutor')}
+        >
+          Тьютор в курсе (SCORM)
+        </Button>
+      </div>
       {loading ? (
         <p className="text-sm text-[var(--portal-text-muted)]">Загрузка…</p>
       ) : (
@@ -244,14 +271,20 @@ export function PromptTemplatesBlock() {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="tpl-content">Текст промпта (system prompt)</Label>
+                  <Label htmlFor="tpl-content">
+                    {scope === 'chatbot' ? 'Текст промпта (system prompt)' : 'Текст playbook (инструкция тьютора)'}
+                  </Label>
                   <textarea
                     id="tpl-content"
                     value={formContent}
                     onChange={(e) => setFormContent(e.target.value)}
                     rows={12}
                     className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 font-mono text-sm"
-                    placeholder="Ты консультант..."
+                    placeholder={
+                      scope === 'chatbot'
+                        ? 'Ты консультант курса…'
+                        : 'Роль наставника, границы ответов, эскалация к куратору…'
+                    }
                   />
                 </div>
                 <div className="flex gap-2">
@@ -272,7 +305,9 @@ export function PromptTemplatesBlock() {
                 <DialogTitle>Сгенерировать промпт с AI</DialogTitle>
               </DialogHeader>
               <p className="text-sm text-[var(--portal-text-muted)]">
-                Опишите, каким должен быть консультант или стиль ответов. AI предложит текст system prompt.
+                {scope === 'chatbot'
+                  ? 'Опишите, каким должен быть консультант на сайте. AI предложит текст system prompt.'
+                  : 'Опишите роль и правила тьютора по материалам курса. AI предложит черновик playbook.'}
               </p>
               <div className="mt-4">
                 <Label htmlFor="gen-instr">Описание</Label>

@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Video, Send, HelpCircle, Clock, CheckCircle2, XCircle, ExternalLink, Upload, Loader2 } from 'lucide-react';
+import { Video, Send, HelpCircle, Clock, CheckCircle2, XCircle, ExternalLink, Upload, Loader2, Zap } from 'lucide-react';
 import { toast } from 'sonner';
 import type { VerificationLessonConfig } from '@/lib/verification-lessons';
+import { isOpenableVideoMaterialUrl } from '@/lib/verification-submission';
 
 export interface LessonOption {
   id: string;
@@ -24,6 +25,7 @@ interface SubmissionItem {
   id: string;
   courseId: string;
   lessonId: string | null;
+  assignmentType?: string;
   videoUrl: string;
   status: string;
   comment: string | null;
@@ -41,11 +43,14 @@ export function CourseVerificationBlock({
   lessonOptions,
   requiredLessonIds = [],
   verificationConfigs = [],
+  xpVerificationApproved = 0,
 }: {
   courseId: string;
   lessonOptions: LessonOption[];
   requiredLessonIds?: string[];
   verificationConfigs?: VerificationLessonConfig[];
+  /** Из настроек геймификации: прирост заряда при одобрении менеджером. */
+  xpVerificationApproved?: number;
 }) {
   const configByLesson = new Map(verificationConfigs.map((c) => [c.lessonId, c]));
   const [videoUrl, setVideoUrl] = useState('');
@@ -138,6 +143,16 @@ export function CourseVerificationBlock({
       </div>
       <p className="text-sm text-[var(--portal-text-muted)] mb-4">
         Запишите короткое видео (телефон или камера), загрузите на YouTube, Google Диск или другое облако с доступом по ссылке и вставьте ссылку ниже. Менеджер проверит в течение 1–2 рабочих дней.
+        {xpVerificationApproved > 0 && (
+          <>
+            {' '}
+            После одобрения зачисляется <strong>+{xpVerificationApproved}</strong> к уровню заряда (
+            <Link href="/portal/student/gamification" className="text-[var(--portal-accent)] hover:underline">
+              история
+            </Link>
+            ).
+          </>
+        )}
       </p>
       {requiredLessonIds.length > 0 && (
         <div className="mb-3 space-y-2">
@@ -253,11 +268,16 @@ export function CourseVerificationBlock({
                   key={s.id}
                   className="flex flex-wrap items-center justify-between gap-2 py-2 border-b border-[#F1F5F9] last:border-0"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0 flex-wrap">
                     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium shrink-0 ${cfg.cls}`}>
                       <Icon className="h-3 w-3" />
                       {cfg.label}
                     </span>
+                    {s.status === 'approved' && xpVerificationApproved > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-xs font-medium text-[#15803D]">
+                        <Zap className="h-3 w-3" aria-hidden />+{xpVerificationApproved} заряда
+                      </span>
+                    )}
                     <span className="text-sm text-[var(--portal-text-muted)]">{lessonLabel}</span>
                     {s.status === 'rejected' && s.comment && (
                       <span className="text-xs text-red-600 truncate max-w-[180px]" title={s.comment}>
@@ -265,15 +285,25 @@ export function CourseVerificationBlock({
                       </span>
                     )}
                   </div>
-                  <a
-                    href={s.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-xs text-[var(--portal-accent)] hover:underline inline-flex items-center gap-1 shrink-0"
-                  >
-                    <ExternalLink className="h-3 w-3" />
-                    Видео
-                  </a>
+                  {s.assignmentType === 'text' ? (
+                    <span className="text-xs text-[var(--portal-text-muted)] max-w-[140px] truncate" title={s.videoUrl}>
+                      Текст
+                    </span>
+                  ) : isOpenableVideoMaterialUrl(s.videoUrl) ? (
+                    <a
+                      href={s.videoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-[var(--portal-accent)] hover:underline inline-flex items-center gap-1 shrink-0"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                      Видео
+                    </a>
+                  ) : (
+                    <span className="text-xs text-[var(--portal-text-muted)] shrink-0" title={s.videoUrl || undefined}>
+                      Нет ссылки
+                    </span>
+                  )}
                 </li>
               );
             })}

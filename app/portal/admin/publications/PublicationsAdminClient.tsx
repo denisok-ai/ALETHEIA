@@ -47,6 +47,8 @@ export interface PubRow {
   type: string;
   status: string;
   publishAt: string;
+  /** Ключевые слова (поиск в каталоге учитывает и название, и это поле) */
+  keywords?: string | null;
   viewsCount: number;
   ratingSum: number;
   ratingCount: number;
@@ -113,7 +115,12 @@ export function PublicationsAdminClient({
     if (typeFilter !== 'all') list = list.filter((p) => p.type === typeFilter);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      list = list.filter((p) => p.title.toLowerCase().includes(q));
+      list = list.filter((p) => {
+        const inTitle = p.title.toLowerCase().includes(q);
+        const kw = (p.keywords ?? '').toLowerCase();
+        const inKeywords = kw.includes(q);
+        return inTitle || inKeywords;
+      });
     }
     return list;
   }, [items, typeFilter, search]);
@@ -245,7 +252,7 @@ export function PublicationsAdminClient({
       <div className="flex flex-wrap items-center gap-3">
         <SearchInput
           onSearch={setSearch}
-          placeholder="Поиск по названию..."
+          placeholder="Поиск по названию или ключевым словам..."
           wrapperClassName="max-w-xs"
         />
         <select

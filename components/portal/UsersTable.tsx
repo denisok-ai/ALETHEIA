@@ -3,7 +3,7 @@
 /**
  * Admin users table: search, filter, pagination, edit role/status, export CSV, bulk actions, link to [id].
  */
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import {
@@ -30,7 +30,7 @@ import { SortableTableHead } from '@/components/ui/SortableTableHead';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
-import { Download, Users, FolderPlus, FolderMinus } from 'lucide-react';
+import { Users, FolderPlus, FolderMinus } from 'lucide-react';
 import { GroupPickerModal } from '@/components/portal/GroupPickerModal';
 import { downloadXlsx } from '@/lib/export-xlsx';
 import type { CsvColumn } from '@/lib/export-csv';
@@ -51,6 +51,10 @@ const ROLE_LABELS: Record<string, string> = {
   admin: 'Администратор',
 };
 const STATUSES = ['active', 'archived'] as const;
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Активен',
+  archived: 'В архиве',
+};
 
 const columnHelper = createColumnHelper<UserRow>();
 
@@ -69,9 +73,9 @@ const PAGE_SIZE = 10;
 const USER_EXPORT_COLUMNS: CsvColumn<UserRow>[] = [
   { key: 'email', header: 'Email' },
   { key: 'display_name', header: 'Имя' },
-  { key: 'role', header: 'Роль' },
-  { key: 'status', header: 'Статус' },
-  { key: 'created_at', header: 'Дата' },
+  { key: (row) => ROLE_LABELS[row.role] ?? row.role, header: 'Роль' },
+  { key: (row) => STATUS_LABELS[row.status] ?? row.status, header: 'Статус' },
+  { key: (row) => new Date(row.created_at).toLocaleDateString('ru'), header: 'Дата' },
 ];
 
 const USER_TABLE_COLUMNS: ColumnConfigItem[] = [
@@ -103,14 +107,18 @@ export function UsersTable({
   const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: PAGE_SIZE });
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => USER_TABLE_COLUMNS.map((c) => c.id));
 
+  useEffect(() => {
+    setRows(data);
+  }, [data]);
+
+  /** Иначе при поиске совпадения на 1-й странице не видны, если открыта 2+ страница пагинации. */
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [globalFilter, statusFilter, roleFilter]);
+
   let filteredData = rows;
   if (statusFilter !== 'all') filteredData = filteredData.filter((u) => u.status === statusFilter);
   if (roleFilter !== 'all') filteredData = filteredData.filter((u) => u.role === roleFilter);
-
-  function handleExportExcel() {
-    downloadXlsx(filteredData, USER_EXPORT_COLUMNS, `users-${new Date().toISOString().slice(0, 10)}.xlsx`);
-    toast.success('Экспорт выполнен');
-  }
 
   async function handleRoleChange(userId: string, role: string) {
     setUpdating(userId);
@@ -271,7 +279,7 @@ export function UsersTable({
           className="rounded border border-[#E2E8F0] bg-white px-2 py-1 text-sm text-[var(--portal-text)] focus:ring-2 focus:ring-[var(--portal-accent)]"
         >
           {STATUSES.map((s) => (
-            <option key={s} value={s}>{s}</option>
+            <option key={s} value={s}>{STATUS_LABELS[s] ?? s}</option>
           ))}
         </select>
       ),
@@ -313,6 +321,18 @@ export function UsersTable({
     globalFilterFn: 'includesString',
     enableRowSelection: true,
   });
+
+  const globalFilteredCount = table.getFilteredRowModel().rows.length;
+
+  function handleExportExcel() {
+    const exportRows = table.getFilteredRowModel().rows.map((r) => r.original);
+    if (exportRows.length === 0) {
+      toast.error('Нет данных для экспорта');
+      return;
+    }
+    downloadXlsx(exportRows, USER_EXPORT_COLUMNS, `users-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success('Экспорт выполнен');
+  }
 
   const selectedCount = table.getSelectedRowModel().rows.length;
   const selectedIds = table.getSelectedRowModel().rows.map((row) => row.original.id);
@@ -367,10 +387,6 @@ export function UsersTable({
             <option key={r} value={r}>{ROLE_LABELS[r] ?? r}</option>
           ))}
         </select>
-        <Button variant="secondary" size="sm" onClick={handleExportExcel} className="ml-auto">
-          <Download className="mr-2 h-4 w-4" />
-          Экспорт Excel
-        </Button>
       </div>
       {selectedCount > 0 && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-[var(--portal-accent-muted)] bg-[var(--portal-accent-soft)] px-3 py-2">
@@ -399,7 +415,7 @@ export function UsersTable({
               disabled={bulkUpdating}
               onClick={() => handleBulkStatusChange(table.getSelectedRowModel().rows.map((row) => row.original.id), s)}
             >
-              {s}
+              {STATUS_LABELS[s] ?? s}
             </Button>
           ))}
           {(onAddSelectedToGroup || onRemoveSelectedFromGroup) && (
@@ -501,11 +517,11 @@ export function UsersTable({
           </TableBody>
         </Table>
       </div>
-      {filteredData.length > 0 && (
+      {globalFilteredCount > 0 && (
         <TablePagination
           currentPage={table.getState().pagination.pageIndex}
           totalPages={table.getPageCount()}
-          total={filteredData.length}
+          total={globalFilteredCount}
           pageSize={table.getState().pagination.pageSize}
           pageSizeOptions={STANDARD_PAGE_SIZES}
           onPageChange={(p) => setPagination((prev) => ({ ...prev, pageIndex: p }))}
@@ -514,7 +530,7 @@ export function UsersTable({
           visibleColumnIds={visibleColumnIds}
           onVisibleColumnIdsChange={setVisibleColumnIds}
           onExportExcel={handleExportExcel}
-          exportLabel="Экспорт Excel"
+          exportLabel="Excel"
         />
       )}
     </div>

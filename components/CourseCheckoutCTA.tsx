@@ -5,6 +5,7 @@ import { Gift } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { COURSE_CHECKOUT_URL } from '@/lib/content/course-lynda-teaser';
+import { ANALYTICS, trackGa4AndYm } from '@/lib/analytics-events';
 
 /** Секция главной с тарифами и ссылкой на блок цен. */
 export const COURSE_SALES_HREF = '/#pricing';
@@ -57,6 +58,7 @@ export function CourseCheckoutCTA({
             buttonVariants({ variant: 'landingRose', size: 'lg' }),
             'w-full shrink-0 rounded-xl text-center sm:w-auto sm:min-w-[240px]'
           )}
+          onClick={() => trackGa4AndYm(ANALYTICS.CLICK_ENROLL, ANALYTICS.CLICK_ENROLL)}
         >
           Начать курс — 2 месяца практики
         </Link>

@@ -7,7 +7,8 @@
 import { useState, Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 function VerifyEmailForm() {
   const router = useRouter();
@@ -47,8 +48,8 @@ function VerifyEmailForm() {
         <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
           Ссылка недействительна: отсутствует токен. Запросите новое письмо.
         </p>
-        <Link href="/login" className="mt-6 inline-block">
-          <Button variant="secondary">← Назад к входу</Button>
+        <Link href="/login" className={cn(buttonVariants({ variant: 'secondary' }), 'mt-6')}>
+          ← Назад к входу
         </Link>
       </div>
     );
@@ -70,8 +71,8 @@ function VerifyEmailForm() {
         <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
           Перенаправление на страницу входа…
         </p>
-        <Link href="/login?verified=1" className="mt-6 inline-block">
-          <Button variant="secondary">Войти</Button>
+        <Link href="/login?verified=1" className={cn(buttonVariants({ variant: 'secondary' }), 'mt-6')}>
+          Войти
         </Link>
       </div>
     );
@@ -84,8 +85,8 @@ function VerifyEmailForm() {
       <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
         Токен недействителен или истёк. Запросите новое письмо.
       </p>
-      <Link href="/login" className="mt-6 inline-block">
-        <Button variant="secondary">← Назад к входу</Button>
+      <Link href="/login" className={cn(buttonVariants({ variant: 'secondary' }), 'mt-6')}>
+        ← Назад к входу
       </Link>
     </div>
   );

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { BlogArticleCourseLinks } from '@/components/BlogArticleCourseLinks';
 import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
 import { JsonLdBlogArticle } from '@/components/JsonLdBlogArticle';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
@@ -115,6 +116,7 @@ export default async function BlogArticlePage({ params }: Props) {
               <p key={i}>{p}</p>
             ))}
           </div>
+          <BlogArticleCourseLinks slug={slug} />
         </article>
 
         {related.length > 0 ? (

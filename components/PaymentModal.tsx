@@ -13,6 +13,7 @@ import { Label } from '@/components/ui/label';
 import type { TariffItem } from '@/components/sections/Pricing';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { ANALYTICS, trackGa4AndYm } from '@/lib/analytics-events';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -60,6 +61,9 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
         return;
       }
       if (data.success && data.paymentUrl) {
+        trackGa4AndYm(ANALYTICS.FORM_SUBMIT, ANALYTICS.FORM_SUBMIT, {
+          tariff_slug: tariff.slug ?? tariff.id,
+        });
         window.location.href = data.paymentUrl;
       } else {
         const msg = data?.error || (res.ok ? '' : 'Ошибка сервера. Попробуйте позже или свяжитесь с нами.');

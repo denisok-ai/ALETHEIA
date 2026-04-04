@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Card } from '@/components/portal/Card';
 import { formatPersonName } from '@/lib/format-person-name';
+import { CRM_LEAD_STATUSES, CRM_LEAD_STATUS_LABEL, type CrmLeadStatus } from '@/lib/crm-lead-status';
 
 export type CrmLeadDetail = {
   id: number;
@@ -31,8 +32,6 @@ export type CrmLeadDetail = {
   created_at: string;
   updated_at: string;
 };
-
-const STATUSES = ['new', 'contacted', 'qualified', 'converted', 'lost'] as const;
 
 export function CrmLeadDetailClient({ initialLead }: { initialLead: CrmLeadDetail }) {
   const router = useRouter();
@@ -197,9 +196,9 @@ export function CrmLeadDetailClient({ initialLead }: { initialLead: CrmLeadDetai
             disabled={updatingStatus}
             className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-medium text-[var(--portal-text)]"
           >
-            {STATUSES.map((s) => (
+            {CRM_LEAD_STATUSES.map((s) => (
               <option key={s} value={s}>
-                {s}
+                {CRM_LEAD_STATUS_LABEL[s]}
               </option>
             ))}
           </select>

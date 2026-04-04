@@ -9,13 +9,26 @@ import { RefreshCw } from 'lucide-react';
 
 export function HealthStatus() {
   const [status, setStatus] = useState<'idle' | 'ok' | 'error'>('idle');
+  const [detail, setDetail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const check = useCallback(async () => {
     setLoading(true);
+    setDetail(null);
     try {
       const r = await fetch('/api/health', { cache: 'no-store' });
-      setStatus(r.ok ? 'ok' : 'error');
+      const data = (await r.json().catch(() => null)) as {
+        database?: string;
+        databaseError?: string;
+      } | null;
+      if (r.ok) {
+        setStatus('ok');
+      } else if (data?.database === 'error') {
+        setStatus('error');
+        setDetail(data.databaseError ?? 'Проверьте DATABASE_URL и файл БД (SQLite).');
+      } else {
+        setStatus('error');
+      }
     } catch {
       setStatus('error');
     } finally {
@@ -38,8 +51,8 @@ export function HealthStatus() {
       <span className="text-sm text-[var(--portal-text-muted)]">
         {loading && 'Проверка…'}
         {!loading && status === 'idle' && 'Нажмите кнопку, чтобы проверить доступность сервера.'}
-        {!loading && status === 'ok' && 'Сервер отвечает.'}
-        {!loading && status === 'error' && 'Сервер не ответил или ошибка.'}
+        {!loading && status === 'ok' && 'Сервер отвечает, база данных доступна.'}
+        {!loading && status === 'error' && (detail ?? 'Сервер не ответил или ошибка.')}
       </span>
       <Button
         type="button"

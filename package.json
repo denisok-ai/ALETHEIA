@@ -1,6 +1,6 @@
 {
   "name": "avaterra-course",
-  "version": "3.1.1",
+  "version": "3.3.0",
   "private": true,
   "scripts": {
     "dev": "next dev --turbo",
@@ -12,6 +12,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
+    "db:fix-verification-urls": "tsx scripts/fix-verification-material-urls.ts",
     "services:export": "tsx scripts/export-services.ts",
     "services:import-replace": "tsx scripts/import-services-replace.ts",
     "prod:diagnostics": "bash scripts/prod-diagnostics.sh",
@@ -27,7 +28,13 @@
     "deploy:prod": "bash scripts/push-and-deploy-prod.sh",
     "deploy:rsync": "bash scripts/deploy-rsync-from-local.sh",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:guest": "playwright test tests/e2e/guest/ --project=guest",
+    "test:e2e:student": "playwright test tests/e2e/student/ --project=student",
+    "test:e2e:manager": "playwright test tests/e2e/manager/ --project=manager",
+    "test:e2e:admin": "playwright test tests/e2e/admin/ --project=admin",
+    "test:e2e:cross-role": "playwright test tests/e2e/cross-role/ --project=cross-role",
+    "test:e2e:rbac": "playwright test tests/e2e/cross-role/access-denied.spec.ts --project=cross-role"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.24",
@@ -89,6 +96,7 @@
     "@types/three": "^0.169.0",
     "eslint": "^8.57.0",
     "eslint-config-next": "14.2.35",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.15",
     "tsx": "^4.21.0",

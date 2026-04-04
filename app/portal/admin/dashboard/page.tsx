@@ -4,6 +4,7 @@
 import type { Metadata } from 'next';
 import nextDynamic from 'next/dynamic';
 import { prisma } from '@/lib/db';
+import { formatRub } from '@/lib/format-ru';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { RecentEvents, type EventItem } from './RecentEvents';
 import { QuickAccessSection } from './QuickAccessSection';
@@ -281,7 +282,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
           </div>
           <div>
             <p className="text-xs font-semibold text-[#4338CA] mb-0.5">Выручка (мес.)</p>
-            <p className="text-2xl font-bold text-[var(--portal-text)]">{revenueMonth.toLocaleString('ru')} ₽</p>
+            <p className="text-2xl font-bold text-[var(--portal-text)]">{formatRub(revenueMonth)} ₽</p>
           </div>
         </div>
 

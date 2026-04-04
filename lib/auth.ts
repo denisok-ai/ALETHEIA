@@ -15,7 +15,7 @@ import { closeVisit } from './visits';
 /** Расширение session.user (id, role задаются в callbacks). */
 export type SessionUser = { id?: string; role?: string; email?: string | null; name?: string | null };
 
-/** NEXTAUTH_URL подставляется из БД (site_url / nextauth_url) в lib/settings и instrumentation — см. applyNextAuthUrlToProcessEnv. */
+/** NEXTAUTH_URL задаётся из БД (`nextauth_url`, иначе `site_url`) — см. `applyNextAuthUrlToProcessEnv` в lib/site-url.ts и docs/Env-Config.md. */
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({

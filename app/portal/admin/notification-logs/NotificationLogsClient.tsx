@@ -63,10 +63,19 @@ const EVENT_TYPES = [
   { value: 'access_closed', label: 'Доступ закрыт' },
 ];
 
+const PURGE_RETENTION_OPTIONS = [
+  { days: 7, label: '7 дней' },
+  { days: 30, label: '30 дней' },
+  { days: 90, label: '90 дней' },
+  { days: 180, label: '180 дней' },
+  { days: 365, label: '365 дней' },
+] as const;
+
 export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] }) {
   const router = useRouter();
   const [purgeOpen, setPurgeOpen] = useState(false);
   const [purging, setPurging] = useState(false);
+  const [purgeOlderThanDays, setPurgeOlderThanDays] = useState(30);
   const [eventFilter, setEventFilter] = useState('');
   const [channelFilter, setChannelFilter] = useState('');
   const [page, setPage] = useState(0);
@@ -116,11 +125,12 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
       const res = await fetch('/api/portal/admin/notification-logs/purge', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ olderThanDays: 30 }),
+        body: JSON.stringify({ olderThanDays: purgeOlderThanDays }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error ?? 'Ошибка');
-      toast.success(`Удалено записей: ${data.deleted ?? 0}`);
+      const days = typeof data.olderThanDays === 'number' ? data.olderThanDays : purgeOlderThanDays;
+      toast.success(`Удалено записей: ${data.deleted ?? 0} (старше ${days} дн.)`);
       router.refresh();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Ошибка');
@@ -132,15 +142,32 @@ export function NotificationLogsClient({ initialLogs }: { initialLogs: LogRow[] 
   return (
     <div className="mt-6 space-y-4">
       <div className="flex flex-wrap items-center gap-3">
+        <label className="flex items-center gap-2 text-sm text-[var(--portal-text-muted)]">
+          <span>Удалить записи старше</span>
+          <select
+            value={purgeOlderThanDays}
+            onChange={(e) => setPurgeOlderThanDays(Number(e.target.value))}
+            disabled={purging}
+            className="rounded-lg border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm text-[var(--portal-text)]"
+          >
+            {PURGE_RETENTION_OPTIONS.map((o) => (
+              <option key={o.days} value={o.days}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+        </label>
         <Button type="button" variant="secondary" size="sm" disabled={purging} onClick={() => setPurgeOpen(true)}>
-          {purging ? 'Удаление…' : 'Удалить записи старше 30 дней'}
+          {purging ? 'Удаление…' : 'Очистить журнал'}
         </Button>
       </div>
       <ConfirmDialog
         open={purgeOpen}
         onOpenChange={setPurgeOpen}
         title="Очистить журнал?"
-        description="Будут безвозвратно удалены все записи журнала уведомлений старше 30 дней."
+        description={`Будут безвозвратно удалены записи с датой создания старше ${
+          PURGE_RETENTION_OPTIONS.find((o) => o.days === purgeOlderThanDays)?.label ?? `${purgeOlderThanDays} дн.`
+        }.`}
         confirmLabel="Удалить"
         variant="danger"
         onConfirm={runPurge}

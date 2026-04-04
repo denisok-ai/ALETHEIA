@@ -4,7 +4,7 @@
  * Привязка шаблона сертификата к курсу в блоке Обзор.
  * Выбор шаблона — во всплывающем окне.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Award, ExternalLink, Loader2, LayoutTemplate, Check } from 'lucide-react';
@@ -33,7 +33,7 @@ export function CourseCertificateTemplateBlock({
   const [saving, setSaving] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/portal/admin/certificate-templates');
@@ -47,11 +47,11 @@ export function CourseCertificateTemplateBlock({
     } finally {
       setLoading(false);
     }
-  }
+  }, [courseId]);
 
   useEffect(() => {
-    load();
-  }, [courseId]);
+    void load();
+  }, [load]);
 
   async function handleBind(templateId: string | null) {
     setSaving(true);

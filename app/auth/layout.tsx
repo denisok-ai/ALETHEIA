@@ -14,7 +14,7 @@ export default function AuthFlowLayout({
         href="/"
         className="absolute top-6 left-6 font-semibold text-[var(--portal-accent)] hover:underline"
       >
-        ← Аватера
+        ← На сайт
       </Link>
       <div className="w-full max-w-md">{children}</div>
     </div>

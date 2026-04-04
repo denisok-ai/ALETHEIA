@@ -29,6 +29,7 @@ import { Check, FileText, Ban, CreditCard } from 'lucide-react';
 import { format } from 'date-fns';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsx } from '@/lib/export-xlsx';
+import { formatRub } from '@/lib/format-ru';
 
 export interface OrderRow {
   id: number;
@@ -287,7 +288,9 @@ export function PaymentsTableClient({
                   </TableCell>
                   {visibleColumnIds.includes('orderNumber') && <TableCell className="font-mono text-sm text-[var(--portal-text)]">{o.orderNumber}</TableCell>}
                   {visibleColumnIds.includes('tariffId') && <TableCell className="text-[var(--portal-text-muted)]">{o.tariffId}</TableCell>}
-                  {visibleColumnIds.includes('amount') && <TableCell className="font-medium text-[var(--portal-text)]">{o.amount} ₽</TableCell>}
+                  {visibleColumnIds.includes('amount') && (
+                    <TableCell className="font-medium tabular-nums text-[var(--portal-text)]">{formatRub(o.amount)} ₽</TableCell>
+                  )}
                   {visibleColumnIds.includes('clientEmail') && <TableCell className="text-[var(--portal-text-muted)]">{o.clientEmail}</TableCell>}
                     {visibleColumnIds.includes('status') && (
                     <TableCell>
@@ -351,7 +354,10 @@ export function PaymentsTableClient({
             </DialogHeader>
             <dl className="mt-2 space-y-1 text-sm">
               <div><dt className="text-[var(--portal-text-muted)] inline">Тариф: </dt><dd className="inline">{detailOrder.tariffId}</dd></div>
-              <div><dt className="text-[var(--portal-text-muted)] inline">Сумма: </dt><dd className="inline">{detailOrder.amount} ₽</dd></div>
+              <div>
+                <dt className="text-[var(--portal-text-muted)] inline">Сумма: </dt>
+                <dd className="inline tabular-nums">{formatRub(detailOrder.amount)} ₽</dd>
+              </div>
               <div><dt className="text-[var(--portal-text-muted)] inline">Email: </dt><dd className="inline">{detailOrder.clientEmail}</dd></div>
               <div><dt className="text-[var(--portal-text-muted)] inline">Статус: </dt><dd className="inline">{detailOrder.status}</dd></div>
               <div><dt className="text-[var(--portal-text-muted)] inline">Создан: </dt><dd className="inline">{format(new Date(detailOrder.createdAt), 'dd.MM.yyyy HH:mm')}</dd></div>

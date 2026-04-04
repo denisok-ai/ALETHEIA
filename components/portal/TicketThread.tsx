@@ -205,6 +205,19 @@ export function TicketThread({
           {subject}
         </h1>
         <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-[var(--portal-text-muted)]">
+          {(canChangeStatus || canAssign) && (
+            <>
+              <span
+                className="w-full text-xs text-[var(--portal-text-soft)] font-mono break-all"
+                title="Используется в адресе страницы тикета"
+              >
+                ID тикета: {ticketId}
+              </span>
+              <span className="text-xs text-[var(--portal-text-soft)] w-full -mt-1">
+                Номер в теме обращения не совпадает с этим ID — для ссылки на тикет копируйте ID из адресной строки.
+              </span>
+            </>
+          )}
           <span>Автор: {userDisplayName}</span>
           {managerId && <span>Менеджер: {managers.find((m) => m.id === managerId)?.label ?? managerId}</span>}
           {orderNumber && (

@@ -3,12 +3,11 @@
  */
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { ArrowLeft } from 'lucide-react';
 import { PageHeader } from '@/components/portal/PageHeader';
+import { PortalBackLink } from '@/components/portal/PortalBackLink';
 import { GroupDetailClient } from './GroupDetailClient';
 
 const moduleTypeLabel: Record<string, string> = {
@@ -73,13 +72,9 @@ export default async function AdminGroupDetailPage({ params }: Props) {
         title={group.name}
         description={group.description ?? undefined}
         actions={
-          <Link
-            href={listHref}
-            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[var(--portal-accent)]"
-          >
-            <ArrowLeft className="h-4 w-4" />
+          <PortalBackLink href={listHref} className="bg-white">
             К списку
-          </Link>
+          </PortalBackLink>
         }
       />
 

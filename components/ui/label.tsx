@@ -8,6 +8,8 @@ export interface LabelProps
 
 const Label = React.forwardRef<HTMLLabelElement, LabelProps>(
   ({ className, ...props }, ref) => (
+    // Примитив: связь с полем через htmlFor у родителя или вложенный control.
+    // eslint-disable-next-line jsx-a11y/label-has-associated-control
     <label
       ref={ref}
       className={cn(

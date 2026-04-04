@@ -6,7 +6,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Card } from '@/components/portal/Card';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
@@ -122,8 +123,8 @@ export function NotificationSetEditForm({ setId, initial }: NotificationSetEditF
           <Button type="submit" disabled={saving}>
             {saving ? 'Сохранение…' : 'Сохранить'}
           </Button>
-          <Link href="/portal/admin/notification-sets">
-            <Button type="button" variant="secondary">К каталогу</Button>
+          <Link href="/portal/admin/notification-sets" className={cn(buttonVariants({ variant: 'secondary' }))}>
+            К каталогу
           </Link>
         </div>
       </form>

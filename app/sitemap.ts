@@ -7,14 +7,20 @@ import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
 /**
  * Генерирует sitemap.xml для поисковых систем.
  * Базовый URL из БД (Портал → Настройки). Публикации подтягиваются из БД при доступности.
+ * Динамическая генерация при запросе — актуальные URL после деплоя.
  */
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
   const publicPaths = [
     { path: '', changeFrequency: 'weekly' as const, priority: 1 },
     { path: '/course/navyki-myshechnogo-testirovaniya', changeFrequency: 'weekly' as const, priority: 0.85 },
+    { path: '/about', changeFrequency: 'monthly' as const, priority: 0.8 },
     { path: '/blog', changeFrequency: 'weekly' as const, priority: 0.75 },
+    { path: '/faq', changeFrequency: 'monthly' as const, priority: 0.72 },
+    { path: '/contacts', changeFrequency: 'monthly' as const, priority: 0.7 },
     { path: '/oferta', changeFrequency: 'monthly' as const, priority: 0.9 },
     { path: '/privacy', changeFrequency: 'yearly' as const, priority: 0.5 },
     { path: '/login', changeFrequency: 'yearly' as const, priority: 0.4 },

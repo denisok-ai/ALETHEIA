@@ -11,12 +11,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-function getDashboardByRole(role: string): string {
-  if (role === 'admin') return '/portal/admin/dashboard';
-  if (role === 'manager') return '/portal/manager/dashboard';
-  return '/portal/student/dashboard';
-}
+import { getPortalHomeForRole } from '@/lib/portal-role-home';
 
 function LoginForm() {
   const [email, setEmail] = useState('');
@@ -53,7 +48,7 @@ function LoginForm() {
         session = await getSession();
       }
       const role = (session?.user as { role?: string })?.role ?? 'user';
-      const target = redirectParam === '/portal' ? getDashboardByRole(role) : redirectParam;
+      const target = redirectParam === '/portal' ? getPortalHomeForRole(role).path : redirectParam;
       // Небольшая задержка, чтобы cookie успел установиться перед навигацией
       await new Promise((r) => setTimeout(r, 100));
       window.location.href = target;

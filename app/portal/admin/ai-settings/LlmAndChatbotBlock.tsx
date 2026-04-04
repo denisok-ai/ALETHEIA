@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,6 +55,7 @@ const DEFAULT_CHATBOT: LlmConfig = {
 const DEFAULT_TUTOR: LlmConfig = {
   provider: 'deepseek',
   model: 'deepseek-chat',
+  system_prompt: null,
   temperature: 0.5,
   max_tokens: 1500,
 };
@@ -183,7 +185,7 @@ export function LlmAndChatbotBlock({
         key: 'course-tutor',
         provider: tutor.provider === 'other' ? '' : tutor.provider,
         model: tutor.model,
-        system_prompt: null,
+        system_prompt: tutor.system_prompt?.trim() ? tutor.system_prompt.trim() : null,
         temperature: tutor.temperature,
         max_tokens: tutor.max_tokens,
       };
@@ -210,8 +212,8 @@ export function LlmAndChatbotBlock({
 
   return (
     <Card
-      title="Подключение LLM и параметры чат-бота"
-      description="Сохраните несколько API-ключей и выберите провайдера с моделью для чат-бота и тьютора. Можно использовать разные модели и ключи."
+      title="Подключение LLM: чат на сайте и тьютор в курсе"
+      description="Два сценария: публичный чат на лендинге (продажи и вопросы по продукту) и AI в плеере SCORM для записанных студентов (ответы по материалам курса). Ключи и модели можно задать раздельно."
     >
       <div className="space-y-10">
         {/* Сохранённые API ключи */}
@@ -292,13 +294,32 @@ export function LlmAndChatbotBlock({
 
         {/* Чат-бот */}
         <section className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-          <h3 className="text-base font-semibold text-[var(--portal-text)] mb-4">Чат-бот (Сомаватар)</h3>
+          <h3 className="text-base font-semibold text-[var(--portal-text)] mb-4">Чат на лендинге (консультант по продукту)</h3>
           <form onSubmit={saveChatbot} className="space-y-4">
             <div>
               <Label>Использовать сохранённый ключ</Label>
               <select
                 value={chatbot.api_key_id ?? ''}
-                onChange={(e) => setChatbot((p) => ({ ...p, api_key_id: e.target.value || null }))}
+                onChange={(e) => {
+                  const id = e.target.value || null;
+                  if (!id) {
+                    setChatbot((p) => ({ ...p, api_key_id: null }));
+                    return;
+                  }
+                  const k = apiKeys.find((x) => x.id === id);
+                  if (!k) {
+                    setChatbot((p) => ({ ...p, api_key_id: id }));
+                    return;
+                  }
+                  const kp =
+                    k.provider && PROVIDERS.some((pr) => pr.id === k.provider) ? k.provider : 'other';
+                  setChatbot((p) => {
+                    const models = MODELS_BY_PROVIDER[kp] ?? [];
+                    const nextModel =
+                      models.length > 0 && !models.includes(p.model) ? models[0]! : p.model;
+                    return { ...p, api_key_id: id, provider: kp, model: nextModel };
+                  });
+                }}
                 className="mt-1 w-full max-w-md rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
               >
                 <option value="">— Свой ключ ниже или не менять —</option>
@@ -413,16 +434,39 @@ export function LlmAndChatbotBlock({
 
         {/* Тьютор курсов */}
         <section className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
-          <h3 className="text-base font-semibold text-[var(--portal-text)] mb-4">Тьютор курсов (AI в плеере)</h3>
+          <h3 className="text-base font-semibold text-[var(--portal-text)] mb-4">AI-тьютор в плеере курса (для студентов)</h3>
           <p className="text-sm text-[var(--portal-text-muted)] mb-4">
-            Если ключ не задан, используется ключ чат-бота. Включение тьютора по курсам — в карточке курса (блок «AI-тьютор в плеере»).
+            Доступен после записи на курс в SCORM-плеере. Если ключ не задан — используется ключ чат-бота. Включение по курсам — в карточке курса («AI-тьютор в плеере»). Ниже — редактируемые инструкции (playbook); контент уроков подставляется из SCORM автоматически.{' '}
+            <Link href="/portal/admin/help#ai-tutor-admin" className="font-medium text-[var(--portal-accent)] hover:underline">
+              Справка: где смотреть беседы студентов
+            </Link>
+            .
           </p>
           <form onSubmit={saveTutor} className="space-y-4">
             <div>
               <Label>Использовать сохранённый ключ</Label>
               <select
                 value={tutor.api_key_id ?? ''}
-                onChange={(e) => setTutor((p) => ({ ...p, api_key_id: e.target.value || null }))}
+                onChange={(e) => {
+                  const id = e.target.value || null;
+                  if (!id) {
+                    setTutor((p) => ({ ...p, api_key_id: null }));
+                    return;
+                  }
+                  const k = apiKeys.find((x) => x.id === id);
+                  if (!k) {
+                    setTutor((p) => ({ ...p, api_key_id: id }));
+                    return;
+                  }
+                  const kp =
+                    k.provider && PROVIDERS.some((pr) => pr.id === k.provider) ? k.provider : 'other';
+                  setTutor((p) => {
+                    const models = MODELS_BY_PROVIDER[kp] ?? [];
+                    const nextModel =
+                      models.length > 0 && !models.includes(p.model) ? models[0]! : p.model;
+                    return { ...p, api_key_id: id, provider: kp, model: nextModel };
+                  });
+                }}
                 className="mt-1 w-full max-w-md rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
               >
                 <option value="">— Ключ чат-бота или свой ниже —</option>
@@ -492,6 +536,21 @@ export function LlmAndChatbotBlock({
                   </select>
                 )}
               </div>
+            </div>
+            <div>
+              <Label htmlFor="tutor-playbook">Инструкции тьютора (playbook, Markdown)</Label>
+              <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+                Если в блоке «Шаблоны промптов» выбран активный шаблон для «Тьютор в курсе», он подставляется вместо этого текста. Подстановки: {'{{PORTAL_URL}}'}, {'{{STUDENT_DASHBOARD_URL}}'}, {'{{PORTAL_COURSE_URL}}'}, {'{{PORTAL_COURSE_PLAY_URL}}'}, {'{{COURSE_URL}}'}, {'{{PRICING_URL}}'}, {'{{SUPPORT_EMAIL}}'}.
+              </p>
+              <textarea
+                id="tutor-playbook"
+                value={tutor.system_prompt ?? ''}
+                onChange={(e) => setTutor((p) => ({ ...p, system_prompt: e.target.value || null }))}
+                rows={12}
+                className="mt-2 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 font-mono text-sm"
+                placeholder="Роль наставника, правила эскалации к куратору…"
+                spellCheck={false}
+              />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>

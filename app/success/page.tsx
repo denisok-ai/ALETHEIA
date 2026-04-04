@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button-variants';
+import { cn } from '@/lib/utils';
 
 function maskEmail(email: string): string {
   const at = email.indexOf('@');
@@ -76,23 +77,24 @@ export default async function SuccessPage({
         )}
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           {userId ? (
-            <Link href="/portal/student/courses">
-              <Button variant="primary">Перейти в личный кабинет → Мои курсы</Button>
+            <Link href="/portal/student/courses" className={cn(buttonVariants({ variant: 'primary' }))}>
+              Перейти в личный кабинет → Мои курсы
             </Link>
           ) : (
             <>
-              <Link href="/register">
-                <Button variant="primary">Зарегистрироваться</Button>
+              <Link href="/register" className={cn(buttonVariants({ variant: 'primary' }))}>
+                Зарегистрироваться
               </Link>
-              <Link href="/login">
-                <Button variant="secondary">Войти</Button>
+              <Link href="/login" className={cn(buttonVariants({ variant: 'secondary' }))}>
+                Войти
               </Link>
             </>
           )}
-          <Link href="/">
-            <Button variant="ghost" className="text-white/80 hover:text-white">
-              На главную
-            </Button>
+          <Link
+            href="/"
+            className={cn(buttonVariants({ variant: 'ghost' }), 'text-white/80 hover:text-white')}
+          >
+            На главную
           </Link>
         </div>
       </div>

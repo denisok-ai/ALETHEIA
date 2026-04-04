@@ -3,7 +3,7 @@
 /**
  * AI-тьютор: переключатель + список бесед с просмотром переписки.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
 import { Bot, MessageCircle, Loader2 } from 'lucide-react';
@@ -26,7 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import ReactMarkdown from 'react-markdown';
+import { ChatMarkdown } from '@/components/ChatMarkdown';
 import { EmptyState } from '@/components/ui/EmptyState';
 
 type ConversationRow = {
@@ -56,6 +56,10 @@ export function CourseAiTutorBlock({
 }) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [toggleLoading, setToggleLoading] = useState(false);
+
+  useEffect(() => {
+    setEnabled(initialEnabled);
+  }, [initialEnabled]);
   const [conversations, setConversations] = useState<ConversationRow[]>([]);
   const [convLoading, setConvLoading] = useState(true);
   const [selectedConvId, setSelectedConvId] = useState<string | null>(null);
@@ -85,7 +89,7 @@ export function CourseAiTutorBlock({
     setToggleLoading(false);
   }
 
-  async function loadConversations() {
+  const loadConversations = useCallback(async () => {
     setConvLoading(true);
     try {
       const res = await fetch(`/api/portal/admin/courses/${courseId}/ai-conversations?pageSize=20`);
@@ -97,11 +101,11 @@ export function CourseAiTutorBlock({
     } finally {
       setConvLoading(false);
     }
-  }
+  }, [courseId]);
 
   useEffect(() => {
-    loadConversations();
-  }, [courseId]);
+    void loadConversations();
+  }, [loadConversations]);
 
   async function openConversation(convId: string) {
     setSelectedConvId(convId);
@@ -132,7 +136,11 @@ export function CourseAiTutorBlock({
         AI-тьютор в плеере
       </h2>
       <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
-        Если включён, студенты видят кнопку чата с AI-тьютором при прохождении курса.
+        Если включён, в полноэкранном плеере SCORM справа внизу появляется кнопка чата: ответы по материалам курса. На странице курса студенту показывается подсказка; выключите, если чат не нужен.{' '}
+        <Link href="/portal/admin/help#ai-tutor-admin" className="font-medium text-[var(--portal-accent)] hover:underline">
+          Справка для администратора
+        </Link>
+        .
       </p>
       <div className="mt-3 flex items-center gap-3">
         <button
@@ -249,8 +257,8 @@ export function CourseAiTutorBlock({
                   {m.role === 'user' ? (
                     <p className="whitespace-pre-wrap">{m.content}</p>
                   ) : (
-                    <div className="prose prose-sm max-w-none dark:prose-invert">
-                      <ReactMarkdown>{m.content}</ReactMarkdown>
+                    <div className="prose prose-sm max-w-none dark:prose-invert [&_a]:text-[var(--portal-accent)] [&_a]:underline">
+                      <ChatMarkdown>{m.content}</ChatMarkdown>
                     </div>
                   )}
                   <p className="mt-1 text-xs text-[var(--portal-text-muted)]">

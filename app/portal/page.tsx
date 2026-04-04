@@ -5,6 +5,7 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { getPortalHomeForRole } from '@/lib/portal-role-home';
 
 export default async function PortalPage() {
   const session = await getServerSession(authOptions);
@@ -13,13 +14,5 @@ export default async function PortalPage() {
   }
 
   const role = (session.user as { role?: string })?.role ?? 'user';
-
-  if (role === 'admin') {
-    redirect('/portal/admin/dashboard');
-  }
-  if (role === 'manager') {
-    redirect('/portal/manager/dashboard');
-  }
-
-  redirect('/portal/student/dashboard');
+  redirect(getPortalHomeForRole(role).path);
 }

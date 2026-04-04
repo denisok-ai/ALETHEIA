@@ -26,6 +26,7 @@ model User {
   managedTickets Ticket[]       @relation("ManagerTickets")
   scormProgress ScormProgress[]
   userEnergy   UserEnergy?
+  gamificationXpEvents GamificationXpEvent[]
   phygitalVerifications PhygitalVerification[]
   orders       Order[]
   publicationComments PublicationComment[]
@@ -37,6 +38,7 @@ model User {
   passwordTokens         PasswordToken[]
   emailVerificationTokens EmailVerificationToken[]
   aiTutorConversations    AiTutorConversation[]
+  verificationThreadComments PhygitalVerificationThreadComment[]
 }
 
 // Иерархические группы для модулей Курсы, Медиатека, Пользователи
@@ -146,7 +148,13 @@ model Course {
   aiContext       String?  // JSON: extracted text per lesson for LLM
   aiTutorEnabled  Boolean  @default(true) // включён ли AI-тьютор в плеере
   thumbnailUrl    String?
-  status         String   @default("published") // draft=В разработке, published=Действительно, cancelled=Отменено, archived=В архиве
+  /// Формат: scorm — асинхронное обучение (SCORM); live_event — очное мероприятие и/или вебинар по расписанию
+  courseFormat   String   @default("scorm")
+  /// Очно: адрес / зал; можно указать «Онлайн» — детали в eventUrl
+  eventVenue     String?
+  /// Ссылка на вебинар (Zoom, Teams, TrueConf и т.д.)
+  eventUrl       String?
+  status         String   @default("published") // draft=В разработке, published=Опубликован, cancelled=Отменено, archived=В архиве
   price          Int?
   sortOrder      Int      @default(0)
   verificationRequiredLessonIds String? // JSON array of lesson identifiers that require phygital verification, e.g. ["lesson-1","lesson-2"]
@@ -352,6 +360,20 @@ model PhygitalVerification {
   reviewedAt DateTime?
   comment    String?
   createdAt  DateTime @default(now())
+  threadComments PhygitalVerificationThreadComment[]
+}
+
+/// Переписка по заданию: слушатель и проверяющий (менеджер/админ).
+model PhygitalVerificationThreadComment {
+  id               String   @id @default(cuid())
+  verificationId   String
+  verification     PhygitalVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  authorUserId     String
+  author           User     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  body             String
+  createdAt        DateTime @default(now())
+
+  @@index([verificationId, createdAt])
 }
 
 model AuditLog {
@@ -514,6 +536,20 @@ model UserEnergy {
   level          Int      @default(1)
   lastPracticeAt DateTime?
   updatedAt      DateTime @updatedAt
+}
+
+/// Журнал изменений заряда (геймификация): урок, ручная правка админом.
+model GamificationXpEvent {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  source       String   // lesson_complete | admin_delta | admin_set
+  delta        Int
+  balanceAfter Int
+  meta         String   @default("{}")
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
 }
 
 model Lead {

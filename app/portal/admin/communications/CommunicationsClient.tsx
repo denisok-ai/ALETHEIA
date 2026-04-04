@@ -64,6 +64,19 @@ interface CommsSendRow {
   sentAt: string;
 }
 
+const TEMPLATE_SORT_GETTERS: Record<string, (t: Template) => unknown> = {
+  name: (t) => t.name,
+  channel: (t) => t.channel,
+  subject: (t) => t.subject ?? '',
+};
+
+const COMMS_SEND_SORT_GETTERS: Record<string, (s: CommsSendRow) => unknown> = {
+  date: (s) => s.sentAt,
+  channel: (s) => s.channel,
+  recipient: (s) => s.recipient,
+  status: (s) => s.status,
+};
+
 interface RecipientUser {
   id: string;
   email: string | null;
@@ -266,14 +279,9 @@ export function CommunicationsClient({
       )
     : templates;
 
-  const templateSortGetters: Record<string, (t: Template) => unknown> = {
-    name: (t) => t.name,
-    channel: (t) => t.channel,
-    subject: (t) => t.subject ?? '',
-  };
   const sortedTemplates = useMemo(() => {
-    if (!templatesSortKey || !templateSortGetters[templatesSortKey]) return filteredTemplates;
-    return sortTableBy(filteredTemplates, templateSortGetters[templatesSortKey], templatesSortDir);
+    if (!templatesSortKey || !TEMPLATE_SORT_GETTERS[templatesSortKey]) return filteredTemplates;
+    return sortTableBy(filteredTemplates, TEMPLATE_SORT_GETTERS[templatesSortKey], templatesSortDir);
   }, [filteredTemplates, templatesSortKey, templatesSortDir]);
 
   const templatesTotal = sortedTemplates.length;
@@ -282,15 +290,9 @@ export function CommunicationsClient({
   const templatesStart = templatesCurrentPage * templatesPageSize;
   const templatesPageRows = sortedTemplates.slice(templatesStart, templatesStart + templatesPageSize);
 
-  const sendsSortGetters: Record<string, (s: CommsSendRow) => unknown> = {
-    date: (s) => s.sentAt,
-    channel: (s) => s.channel,
-    recipient: (s) => s.recipient,
-    status: (s) => s.status,
-  };
   const sortedSends = useMemo(() => {
-    if (!sendsSortKey || !sendsSortGetters[sendsSortKey]) return sends;
-    return sortTableBy(sends, sendsSortGetters[sendsSortKey], sendsSortDir);
+    if (!sendsSortKey || !COMMS_SEND_SORT_GETTERS[sendsSortKey]) return sends;
+    return sortTableBy(sends, COMMS_SEND_SORT_GETTERS[sendsSortKey], sendsSortDir);
   }, [sends, sendsSortKey, sendsSortDir]);
 
   const sendsTotal = sortedSends.length;

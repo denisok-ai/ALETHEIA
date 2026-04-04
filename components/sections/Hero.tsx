@@ -3,9 +3,11 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { COURSE_CHECKOUT_URL } from '@/lib/content/course-lynda-teaser';
 import { BRAND_SCHOOL_LINE } from '@/lib/brand';
+import { ANALYTICS, trackGa4AndYm } from '@/lib/analytics-events';
 
 export function Hero() {
   const checkoutHref = COURSE_CHECKOUT_URL;
@@ -53,19 +55,20 @@ export function Hero() {
               transition={t(0.5, 0.15)}
               className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
             >
-              <Link href="#pricing" className="inline-flex">
-                <Button size="lg" variant="landingRose" className="min-w-[200px] rounded-xl px-6">
-                  Записаться на бесплатный пробный урок
-                </Button>
+              <Link
+                href="#pricing"
+                className={cn(buttonVariants({ size: 'lg', variant: 'landingRose' }), 'min-w-[200px] rounded-xl px-6')}
+                onClick={() => trackGa4AndYm(ANALYTICS.CLICK_ENROLL, ANALYTICS.CLICK_ENROLL)}
+              >
+                Записаться на бесплатный пробный урок
               </Link>
               <Link
                 href={checkoutHref}
                 {...(checkoutExternal ? { target: '_blank' as const, rel: 'noopener noreferrer' } : {})}
-                className="inline-flex"
+                className={cn(buttonVariants({ size: 'lg', variant: 'landingSoft' }), 'min-w-[160px] rounded-xl px-6')}
+                onClick={() => trackGa4AndYm(ANALYTICS.CLICK_ENROLL, ANALYTICS.CLICK_ENROLL)}
               >
-                <Button size="lg" variant="landingSoft" className="min-w-[160px] rounded-xl px-6">
-                  Купить курс
-                </Button>
+                Купить курс
               </Link>
             </motion.div>
             <motion.p

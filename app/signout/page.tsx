@@ -7,7 +7,8 @@
 import { useState } from 'react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export default function SignOutPage() {
   const [loading, setLoading] = useState(false);
@@ -33,8 +34,8 @@ export default function SignOutPage() {
           <Button variant="primary" onClick={handleSignOut} disabled={loading}>
             {loading ? 'Выход…' : 'Выйти'}
           </Button>
-          <Link href="/portal">
-            <Button variant="secondary">Остаться</Button>
+          <Link href="/portal" className={cn(buttonVariants({ variant: 'secondary' }))}>
+            Остаться
           </Link>
         </div>
       </div>

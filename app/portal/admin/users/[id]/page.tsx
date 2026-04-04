@@ -3,12 +3,11 @@
  */
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import Link from 'next/link';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { ArrowLeft } from 'lucide-react';
 import { PageHeader } from '@/components/portal/PageHeader';
+import { PortalBackLink } from '@/components/portal/PortalBackLink';
 import { UserDetailTabs } from './UserDetailTabs';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -86,15 +85,7 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
         ]}
         title={String(displayName ?? 'Пользователь')}
         description={email ?? undefined}
-        actions={
-          <Link
-            href="/portal/admin/users"
-            className="inline-flex items-center gap-1 rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm font-medium text-[var(--portal-text)] hover:bg-[#F8FAFC] hover:text-[var(--portal-accent)] transition-colors"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            К списку пользователей
-          </Link>
-        }
+        actions={<PortalBackLink href="/portal/admin/users">К списку пользователей</PortalBackLink>}
       />
 
       <UserDetailTabs

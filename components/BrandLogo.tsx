@@ -9,6 +9,10 @@ type BrandLogoProps = {
   className?: string;
   imgClassName?: string;
   /**
+   * true — рядом уже есть видимое название или aria-label у ссылки; не дублируем имя в дереве доступности.
+   */
+  withVisibleBrandText?: boolean;
+  /**
    * Убрать светлую/белую подложку у PNG без mix-blend: альфа = 1 − яркость (Rec. 709).
    * Светлые детали самого знака слегка теряют непрозрачность — при идеальном PNG с альфой задайте false.
    */
@@ -21,6 +25,7 @@ type BrandLogoProps = {
 export function BrandLogo({
   className,
   imgClassName,
+  withVisibleBrandText = false,
   knockout = true,
   priority = false,
   heightClass = 'h-[4.4375rem]',
@@ -92,7 +97,7 @@ export function BrandLogo({
         style={knockout ? { filter: `url(#${filterId})` } : undefined}
         onError={handleError}
       />
-      <span className="sr-only">{BRAND_SITE_NAME}</span>
+      {!withVisibleBrandText ? <span className="sr-only">{BRAND_SITE_NAME}</span> : null}
     </span>
   );
 }

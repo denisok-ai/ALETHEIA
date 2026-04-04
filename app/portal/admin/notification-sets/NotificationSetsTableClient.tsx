@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/table';
 import { SortableTableHead } from '@/components/ui/SortableTableHead';
 import { sortTableBy, type SortDir } from '@/lib/table-sort';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 import { getNotificationSetEventLabel } from '@/lib/notification-set-events';
@@ -103,11 +104,12 @@ export function NotificationSetsTableClient({ sets }: { sets: NotificationSetRow
                 </TableCell>
                 <TableCell className="text-[var(--portal-text-muted)]">{s.isDefault ? 'Да' : 'Нет'}</TableCell>
                 <TableCell>
-                  <Link href={`/portal/admin/notification-sets/${s.id}`}>
-                    <Button variant="ghost" size="sm" className="h-8 gap-1">
-                      <FileText className="h-4 w-4" />
-                      Подробнее
-                    </Button>
+                  <Link
+                    href={`/portal/admin/notification-sets/${s.id}`}
+                    className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }), 'h-8 gap-1')}
+                  >
+                    <FileText className="h-4 w-4" />
+                    Подробнее
                   </Link>
                 </TableCell>
               </TableRow>

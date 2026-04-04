@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import ReactMarkdown from 'react-markdown';
+import { ChatMarkdown } from '@/components/ChatMarkdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AVATERRA_OPEN_CHAT_EVENT } from '@/lib/chat-events';
@@ -117,7 +117,7 @@ export function ChatBot() {
                     <p className="whitespace-pre-wrap">{m.text}</p>
                   ) : (
                     <div className="chat-markdown [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:font-semibold [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_a]:text-accent [&_a]:underline [&_a:hover]:opacity-80">
-                      <ReactMarkdown>{m.text}</ReactMarkdown>
+                      <ChatMarkdown>{m.text}</ChatMarkdown>
                     </div>
                   )}
                 </div>

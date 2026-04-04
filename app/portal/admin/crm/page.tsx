@@ -11,6 +11,7 @@ import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { CrmLeadsClient } from './CrmLeadsClient';
 import { CrmFunnelChart } from './CrmFunnelChart';
+import { CRM_LEAD_STATUSES } from '@/lib/crm-lead-status';
 
 export default async function AdminCrmPage() {
   const session = await getServerSession(authOptions);
@@ -34,7 +35,7 @@ export default async function AdminCrmPage() {
     },
     {} as Record<string, number>
   );
-  const statusEntries = STATUS_ORDER.map((status) => [status, byStatus[status] ?? 0] as const);
+  const statusEntries = CRM_LEAD_STATUSES.map((status) => [status, byStatus[status] ?? 0] as const);
 
   const list = leads.map((l) => ({
     id: l.id,
@@ -70,7 +71,7 @@ export default async function AdminCrmPage() {
         ))}
       </div>
 
-      <div className="portal-card p-6">
+      <div className="portal-card min-w-0 p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Воронка лидов</h2>
         <CrmFunnelChart byStatus={byStatus} />
       </div>

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/portal/Card';
 import { PlayCircle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatRub } from '@/lib/format-ru';
 
 interface ServiceOption {
   id: string;
@@ -96,7 +97,7 @@ export function SimulatePaymentBlock() {
             >
               {activeServices.map((s) => (
                 <option key={s.id} value={s.slug}>
-                  {s.name} ({s.slug}) — {s.price.toLocaleString('ru')} ₽
+                  {s.name} ({s.slug}) — {formatRub(s.price)} ₽
                 </option>
               ))}
             </select>

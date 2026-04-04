@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { Download, ArrowLeft } from 'lucide-react';
 import { isPlaceholderOrExampleUrl } from '@/lib/placeholder-url';
 import MediaViewerLazy from '@/components/portal/media/MediaViewerLazy';
@@ -73,10 +74,14 @@ export function MediaViewClient({
 
       <div className="flex flex-wrap gap-2">
         {allowDownload && !isPlaceholder && (
-          <a href={downloadUrl} download target="_blank" rel="noopener noreferrer">
-            <Button variant="primary" size="sm">
-              <Download className="h-4 w-4 mr-2" /> Скачать
-            </Button>
+          <a
+            href={downloadUrl}
+            download
+            target="_blank"
+            rel="noopener noreferrer"
+            className={cn(buttonVariants({ variant: 'primary', size: 'sm' }))}
+          >
+            <Download className="h-4 w-4 mr-2" /> Скачать
           </a>
         )}
         <Button variant="ghost" size="sm" onClick={() => router.push('/portal/student/media')}>

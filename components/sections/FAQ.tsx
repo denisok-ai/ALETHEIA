@@ -3,7 +3,7 @@
 import { useState, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Search, HelpCircle, MessageCircle, Send } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
+import { ChatMarkdown } from '@/components/ChatMarkdown';
 import { Button } from '@/components/ui/button';
 import { FAQ_SECTION_ITEMS } from '@/lib/landing-faq';
 
@@ -198,7 +198,7 @@ export function FAQ() {
                 <div className="mt-5 max-h-[min(24rem,50vh)] overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--lavender-light)] p-4">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-accent">Ответ</p>
                   <div className="chat-markdown text-sm text-[var(--text)] [&_p]:my-1 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 [&_strong]:font-semibold [&_ul]:my-2 [&_ol]:my-2 [&_li]:my-0.5 [&_a]:text-accent [&_a]:underline [&_a:hover]:opacity-80">
-                    <ReactMarkdown>{askAnswer}</ReactMarkdown>
+                    <ChatMarkdown>{askAnswer}</ChatMarkdown>
                   </div>
                 </div>
               )}

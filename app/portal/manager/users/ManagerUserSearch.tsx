@@ -18,6 +18,11 @@ interface Profile {
   created_at: string;
 }
 
+const STATUS_LABEL: Record<string, string> = {
+  active: 'Активен',
+  archived: 'Архив',
+};
+
 export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profile[] }) {
   const [profiles, setProfiles] = useState(initialProfiles);
   const [query, setQuery] = useState('');
@@ -78,7 +83,7 @@ export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profil
                   <td className="px-4 py-3 text-[var(--portal-text-muted)]">{p.email ?? '—'}</td>
                   <td className="px-4 py-3">
                     <span className={`status-badge ${p.status === 'active' ? 'badge-active' : 'badge-neutral'}`}>
-                      {p.status}
+                      {STATUS_LABEL[p.status] ?? p.status}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-[var(--portal-text-muted)]">
@@ -88,7 +93,8 @@ export function ManagerUserSearch({ initialProfiles }: { initialProfiles: Profil
                     <Link
                       href={`/portal/manager/users/${p.id}`}
                       className="inline-flex h-8 w-8 items-center justify-center rounded text-[var(--portal-text-muted)] hover:bg-[var(--portal-accent-soft)] hover:text-[var(--portal-accent)]"
-                      title="Открыть карточку"
+                      title={`Карточка: ${p.display_name ?? p.email ?? p.id}`}
+                      aria-label={`Открыть карточку пользователя ${p.display_name ?? p.email ?? p.id}`}
                     >
                       <ExternalLink className="h-4 w-4" />
                     </Link>

@@ -42,13 +42,19 @@ const nextConfig = {
   reactStrictMode: true,
   compress: true,
   async headers() {
+    const securityHeaders = [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+    ];
+    return [{ source: '/:path*', headers: securityHeaders }];
+  },
+  async redirects() {
     return [
       {
-        source: '/uploads/scorm/:path*',
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-        ],
+        source: '/courses',
+        destination: '/course/navyki-myshechnogo-testirovaniya',
+        permanent: true,
       },
     ];
   },
@@ -58,7 +64,7 @@ const nextConfig = {
     minimumCacheTTL: 60,
   },
   experimental: {
-    optimizePackageImports: ['lucide-react'],
+    /** lucide не в optimizePackageImports: с Turbopack + RSC иконки на сервере давали TypeError «null (reading 'useContext')». */
     instrumentationHook: true,
   },
   // instrumentation / server: встроенный `crypto` не должен резолвиться как npm-пакет.

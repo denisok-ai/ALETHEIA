@@ -1,18 +1,26 @@
 /**
- * Admin: list and create prompt templates (chatbot scope). One active per scope.
+ * Admin: list and create prompt templates. Scopes: chatbot (лендинг), course-tutor (плеер). One active per scope.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
-const SCOPE = 'chatbot';
+const SCOPES = ['chatbot', 'course-tutor'] as const;
+type PromptScope = (typeof SCOPES)[number];
 
-export async function GET() {
+function parseScope(raw: string | null): PromptScope {
+  if (raw === 'course-tutor') return 'course-tutor';
+  return 'chatbot';
+}
+
+export async function GET(request: NextRequest) {
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
+  const scope = parseScope(request.nextUrl.searchParams.get('scope'));
+
   const list = await prisma.promptTemplate.findMany({
-    where: { scope: SCOPE },
+    where: { scope },
     orderBy: [{ isActive: 'desc' }, { updatedAt: 'desc' }],
   });
 
@@ -35,7 +43,7 @@ export async function POST(request: NextRequest) {
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  let body: { name?: string; content?: string };
+  let body: { name?: string; content?: string; scope?: string };
   try {
     body = await request.json();
   } catch {
@@ -44,9 +52,13 @@ export async function POST(request: NextRequest) {
 
   const name = typeof body.name === 'string' ? body.name.trim().slice(0, 200) : 'Новый шаблон';
   const content = typeof body.content === 'string' ? body.content : '';
+  const scope =
+    typeof body.scope === 'string' && SCOPES.includes(body.scope as PromptScope)
+      ? (body.scope as PromptScope)
+      : 'chatbot';
 
   const template = await prisma.promptTemplate.create({
-    data: { name, content, scope: SCOPE, isActive: false },
+    data: { name, content, scope, isActive: false },
   });
 
   return NextResponse.json({

@@ -21,6 +21,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TablePagination, STANDARD_PAGE_SIZES } from '@/components/ui/TablePagination';
 import { Package, Pencil, Trash2, Plus, Loader2, Sparkles, Upload, ImageIcon } from 'lucide-react';
+import { formatRub } from '@/lib/format-ru';
 
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
@@ -686,7 +687,7 @@ export function ServicesAdminBlock() {
                       </TableCell>
                       <TableCell className="font-mono text-sm">{s.slug}</TableCell>
                       <TableCell>{s.name}</TableCell>
-                      <TableCell>{s.price.toLocaleString('ru')} ₽</TableCell>
+                      <TableCell>{formatRub(s.price)} ₽</TableCell>
                       <TableCell className="text-[var(--portal-text-muted)]">{s.paykeeperTariffId ?? '—'}</TableCell>
                       <TableCell className="text-[var(--portal-text-muted)]">{s.courseTitle ?? '—'}</TableCell>
                       <TableCell>

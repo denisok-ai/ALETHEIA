@@ -19,7 +19,7 @@ export default function StudentHelpPage() {
         title="Помощь"
         description="Частые вопросы и контакты"
       />
-      <HelpContent supportHref="/portal/student/support" role="student" />
+      <HelpContent supportHref="/portal/student/support" portalRole="student" />
     </div>
   );
 }

@@ -15,7 +15,8 @@ import {
 } from '@/components/ui/table';
 import { SortableTableHead } from '@/components/ui/SortableTableHead';
 import { sortTableBy, type SortDir } from '@/lib/table-sort';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 
@@ -37,6 +38,14 @@ export interface CertTemplateRow {
   certificatesCount: number;
 }
 
+const CERT_TEMPLATE_SORT_GETTERS: Record<string, (t: CertTemplateRow) => unknown> = {
+  name: (t) => t.name,
+  courseTitle: (t) => t.courseTitle ?? '',
+  background: (t) => (t.backgroundImageUrl ? 1 : 0),
+  minScore: (t) => t.minScore ?? -1,
+  download: (t) => (t.allowUserDownload ? 1 : 0),
+  count: (t) => t.certificatesCount,
+};
 
 export function CertificateTemplatesTableClient({ templates }: { templates: CertTemplateRow[] }) {
   const [page, setPage] = useState(0);
@@ -62,17 +71,9 @@ export function CertificateTemplatesTableClient({ templates }: { templates: Cert
     else { setSortKey(columnId); setSortDir('asc'); }
   };
 
-  const sortGetters: Record<string, (t: CertTemplateRow) => unknown> = {
-    name: (t) => t.name,
-    courseTitle: (t) => t.courseTitle ?? '',
-    background: (t) => (t.backgroundImageUrl ? 1 : 0),
-    minScore: (t) => t.minScore ?? -1,
-    download: (t) => (t.allowUserDownload ? 1 : 0),
-    count: (t) => t.certificatesCount,
-  };
   const sorted = useMemo(() => {
-    if (!sortKey || !sortGetters[sortKey]) return templates;
-    return sortTableBy(templates, sortGetters[sortKey], sortDir);
+    if (!sortKey || !CERT_TEMPLATE_SORT_GETTERS[sortKey]) return templates;
+    return sortTableBy(templates, CERT_TEMPLATE_SORT_GETTERS[sortKey], sortDir);
   }, [templates, sortKey, sortDir]);
 
   const total = sorted.length;
@@ -112,8 +113,11 @@ export function CertificateTemplatesTableClient({ templates }: { templates: Cert
                 <TableCell className="text-center text-[var(--portal-text)]">{t.allowUserDownload ? 'Да' : 'Нет'}</TableCell>
                 <TableCell className="text-center text-[var(--portal-text-muted)]">{t.certificatesCount}</TableCell>
                 <TableCell>
-                  <Link href={`/portal/admin/certificate-templates/${t.id}`}>
-                    <Button variant="secondary" size="sm">Изменить</Button>
+                  <Link
+                    href={`/portal/admin/certificate-templates/${t.id}`}
+                    className={cn(buttonVariants({ variant: 'secondary', size: 'sm' }))}
+                  >
+                    Изменить
                   </Link>
                 </TableCell>
               </TableRow>

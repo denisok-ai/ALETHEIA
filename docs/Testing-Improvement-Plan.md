@@ -105,7 +105,7 @@ No default component was found for a parallel route rendered on this page. Falli
 ## E2E-тесты (Playwright)
 
 **Дата настройки:** 15 марта 2025  
-**Команда:** `npm run test:e2e`
+**Команда:** `npm run test:e2e` (все проекты). По ролям: `npm run test:e2e:guest` | `test:e2e:student` | `test:e2e:manager` | `test:e2e:admin` | `test:e2e:cross-role`; RBAC: `npm run test:e2e:rbac`.
 
 ### Найденные при первом запуске
 
@@ -122,7 +122,7 @@ No default component was found for a parallel route rendered on this page. Falli
 - `tests/e2e/admin/scorm-upload.spec.ts` — загрузка SCORM Agile
 - `tests/e2e/admin/all-sections.spec.ts` — разделы админки
 - `tests/e2e/student/dashboard.spec.ts` — дашборд, курсы (в т.ч. клик по карточке → страница курса), плеер, сертификаты, поддержка (в т.ч. валидация темы тикета)
-- `tests/e2e/manager/tickets.spec.ts` — тикеты, пользователи, верификация
+- `tests/e2e/manager/tickets.spec.ts` — дашборд, тикеты (Excel), пользователи, верификация (фильтры a11y, Excel), ЛК студента под менеджером
 - `tests/e2e/cross-role/course-flow.spec.ts` — админ загружает SCORM → студент открывает плеер
 - `tests/e2e/cross-role/scorm-seed-content.spec.ts` — плеер с контентом из seed (без загрузки ZIP)
 - `tests/e2e/cross-role/ticket-flow.spec.ts` — студент создаёт тикет → менеджер отвечает

@@ -57,6 +57,7 @@ export default async function AdminAiSettingsPage() {
     ? {
         provider: courseTutorSettings.provider,
         model: courseTutorSettings.model,
+        system_prompt: courseTutorSettings.systemPrompt ?? null,
         temperature: courseTutorSettings.temperature ?? 0.5,
         max_tokens: courseTutorSettings.maxTokens ?? 1500,
         api_key_set: Boolean(courseTutorSettings.apiKeyEncrypted) || Boolean(courseTutorSettings.apiKeyId),
@@ -75,7 +76,7 @@ export default async function AdminAiSettingsPage() {
           { label: 'Настройки AI' },
         ]}
         title="Настройки AI"
-        description="Подключение LLM, шаблоны промптов, база знаний, тест чат-бота"
+        description="LLM, шаблоны промпта (лендинг и тьютор), база знаний для сайта, playbook тьютора, тест публичного чата"
       />
 
       <div className="space-y-8">
@@ -87,7 +88,7 @@ export default async function AdminAiSettingsPage() {
 
         <TicketAutoReplyBlock />
 
-        <Card title="Тест чат-бота" description="Проверка ответов с текущими настройками (активный шаблон промпта + база знаний).">
+        <Card title="Тест публичного чата (лендинг)" description="Тот же API, что виджет на сайте: активный шаблон промпта + база знаний по продукту. Тьютор курса тестируется в плеере SCORM.">
           <AiTestChat />
         </Card>
 

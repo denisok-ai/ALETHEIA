@@ -18,8 +18,10 @@ test('студент создаёт тикет → менеджер отвеча
 
   await loginAs('manager@test.local', PASSWORD);
   await page.goto('/portal/manager/tickets');
-  await expect(page.getByRole('link', { name: TICKET_SUBJECT })).toBeVisible({ timeout: 10000 });
-  await page.getByRole('link', { name: TICKET_SUBJECT }).click();
+  // Тема и колонка «Открыть» дают два линка с пересечением по имени — берём ссылку с точным текстом темы
+  const ticketSubjectLink = page.getByRole('link', { name: TICKET_SUBJECT, exact: true }).first();
+  await expect(ticketSubjectLink).toBeVisible({ timeout: 10000 });
+  await ticketSubjectLink.click();
   await expect(page).toHaveURL(/\/portal\/manager\/tickets\/.+/);
   const replyInput = page.getByRole('textbox', { name: /ответ|введите сообщение/i });
   await expect(replyInput).toBeVisible({ timeout: 5000 });

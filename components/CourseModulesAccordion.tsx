@@ -13,8 +13,9 @@ export function CourseModulesAccordion({ modules }: { modules: CourseModuleItem[
     <div className="space-y-3">
       {modules.map((mod, i) => (
         <div
+          id={`module-${i + 1}`}
           key={mod.title}
-          className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm"
+          className="scroll-mt-28 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm"
         >
           <button
             type="button"

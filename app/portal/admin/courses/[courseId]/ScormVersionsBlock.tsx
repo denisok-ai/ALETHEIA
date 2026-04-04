@@ -3,11 +3,12 @@
 /**
  * Блок версий SCORM-пакета: таблица версий, активация, загрузка новой версии.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { Upload, Check, Loader2, Package, Play } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import {
@@ -46,7 +47,7 @@ export function ScormVersionsBlock({ courseId }: { courseId: string }) {
   const [activating, setActivating] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/portal/admin/courses/${courseId}/scorm-versions`);
@@ -72,11 +73,11 @@ export function ScormVersionsBlock({ courseId }: { courseId: string }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [courseId]);
 
   useEffect(() => {
-    load();
-  }, [courseId]);
+    void load();
+  }, [load]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -148,11 +149,14 @@ export function ScormVersionsBlock({ courseId }: { courseId: string }) {
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Версии SCORM и загрузка ZIP</h2>
         <div className="flex items-center gap-2">
           {versions.length > 0 && (
-            <Link href={`/portal/student/courses/${courseId}/play`} target="_blank" rel="noopener noreferrer">
-              <Button type="button" variant="primary" size="sm" className="gap-1.5">
-                <Play className="h-4 w-4" />
-                Запустить плеер
-              </Button>
+            <Link
+              href={`/portal/student/courses/${courseId}/play`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(buttonVariants({ variant: 'primary', size: 'sm' }), 'gap-1.5')}
+            >
+              <Play className="h-4 w-4" />
+              Запустить плеер
             </Link>
           )}
           <input

@@ -4,7 +4,8 @@
  * Mailing detail: summary and logs table.
  */
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import {
   Table,
   TableBody,
@@ -45,10 +46,8 @@ export function MailingDetailClient({
 }) {
   return (
     <div className="space-y-6">
-      <Link href="/portal/admin/mailings">
-        <Button variant="ghost" size="sm">
-          <ArrowLeft className="mr-2 h-4 w-4" /> К списку рассылок
-        </Button>
+      <Link href="/portal/admin/mailings" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
+        <ArrowLeft className="mr-2 h-4 w-4" /> К списку рассылок
       </Link>
 
       {(status === 'completed' || status === 'processing') && (

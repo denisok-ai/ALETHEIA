@@ -957,6 +957,9 @@ export function SettingsForms() {
               placeholder="http://localhost:3000 или https://yourdomain.com"
               className="mt-1"
             />
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+              Хранится в БД; имеет приоритет над «URL сайта». Для локальной разработки при продакшен-URL сайта укажите здесь origin с localhost (порт как у dev-сервера), иначе возможны ошибки сессии NextAuth.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Button type="submit" disabled={savingEnv}>

@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: 'Оплаты' };
 
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { formatRub } from '@/lib/format-ru';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { PaymentsExportButton } from './PaymentsExportButton';
 import { PaymentsTableClient } from './PaymentsTableClient';
@@ -64,7 +65,7 @@ export default async function AdminPaymentsPage({
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="portal-card p-5">
           <p className="text-xs font-medium text-[var(--portal-text-muted)]">Выручка (всего)</p>
-          <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{totalRevenue.toLocaleString('ru')} ₽</p>
+          <p className="mt-1 text-2xl font-bold text-[var(--portal-text)]">{formatRub(totalRevenue)} ₽</p>
         </div>
         <div className="portal-card p-5">
           <p className="text-xs font-medium text-[var(--portal-text-muted)]">Оплаченных заказов</p>

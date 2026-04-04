@@ -6,6 +6,8 @@ const TYPE_LABELS: Record<string, string> = {
   mailing: 'Рассылка',
   access_opened: 'Доступ открыт',
   access_closed: 'Доступ закрыт',
+  gamification_level_up: 'Уровень заряда',
+  gamification_badge_unlocked: 'Бейдж',
 };
 
 /**
@@ -22,11 +24,11 @@ export function formatNotificationType(type: string | null | undefined): string 
  * Возвращает читаемый текст: subject/title, при отсутствии — body без HTML, fallback — первые 100 символов.
  *
  * @param content - JSON-строка или сырой текст
- * @param type - опционально тип уведомления для специальных случаев (enrollment, certificate_issued)
+ * @param type - опционально тип уведомления (в т.ч. из БД как null)
  */
 export function formatNotificationContent(
   content: string | null | undefined,
-  type?: string
+  type?: string | null
 ): string {
   const raw = String(content ?? '').trim();
   if (!raw) return '';
