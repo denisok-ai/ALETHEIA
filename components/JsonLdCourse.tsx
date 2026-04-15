@@ -11,7 +11,7 @@ export function JsonLdCourse({ siteUrl }: { siteUrl: string }) {
   const personId = `${base}/about#person`;
   const courseUrl = `${base}/course/${COURSE_SLUG}`;
   const courseDescription =
-    'Практический курс по прикладному мышечному тестированию и кинезиологии: работа с телом, подсознанием и измеримой обратной связью.';
+    'Курс по обучению мышечному тестированию: причина проблемы за 30 секунд, работа с телом и подсознанием, измеримая обратная связь.';
 
   const reviewsJsonLd = LANDING_REVIEWS.map((r) => ({
     '@type': 'Review',
@@ -37,7 +37,7 @@ export function JsonLdCourse({ siteUrl }: { siteUrl: string }) {
       {
         '@type': 'Course',
         '@id': `${courseUrl}#course`,
-        name: 'Обучение прикладному мышечному тестированию',
+        name: 'Курс по мышечному тестированию',
         url: courseUrl,
         description: courseDescription,
         provider: {

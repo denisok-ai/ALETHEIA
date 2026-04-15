@@ -2,8 +2,8 @@
  * Константы и типы для сертификатов (без зависимостей от Node.js).
  * Импортировать в клиентских компонентах; генерация PDF — в lib/certificates.tsx (только сервер).
  *
- * Макеты: default и heritage — «Классика» (рамка, логотип); prestige — «Премиум» (тёмная шапка);
- * minimal / elegant — компактные варианты.
+ * Визуал в палитре сайта (plum / rose / lavender). default и heritage — классика с рамкой;
+ * prestige — шапка plum и акцент rose; minimal и elegant — лаконичные варианты.
  */
 export type CertificateTemplateId = 'default' | 'heritage' | 'prestige' | 'minimal' | 'elegant';
 
@@ -16,11 +16,11 @@ export const CERTIFICATE_TEMPLATE_IDS: CertificateTemplateId[] = [
 ];
 
 export const CERTIFICATE_TEMPLATE_LABELS: Record<CertificateTemplateId, string> = {
-  default: 'Основной (классика, рамка)',
-  heritage: 'Классика — рамка и логотип',
-  prestige: 'Премиум — тёмная шапка',
-  minimal: 'Компактный',
-  elegant: 'С двойной рамкой',
+  default: 'Классика — золотая обводка, линейный фон',
+  heritage: 'Классика — как основной, для превью печати',
+  prestige: 'Премиум — светлая шапка, золотые акценты, без заливки фона',
+  minimal: 'Минимализм — центр, сетка из контурных точек',
+  elegant: 'Элегант — двойная рамка, белый блок, розетки-обводки',
 };
 
 /** Шаблоны для выпадающего списка скачивания (без дубля default/heritage). */

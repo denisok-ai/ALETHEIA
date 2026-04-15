@@ -150,26 +150,43 @@ export function ReportsClient() {
       if (reportType === 'by-course' && statusFilter !== 'all') params.set('status', statusFilter);
       if (reportType === 'by-learner' && roleFilter !== 'all') params.set('role', roleFilter);
 
+      const clearAll = () => {
+        setSummary(null);
+        setByCourse(null);
+        setByLearner(null);
+        setByPeriod(null);
+        setCourseLearners(null);
+        setGroupIntersection(null);
+      };
+
       if (reportType === 'summary') {
         const r = await fetch(`/api/portal/admin/reports/summary?${params}`);
-        const data = await r.json();
+        const data = await r.json().catch(() => ({}));
+        setByCourse(null);
+        setByLearner(null);
+        setByPeriod(null);
+        setCourseLearners(null);
+        setGroupIntersection(null);
         if (!r.ok) {
           toast.error(typeof data.error === 'string' ? data.error : 'Ошибка отчёта');
           setSummary(null);
         } else {
           setSummary(data);
         }
-        setByCourse(null);
-        setByLearner(null);
-        setByPeriod(null);
-        setCourseLearners(null);
-        setGroupIntersection(null);
-      } else if (reportType === 'course-learners' && selectedCourseId) {
-        const r = await fetch(`/api/portal/admin/reports/course/${selectedCourseId}/learners`);
-        const data = await r.json();
-        if (r.ok) setCourseLearners({ courseId: data.courseId, courseTitle: data.courseTitle, rows: data.rows ?? [] });
-        else {
-          toast.error(data.error === 'Course not found' ? 'Курс не найден' : 'Ошибка отчёта');
+      } else if (reportType === 'course-learners') {
+        if (!selectedCourseId?.trim()) {
+          toast.error('Выберите курс из списка');
+          clearAll();
+          return;
+        }
+        const r = await fetch(
+          `/api/portal/admin/reports/course/${encodeURIComponent(selectedCourseId.trim())}/learners`
+        );
+        const data = await r.json().catch(() => ({}));
+        if (r.ok) {
+          setCourseLearners({ courseId: data.courseId, courseTitle: data.courseTitle, rows: data.rows ?? [] });
+        } else {
+          toast.error(data.error === 'Course not found' ? 'Курс не найден' : (typeof data.error === 'string' ? data.error : 'Ошибка отчёта'));
           setCourseLearners(null);
         }
         setSummary(null);
@@ -179,9 +196,9 @@ export function ReportsClient() {
         setGroupIntersection(null);
       } else if (reportType === 'by-course') {
         const r = await fetch(`/api/portal/admin/reports/by-course?${params}`);
-        const data = await r.json();
+        const data = await r.json().catch(() => ({}));
         if (!r.ok) {
-          toast.error('Ошибка отчёта');
+          toast.error(typeof data.error === 'string' ? data.error : 'Ошибка отчёта «По курсам»');
           setByCourse(null);
         } else {
           setByCourse(data);
@@ -193,9 +210,9 @@ export function ReportsClient() {
         setGroupIntersection(null);
       } else if (reportType === 'by-learner') {
         const r = await fetch(`/api/portal/admin/reports/by-learner?${params}`);
-        const data = await r.json();
+        const data = await r.json().catch(() => ({}));
         if (!r.ok) {
-          toast.error('Ошибка отчёта');
+          toast.error(typeof data.error === 'string' ? data.error : 'Ошибка отчёта');
           setByLearner(null);
         } else {
           setByLearner(data);
@@ -213,7 +230,7 @@ export function ReportsClient() {
         }
         const gp = new URLSearchParams({ dateFrom, dateTo, userGroupId, courseGroupId });
         const r = await fetch(`/api/portal/admin/reports/group-intersection?${gp}`);
-        const data = await r.json();
+        const data = await r.json().catch(() => ({}));
         if (!r.ok) {
           toast.error(typeof data.error === 'string' ? data.error : 'Ошибка отчёта');
           setGroupIntersection(null);
@@ -225,11 +242,11 @@ export function ReportsClient() {
         setByLearner(null);
         setByPeriod(null);
         setCourseLearners(null);
-      } else {
+      } else if (reportType === 'by-period') {
         const r = await fetch(`/api/portal/admin/reports/by-period?${params}`);
-        const data = await r.json();
+        const data = await r.json().catch(() => ({}));
         if (!r.ok) {
-          toast.error('Ошибка отчёта');
+          toast.error(typeof data.error === 'string' ? data.error : 'Ошибка отчёта');
           setByPeriod(null);
         } else {
           setByPeriod(data);
@@ -239,7 +256,19 @@ export function ReportsClient() {
         setByLearner(null);
         setCourseLearners(null);
         setGroupIntersection(null);
+      } else {
+        toast.error('Неизвестный тип отчёта');
+        clearAll();
       }
+    } catch (e) {
+      console.error(e);
+      toast.error('Не удалось загрузить отчёт');
+      setSummary(null);
+      setByCourse(null);
+      setByLearner(null);
+      setByPeriod(null);
+      setCourseLearners(null);
+      setGroupIntersection(null);
     } finally {
       setLoading(false);
     }

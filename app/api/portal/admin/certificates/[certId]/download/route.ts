@@ -4,6 +4,7 @@
  * Query: ?template=default|heritage|prestige|minimal|elegant — макет PDF (если подложка не задана).
  */
 import path from 'path';
+import { existsSync } from 'fs';
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
@@ -95,15 +96,19 @@ export async function GET(
   let buffer: Buffer;
   if (certTemplate?.backgroundImageUrl) {
     const backgroundPath = resolveBackgroundPath(certTemplate.backgroundImageUrl);
-    let mapping: CertificateTextMapping = {};
-    if (certTemplate.textMapping) {
-      try {
-        mapping = JSON.parse(certTemplate.textMapping) as CertificateTextMapping;
-      } catch {
-        // пустой mapping
+    if (existsSync(backgroundPath)) {
+      let mapping: CertificateTextMapping = {};
+      if (certTemplate.textMapping) {
+        try {
+          mapping = JSON.parse(certTemplate.textMapping) as CertificateTextMapping;
+        } catch {
+          // пустой mapping
+        }
       }
+      buffer = await generateCertificatePdfWithImage(data, backgroundPath, mapping);
+    } else {
+      buffer = await generateCertificatePdf(data, builtinLayout);
     }
-    buffer = await generateCertificatePdfWithImage(data, backgroundPath, mapping);
   } else {
     buffer = await generateCertificatePdf(data, builtinLayout);
   }

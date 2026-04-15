@@ -14,12 +14,12 @@ export function JsonLdOrganization({
   const data = {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
-    name: 'Школа кинезиологии «АВАТЕРРА»',
+    name: 'Школа «AVATERRA»',
     alternateName: ['АВАТЕРРА', 'AVATERRA', 'avaterra.pro'],
     url,
     logo: `${url}${BRAND_LOGO_URL}`,
     description:
-      'Школа мышечного тестирования и кинезиологии. Курс «Тело не врет». Основатель — Татьяна Стрельцова.',
+      'Школа мышечного тестирования. Курс по обучению методу: причина проблемы за 30 секунд. Основатель — Татьяна Стрельцова.',
     areaServed: 'RU',
     inLanguage: 'ru-RU',
     ...(phone?.trim()

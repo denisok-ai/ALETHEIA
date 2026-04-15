@@ -88,7 +88,7 @@
 
 ## Чек-лист регресса по ролям (перед релизом)
 
-Краткий проход после значимых изменений. Учётные данные из `prisma/seed.ts` (локально): `admin@test.local`, `manager@test.local`, `student4@test.local`, пароль `Test123!`.
+Краткий проход после значимых изменений. Учётные данные после `npm run db:seed`: `admin@avaterra.local`, `manager@avaterra.local` (или `SEED_*_EMAIL`), пароль `SEED_ADMIN_PASSWORD` / по умолчанию `AvaterraSetup123!`. Для сценария студента — отдельная регистрация или пользователь в админке.
 
 **Администратор**
 

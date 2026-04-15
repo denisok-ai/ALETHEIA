@@ -5,10 +5,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 
-function parseDate(s: string | null, fallback: Date): Date {
-  if (!s) return fallback;
-  const d = new Date(s);
-  return isNaN(d.getTime()) ? fallback : d;
+/** Дата из поля type=date (YYYY-MM-DD): начало календарного дня в локальной TZ сервера */
+function startOfDayFromYmd(s: string | null, fallback: Date): Date {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s.trim())) return new Date(fallback);
+  const [y, m, d] = s.trim().split('-').map((x) => parseInt(x, 10));
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return new Date(fallback);
+  return new Date(y, m - 1, d, 0, 0, 0, 0);
+}
+
+/** Конец календарного дня (включительно), чтобы сессии за «сегодня» не отфильтровывались из-за 00:00 UTC */
+function endOfDayFromYmd(s: string | null, fallback: Date): Date {
+  if (!s || !/^\d{4}-\d{2}-\d{2}$/.test(s.trim())) return new Date(fallback);
+  const [y, m, d] = s.trim().split('-').map((x) => parseInt(x, 10));
+  if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) return new Date(fallback);
+  return new Date(y, m - 1, d, 23, 59, 59, 999);
 }
 
 export async function GET(
@@ -20,11 +30,14 @@ export async function GET(
 
   const { userId } = await params;
   const searchParams = request.nextUrl.searchParams;
-  const dateFrom = parseDate(
-    searchParams.get('dateFrom'),
-    new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-  );
-  const dateTo = parseDate(searchParams.get('dateTo'), new Date());
+  const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+  const defaultTo = new Date();
+  const dateFrom = startOfDayFromYmd(searchParams.get('dateFrom'), defaultFrom);
+  const dateTo = endOfDayFromYmd(searchParams.get('dateTo'), defaultTo);
+
+  if (dateFrom > dateTo) {
+    return NextResponse.json({ error: 'Некорректный период: дата «с» позже «по»' }, { status: 400 });
+  }
 
   const sessions = await prisma.visitLog.findMany({
     where: {

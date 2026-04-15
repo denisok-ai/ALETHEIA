@@ -52,18 +52,25 @@ export async function GET(
   });
 
   const userIds = enrollments.map((e) => e.userId);
-  const progressByUser = await prisma.scormProgress.groupBy({
-    by: ['userId'],
-    where: { courseId, userId: { in: userIds } },
-    _count: true,
-    _avg: { score: true },
-    _sum: { timeSpent: true },
-  });
-  const completedByUser = await prisma.scormProgress.groupBy({
-    by: ['userId'],
-    where: { courseId, userId: { in: userIds }, completionStatus: { in: ['completed', 'passed'] } },
-    _count: true,
-  });
+
+  const progressByUser =
+    userIds.length === 0
+      ? []
+      : await prisma.scormProgress.groupBy({
+          by: ['userId'],
+          where: { courseId, userId: { in: userIds } },
+          _count: true,
+          _avg: { score: true },
+          _sum: { timeSpent: true },
+        });
+  const completedByUser =
+    userIds.length === 0
+      ? []
+      : await prisma.scormProgress.groupBy({
+          by: ['userId'],
+          where: { courseId, userId: { in: userIds }, completionStatus: { in: ['completed', 'passed'] } },
+          _count: true,
+        });
 
   const progressMap = new Map(progressByUser.map((p) => [p.userId, p]));
   const completedMap = new Map(completedByUser.map((c) => [c.userId, c._count]));
@@ -90,10 +97,13 @@ export async function GET(
     };
   });
 
-  const certs = await prisma.certificate.findMany({
-    where: { courseId, userId: { in: userIds }, revokedAt: null },
-    select: { userId: true },
-  });
+  const certs =
+    userIds.length === 0
+      ? []
+      : await prisma.certificate.findMany({
+          where: { courseId, userId: { in: userIds }, revokedAt: null },
+          select: { userId: true },
+        });
   const certUserIds = new Set(certs.map((c) => c.userId));
   rows.forEach((r) => {
     (r as { hasCertificate: boolean }).hasCertificate = certUserIds.has(r.userId);

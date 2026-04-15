@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import { BrandLogo } from '@/components/BrandLogo';
 import { BRAND_SCHOOL_LINE, BRAND_SITE_NAME } from '@/lib/brand';
+import { courseIntro } from '@/lib/content/course-lynda-teaser';
 
 interface FooterProps {
   /** Из настроек портала (БД). Если не задан — показывается заглушка. */
@@ -68,7 +69,7 @@ export function Footer({ contactPhone }: FooterProps) {
                 Главная
               </Link>
               <Link href="/course/navyki-myshechnogo-testirovaniya" className="hover:text-plum transition-colors">
-                Курс «Навыки мышечного тестирования»
+                Курс «{courseIntro.title}»
               </Link>
               <Link href="/about" className="hover:text-plum transition-colors">
                 О мастере

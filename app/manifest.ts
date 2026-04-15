@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: 'АВАТЕРРА — школа мышечного тестирования',
     short_name: 'АВАТЕРРА',
     description:
-      'Онлайн-курс по прикладному мышечному тестированию и кинезиологии. Курс «Тело не врёт».',
+      'Курс по обучению мышечному тестированию. Как найти причину проблемы за 30 секунд. Школа AVATERRA.',
     start_url: '/',
     display: 'browser',
     background_color: '#0A0E27',

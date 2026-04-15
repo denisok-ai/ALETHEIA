@@ -5,13 +5,11 @@
  * BrandLogo при onError перебирает список дальше.
  */
 export const BRAND_SITE_NAME = 'АВАТЕРРА';
-export const BRAND_SCHOOL_LINE = `Школа кинезиологии «${BRAND_SITE_NAME}»`;
+/** Строка над заголовком на главной и в hero. */
+export const BRAND_SCHOOL_LINE = 'Школа «AVATERRA»';
 
 /**
- * Порядок проверки в BrandLogo (next/image onError):
- * 1) LOGO.png — канонический логотип (`public/images/LOGO.png`)
- * 2) avaterra-logo.png — запасной вариант при отсутствии файла или ошибке загрузки
- * 3–4) legacy имена
+ * Порядок для сайта (BrandLogo, фавикон): как до отдельного золотого знака для сертификатов.
  */
 export const BRAND_LOGO_PATHS = [
   '/images/LOGO.png',
@@ -19,6 +17,11 @@ export const BRAND_LOGO_PATHS = [
   '/images%201775123638097-019d4d9b-bc7a-7a4f-9526-28745702cc31.png',
   '/images/1775123638097-019d4d9b-bc7a-7a4f-9526-28745702cc31.png',
 ] as const;
+
+/**
+ * Для PDF: золотой знак (лучше класть PNG ≥400px по стороне в avaterra-gold-logo.png), затем запасные как на сайте.
+ */
+export const CERTIFICATE_LOGO_PATHS = ['/images/avaterra-gold-logo.png', ...BRAND_LOGO_PATHS] as const;
 
 /** Канонический URL логотипа для ссылок, фавиконов и портала. */
 export const BRAND_LOGO_URL = BRAND_LOGO_PATHS[0];

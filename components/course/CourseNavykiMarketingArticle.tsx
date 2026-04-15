@@ -9,7 +9,7 @@ import { CourseModulesAccordion, type CourseModuleItem } from '@/components/Cour
 export type BlogHighlight = { slug: string; title: string; description: string };
 
 type Props = {
-  courseIntro: { lead: string; bonuses: string };
+  courseIntro: { title: string; lead: string; bonuses: string };
   courseModules: CourseModuleItem[];
   blogHighlights: BlogHighlight[];
 };
@@ -20,13 +20,13 @@ export function CourseNavykiMarketingArticle({ courseIntro, courseModules, blogH
       <Breadcrumbs
         items={[
           { label: 'Главная', href: '/' },
-          { label: 'Навыки мышечного тестирования' },
+          { label: courseIntro.title },
         ]}
       />
 
       <article>
         <h1 className="font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">
-          Курс «Навыки мышечного тестирования»
+          Курс «{courseIntro.title}»
         </h1>
         <p className="mt-6 leading-[var(--leading-body)] text-[var(--text-muted)]">{courseIntro.lead}</p>
 

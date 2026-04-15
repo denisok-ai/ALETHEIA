@@ -5,15 +5,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { generateCertificatePdf } from '@/lib/certificates';
+import { CERTIFICATE_SAMPLE_DEMO } from '@/lib/certificate-sample-demo';
 import { parseCertificateLayoutQuery } from '@/lib/certificate-pdf-cache';
-
-const DEMO = {
-  userName: 'Иванова Анна Сергеевна',
-  courseName: 'Курс «Тело не врёт» — мышечное тестирование',
-  certNumber: 'AVT-DEMO-2026',
-  date: new Date().toLocaleDateString('ru'),
-  expiryDate: null as string | null,
-};
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminSession();
@@ -21,7 +14,7 @@ export async function GET(request: NextRequest) {
 
   const layoutId = parseCertificateLayoutQuery(request.nextUrl.searchParams.get('template'));
 
-  const buffer = await generateCertificatePdf(DEMO, layoutId);
+  const buffer = await generateCertificatePdf(CERTIFICATE_SAMPLE_DEMO, layoutId);
 
   return new NextResponse(new Uint8Array(buffer), {
     headers: {

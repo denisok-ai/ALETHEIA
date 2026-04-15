@@ -32,6 +32,10 @@ export function MediaItemGroupsBlock({ mediaId }: { mediaId: string }) {
         setAllGroups((all.groups ?? []).map((g: { id: string; name: string }) => ({ id: g.id, name: g.name })));
         setSelectedGroupId('');
       })
+      .catch(() => {
+        setGroups([]);
+        setAllGroups([]);
+      })
       .finally(() => setLoading(false));
   }, [mediaId]);
 

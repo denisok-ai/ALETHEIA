@@ -53,6 +53,7 @@ export function MediaPageWithGroups({ initialItems }: { initialItems: MediaItem[
         const list = (d.media ?? []) as Array<{ id: string }>;
         setGroupMediaIds(new Set(list.map((m) => m.id)));
       })
+      .catch(() => setGroupMediaIds(new Set()))
       .finally(() => setLoadingGroup(false));
   }, [selectedGroupId, groupRefreshTrigger]);
 

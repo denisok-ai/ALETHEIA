@@ -1,15 +1,30 @@
 /**
- * Генерация PDF сертификатов в стиле сайта АВАТЕРРА.
- * Цвета: primary #2D1B4E, secondary #D4AF37, dark #0A0E27.
- * Макеты: default/heritage — классика с логотипом и декоративной рамкой; prestige — премиум с тёмной шапкой;
- * minimal, elegant — компактные. Логотип: тот же порядок файлов, что {@link BRAND_LOGO_PATHS} в lib/brand.ts.
- * Шрифт с кириллицей — Noto Sans 400/600 (@fontsource/noto-sans).
+ * Генерация PDF сертификатов в стиле публичного сайта AVATERRA.
+ * Палитра как в `app/globals.css`: plum #856b92, rose #ce8fb0, lavender #faf9fc, periwinkle #b4b1d8.
+ * Макеты: default/heritage — линейный фон, боковые точки, орнаменты SVG, печать, подписи;
+ * prestige — диагональный паттерн, боковые акценты, цитата, бейджи; minimal — рамка-ореол и угловые скобки;
+ * elegant — розетки по углам, процитированная строка, два орнамента.
+ * Шрифт: Noto Sans 400/600 (@fontsource/noto-sans), кириллица.
  */
 import path from 'path';
 import { existsSync } from 'fs';
 import React from 'react';
-import { BRAND_LOGO_PATHS } from '@/lib/brand';
-import { Document, Page, Text, View, Image, StyleSheet, renderToBuffer, Font } from '@react-pdf/renderer';
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  Image,
+  StyleSheet,
+  renderToBuffer,
+  Font,
+  Svg,
+  Path,
+  Line,
+  Circle,
+  Rect,
+  Ellipse,
+} from '@react-pdf/renderer';
 
 const notoSans400 = path.join(
   process.cwd(),
@@ -40,35 +55,70 @@ if (existsSync(notoSans400)) {
   }
 }
 
-/** Порядок совпадает с BrandLogo на сайте (см. BRAND_LOGO_PATHS). */
-function publicFilePathFromBrandUrl(urlPath: string): string {
-  const rel = urlPath.replace(/^\//, '');
-  try {
-    return path.join(process.cwd(), 'public', decodeURIComponent(rel));
-  } catch {
-    return path.join(process.cwd(), 'public', rel);
-  }
-}
-
-const CERTIFICATE_LOGO_CANDIDATES = BRAND_LOGO_PATHS.map(publicFilePathFromBrandUrl);
-
-/** Первый существующий файл из `BRAND_LOGO_PATHS` — пересчитывается при каждой генерации PDF (актуальный `LOGO.png` после копирования без перезапуска). */
-function getCertificateLogoSrc(): string | null {
-  return CERTIFICATE_LOGO_CANDIDATES.find((p) => existsSync(p)) ?? null;
-}
-
+/** Согласовано с лендингом: --plum, --rose, --lavender-light, --periwinkle, --text */
 const COLORS = {
-  primary: '#2D1B4E',
-  secondary: '#D4AF37',
-  dark: '#0A0E27',
-  cream: '#f5f2ec',
-  parchment: '#f7f4ee',
+  primary: '#856b92',
+  primaryDark: '#6d5679',
+  secondary: '#ce8fb0',
+  dark: '#1e293b',
+  cream: '#faf9fc',
+  parchment: '#f4f2f8',
   white: '#ffffff',
-  muted: '#5c5854',
-  goldSoft: '#c9a227',
+  muted: '#64748b',
+  goldSoft: '#b4b1d8',
+  roseWash: '#fdf5f9',
+  /** Обводки в тон золотому логотипу (без заливки фона листа). */
+  certGold: '#a67c52',
+  certGoldLight: '#c9a86c',
 } as const;
 
 const FONT_FAMILY = FONT_FAMILY_FALLBACK;
+
+/** Только название школы (без отдельного знака в углу). */
+function CertificateWordmarkOnly({
+  variant = 'onLight',
+  marginBottom = 10,
+}: {
+  variant?: 'onLight' | 'onDark';
+  marginBottom?: number;
+}) {
+  const titleColor = variant === 'onDark' ? '#ffffff' : COLORS.primaryDark;
+  const subColor = variant === 'onDark' ? '#f3e8f7' : COLORS.muted;
+  return (
+    <View style={{ alignItems: 'center', marginBottom }}>
+      <Text
+        style={{
+          fontSize: 14,
+          fontWeight: 600,
+          color: titleColor,
+          letterSpacing: 2.5,
+          textAlign: 'center',
+        }}
+      >
+        АВАТЕРРА
+      </Text>
+      <Text style={{ fontSize: 8.5, color: subColor, marginTop: 4, letterSpacing: 0.3, textAlign: 'center' }}>
+        Школа мышечного тестирования
+      </Text>
+    </View>
+  );
+}
+
+/** Галочка в «печати» — символ ✓ в шрифте часто не встраивается в PDF. */
+function HeritageSealCheckGraphic() {
+  return (
+    <Svg width={26} height={26} viewBox="0 0 26 26">
+      <Path
+        d="M5 13 L10.5 18.5 L21 7"
+        stroke="#ce8fb0"
+        strokeWidth={2.4}
+        fill="none"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
 
 const styles = StyleSheet.create({
   page: {
@@ -79,86 +129,90 @@ const styles = StyleSheet.create({
   pageCream: {
     padding: 0,
     fontFamily: FONT_FAMILY,
-    backgroundColor: COLORS.cream,
+    backgroundColor: COLORS.white,
   },
   // —— Классика (default / heritage) ——
   heritagePage: {
-    backgroundColor: COLORS.parchment,
+    backgroundColor: COLORS.white,
     fontFamily: FONT_FAMILY,
     padding: 0,
   },
   heritageOuterFrame: {
     position: 'absolute',
-    top: 22,
-    left: 22,
-    right: 22,
-    bottom: 22,
-    borderWidth: 2.5,
-    borderColor: COLORS.secondary,
+    top: 24,
+    left: 24,
+    right: 24,
+    bottom: 24,
+    borderWidth: 2,
+    borderColor: COLORS.certGold,
+    borderRadius: 3,
   },
   heritageMidFrame: {
     position: 'absolute',
-    top: 30,
-    left: 30,
-    right: 30,
-    bottom: 30,
+    top: 32,
+    left: 32,
+    right: 32,
+    bottom: 32,
     borderWidth: 1,
     borderColor: COLORS.primary,
+    borderRadius: 2,
+    opacity: 0.85,
   },
   heritageInnerFrame: {
     position: 'absolute',
-    top: 38,
-    left: 38,
-    right: 38,
-    bottom: 38,
-    borderWidth: 0.5,
+    top: 40,
+    left: 40,
+    right: 40,
+    bottom: 40,
+    borderWidth: 0.75,
     borderColor: COLORS.goldSoft,
+    borderRadius: 1,
   },
   heritageCornerTL: {
     position: 'absolute',
     top: 44,
     left: 44,
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderTopWidth: 3,
     borderLeftWidth: 3,
-    borderColor: COLORS.secondary,
+    borderColor: COLORS.primary,
   },
   heritageCornerTR: {
     position: 'absolute',
     top: 44,
     right: 44,
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderTopWidth: 3,
     borderRightWidth: 3,
-    borderColor: COLORS.secondary,
+    borderColor: COLORS.certGold,
   },
   heritageCornerBL: {
     position: 'absolute',
     bottom: 44,
     left: 44,
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderBottomWidth: 3,
     borderLeftWidth: 3,
-    borderColor: COLORS.secondary,
+    borderColor: COLORS.certGold,
   },
   heritageCornerBR: {
     position: 'absolute',
     bottom: 44,
     right: 44,
-    width: 32,
-    height: 32,
+    width: 36,
+    height: 36,
     borderBottomWidth: 3,
     borderRightWidth: 3,
-    borderColor: COLORS.secondary,
+    borderColor: COLORS.primary,
   },
   heritageBody: {
     flex: 1,
-    paddingHorizontal: 52,
-    paddingTop: 52,
-    paddingBottom: 40,
+    paddingHorizontal: 48,
+    paddingTop: 44,
+    paddingBottom: 32,
     alignItems: 'center',
   },
   heritageLogo: {
@@ -183,8 +237,8 @@ const styles = StyleSheet.create({
   },
   heritageCertLabel: {
     fontSize: 11,
-    color: COLORS.secondary,
-    letterSpacing: 4,
+    color: COLORS.certGold,
+    letterSpacing: 5,
     marginBottom: 6,
   },
   heritageTitle: {
@@ -195,9 +249,10 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   heritageHairline: {
-    width: 100,
-    height: 2,
-    backgroundColor: COLORS.secondary,
+    width: 168,
+    height: 0,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.certGold,
     marginBottom: 22,
   },
   heritageLead: {
@@ -231,7 +286,7 @@ const styles = StyleSheet.create({
   },
   heritageGrow: {
     flexGrow: 1,
-    minHeight: 24,
+    minHeight: 8,
   },
   heritageFooter: {
     flexDirection: 'row',
@@ -239,7 +294,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 420,
     borderTopWidth: 1,
-    borderTopColor: '#dcd6cc',
+    borderTopColor: COLORS.goldSoft,
     paddingTop: 14,
     marginTop: 8,
   },
@@ -256,14 +311,120 @@ const styles = StyleSheet.create({
   heritageSite: {
     fontSize: 8,
     color: COLORS.secondary,
-    marginTop: 14,
+    marginTop: 10,
     letterSpacing: 1,
+  },
+  heritageFlourishWrap: {
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  heritageMicroLine: {
+    fontSize: 7,
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginTop: 4,
+    letterSpacing: 0.3,
+  },
+  heritageFinePrint: {
+    fontSize: 7,
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginTop: 6,
+    maxWidth: 420,
+    lineHeight: 1.35,
+  },
+  heritageAwardBlock: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    marginBottom: 6,
+  },
+  heritageSealOuter: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    borderWidth: 2,
+    borderColor: COLORS.certGold,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+  },
+  heritageSealInner: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 0.75,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heritageSealCaption: {
+    maxWidth: 210,
+    marginLeft: 14,
+  },
+  heritageSealCapTitle: {
+    fontSize: 8,
+    fontWeight: 600,
+    color: COLORS.primary,
+    letterSpacing: 0.8,
+  },
+  heritageSealCapSub: {
+    fontSize: 7,
+    color: COLORS.muted,
+    marginTop: 2,
+  },
+  heritageSignaturesRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    maxWidth: 400,
+    marginTop: 12,
+    paddingTop: 8,
+  },
+  heritageSigCol: {
+    width: '42%',
+    alignItems: 'center',
+  },
+  heritageSigLine: {
+    fontSize: 9,
+    color: COLORS.goldSoft,
+    marginBottom: 4,
+    letterSpacing: 1,
+  },
+  heritageSigCap: {
+    fontSize: 7,
+    color: COLORS.muted,
+    textAlign: 'center',
+  },
+  heritageSideDotsLeft: {
+    position: 'absolute',
+    left: 14,
+    top: 248,
+    flexDirection: 'column',
+  },
+  heritageSideDotsRight: {
+    position: 'absolute',
+    right: 14,
+    top: 248,
+    flexDirection: 'column',
+  },
+  heritageDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+    borderWidth: 0.75,
+    borderColor: COLORS.certGold,
+    opacity: 0.55,
+    marginBottom: 6,
   },
   // —— Премиум (prestige) ——
   prestigeHeader: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: 'transparent',
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.certGold,
     paddingVertical: 20,
-    paddingHorizontal: 40,
+    paddingHorizontal: 36,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -276,7 +437,7 @@ const styles = StyleSheet.create({
   prestigeHeaderWordmark: {
     fontSize: 16,
     fontWeight: 600,
-    color: COLORS.white,
+    color: COLORS.primaryDark,
     letterSpacing: 2,
   },
   prestigeHeaderRight: {
@@ -289,14 +450,16 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   prestigeHeaderTitle: {
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: 600,
-    color: COLORS.white,
-    letterSpacing: 1,
+    color: COLORS.primaryDark,
+    letterSpacing: 2,
   },
   prestigeGoldBar: {
-    height: 4,
-    backgroundColor: COLORS.secondary,
+    height: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.certGoldLight,
+    opacity: 0.9,
   },
   prestigeBodyWrap: {
     position: 'relative',
@@ -304,8 +467,9 @@ const styles = StyleSheet.create({
     marginHorizontal: 26,
     marginTop: 26,
     marginBottom: 20,
-    borderWidth: 2,
-    borderColor: COLORS.secondary,
+    borderWidth: 1.5,
+    borderColor: COLORS.certGold,
+    borderRadius: 4,
     paddingHorizontal: 36,
     paddingTop: 44,
     paddingBottom: 28,
@@ -323,20 +487,22 @@ const styles = StyleSheet.create({
     opacity: 0.25,
   },
   prestigeDecorTop: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     borderWidth: 1.5,
-    borderColor: COLORS.secondary,
+    borderColor: COLORS.certGold,
     marginBottom: 20,
     alignItems: 'center',
     justifyContent: 'center',
   },
   prestigeDecorInner: {
-    width: 8,
-    height: 8,
-    backgroundColor: COLORS.secondary,
-    borderRadius: 4,
+    width: 9,
+    height: 9,
+    borderRadius: 4.5,
+    borderWidth: 1.25,
+    borderColor: COLORS.certGoldLight,
+    backgroundColor: COLORS.white,
   },
   prestigeLead: {
     fontSize: 10,
@@ -378,7 +544,7 @@ const styles = StyleSheet.create({
     maxWidth: 400,
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.secondary,
+    borderTopColor: COLORS.certGold,
   },
   prestigeMeta: {
     fontSize: 9,
@@ -391,16 +557,68 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   prestigeBottomBar: {
-    backgroundColor: COLORS.primary,
-    paddingVertical: 10,
+    backgroundColor: COLORS.white,
+    borderTopWidth: 2,
+    borderTopColor: COLORS.certGold,
+    paddingVertical: 12,
     paddingHorizontal: 40,
     flexDirection: 'row',
     justifyContent: 'center',
   },
   prestigeSite: {
     fontSize: 8,
-    color: COLORS.secondary,
+    color: COLORS.muted,
     letterSpacing: 1,
+  },
+  prestigeQuote: {
+    fontSize: 8,
+    fontStyle: 'normal',
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginTop: 10,
+    maxWidth: 400,
+    lineHeight: 1.45,
+  },
+  prestigeBadgeRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginTop: 12,
+  },
+  prestigeBadge: {
+    borderWidth: 1,
+    borderColor: COLORS.goldSoft,
+    borderRadius: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    backgroundColor: COLORS.white,
+    marginHorizontal: 4,
+    marginBottom: 4,
+  },
+  prestigeBadgeText: {
+    fontSize: 7,
+    color: COLORS.primary,
+    fontWeight: 600,
+  },
+  prestigeSideAccentLeft: {
+    position: 'absolute',
+    left: 10,
+    top: 130,
+    width: 0,
+    height: 300,
+    borderLeftWidth: 1.25,
+    borderLeftColor: COLORS.certGold,
+    opacity: 0.55,
+  },
+  prestigeSideAccentRight: {
+    position: 'absolute',
+    right: 10,
+    top: 130,
+    width: 0,
+    height: 300,
+    borderRightWidth: 1.25,
+    borderRightColor: COLORS.primary,
+    opacity: 0.35,
   },
   // —— minimal ——
   minimalWrap: {
@@ -442,9 +660,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   minimalDivider: {
-    width: 80,
-    height: 2,
-    backgroundColor: COLORS.secondary,
+    width: 96,
+    height: 0,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.certGold,
     marginBottom: 24,
   },
   minimalMeta: {
@@ -458,6 +677,60 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
+  minimalOuterGlow: {
+    position: 'absolute',
+    top: 26,
+    left: 26,
+    right: 26,
+    bottom: 26,
+    borderWidth: 1,
+    borderColor: COLORS.secondary,
+    borderRadius: 10,
+    opacity: 0.4,
+  },
+  minimalCornerTL: {
+    position: 'absolute',
+    top: 38,
+    left: 38,
+    width: 56,
+    height: 56,
+    borderTopWidth: 3,
+    borderLeftWidth: 3,
+    borderColor: COLORS.secondary,
+    opacity: 0.5,
+    borderRadius: 2,
+  },
+  minimalCornerBR: {
+    position: 'absolute',
+    bottom: 38,
+    right: 38,
+    width: 56,
+    height: 56,
+    borderBottomWidth: 3,
+    borderRightWidth: 3,
+    borderColor: COLORS.primary,
+    opacity: 0.4,
+    borderRadius: 2,
+  },
+  minimalKicker: {
+    fontSize: 8,
+    letterSpacing: 3,
+    color: COLORS.secondary,
+    marginBottom: 10,
+    fontWeight: 600,
+  },
+  minimalFlourish: {
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  minimalSchoolLine: {
+    fontSize: 9,
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginTop: 24,
+    maxWidth: 340,
+    lineHeight: 1.45,
+  },
   // —— elegant ——
   elegantBorder: {
     position: 'absolute',
@@ -466,7 +739,8 @@ const styles = StyleSheet.create({
     right: 32,
     bottom: 32,
     borderWidth: 2,
-    borderColor: COLORS.secondary,
+    borderColor: COLORS.certGold,
+    borderRadius: 4,
   },
   elegantInner: {
     position: 'absolute',
@@ -477,12 +751,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.primary,
     opacity: 0.4,
+    borderRadius: 2,
   },
   elegantContent: {
     padding: 72,
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
   elegantLogo: {
     width: 140,
@@ -529,7 +805,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.secondary,
+    borderTopColor: COLORS.certGold,
   },
   elegantMeta: {
     fontSize: 9,
@@ -542,6 +818,86 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     width: '100%',
   },
+  elegantBadge: {
+    borderWidth: 1,
+    borderColor: COLORS.goldSoft,
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 18,
+    marginBottom: 14,
+    backgroundColor: COLORS.white,
+  },
+  elegantBadgeText: {
+    fontSize: 8,
+    color: COLORS.primary,
+    fontWeight: 600,
+    letterSpacing: 1.2,
+    textAlign: 'center',
+  },
+  elegantQuote: {
+    fontSize: 9,
+    color: COLORS.muted,
+    fontStyle: 'normal',
+    textAlign: 'center',
+    marginBottom: 18,
+    maxWidth: 420,
+    lineHeight: 1.5,
+  },
+  elegantRosetteTL: {
+    position: 'absolute',
+    top: 52,
+    left: 52,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1.25,
+    borderColor: COLORS.certGold,
+    opacity: 0.65,
+    backgroundColor: COLORS.white,
+  },
+  elegantRosetteTR: {
+    position: 'absolute',
+    top: 52,
+    right: 52,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1.25,
+    borderColor: COLORS.primary,
+    opacity: 0.45,
+    backgroundColor: COLORS.white,
+  },
+  elegantRosetteBL: {
+    position: 'absolute',
+    bottom: 52,
+    left: 52,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1.25,
+    borderColor: COLORS.primary,
+    opacity: 0.4,
+    backgroundColor: COLORS.white,
+  },
+  elegantRosetteBR: {
+    position: 'absolute',
+    bottom: 52,
+    right: 52,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1.25,
+    borderColor: COLORS.certGold,
+    opacity: 0.55,
+    backgroundColor: COLORS.white,
+  },
+  elegantBottomNote: {
+    fontSize: 7,
+    color: COLORS.muted,
+    textAlign: 'center',
+    marginTop: 12,
+    letterSpacing: 0.3,
+  },
 });
 
 import {
@@ -553,7 +909,7 @@ import {
 export type { CertificateTemplateId };
 export { CERTIFICATE_TEMPLATE_IDS, CERTIFICATE_TEMPLATE_LABELS };
 
-const DEFAULT_TAGLINE = 'Phygital школа мышечного тестирования';
+const DEFAULT_TAGLINE = 'Школа «AVATERRA» · мышечное тестирование';
 
 export interface CertificateData {
   userName: string;
@@ -580,11 +936,252 @@ function taglineFor(data: CertificateData) {
   return (data.tagline && data.tagline.trim()) || DEFAULT_TAGLINE;
 }
 
+/** Светлый лист + диагональная сетка и контурные дуги (без крупных заливок) — заметнее и ровнее на печати. */
+function HeritageBackgroundArt() {
+  const W = 595;
+  const H = 842;
+  const diagonals = Array.from({ length: 20 }, (_, i) => {
+    const x0 = -48 + i * 42;
+    return (
+      <Line
+        key={`d-${i}`}
+        x1={x0}
+        y1={0}
+        x2={x0 + 130}
+        y2={H}
+        stroke="#ebe6f8"
+        strokeWidth={0.35}
+      />
+    );
+  });
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <Svg width={595.28} height={841.89} viewBox={`0 0 ${W} ${H}`}>
+        <Rect width={W} height={H} fill="#ffffff" />
+        {diagonals}
+        <Path d="M 0 92 A 92 92 0 0 1 92 0" fill="none" stroke="#ce8fb0" strokeWidth={1.1} opacity={0.42} />
+        <Path d="M 503 0 A 92 92 0 0 1 595 92" fill="none" stroke="#856b92" strokeWidth={1.1} opacity={0.42} />
+        <Path d="M 0 750 A 92 92 0 0 0 92 842" fill="none" stroke="#b4b1d8" strokeWidth={1.1} opacity={0.42} />
+        <Path d="M 595 750 A 92 92 0 0 1 503 842" fill="none" stroke="#ce8fb0" strokeWidth={1.1} opacity={0.42} />
+        <Circle cx={W / 2} cy={H / 2} r={195} fill="none" stroke="#856b92" strokeWidth={0.45} opacity={0.12} />
+        <Circle
+          cx={W / 2}
+          cy={H / 2}
+          r={235}
+          fill="none"
+          stroke="#a67c52"
+          strokeWidth={0.4}
+          strokeDasharray="5 10"
+          opacity={0.22}
+        />
+        <Path
+          d="M 520 120 Q 480 80 440 120"
+          fill="none"
+          stroke="#a67c52"
+          strokeWidth={0.55}
+          opacity={0.35}
+        />
+        <Path
+          d="M 75 720 Q 115 760 155 720"
+          fill="none"
+          stroke="#a67c52"
+          strokeWidth={0.55}
+          opacity={0.32}
+        />
+        <Path
+          d="M 400 0 L 595 0 L 595 140"
+          fill="none"
+          stroke="#856b92"
+          strokeWidth={1.4}
+          opacity={0.35}
+        />
+        <Path
+          d="M 0 720 L 0 842 L 160 842"
+          fill="none"
+          stroke="#ce8fb0"
+          strokeWidth={1.2}
+          opacity={0.3}
+        />
+      </Svg>
+    </View>
+  );
+}
+
+/** Премиум: белый лист + тонкие диагонали и кольцо. */
+function PrestigeBackgroundArt() {
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <Svg width={595.28} height={841.89} viewBox="0 0 595 842">
+        <Rect width="595" height="842" fill="#ffffff" />
+        <Line x1="0" y1="0" x2="595" y2="842" stroke="#e8e0f0" strokeWidth={0.3} />
+        <Line x1="595" y1="0" x2="0" y2="842" stroke="#e8e0f0" strokeWidth={0.3} />
+        <Circle cx="297.5" cy="410" r="260" fill="none" stroke="#856b92" strokeWidth={0.35} opacity={0.09} />
+        <Circle cx="297.5" cy="410" r="198" fill="none" stroke="#a67c52" strokeWidth={0.4} opacity={0.14} strokeDasharray="4 14" />
+      </Svg>
+    </View>
+  );
+}
+
+/** Минимализм: редкая точечная сетка вместо заливки. */
+function MinimalBackgroundArt() {
+  const dots = Array.from({ length: 120 }, (_, i) => {
+    const row = Math.floor(i / 10);
+    const col = i % 10;
+    return (
+      <Circle
+        key={`dot-${i}`}
+        cx={48 + col * 56}
+        cy={64 + row * 58}
+        r={1}
+        fill="none"
+        stroke="#a67c52"
+        strokeWidth={0.4}
+        opacity={0.28}
+      />
+    );
+  });
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <Svg width={595.28} height={841.89} viewBox="0 0 595 842">
+        <Rect width="595" height="842" fill="#ffffff" />
+        {dots}
+      </Svg>
+    </View>
+  );
+}
+
+/** Элегант: лёгкие волнообразные линии. */
+function ElegantBackgroundArt() {
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}>
+      <Svg width={595.28} height={841.89} viewBox="0 0 595 842">
+        <Rect width="595" height="842" fill="#ffffff" />
+        <Path
+          d="M 0 200 Q 148 160 297 200 T 595 200"
+          fill="none"
+          stroke="#ce8fb0"
+          strokeWidth={0.45}
+          opacity={0.28}
+        />
+        <Path
+          d="M 0 480 Q 148 520 297 480 T 595 480"
+          fill="none"
+          stroke="#856b92"
+          strokeWidth={0.45}
+          opacity={0.22}
+        />
+        <Path
+          d="M 0 650 Q 200 610 297 650 T 595 650"
+          fill="none"
+          stroke="#b4b1d8"
+          strokeWidth={0.35}
+          opacity={0.2}
+        />
+      </Svg>
+    </View>
+  );
+}
+
+function HeritageOrnamentBar() {
+  return (
+    <View style={styles.heritageFlourishWrap}>
+      <Svg width={200} height={30} viewBox="0 0 200 30">
+        <Line x1="0" y1="15" x2="72" y2="15" stroke="#a67c52" strokeWidth={0.9} />
+        <Path
+          d="M 100 8.5 L 105.5 15 L 100 21.5 L 94.5 15 Z"
+          fill="none"
+          stroke="#a67c52"
+          strokeWidth={1}
+        />
+        <Line x1="128" y1="15" x2="200" y2="15" stroke="#a67c52" strokeWidth={0.9} />
+        <Path
+          d="M 68 15 Q 84 5 100 15 Q 116 5 132 15"
+          stroke="#856b92"
+          strokeWidth={0.75}
+          fill="none"
+          opacity={0.55}
+        />
+      </Svg>
+    </View>
+  );
+}
+
+function HeritageOrnamentSmall() {
+  return (
+    <View style={{ alignItems: 'center', marginVertical: 8 }}>
+      <Svg width={120} height={16} viewBox="0 0 120 16">
+        <Line x1="0" y1="8" x2="44" y2="8" stroke="#b4b1d8" strokeWidth={0.75} />
+        <Circle cx="60" cy="8" r="3" stroke="#ce8fb0" strokeWidth={1} fill="#ffffff" />
+        <Line x1="76" y1="8" x2="120" y2="8" stroke="#b4b1d8" strokeWidth={0.75} />
+      </Svg>
+    </View>
+  );
+}
+
+function HeritageSideDots({ side }: { side: 'left' | 'right' }) {
+  const n = 12;
+  return (
+    <View style={side === 'left' ? styles.heritageSideDotsLeft : styles.heritageSideDotsRight}>
+      {Array.from({ length: n }).map((_, i) => (
+        <View key={i} style={[styles.heritageDot, i === n - 1 ? { marginBottom: 0 } : {}]} />
+      ))}
+    </View>
+  );
+}
+
+function PrestigeDiagonalPattern() {
+  return (
+    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0.055 }}>
+      <Svg width={595} height={540} viewBox="0 0 595 540">
+        {[0, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448].map((y) => (
+          <Line key={y} x1={0} y1={y} x2={595} y2={y + 48} stroke="#a67c52" strokeWidth={0.35} />
+        ))}
+      </Svg>
+    </View>
+  );
+}
+
+function ElegantFlourishHeader() {
+  return (
+    <View style={{ alignItems: 'center', marginBottom: 12 }}>
+      <Svg width={220} height={36} viewBox="0 0 220 36">
+        <Path
+          d="M 0 18 Q 55 6 110 18 T 220 18"
+          stroke="#ce8fb0"
+          strokeWidth={1}
+          fill="none"
+          opacity={0.65}
+        />
+        <Path
+          d="M 110 10 L 114 18 L 110 26 L 106 18 Z"
+          fill="none"
+          stroke="#a67c52"
+          strokeWidth={0.95}
+          opacity={0.75}
+        />
+      </Svg>
+    </View>
+  );
+}
+
+function ElegantFlourishFooter() {
+  return (
+    <View style={{ alignItems: 'center', marginTop: 14 }}>
+      <Svg width={180} height={20} viewBox="0 0 180 20">
+        <Line x1="0" y1="10" x2="180" y2="10" stroke="#b4b1d8" strokeWidth={0.6} />
+        {[30, 60, 90, 120, 150].map((x) => (
+          <Circle key={x} cx={x} cy={10} r={1.5} fill="#ce8fb0" fillOpacity={0.5} />
+        ))}
+      </Svg>
+    </View>
+  );
+}
+
 function CertificateHeritage({ data }: { data: CertificateData }) {
-  const logoSrc = getCertificateLogoSrc();
   const exp = data.expiryDate?.trim();
   return (
     <Page size="A4" style={styles.heritagePage}>
+      <HeritageBackgroundArt />
       <View style={styles.heritageOuterFrame} />
       <View style={styles.heritageMidFrame} />
       <View style={styles.heritageInnerFrame} />
@@ -592,14 +1189,13 @@ function CertificateHeritage({ data }: { data: CertificateData }) {
       <View style={styles.heritageCornerTR} />
       <View style={styles.heritageCornerBL} />
       <View style={styles.heritageCornerBR} />
+      <HeritageSideDots side="left" />
+      <HeritageSideDots side="right" />
       <View style={styles.heritageBody}>
-        {logoSrc ? (
-          // eslint-disable-next-line jsx-a11y/alt-text -- PDF Image
-          <Image src={logoSrc} style={styles.heritageLogo} />
-        ) : (
-          <Text style={styles.heritageWordmark}>АВАТЕРРА</Text>
-        )}
+        <CertificateWordmarkOnly marginBottom={10} />
         <Text style={styles.heritageTagline}>{taglineFor(data)}</Text>
+        <HeritageOrnamentBar />
+        <Text style={styles.heritageMicroLine}>Официальный документ об образовании · Школа «AVATERRA»</Text>
         <Text style={styles.heritageCertLabel}>СЕРТИФИКАТ</Text>
         <Text style={styles.heritageTitle}>О прохождении обучения</Text>
         <View style={styles.heritageHairline} />
@@ -607,37 +1203,63 @@ function CertificateHeritage({ data }: { data: CertificateData }) {
         <Text style={styles.heritageName}>{data.userName}</Text>
         <Text style={styles.heritageCourseHint}>успешно освоил(а) образовательную программу</Text>
         <Text style={styles.heritageCourse}>{data.courseName}</Text>
+        <HeritageOrnamentSmall />
+        <View style={styles.heritageAwardBlock}>
+          <View style={styles.heritageSealOuter}>
+            <View style={styles.heritageSealInner}>
+              <HeritageSealCheckGraphic />
+            </View>
+          </View>
+          <View style={styles.heritageSealCaption}>
+            <Text style={styles.heritageSealCapTitle}>УЧАСТИЕ ПОДТВЕРЖДЕНО</Text>
+            <Text style={styles.heritageSealCapSub}>Регистрация в базе школы по номеру сертификата</Text>
+          </View>
+        </View>
         <View style={styles.heritageGrow} />
+        <View style={styles.heritageSignaturesRow}>
+          <View style={styles.heritageSigCol}>
+            <Text style={styles.heritageSigLine}>________________________</Text>
+            <Text style={styles.heritageSigCap}>Руководитель программы</Text>
+          </View>
+          <View style={styles.heritageSigCol}>
+            <Text style={styles.heritageSigLine}>________________________</Text>
+            <Text style={styles.heritageSigCap}>Печать / электронная отметка</Text>
+          </View>
+        </View>
         <View style={styles.heritageFooter}>
           <Text style={styles.heritageMeta}>Регистрационный № {data.certNumber}</Text>
           <Text style={styles.heritageMeta}>Дата выдачи: {data.date}</Text>
         </View>
+        <Text style={styles.heritageFinePrint}>
+          Документ подтверждает факт прохождения указанной программы. Подлинность можно проверить по номеру на
+          сайте школы.
+        </Text>
         {exp ? <Text style={styles.heritageExpiry}>Действителен до {exp}</Text> : null}
-        <Text style={styles.heritageSite}>avaterra.pro</Text>
+        <Text style={styles.heritageSite}>avaterra.pro · школа мышечного тестирования</Text>
       </View>
     </Page>
   );
 }
 
 function CertificatePrestige({ data }: { data: CertificateData }) {
-  const logoSrc = getCertificateLogoSrc();
   const exp = data.expiryDate?.trim();
   return (
     <Page size="A4" style={styles.page}>
+      <PrestigeBackgroundArt />
       <View style={styles.prestigeHeader}>
-        {logoSrc ? (
-          // eslint-disable-next-line jsx-a11y/alt-text
-          <Image src={logoSrc} style={styles.prestigeHeaderLogo} />
-        ) : (
-          <Text style={styles.prestigeHeaderWordmark}>АВАТЕРРА</Text>
-        )}
+        <View style={{ flex: 1, minWidth: 0 }} />
         <View style={styles.prestigeHeaderRight}>
-          <Text style={styles.prestigeHeaderCaption}>АВАТЕРРА</Text>
-          <Text style={styles.prestigeHeaderTitle}>СЕРТИФИКАТ О ПРОХОЖДЕНИИ</Text>
+          <Text style={styles.prestigeHeaderTitle}>СЕРТИФИКАТ</Text>
+          <Text style={{ fontSize: 8, color: COLORS.muted, marginTop: 4, letterSpacing: 1.2, textAlign: 'right' }}>
+            О ПРОХОЖДЕНИИ ОБУЧЕНИЯ
+          </Text>
         </View>
       </View>
       <View style={styles.prestigeGoldBar} />
       <View style={{ flex: 1, position: 'relative' }}>
+        <PrestigeDiagonalPattern />
+        <View style={styles.prestigeSideAccentLeft} />
+        <View style={styles.prestigeSideAccentRight} />
         <View style={styles.prestigeBodyWrap}>
           <View style={styles.prestigeInnerAccent} />
           <View style={styles.prestigeDecorTop}>
@@ -647,6 +1269,20 @@ function CertificatePrestige({ data }: { data: CertificateData }) {
           <Text style={styles.prestigeName}>{data.userName}</Text>
           <Text style={styles.prestigeCourseLine}>прошёл(ла) программу</Text>
           <Text style={styles.prestigeCourse}>{data.courseName}</Text>
+          <Text style={styles.prestigeQuote}>
+            «Тело отвечает честно — когда мы знаем, как задать вопрос.»
+          </Text>
+          <View style={styles.prestigeBadgeRow}>
+            <View style={styles.prestigeBadge}>
+              <Text style={styles.prestigeBadgeText}>Практикум</Text>
+            </View>
+            <View style={styles.prestigeBadge}>
+              <Text style={styles.prestigeBadgeText}>Живые сессии</Text>
+            </View>
+            <View style={styles.prestigeBadge}>
+              <Text style={styles.prestigeBadgeText}>Кураторы</Text>
+            </View>
+          </View>
           <View style={styles.prestigeGrow} />
           <View style={styles.prestigeFooter}>
             <Text style={styles.prestigeMeta}>№ {data.certNumber}</Text>
@@ -663,16 +1299,17 @@ function CertificatePrestige({ data }: { data: CertificateData }) {
 }
 
 function CertificateMinimal({ data }: { data: CertificateData }) {
-  const logoSrc = getCertificateLogoSrc();
   const exp = data.expiryDate?.trim();
   return (
     <Page size="A4" style={styles.pageCream}>
+      <MinimalBackgroundArt />
+      <View style={styles.minimalOuterGlow} />
+      <View style={styles.minimalCornerTL} />
+      <View style={styles.minimalCornerBR} />
       <View style={styles.minimalWrap}>
-        {logoSrc ? (
-          // eslint-disable-next-line jsx-a11y/alt-text
-          <Image src={logoSrc} style={styles.minimalLogo} />
-        ) : null}
-        <Text style={styles.minimalTitle}>{logoSrc ? 'Сертификат' : 'АВАТЕРРА'}</Text>
+        <CertificateWordmarkOnly marginBottom={20} />
+        <Text style={styles.minimalKicker}>ОФИЦИАЛЬНО</Text>
+        <Text style={styles.minimalTitle}>Сертификат</Text>
         <Text style={styles.minimalSubtitle}>{taglineFor(data)}</Text>
         <View style={styles.minimalDivider} />
         <Text style={styles.minimalName}>{data.userName}</Text>
@@ -681,25 +1318,37 @@ function CertificateMinimal({ data }: { data: CertificateData }) {
           № {data.certNumber} · {data.date}
         </Text>
         {exp ? <Text style={styles.minimalExpiry}>Действителен до {exp}</Text> : null}
+        <Text style={styles.minimalSchoolLine}>
+          Настоящий сертификат удостоверяет успешное освоение программы и может использоваться как подтверждение
+          квалификации в рамках методики школы.
+        </Text>
       </View>
     </Page>
   );
 }
 
 function CertificateElegant({ data }: { data: CertificateData }) {
-  const logoSrc = getCertificateLogoSrc();
   const exp = data.expiryDate?.trim();
   return (
     <Page size="A4" style={styles.page}>
+      <ElegantBackgroundArt />
+      <View style={styles.elegantRosetteTL} />
+      <View style={styles.elegantRosetteTR} />
+      <View style={styles.elegantRosetteBL} />
+      <View style={styles.elegantRosetteBR} />
       <View style={styles.elegantBorder} />
       <View style={styles.elegantInner} />
       <View style={styles.elegantContent}>
-        {logoSrc ? (
-          // eslint-disable-next-line jsx-a11y/alt-text
-          <Image src={logoSrc} style={styles.elegantLogo} />
-        ) : null}
-        <Text style={styles.elegantTitle}>{logoSrc ? 'Сертификат' : 'АВАТЕРРА'}</Text>
+        <CertificateWordmarkOnly marginBottom={14} />
+        <ElegantFlourishHeader />
+        <View style={styles.elegantBadge}>
+          <Text style={styles.elegantBadgeText}>ОФИЦИАЛЬНАЯ ЗАПИСЬ О ПРОХОЖДЕНИИ</Text>
+        </View>
+        <Text style={styles.elegantTitle}>Сертификат</Text>
         <Text style={styles.elegantSubtitle}>{taglineFor(data)}</Text>
+        <Text style={styles.elegantQuote}>
+          «Образование — это не запоминание, а согласие тела с новым опытом.»
+        </Text>
         <Text style={styles.elegantName}>{data.userName}</Text>
         <Text style={styles.elegantCourse}>успешно прошёл(ла) курс</Text>
         <Text style={styles.elegantCourseName}>{data.courseName}</Text>
@@ -708,6 +1357,8 @@ function CertificateElegant({ data }: { data: CertificateData }) {
           <Text style={styles.elegantMeta}>{data.date}</Text>
         </View>
         {exp ? <Text style={styles.elegantExpiry}>Действителен до {exp}</Text> : null}
+        <ElegantFlourishFooter />
+        <Text style={styles.elegantBottomNote}>Школа «AVATERRA» · мышечное тестирование</Text>
       </View>
     </Page>
   );
@@ -758,6 +1409,18 @@ function CertificateFromImage({
         src={backgroundSrc}
         style={{ position: 'absolute', top: 0, left: 0, width: A4_WIDTH, height: A4_HEIGHT }}
       />
+      <View
+        style={{
+          position: 'absolute',
+          top: 48,
+          left: 48,
+          maxWidth: 260,
+          backgroundColor: 'transparent',
+        }}
+      >
+        <Text style={{ fontSize: 10, fontWeight: 600, color: COLORS.primaryDark, letterSpacing: 2 }}>АВАТЕРРА</Text>
+        <Text style={{ fontSize: 6.5, color: COLORS.muted, marginTop: 2 }}>Школа мышечного тестирования</Text>
+      </View>
       {mapping.name && <Text style={textStyle(mapping.name, 16)}>{data.userName}</Text>}
       {mapping.date && <Text style={textStyle(mapping.date, 10)}>{data.date}</Text>}
       {mapping.courseTitle && <Text style={textStyle(mapping.courseTitle, 14)}>{data.courseName}</Text>}

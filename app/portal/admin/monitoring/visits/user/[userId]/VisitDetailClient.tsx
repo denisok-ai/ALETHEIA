@@ -18,6 +18,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
+import { toast } from 'sonner';
 
 interface SessionRow {
   id: string;
@@ -39,6 +40,11 @@ function dateToParam(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+function safeFormat(iso: string): string {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? '—' : format(d, 'dd.MM.yyyy HH:mm', { locale: ru });
+}
+
 export function VisitDetailClient({ userId }: { userId: string }) {
   const [dateFrom, setDateFrom] = useState(() => {
     const d = new Date();
@@ -52,12 +58,30 @@ export function VisitDetailClient({ userId }: { userId: string }) {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const q = new URLSearchParams({ dateFrom, dateTo });
       const r = await fetch(
-        `/api/portal/admin/monitoring/visits/user/${userId}?dateFrom=${dateFrom}&dateTo=${dateTo}`
+        `/api/portal/admin/monitoring/visits/user/${encodeURIComponent(userId)}?${q.toString()}`,
+        { credentials: 'same-origin' }
       );
-      const json = await r.json();
-      if (r.ok) setData(json);
-      else setData(null);
+      const text = await r.text();
+      let json: unknown = null;
+      try {
+        json = text ? JSON.parse(text) : null;
+      } catch {
+        toast.error('Ответ сервера не JSON. Обновите страницу или войдите снова.');
+        return;
+      }
+      if (!r.ok) {
+        const body = json && typeof json === 'object' && json !== null ? (json as { error?: unknown }) : null;
+        const message =
+          body && typeof body.error === 'string' ? body.error : `Ошибка загрузки (${r.status})`;
+        toast.error(message);
+        return;
+      }
+      setData(json as ApiResponse);
+    } catch (e) {
+      console.error(e);
+      toast.error('Не удалось загрузить данные');
     } finally {
       setLoading(false);
     }
@@ -116,11 +140,9 @@ export function VisitDetailClient({ userId }: { userId: string }) {
           <TableBody>
             {data.items.map((row) => (
               <TableRow key={row.id}>
-                <TableCell>{format(new Date(row.loginAt), 'dd.MM.yyyy HH:mm', { locale: ru })}</TableCell>
-                <TableCell>{format(new Date(row.lastActivityAt), 'dd.MM.yyyy HH:mm', { locale: ru })}</TableCell>
-                <TableCell>
-                  {row.logoutAt ? format(new Date(row.logoutAt), 'dd.MM.yyyy HH:mm', { locale: ru }) : '—'}
-                </TableCell>
+                <TableCell>{safeFormat(row.loginAt)}</TableCell>
+                <TableCell>{safeFormat(row.lastActivityAt)}</TableCell>
+                <TableCell>{row.logoutAt ? safeFormat(row.logoutAt) : '—'}</TableCell>
                 <TableCell className="font-mono text-xs">{row.ipAddress ?? '—'}</TableCell>
                 <TableCell className="max-w-[200px] truncate text-xs text-[var(--portal-text-muted)]" title={row.userAgent ?? undefined}>
                   {row.userAgent ?? '—'}

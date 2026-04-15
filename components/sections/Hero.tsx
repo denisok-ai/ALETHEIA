@@ -46,8 +46,7 @@ export function Hero() {
               transition={t(0.5, 0.1)}
               className="mt-5 max-w-xl text-lg leading-relaxed text-[var(--text)]"
             >
-              Курс по прикладному мышечному тестированию. Узнайте истинную причину боли и стресса за 30 секунд без
-              дорогостоящих обследований.
+              Курс по обучению мышечному тестированию. Узнайте, как найти причину проблемы за 30 секунд.
             </motion.p>
             <motion.div
               initial={{ opacity: 0 }}
@@ -60,7 +59,7 @@ export function Hero() {
                 className={cn(buttonVariants({ size: 'lg', variant: 'landingRose' }), 'min-w-[200px] rounded-xl px-6')}
                 onClick={() => trackGa4AndYm(ANALYTICS.CLICK_ENROLL, ANALYTICS.CLICK_ENROLL)}
               >
-                Записаться на бесплатный пробный урок
+                Выбрать программу
               </Link>
               <Link
                 href={checkoutHref}

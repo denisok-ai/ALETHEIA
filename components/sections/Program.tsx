@@ -15,8 +15,8 @@ const modules = [
   { title: 'Введение в метод', lessons: 1, hours: 1 },
   { title: 'Мышечное тестирование', lessons: 4, hours: 4 },
   { title: 'Работа с подсознанием', lessons: 5, hours: 7 },
-  { title: 'Работа с подсознанием. Инструменты', lessons: 2, hours: 3 },
   { title: 'Практика', lessons: 8, hours: 12 },
+  { title: 'Работа с подсознанием. Инструменты', lessons: 2, hours: 3 },
 ];
 
 const moduleCount = modules.length;

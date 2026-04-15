@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const path = `/course/${COURSE_SLUG}`;
   const canonical = `${base}${path}`;
-  const title = 'Курс Навыки мышечного тестирования | АВАТЕРРА';
+  const title = 'Курс Навыки мышечного тестирования и работа с подсознанием | АВАТЕРРА';
   const ogImageAbs = `${base}${OG_IMAGE_PATH}`;
 
   return {
@@ -65,11 +65,11 @@ export default async function CourseNavykiPage() {
       <JsonLdBreadcrumbList
         items={[
           { name: 'Главная', url: `${base}/` },
-          { name: 'Курс «Навыки мышечного тестирования»', url: pageUrl },
+          { name: `Курс «${courseIntro.title}»`, url: pageUrl },
         ]}
       />
       <JsonLdCoursePage
-        name="Навыки мышечного тестирования"
+        name={courseIntro.title}
         description={DESCRIPTION}
         pageUrl={pageUrl}
       />

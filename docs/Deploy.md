@@ -35,7 +35,7 @@ git push origin v3.0.0
 - [ ] БД: Prisma миграции применены; на VPS фактический режим — по `DATABASE_URL` (SQLite или PostgreSQL, см. [Production-Server.md](Production-Server.md))
 - [ ] Переменные окружения: DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, NEXT_PUBLIC_URL; PayKeeper (PAYKEEPER_*); Resend (RESEND_*); DEEPSEEK_API_KEY; TELEGRAM_BOT_TOKEN (опционально, для бота). См. .env.example.
 - [ ] PayKeeper: webhook URL указан в ЛК PayKeeper
-- [ ] Первый админ: через seed (admin@test.local) или создать вручную в БД
+- [ ] Первый админ: через seed (`admin@avaterra.local` / `SEED_ADMIN_EMAIL` и `SEED_ADMIN_PASSWORD`) или создать вручную в БД
 - [ ] Sitemap и robots: генерируются автоматически (/sitemap.xml, /robots.txt); базовый URL из NEXT_PUBLIC_URL
 - [ ] Запланированные рассылки: задать CRON_SECRET в env; вызывать GET /api/cron/mailings-send по расписанию (Vercel Cron или внешний cron) с заголовком `Authorization: Bearer <CRON_SECRET>`
 - [ ] Проверка доступности: GET /api/health — возвращает **200**, `{ ok: true, version, commit, database: "ok" }`, если приложение отвечает и **Prisma успешно выполняет запрос к БД** (локально — файл SQLite по `DATABASE_URL`). При недоступной БД — **503**, `ok: false`, `database: "error"` (и при необходимости `databaseError`). Заголовки `X-App-Version` / `X-Build-Commit` при наличии данных сборки (версия из `package.json`, короткий SHA на Vercel из `VERCEL_GIT_COMMIT_SHA`, задаётся на этапе `next build`). В подвале админки и менеджера отображается строка «Сборка …».

@@ -43,7 +43,7 @@ function VerifyEmailForm() {
 
   if (!token) {
     return (
-      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center">
+      <div className="w-full rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center">
         <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Подтверждение email</h1>
         <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
           Ссылка недействительна: отсутствует токен. Запросите новое письмо.
@@ -57,7 +57,7 @@ function VerifyEmailForm() {
 
   if (status === 'loading') {
     return (
-      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center">
+      <div className="w-full rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center">
         <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Подтверждение email</h1>
         <p className="mt-2 text-sm text-[var(--portal-text-muted)]">Проверка…</p>
       </div>
@@ -66,7 +66,7 @@ function VerifyEmailForm() {
 
   if (status === 'success') {
     return (
-      <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center">
+      <div className="w-full rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center">
         <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Email подтверждён</h1>
         <p className="mt-2 text-sm text-[var(--portal-text-muted)]">
           Перенаправление на страницу входа…
@@ -79,7 +79,7 @@ function VerifyEmailForm() {
   }
 
   return (
-    <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center">
+    <div className="w-full rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center">
       <h1 className="font-heading text-2xl font-bold text-[var(--portal-text)]">Подтверждение email</h1>
       <p className="mt-2 text-sm text-red-600">{error}</p>
       <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
@@ -94,14 +94,16 @@ function VerifyEmailForm() {
 
 export default function VerifyEmailPage() {
   return (
-    <Suspense
-      fallback={
-        <div className="rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center text-[var(--portal-text-muted)]">
-          Загрузка…
-        </div>
-      }
-    >
-      <VerifyEmailForm />
-    </Suspense>
+    <div className="mx-auto mt-[4.5rem] flex w-full max-w-md flex-col items-center justify-center px-4 pb-12 sm:mt-[4.75rem] md:mt-[5.25rem] min-h-[calc(100dvh-4.5rem)] sm:min-h-[calc(100dvh-4.75rem)] md:min-h-[calc(100dvh-5.25rem)] sm:px-6">
+      <Suspense
+        fallback={
+          <div className="w-full rounded-2xl border border-[#E2E8F0] bg-white p-8 shadow-lg text-center text-[var(--portal-text-muted)]">
+            Загрузка…
+          </div>
+        }
+      >
+        <VerifyEmailForm />
+      </Suspense>
+    </div>
   );
 }

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   const courses = await prisma.course.findMany({
     where: statusFilter && statusFilter !== 'all' ? { status: statusFilter } : undefined,
-    orderBy: { sortOrder: 'asc', title: 'asc' },
+    orderBy: [{ sortOrder: 'asc' }, { title: 'asc' }],
     select: {
       id: true,
       title: true,
@@ -30,6 +30,13 @@ export async function GET(request: NextRequest) {
   });
 
   const courseIds = courses.map((c) => c.id);
+
+  if (courseIds.length === 0) {
+    return NextResponse.json({
+      period: { dateFrom: dateFrom.toISOString(), dateTo: dateTo.toISOString() },
+      rows: [],
+    });
+  }
 
   const [completedByCourse, accessOpenByCourse, progressAgg, certsNotRevoked] = await Promise.all([
     prisma.enrollment.groupBy({

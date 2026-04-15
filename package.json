@@ -19,6 +19,7 @@
     "certificates:optimize-logo": "tsx scripts/optimize-certificate-logo.ts",
     "db:fix-verification-urls": "tsx scripts/fix-verification-material-urls.ts",
     "scorm:import-demo": "tsx scripts/import-demo-scorm.ts",
+    "scorm:import-new": "tsx scripts/import-scorm-new-course.ts",
     "scorm:patch-overrides": "tsx scripts/patch-existing-scorm-overrides.ts",
     "services:export": "tsx scripts/export-services.ts",
     "services:import-replace": "tsx scripts/import-services-replace.ts",

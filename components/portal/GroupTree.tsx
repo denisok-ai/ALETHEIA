@@ -156,6 +156,7 @@ export function GroupTree({
       .then((d) => {
         setTree(d.tree ?? []);
       })
+      .catch(() => setTree([]))
       .finally(() => setLoading(false));
   }, [moduleType]);
 

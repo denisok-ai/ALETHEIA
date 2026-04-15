@@ -25,15 +25,17 @@ export async function GET(
   });
   if (!group) return NextResponse.json({ error: 'Not found' }, { status: 404 });
 
-  return NextResponse.json({
-    media: group.mediaGroups.map((mg) => ({
-      id: mg.media.id,
-      title: mg.media.title,
-      type: mg.media.type,
-      mimeType: mg.media.mimeType,
+  const media = group.mediaGroups
+    .filter((mg) => mg.media != null)
+    .map((mg) => ({
+      id: mg.media!.id,
+      title: mg.media!.title,
+      type: mg.media!.type,
+      mimeType: mg.media!.mimeType,
       sortOrder: mg.sortOrder,
-    })),
-  });
+    }));
+
+  return NextResponse.json({ media });
 }
 
 export async function POST(
