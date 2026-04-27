@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { hasCourseLearningAccess } from '@/lib/course-learning-access';
 import { triggerNotification } from '@/lib/notifications';
 import { awardXpForLessonCompletedIfNew } from '@/lib/gamification';
 import { getGamificationNumbers } from '@/lib/gamification-config';
@@ -150,12 +151,8 @@ export async function GET(request: NextRequest) {
   if (!courseId || !lessonId) return NextResponse.json({ error: 'Missing courseId or lessonId' }, { status: 400 });
 
   if (role !== 'admin' && role !== 'manager') {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!enrollment || enrollment.accessClosed) {
-      return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
-    }
+    const ok = await hasCourseLearningAccess(userId, courseId, role);
+    if (!ok) return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
   }
 
   const progress = await prisma.scormProgress.findUnique({
@@ -203,19 +200,15 @@ export async function POST(request: NextRequest) {
   if (role === 'admin') {
     // Admin может тестировать любой курс без записи — пропускаем проверку enrollment
   } else if (role === 'manager') {
-    const managerEnrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!managerEnrollment) {
-      console.log('[SCORM progress] manager without enrollment, skipping save', { userId, courseId, lessonId });
+    const ok = await hasCourseLearningAccess(userId, courseId, role);
+    if (!ok) {
+      console.log('[SCORM progress] manager without access, skipping save', { userId, courseId, lessonId });
       return NextResponse.json({ success: true });
     }
   } else {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!enrollment) {
-      console.warn('[SCORM progress] POST 403: not enrolled', { userId, courseId, lessonId });
+    const ok = await hasCourseLearningAccess(userId, courseId, role);
+    if (!ok) {
+      console.warn('[SCORM progress] POST 403: no access', { userId, courseId, lessonId });
       return NextResponse.json(
         { error: 'Нет доступа к курсу. Запишитесь на курс для прохождения.' },
         { status: 403 }

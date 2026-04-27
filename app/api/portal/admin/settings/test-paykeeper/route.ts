@@ -12,8 +12,8 @@ export async function POST() {
   const result = await testPayKeeperConnection();
   if (!result.ok) {
     return NextResponse.json(
-      { error: result.error ?? 'Подключение не удалось' },
-      { status: 502 }
+      { success: false, error: result.error ?? 'Подключение не удалось' },
+      { status: 200 }
     );
   }
   return NextResponse.json({ success: true });

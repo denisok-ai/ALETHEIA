@@ -14,6 +14,7 @@ export function JsonLdOrganization({
   const data = {
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
+    '@id': `${url}/#organization`,
     name: 'Школа «AVATERRA»',
     alternateName: ['АВАТЕРРА', 'AVATERRA', 'avaterra.pro'],
     url,

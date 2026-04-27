@@ -40,6 +40,7 @@ export default async function AdminCoursesPage() {
     status: c.status,
     price: c.price,
     sort_order: c.sortOrder,
+    open_access_for_all_students: c.openAccessForAllStudents,
     created_at: c.createdAt.toISOString(),
   }));
 

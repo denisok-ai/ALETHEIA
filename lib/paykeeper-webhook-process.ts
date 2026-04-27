@@ -1,7 +1,7 @@
 /**
  * Обработка успешной оплаты (webhook PayKeeper): обновление заказа, лиды, запись на курс, письма.
- * Используется в POST /api/webhook/paykeeper и в симуляции оплаты из админки.
- * site_url и прочие настройки — из БД (Портал → Настройки). Настройки вынесены в админку.
+ * Используется в POST /api/webhook/paykeeper, ручном подтверждении заказа, симуляции и бесплатном доступе.
+ * site_url и прочие настройки — из БД (Портал → Настройки).
  */
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
@@ -10,8 +10,23 @@ import { getSystemSettings, getPaymentEmailTemplates, renderPaymentEmailTemplate
 import { sendEmail } from '@/lib/email';
 import { triggerNotification } from '@/lib/notifications';
 import { createPasswordToken } from '@/lib/password-token';
+import { findActiveServiceForOrderTariff } from '@/lib/order-service';
 
-export async function processPaidOrder(orderNumber: string): Promise<{ success: boolean; error?: string }> {
+export type ProcessPaidOrderResult = {
+  success: boolean;
+  error?: string;
+  /** Заказ уже был оплачен до вызова — повторная обработка не выполнялась. */
+  alreadyPaid?: boolean;
+  courseId?: string | null;
+  enrollmentCreated?: boolean;
+  userId?: string | null;
+  userWasAutoCreated?: boolean;
+  emailKind?: 'set_password' | 'course_access' | 'generic' | 'fallback_register' | 'none';
+  warnings?: string[];
+};
+
+export async function processPaidOrder(orderNumber: string): Promise<ProcessPaidOrderResult> {
+  const warnings: string[] = [];
   const order = await prisma.order.findUnique({
     where: { orderNumber },
   });
@@ -20,7 +35,7 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
   }
   if (order.status === 'paid') {
     console.info('[PayKeeper webhook] idempotent_ok already_paid', { orderNumber });
-    return { success: true };
+    return { success: true, alreadyPaid: true };
   }
 
   await prisma.order.update({
@@ -40,23 +55,19 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
     }
   }
 
-  const service = await prisma.service.findFirst({
-    where: {
-      isActive: true,
-      OR: [
-        { paykeeperTariffId: order.tariffId },
-        { slug: order.tariffId },
-      ],
-    },
-    select: { courseId: true },
-  });
+  const service = order.tariffId
+    ? await findActiveServiceForOrderTariff(order.tariffId)
+    : null;
+  const courseId = service?.courseId ?? null;
 
-  const courseId = service?.courseId;
-
-  if (order.tariffId && !courseId) {
-    console.warn(
-      `[PayKeeper] Заказ ${orderNumber}: tariffId="${order.tariffId}" — услуга не найдена или курс не привязан. Зачисление не создано.`
-    );
+  if (order.tariffId && !service) {
+    const msg = `Заказ ${orderNumber}: tariffId="${order.tariffId}" — активный товар не найден (slug / paykeeperTariffId).`;
+    console.warn(`[PayKeeper] ${msg}`);
+    warnings.push(msg);
+  } else if (service && !courseId) {
+    const msg = `Заказ ${orderNumber}: товар «${service.name}» без привязки к курсу — зачисление невозможно.`;
+    console.warn(`[PayKeeper] ${msg}`);
+    warnings.push(msg);
   }
 
   const [settings, paymentTpl] = await Promise.all([
@@ -74,6 +85,11 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
   const orderAmount = `${order.amount.toLocaleString('ru-RU')} ₽`;
   const emailLocal = order.clientEmail.trim().split('@')[0] || 'клиент';
 
+  let enrollmentCreated = false;
+  let resultUserId: string | null = null;
+  let userWasAutoCreated = false;
+  let emailKind: ProcessPaidOrderResult['emailKind'] = 'none';
+
   if (courseId) {
     const [user, course] = await Promise.all([
       prisma.user.findFirst({
@@ -87,7 +103,6 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
     ]);
 
     let userId = user?.id;
-    let userWasAutoCreated = false;
 
     if (!userId) {
       try {
@@ -137,6 +152,8 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
         create: { userId, courseId },
         update: {},
       });
+      enrollmentCreated = true;
+      resultUserId = userId;
       await triggerNotification({
         eventType: 'enrollment',
         userId,
@@ -154,6 +171,7 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
       emailLocal;
 
     if (userId && userWasAutoCreated) {
+      emailKind = 'set_password';
       const token = await createPasswordToken(userId);
       const setPasswordUrl = siteUrl
         ? `${siteUrl}/set-password?token=${encodeURIComponent(token)}`
@@ -164,13 +182,16 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
 <p>Установите пароль по ссылке (действует 48 часов), чтобы войти и получить доступ к курсу «${courseTitle}»:</p>
 <p><a href="${setPasswordUrl}">Установить пароль</a></p>
 <p>Если ссылка не открывается, скопируйте в браузер: ${setPasswordUrl}</p>
+<p>После установки пароля войдите на сайт и откройте раздел «Мои курсы».</p>
 <p>— ${portalTitle}</p>`;
       try {
         await sendEmail(order.clientEmail, subject, body);
       } catch (mailErr) {
         console.error('[PayKeeper] Send set-password email:', mailErr);
+        warnings.push('Не удалось отправить письмо со ссылкой на установку пароля.');
       }
     } else if (userId) {
+      emailKind = 'course_access';
       const vars = {
         orderid: orderNumber,
         loginUrl,
@@ -186,8 +207,14 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
       };
       const subject = renderPaymentEmailTemplate(paymentTpl.courseSubject, vars);
       const body = renderPaymentEmailTemplate(paymentTpl.courseBody, vars);
-      await sendEmail(order.clientEmail, subject, body);
+      try {
+        await sendEmail(order.clientEmail, subject, body);
+      } catch (mailErr) {
+        console.error('[PayKeeper] Send course access email:', mailErr);
+        warnings.push('Не удалось отправить письмо о доступе к курсу.');
+      }
     } else {
+      emailKind = 'fallback_register';
       const subject = `${portalTitle}: оплата получена — зарегистрируйтесь для доступа к курсу`;
       const body = `<p>Здравствуйте!</p>
 <p>Оплата по заказу ${orderNumber} получена. Курс «${courseTitle}» оплачен.</p>
@@ -197,9 +224,11 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
         await sendEmail(order.clientEmail, subject, body);
       } catch (mailErr) {
         console.error('[PayKeeper] Send fallback course email:', mailErr);
+        warnings.push('Не удалось отправить письмо с инструкцией по регистрации.');
       }
     }
   } else {
+    emailKind = 'generic';
     const vars = {
       orderid: orderNumber,
       loginUrl,
@@ -215,8 +244,25 @@ export async function processPaidOrder(orderNumber: string): Promise<{ success: 
     };
     const subject = renderPaymentEmailTemplate(paymentTpl.genericSubject, vars);
     const body = renderPaymentEmailTemplate(paymentTpl.genericBody, vars);
-    await sendEmail(order.clientEmail, subject, body);
+    try {
+      await sendEmail(order.clientEmail, subject, body);
+    } catch (mailErr) {
+      console.error('[PayKeeper] Send generic payment email:', mailErr);
+      warnings.push('Не удалось отправить письмо об оплате.');
+    }
   }
 
-  return { success: true };
+  const result: ProcessPaidOrderResult = {
+    success: true,
+    courseId,
+    enrollmentCreated,
+    userId: resultUserId,
+    userWasAutoCreated: enrollmentCreated ? userWasAutoCreated : false,
+    emailKind,
+  };
+  if (warnings.length > 0) {
+    result.warnings = warnings;
+    console.info('[PayKeeper] process_paid_order_done', { orderNumber, warnings });
+  }
+  return result;
 }

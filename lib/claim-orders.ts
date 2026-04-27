@@ -1,7 +1,7 @@
 /**
  * Привязка оплаченных заказов по email к пользователю: создание Enrollment,
  * уведомление, проставление Order.userId. Используется при регистрации и при первом входе в ЛК.
- * Оптимизировано: один findMany по сервисам вместо N findFirst на заказ.
+ * Ключ заказа (tariffId) может совпадать с paykeeperTariffId или со slug товара.
  */
 import { prisma } from '@/lib/db';
 import { triggerNotification } from '@/lib/notifications';
@@ -14,13 +14,18 @@ export async function claimPaidOrdersForUser(userId: string, emailNorm: string):
     }),
     prisma.service.findMany({
       where: { isActive: true },
-      select: { paykeeperTariffId: true, courseId: true },
+      select: { paykeeperTariffId: true, slug: true, courseId: true },
     }),
   ]);
 
   const tariffToCourse = new Map<string, string | null>();
   for (const s of services) {
-    if (s.paykeeperTariffId) tariffToCourse.set(s.paykeeperTariffId, s.courseId);
+    if (s.paykeeperTariffId?.trim()) {
+      tariffToCourse.set(s.paykeeperTariffId.trim(), s.courseId);
+    }
+    if (s.slug?.trim()) {
+      tariffToCourse.set(s.slug.trim(), s.courseId);
+    }
   }
 
   const forUser = paidOrders.filter(

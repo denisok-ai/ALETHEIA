@@ -109,23 +109,9 @@ async function main() {
   }
 
   // ——— Группы (курсы, медиа, пользователи): по 20+ с иерархией ———
-  let courseGroups: { id: string; name: string; parentId: string | null }[] = await prisma.group.findMany({ where: { moduleType: 'course' }, orderBy: { displayOrder: 'asc' } }).then((g) => g.map((x) => ({ id: x.id, name: x.name, parentId: x.parentId })));
-  if (courseGroups.length < 22) {
-    courseGroups = [];
-    for (let i = 0; i < 22; i++) {
-    const parentId = i >= 5 ? courseGroups[i - 5]?.id ?? null : null;
-      const g = await prisma.group.create({
-        data: {
-          name: `Группа курсов ${i + 1}`,
-          description: i % 3 === 0 ? `Подборка курсов по тематике ${i + 1}` : null,
-          moduleType: 'course',
-          parentId,
-          displayOrder: i,
-        },
-      });
-      courseGroups.push({ id: g.id, name: g.name, parentId: g.parentId });
-    }
-  }
+  const courseGroups: { id: string; name: string; parentId: string | null }[] = await prisma.group
+    .findMany({ where: { moduleType: 'course' }, orderBy: { displayOrder: 'asc' } })
+    .then((g) => g.map((x) => ({ id: x.id, name: x.name, parentId: x.parentId })));
 
   let mediaGroups: { id: string; name: string }[] = await prisma.group.findMany({ where: { moduleType: 'media' } }).then((g) => g.map((x) => ({ id: x.id, name: x.name })));
   if (mediaGroups.length < 20) {
@@ -147,21 +133,9 @@ async function main() {
     }
   }
 
-  let userGroups: { id: string; name: string }[] = await prisma.group.findMany({ where: { moduleType: 'user' } }).then((g) => g.map((x) => ({ id: x.id, name: x.name })));
-  if (userGroups.length < 20) {
-    userGroups = [];
-    for (let i = 0; i < 20; i++) {
-      const g = await prisma.group.create({
-        data: {
-          name: `Участники: ${['Новички', 'Практики', 'Выпускники', 'Корпоративные', 'VIP'][i % 5]} ${Math.floor(i / 5) + 1}`,
-          moduleType: 'user',
-          displayOrder: i,
-          description: i % 4 === 0 ? `Группа участников уровня ${i + 1}` : null,
-        },
-      });
-      userGroups.push({ id: g.id, name: g.name });
-    }
-  }
+  const userGroups: { id: string; name: string }[] = await prisma.group
+    .findMany({ where: { moduleType: 'user' } })
+    .then((g) => g.map((x) => ({ id: x.id, name: x.name })));
 
   // ——— Для первых курсов: scormManifest и scormPath (для проверки прогресса и плеера) ———
   const scormLessonIds = ['lesson-1', 'lesson-2', 'lesson-3'];
@@ -212,14 +186,16 @@ async function main() {
     }
   }
 
-  // Связка курсов с группами курсов
-  for (let i = 0; i < courses.length; i++) {
-    const group = courseGroups[i % courseGroups.length];
-    await prisma.courseGroup.upsert({
-      where: { courseId_groupId: { courseId: courses[i].id, groupId: group.id } },
-      create: { courseId: courses[i].id, groupId: group.id },
-      update: {},
-    });
+  // Связка курсов с группами курсов (только если группы уже есть в БД)
+  if (courseGroups.length > 0) {
+    for (let i = 0; i < courses.length; i++) {
+      const group = courseGroups[i % courseGroups.length];
+      await prisma.courseGroup.upsert({
+        where: { courseId_groupId: { courseId: courses[i].id, groupId: group.id } },
+        create: { courseId: courses[i].id, groupId: group.id },
+        update: {},
+      });
+    }
   }
 
   // ——— Записи на курсы (enrollments): осмысленно распределяем студентов по курсам ———
@@ -280,12 +256,14 @@ async function main() {
     }).catch(() => {});
   }
 
-  // Связка пользователей с группами пользователей
-  for (let ui = 0; ui < students.length; ui++) {
-    const group = userGroups[ui % userGroups.length];
-    await prisma.userGroup.create({
-      data: { userId: students[ui].id, groupId: group.id, role: ui % 7 === 0 ? 'moderator' : 'member' },
-    }).catch(() => {});
+  // Связка пользователей с группами пользователей (только если группы уже есть в БД)
+  if (userGroups.length > 0) {
+    for (let ui = 0; ui < students.length; ui++) {
+      const group = userGroups[ui % userGroups.length];
+      await prisma.userGroup.create({
+        data: { userId: students[ui].id, groupId: group.id, role: ui % 7 === 0 ? 'moderator' : 'member' },
+      }).catch(() => {});
+    }
   }
 
   // ——— Лиды: 50+; у части — lastOrderNumber (связь с оплаченным заказом) ———

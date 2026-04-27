@@ -52,6 +52,14 @@
 
 ---
 
+## 2026-04-27 — SEO: индексация, sitemap/robots, JSON-LD, llms.txt
+
+**Задача:** усилить техническое SEO: только контентные URL в sitemap; `noindex` для login/register/reset/set-password и ранее добавленных служебных страниц; OG/Twitter через `buildPublicPageMetadata` на faq/contacts/privacy/oferta/blog; `WebSite` + `@id` у `EducationalOrganization`; `ItemList` на индексе блога; `BlogPosting` в статьях; `ContactPage` на контактах; `robots.txt` — также `Disallow: /portal` (без слэша); файл `public/llms.txt` для ИИ-агентов; раздел в `docs/Support.md`.
+
+**Сделано:** правки в `app/sitemap.ts`, `app/robots.ts`, `app/layout.tsx`, сегментные `app/(auth)/*/layout.tsx`, страницы blog/faq/contacts/privacy/oferta, компоненты `JsonLdWebSite`, `JsonLdBlogIndex`, `JsonLdContactPage`, обновлён `JsonLdOrganization` / `JsonLdBlogArticle`. Проверки: `npm run lint`, `npm run test:paykeeper`.
+
+---
+
 ## 2026-04-04 — Сводный бэклог: документация деплоя, Plyr, Tasktracker
 
 **Задача:** закрыть пункты сводного плана (деплой — документация; медиатека Plyr; синхронизация трекера; инфра-чеклист; опциональный бэклог).

@@ -5,12 +5,12 @@ import { getSystemSettings } from '@/lib/settings';
 import { nanoid } from 'nanoid';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { processPaidOrder } from '@/lib/paykeeper-webhook-process';
-
-const TARIFFS: Record<string, { name: string; price: number }> = {
-  'kod-tela-start': { name: 'Тело знает всё: введение в мышечное тестирование', price: 0 },
-  'avaterra-praktik': { name: '«Аватера»: Практик', price: 25_000 },
-  'avaterra-master-vip': { name: '«Аватера»: Мастер. Наставничество Татьяны Стрельцовой', price: 69_000 },
-};
+import {
+  assertServiceLinkedToCourse,
+  findActiveServiceBySlug,
+  findActiveServiceForOrderTariff,
+  orderTariffIdForStorage,
+} from '@/lib/order-service';
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'payment-create', 10);
@@ -26,32 +26,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    let tariffIdToUse: string;
-    let amount: number;
-    let serviceName: string;
-
     const slug = typeof serviceSlug === 'string' ? serviceSlug.trim() : '';
-    if (slug) {
-      const service = await prisma.service.findFirst({
-        where: { slug, isActive: true },
-        include: { course: { select: { title: true } } },
-      });
-      if (!service) {
-        return NextResponse.json({ error: 'Товар не найден' }, { status: 404 });
-      }
-      tariffIdToUse = service.paykeeperTariffId ?? service.slug;
-      amount = service.price;
-      serviceName = service.name;
-    } else {
-      const tid = typeof tariffId === 'string' ? tariffId : '';
-      const tariff = TARIFFS[tid];
-      if (!tariff) {
-        return NextResponse.json({ error: 'Тариф не найден' }, { status: 404 });
-      }
-      tariffIdToUse = tid;
-      amount = tariff.price;
-      serviceName = tariff.name;
+    const tid = typeof tariffId === 'string' ? tariffId.trim() : '';
+
+    const service = slug
+      ? await findActiveServiceBySlug(slug)
+      : tid
+        ? await findActiveServiceForOrderTariff(tid)
+        : null;
+
+    const linked = assertServiceLinkedToCourse(service);
+    if (!linked.ok) {
+      const status = service == null ? 404 : 400;
+      return NextResponse.json({ error: linked.error }, { status });
     }
+
+    const tariffIdToUse = orderTariffIdForStorage(service!);
+    const amount = service!.price;
+    const serviceName = service!.name;
 
     const orderNumber = `ALT-${nanoid(10)}`;
 

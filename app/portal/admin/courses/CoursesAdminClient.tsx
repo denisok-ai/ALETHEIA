@@ -60,6 +60,7 @@ interface Course {
   status: string;
   price: number | null;
   sort_order: number;
+  open_access_for_all_students?: boolean;
   created_at: string;
 }
 
@@ -359,6 +360,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
       price?: number | null;
       status?: string;
       thumbnailUrl?: string | null;
+      openAccessForAllStudents?: boolean;
     }
   ) {
     try {
@@ -937,6 +939,7 @@ export function CoursesAdminClient({ initialCourses, selectedGroupId = null, onG
               price: data.price,
               status: data.status,
               thumbnailUrl: data.thumbnailUrl,
+              openAccessForAllStudents: data.openAccessForAllStudents,
             });
           }}
         />
@@ -996,6 +999,7 @@ function EditCourseDialog({
     price: number | null;
     status: string;
     thumbnailUrl: string | null;
+    openAccessForAllStudents: boolean;
   }) => void;
 }) {
   const [title, setTitle] = useState(course.title);
@@ -1011,6 +1015,9 @@ function EditCourseDialog({
   const [price, setPrice] = useState(course.price ?? '');
   const [status, setStatus] = useState(course.status);
   const [thumbnailUrl, setThumbnailUrl] = useState(course.thumbnail_url ?? '');
+  const [openAccessForAllStudents, setOpenAccessForAllStudents] = useState(
+    !!course.open_access_for_all_students
+  );
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -1019,6 +1026,18 @@ function EditCourseDialog({
           <DialogTitle>Редактировать курс</DialogTitle>
         </DialogHeader>
         <div className="mt-4 space-y-4">
+          <div className="flex items-center gap-2 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] px-3 py-2">
+            <input
+              id="edit-open-access"
+              type="checkbox"
+              checked={openAccessForAllStudents}
+              onChange={(e) => setOpenAccessForAllStudents(e.target.checked)}
+              className="h-4 w-4 rounded border-[#E2E8F0]"
+            />
+            <Label htmlFor="edit-open-access" className="cursor-pointer text-sm font-normal leading-snug">
+              Пробный для всех в ЛК (виден без записи на курс)
+            </Label>
+          </div>
           <div>
             <Label htmlFor="edit-title">Название</Label>
             <Input
@@ -1179,6 +1198,7 @@ function EditCourseDialog({
                   price: price === '' ? null : typeof price === 'number' ? price : parseInt(String(price), 10),
                   status,
                   thumbnailUrl: thumbnailUrl || null,
+                  openAccessForAllStudents,
                 })
               }
             >

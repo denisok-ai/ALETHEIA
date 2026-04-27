@@ -12,9 +12,10 @@ import { AnalyticsScripts } from '@/components/AnalyticsScripts';
 import { GoogleTagInHead } from '@/components/GoogleTagInHead';
 import { YandexMetrika } from '@/components/YandexMetrika';
 import { JsonLdOrganization } from '@/components/JsonLdOrganization';
+import { JsonLdWebSite } from '@/components/JsonLdWebSite';
 import { RootMain } from '@/components/RootMain';
 import { normalizeSiteUrl } from '@/lib/site-url';
-import { BRAND_LOGO_URL } from '@/lib/brand';
+import { BRAND_LOGO_URL, BRAND_SITE_NAME } from '@/lib/brand';
 
 /** Без этого Next отдаёт главную и оболочку как «вечный» статический кеш (s-maxage=31536000) — после деплоя видна старая сборка. */
 export const dynamic = 'force-dynamic';
@@ -124,6 +125,7 @@ export default async function RootLayout({
       </head>
       <body className="min-h-screen font-body antialiased">
         <JsonLdOrganization siteUrl={siteUrl} phone={settings.contact_phone} />
+        <JsonLdWebSite siteUrl={siteUrl} name={BRAND_SITE_NAME} />
         <YandexMetrika />
         <AnalyticsScripts />
         <ChunkLoadRecovery />

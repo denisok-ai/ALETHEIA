@@ -17,6 +17,7 @@
 #   DEPLOY_ROOT          каталог на сервере (по умолчанию /opt/ALETHEIA)
 #   DEPLOY_SSH_IDENTITY  путь к приватному ключу SSH (опционально)
 #   SKIP_LOCAL_BUILD=1   пропустить npm run build (если .next уже свежий)
+#   RESET_AND_SEED=1     на сервере: полный сброс БД (migrate reset + seed). Нужен полный npm ci (tsx для seed).
 #
 set -euo pipefail
 
@@ -87,14 +88,21 @@ rsync -avz -e "$RSYNC_RSH" \
   "${DEPLOY_SSH}:${DEPLOY_ROOT}/"
 
 echo ""
-echo "=== На сервере: npm ci, prisma generate, сброс кеша nginx, старт ==="
-ssh "${SSH_OPTS[@]}" "$DEPLOY_SSH" "DEPLOY_ROOT='$DEPLOY_ROOT' bash -se" <<'REMOTE'
+echo "=== На сервере: npm ci, prisma, сброс кеша nginx, старт ==="
+ssh "${SSH_OPTS[@]}" "$DEPLOY_SSH" "DEPLOY_ROOT='$DEPLOY_ROOT' RESET_AND_SEED='${RESET_AND_SEED:-0}' bash -se" <<'REMOTE'
 set -euo pipefail
 cd "$DEPLOY_ROOT"
 export NODE_ENV=production
 rm -rf node_modules
-npm ci --omit=dev
-npx prisma generate
+if [[ "${RESET_AND_SEED:-0}" = "1" ]]; then
+  echo "RESET_AND_SEED=1 — полный npm ci и prisma migrate reset (данные БД удаляются)"
+  npm ci
+  npx prisma migrate reset --force
+else
+  npm ci --omit=dev
+  npx prisma migrate deploy 2>/dev/null || true
+  npx prisma generate
+fi
 if [[ -d /var/cache/nginx ]] && [[ -n "$(ls -A /var/cache/nginx 2>/dev/null)" ]]; then
   sudo sh -c 'rm -rf /var/cache/nginx/*' || true
 fi

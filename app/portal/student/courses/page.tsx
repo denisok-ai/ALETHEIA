@@ -38,12 +38,21 @@ export default async function StudentCoursesPage() {
     where: { userId, course: { status: 'published' } },
     include: {
       course: {
-        select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true, courseFormat: true },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          thumbnailUrl: true,
+          scormManifest: true,
+          courseFormat: true,
+        },
       },
     },
     orderBy: { enrolledAt: 'desc' },
     take: 500,
   });
+
+  const enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
 
   type CourseItem = {
     enrollId: string;
@@ -74,6 +83,27 @@ export default async function StudentCoursesPage() {
       course: e.course!,
       accessClosed: e.accessClosed,
     }));
+    const openWhere: {
+      status: 'published';
+      openAccessForAllStudents: true;
+      id?: { notIn: string[] };
+    } = {
+      status: 'published',
+      openAccessForAllStudents: true,
+    };
+    if (enrolledCourseIds.size > 0) {
+      openWhere.id = { notIn: Array.from(enrolledCourseIds) };
+    }
+    const openExtra = await prisma.course.findMany({
+      where: openWhere,
+      select: { id: true, title: true, description: true, thumbnailUrl: true, scormManifest: true, courseFormat: true },
+      orderBy: { sortOrder: 'asc' },
+      take: 100,
+    });
+    list = [
+      ...list,
+      ...openExtra.map((c) => ({ enrollId: `open-${c.id}`, course: c, accessClosed: false as boolean | undefined })),
+    ];
   }
 
   const progressByCourse = await prisma.scormProgress.groupBy({

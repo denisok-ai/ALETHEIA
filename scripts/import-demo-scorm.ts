@@ -1,5 +1,5 @@
 /**
- * Импорт SCORM-пакета в курс course-demo-muscle-testing («Навыки мышечного тестирования»).
+ * Импорт SCORM-пакета в курс course-demo-muscle-testing («Пробный 12345», открыт всем в ЛК).
  * Использование:
  *   npm run scorm:import-demo
  *   npx tsx scripts/import-demo-scorm.ts "C:\\path\\to\\package.zip"
@@ -11,7 +11,7 @@ import { prisma } from '../lib/db';
 import { installScormZip } from '../lib/scorm/install-scorm-zip';
 
 export const DEMO_SCORM_COURSE_ID = 'course-demo-muscle-testing';
-const DEMO_SCORM_COURSE_TITLE = 'Навыки мышечного тестирования';
+const DEMO_SCORM_COURSE_TITLE = 'Пробный 12345';
 
 const DEFAULT_ZIP = path.join(
   process.cwd(),
@@ -40,8 +40,9 @@ async function main() {
       id: DEMO_SCORM_COURSE_ID,
       title: DEMO_SCORM_COURSE_TITLE,
       description:
-        'Курс в формате SCORM 2004. Материалы открываются во встроенном плеере личного кабинета.',
+        'Пробный курс в формате SCORM 2004. Материалы открываются во встроенном плеере личного кабинета.',
       status: 'published',
+      openAccessForAllStudents: true,
       sortOrder: 1,
       courseFormat: 'scorm',
       price: null,
@@ -50,6 +51,7 @@ async function main() {
     update: {
       title: DEMO_SCORM_COURSE_TITLE,
       status: 'published',
+      openAccessForAllStudents: true,
       courseFormat: 'scorm',
     },
   });

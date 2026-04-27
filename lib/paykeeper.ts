@@ -46,10 +46,45 @@ export function clearPayKeeperConfigCache(): void {
   configCache = null;
 }
 
+export function normalizePayKeeperServer(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  try {
+    const url = new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`);
+    return url.host.toLowerCase();
+  } catch {
+    return trimmed
+      .replace(/^https?:\/\//i, '')
+      .split('/')[0]
+      .trim()
+      .toLowerCase();
+  }
+}
+
+function decryptSetting(value: string | undefined): string {
+  if (!value) return '';
+  try {
+    return decrypt(value);
+  } catch {
+    return '';
+  }
+}
+
+function completeConfig(config: PayKeeperConfig): PayKeeperConfig | null {
+  const server = normalizePayKeeperServer(config.server);
+  const login = config.login.trim();
+  const password = config.password.trim();
+  const secret = config.secret.trim();
+
+  if (!server || !login || !password || !secret) return null;
+  return { server, login, password, secret };
+}
+
 /**
  * Читает конфиг PayKeeper из БД (Портал → Настройки → Платежи). Секреты расшифровываются.
  * При paykeeper_use_test = 1/true используются тестовые поля (paykeeper_test_*).
- * При отсутствии данных в БД — возвращает null.
+ * Env-fallback не используется: настройки PayKeeper должны храниться в БД.
  */
 export async function getPayKeeperConfigFromSettings(): Promise<PayKeeperConfig | null> {
   const now = Date.now();
@@ -67,55 +102,23 @@ export async function getPayKeeperConfigFromSettings(): Promise<PayKeeperConfig 
     byKey.paykeeper_use_test === 'true' ||
     String(byKey.paykeeper_use_test).toLowerCase() === 'true';
 
-  let server: string;
-  let login: string;
-  let password: string;
-  let secret: string;
+  const rawConfig = useTest
+    ? {
+        server: byKey.paykeeper_test_server || '',
+        login: byKey.paykeeper_test_login || '',
+        password: decryptSetting(byKey.paykeeper_test_password),
+        secret: decryptSetting(byKey.paykeeper_test_secret),
+      }
+    : {
+        server: byKey.paykeeper_server || '',
+        login: byKey.paykeeper_login || '',
+        password: decryptSetting(byKey.paykeeper_password),
+        secret: decryptSetting(byKey.paykeeper_secret),
+      };
 
-  if (useTest) {
-    server = (byKey.paykeeper_test_server || '').trim();
-    login = (byKey.paykeeper_test_login || '').trim();
-    password = '';
-    secret = '';
-    if (byKey.paykeeper_test_password) {
-      try {
-        password = decrypt(byKey.paykeeper_test_password);
-      } catch {
-        password = '';
-      }
-    }
-    if (byKey.paykeeper_test_secret) {
-      try {
-        secret = decrypt(byKey.paykeeper_test_secret);
-      } catch {
-        secret = '';
-      }
-    }
-  } else {
-    server = (byKey.paykeeper_server || '').trim();
-    login = (byKey.paykeeper_login || '').trim();
-    password = '';
-    secret = '';
-    if (byKey.paykeeper_password) {
-      try {
-        password = decrypt(byKey.paykeeper_password);
-      } catch {
-        password = '';
-      }
-    }
-    if (byKey.paykeeper_secret) {
-      try {
-        secret = decrypt(byKey.paykeeper_secret);
-      } catch {
-        secret = '';
-      }
-    }
-  }
+  const config = completeConfig(rawConfig);
+  if (!config) return null;
 
-  if (!server || !login || !password || !secret) {
-    return null;
-  }
-  const config: PayKeeperConfig = { server, login, password, secret };
   configCache = { at: now, config };
   return config;
 }
@@ -130,11 +133,14 @@ async function getConfig(): Promise<PayKeeperConfig> {
 }
 
 /**
- * Проверка подключения к PayKeeper: запрос токена по текущему конфигу (БД или env).
+ * Проверка подключения к PayKeeper: запрос токена по текущему конфигу из БД.
  */
 export async function testPayKeeperConnection(): Promise<{ ok: boolean; error?: string }> {
+  let server = '';
   try {
-    const { server, login, password } = await getConfig();
+    const config = await getConfig();
+    server = config.server;
+    const { login, password } = config;
     const tokenRes = await fetch(`https://${server}/info/settings/token/`, {
       method: 'GET',
       headers: {
@@ -145,10 +151,76 @@ export async function testPayKeeperConnection(): Promise<{ ok: boolean; error?: 
       const text = await tokenRes.text();
       return { ok: false, error: `PayKeeper: ${tokenRes.status} ${text.slice(0, 100)}` };
     }
+    parsePayKeeperToken(await tokenRes.text());
     return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Ошибка подключения' };
+    return { ok: false, error: formatPayKeeperConnectionError(e, server) };
   }
+}
+
+export function formatPayKeeperConnectionError(error: unknown, server = ''): string {
+  if (!(error instanceof Error)) return 'Ошибка подключения к PayKeeper';
+  const cause = error.cause as { code?: string } | undefined;
+  if (cause?.code === 'ENOTFOUND') {
+    return `Не удалось найти сервер PayKeeper${server ? `: ${server}` : ''}. Проверьте адрес сервера в настройках.`;
+  }
+  if (cause?.code === 'ECONNREFUSED') {
+    return `Сервер PayKeeper${server ? ` ${server}` : ''} отклонил подключение. Проверьте адрес и доступность API.`;
+  }
+  if (cause?.code === 'ETIMEDOUT' || cause?.code === 'UND_ERR_CONNECT_TIMEOUT') {
+    return `Сервер PayKeeper${server ? ` ${server}` : ''} не ответил вовремя. Проверьте сеть или адрес сервера.`;
+  }
+  if (/token not found/i.test(error.message)) {
+    return 'PayKeeper ответил, но токен не найден в ответе. Проверьте логин, пароль и права API-пользователя.';
+  }
+  return error.message || 'Ошибка подключения к PayKeeper';
+}
+
+export function parsePayKeeperToken(responseText: string): string {
+  const trimmed = responseText.trim();
+  try {
+    const parsed = JSON.parse(trimmed) as { token?: unknown };
+    if (typeof parsed.token === 'string' && parsed.token.trim()) {
+      return parsed.token.trim();
+    }
+  } catch {
+    // Некоторые инсталляции могут отдавать токен текстом, оставляем совместимость.
+  }
+
+  if (/^[a-f0-9]{16,}$/i.test(trimmed)) return trimmed;
+  throw new Error('PayKeeper token not found in response');
+}
+
+export function parsePayKeeperInvoiceResponse(responseText: string, server: string): string {
+  const normalizedServer = normalizePayKeeperServer(server);
+  const trimmed = responseText.trim();
+
+  try {
+    const parsed = JSON.parse(trimmed) as { invoice_id?: unknown };
+    if (typeof parsed.invoice_id === 'string' || typeof parsed.invoice_id === 'number') {
+      return `https://${normalizedServer}/bill/${encodeURIComponent(String(parsed.invoice_id))}/`;
+    }
+  } catch {
+    // Старый fallback: если платформа вернула HTML со ссылкой.
+  }
+
+  const match = trimmed.match(/href=["'](https:\/\/[^"']+\/(?:bill|pay)\/[^"']+)["']/);
+  if (match) return match[1];
+  throw new Error('PayKeeper: invoice_id not found in response');
+}
+
+export function buildPayKeeperInvoiceParams(data: PaymentData, token: string): URLSearchParams {
+  const form = new URLSearchParams({
+    pay_amount: String(data.sum),
+    orderid: data.orderid,
+    clientid: data.clientid,
+    service_name: data.service_name,
+    client_email: data.client_email,
+    token,
+  });
+  if (data.client_phone) form.set('client_phone', data.client_phone);
+  if (data.successRedirectUrl) form.set('user_result_callback', data.successRedirectUrl);
+  return form;
 }
 
 /**
@@ -167,18 +239,9 @@ export async function createPayKeeperInvoice(
   if (!tokenRes.ok) {
     throw new Error('PayKeeper token request failed');
   }
-  const token = await tokenRes.text();
+  const token = parsePayKeeperToken(await tokenRes.text());
 
-  const form = new URLSearchParams({
-    sum: String(data.sum),
-    orderid: data.orderid,
-    clientid: data.clientid,
-    service_name: data.service_name,
-    client_email: data.client_email,
-    token,
-  });
-  if (data.client_phone) form.set('client_phone', data.client_phone);
-  if (data.successRedirectUrl) form.set('user_result_callback', data.successRedirectUrl);
+  const form = buildPayKeeperInvoiceParams(data, token);
 
   const createRes = await fetch(`https://${server}/change/invoice/preview/`, {
     method: 'POST',
@@ -189,10 +252,7 @@ export async function createPayKeeperInvoice(
     const text = await createRes.text();
     throw new Error(`PayKeeper create invoice failed: ${text}`);
   }
-  const html = await createRes.text();
-  const match = html.match(/href="(https:\/\/[^"]+\/pay\/[^"]+)"/);
-  if (!match) throw new Error('PayKeeper: payment URL not found in response');
-  return match[1];
+  return parsePayKeeperInvoiceResponse(await createRes.text(), server);
 }
 
 /**
@@ -205,14 +265,26 @@ export function validatePayKeeperWebhook(
 ): boolean {
   const id = params.id;
   const sum = params.sum;
+  const clientid = params.clientid;
   const orderid = params.orderid;
   const key = params.key;
-  if (typeof id !== 'string' || typeof sum !== 'string' || typeof orderid !== 'string' || typeof key !== 'string') {
+  if (
+    typeof id !== 'string' ||
+    typeof sum !== 'string' ||
+    typeof clientid !== 'string' ||
+    typeof orderid !== 'string' ||
+    typeof key !== 'string'
+  ) {
     return false;
   }
   const hash = crypto
     .createHash('md5')
-    .update(`${id}|${sum}|${orderid}|${secret}`)
+    .update(`${id}${sum}${clientid}${orderid}${secret}`)
     .digest('hex');
   return hash === key;
+}
+
+export function buildPayKeeperWebhookResponse(id: string, secret: string): string {
+  const hash = crypto.createHash('md5').update(`${id}${secret}`).digest('hex');
+  return `OK ${hash}`;
 }

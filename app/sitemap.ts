@@ -8,6 +8,8 @@ import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
  * Генерирует sitemap.xml для поисковых систем.
  * Базовый URL из БД (Портал → Настройки). Публикации подтягиваются из БД при доступности.
  * Динамическая генерация при запросе — актуальные URL после деплоя.
+ *
+ * В карту не попадают служебные публичные страницы (login/register/reset и т.д.) — для них в metadata задано noindex.
  */
 export const dynamic = 'force-dynamic';
 
@@ -23,15 +25,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '/contacts', changeFrequency: 'monthly' as const, priority: 0.7 },
     { path: '/oferta', changeFrequency: 'monthly' as const, priority: 0.9 },
     { path: '/privacy', changeFrequency: 'yearly' as const, priority: 0.5 },
-    { path: '/login', changeFrequency: 'yearly' as const, priority: 0.4 },
-    { path: '/register', changeFrequency: 'yearly' as const, priority: 0.4 },
-    { path: '/reset-password', changeFrequency: 'yearly' as const, priority: 0.3 },
   ];
 
   const staticEntries: MetadataRoute.Sitemap = [
     ...publicPaths.map(({ path, changeFrequency, priority }) => ({
       url: `${base}${path || '/'}`,
-      lastModified: new Date(),
       changeFrequency,
       priority,
     })),

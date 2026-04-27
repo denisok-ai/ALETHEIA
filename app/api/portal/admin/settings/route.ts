@@ -1,14 +1,14 @@
 /**
  * Admin: GET system settings (editable keys only), PATCH to update (whitelist).
- * PayKeeper: server/login returned as values; password/secret only as "set" flags (masked).
+ * PayKeeper: values are stored in DB; encrypted secrets are returned decrypted only to admins.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { writeAuditLog } from '@/lib/audit';
 import { clearSettingsCache, clearEnvOverridesCache, clearPaymentEmailTemplatesCache } from '@/lib/settings';
-import { encrypt } from '@/lib/encrypt';
-import { clearPayKeeperConfigCache } from '@/lib/paykeeper';
+import { decrypt, encrypt } from '@/lib/encrypt';
+import { clearPayKeeperConfigCache, normalizePayKeeperServer } from '@/lib/paykeeper';
 
 const ALLOWED_KEYS = [
   'site_url',
@@ -77,20 +77,13 @@ const PAYKEEPER_SENSITIVE = new Set([
   'paykeeper_test_secret',
 ]);
 
-const ENV_SENSITIVE = new Set([
-  'resend_api_key',
-  'telegram_bot_token',
-  'telegram_webhook_secret',
-  'cron_secret',
-  'openai_api_key',
-  'deepseek_api_key',
-]);
-
 const SENSITIVE_KEYS = new Set([
   'paykeeper_password', 'paykeeper_secret', 'paykeeper_test_password', 'paykeeper_test_secret',
   'resend_api_key', 'telegram_bot_token', 'telegram_webhook_secret', 'cron_secret',
   'openai_api_key', 'deepseek_api_key',
 ]);
+
+const PAYKEEPER_SERVER_KEYS = new Set(['paykeeper_server', 'paykeeper_test_server']);
 
 export async function GET() {
   const auth = await requireAdminSession();
@@ -100,8 +93,8 @@ export async function GET() {
     where: { key: { in: [...ALLOWED_KEYS] } },
   });
 
-  // Начальные значения из .env для отображения в форме при первой настройке.
-  // После сохранения в БД — используются только значения из БД. Настройки вынесены в админку.
+  // Для PayKeeper env-fallback намеренно не используется: настройки должны храниться в БД.
+  // Для остальных блоков env оставляем как стартовые значения при первой настройке.
   const envFallback: Record<string, string> = {
     site_url: process.env.NEXT_PUBLIC_URL ?? '',
     portal_title: 'AVATERRA',
@@ -110,15 +103,15 @@ export async function GET() {
     contact_phone: '',
     company_legal_address: '',
     scorm_max_size_mb: '200',
-    paykeeper_server: process.env.PAYKEEPER_SERVER ?? '',
-    paykeeper_login: process.env.PAYKEEPER_LOGIN ?? '',
-    paykeeper_password: process.env.PAYKEEPER_PASSWORD ?? '',
-    paykeeper_secret: process.env.PAYKEEPER_SECRET ?? '',
+    paykeeper_server: '',
+    paykeeper_login: '',
+    paykeeper_password: '',
+    paykeeper_secret: '',
     paykeeper_use_test: '',
-    paykeeper_test_server: process.env.PAYKEEPER_TEST_SERVER ?? '',
-    paykeeper_test_login: process.env.PAYKEEPER_TEST_LOGIN ?? '',
-    paykeeper_test_password: process.env.PAYKEEPER_TEST_PASSWORD ?? '',
-    paykeeper_test_secret: process.env.PAYKEEPER_TEST_SECRET ?? '',
+    paykeeper_test_server: '',
+    paykeeper_test_login: '',
+    paykeeper_test_password: '',
+    paykeeper_test_secret: '',
     resend_api_key: process.env.RESEND_API_KEY ?? '',
     telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN ?? '',
     telegram_webhook_secret: process.env.TELEGRAM_WEBHOOK_SECRET ?? '',
@@ -144,10 +137,16 @@ export async function GET() {
     if (KEY_CATEGORY[k] === 'general') general[k] = v;
     else if (KEY_CATEGORY[k] === 'email') email[k] = v;
     else if (KEY_CATEGORY[k] === 'payment_email') payment_email[k] = v;
-    if (SENSITIVE_KEYS.has(k)) {
+    if (PAYKEEPER_SENSITIVE.has(k)) {
+      try {
+        keysOut[k] = v ? decrypt(v) : '';
+      } catch {
+        keysOut[k] = '';
+      }
+    } else if (SENSITIVE_KEYS.has(k)) {
       keysOut[k] = v.length > 0;
     } else {
-      keysOut[k] = v;
+      keysOut[k] = PAYKEEPER_SERVER_KEYS.has(k) ? normalizePayKeeperServer(v) : v;
     }
   }
 
@@ -181,7 +180,10 @@ export async function PATCH(request: NextRequest) {
       }
       continue;
     }
-    if (typeof body[k] === 'string') updates[k] = body[k].trim();
+    if (typeof body[k] === 'string') {
+      const value = body[k].trim();
+      updates[k] = PAYKEEPER_SERVER_KEYS.has(k) ? normalizePayKeeperServer(value) : value;
+    }
   }
 
   if (Object.keys(updates).length === 0) {
@@ -189,6 +191,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const diffForAudit: Record<string, string> = {};
+  const savedValues: Record<string, string | boolean> = {};
   for (const [key, value] of Object.entries(updates)) {
     await prisma.systemSetting.upsert({
       where: { key },
@@ -196,6 +199,7 @@ export async function PATCH(request: NextRequest) {
       update: { value },
     });
     diffForAudit[key] = SENSITIVE_KEYS.has(key) ? '[set]' : value;
+    savedValues[key] = PAYKEEPER_SENSITIVE.has(key) ? String(body[key] ?? '') : SENSITIVE_KEYS.has(key) ? true : value;
   }
 
   await writeAuditLog({
@@ -211,5 +215,5 @@ export async function PATCH(request: NextRequest) {
   clearPaymentEmailTemplatesCache();
   clearPayKeeperConfigCache();
 
-  return NextResponse.json({ success: true, updated: Object.keys(updates) });
+  return NextResponse.json({ success: true, updated: Object.keys(updates), values: savedValues });
 }

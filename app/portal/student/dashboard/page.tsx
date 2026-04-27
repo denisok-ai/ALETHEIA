@@ -81,6 +81,45 @@ export default async function StudentDashboardPage() {
       getGamificationNumbers(),
     ]);
 
+  type EnrollRow = (typeof enrollments)[number];
+  let enrollmentsForUi: EnrollRow[] = enrollments;
+  if (!staffStudentPreview) {
+    const enrolledIds = enrollments.map((e) => e.courseId);
+    const openWhere: {
+      status: 'published';
+      openAccessForAllStudents: true;
+      id?: { notIn: string[] };
+    } = {
+      status: 'published',
+      openAccessForAllStudents: true,
+    };
+    if (enrolledIds.length > 0) openWhere.id = { notIn: enrolledIds };
+    const openExtra = await prisma.course.findMany({
+      where: openWhere,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        thumbnailUrl: true,
+        scormManifest: true,
+        courseFormat: true,
+      },
+      orderBy: { sortOrder: 'asc' },
+      take: Math.max(0, 6 - enrollments.length),
+    });
+    enrollmentsForUi = [
+      ...enrollments,
+      ...openExtra.map((c) => ({
+        id: `open-${c.id}`,
+        userId,
+        courseId: c.id,
+        enrolledAt: new Date(),
+        accessClosed: false,
+        course: c,
+      })) as unknown as EnrollRow[],
+    ].slice(0, 6);
+  }
+
   const displayName =
     (session?.user as { name?: string })?.name ||
     (session?.user as { email?: string })?.email?.split('@')[0] ||
@@ -93,7 +132,7 @@ export default async function StudentDashboardPage() {
   const totalTimeMin = Math.round(
     progressByCourse.reduce((acc, p) => acc + (p._sum.timeSpent ?? 0), 0) / 60
   );
-  const completedCourses = enrollments.filter((e) => {
+  const completedCourses = enrollmentsForUi.filter((e) => {
     if (!e.course) return false;
     const total = totalLessons(e.course.scormManifest);
     const done = completedByCourse.find((x) => x.courseId === e.course!.id)?._count.lessonId ?? 0;
@@ -106,7 +145,7 @@ export default async function StudentDashboardPage() {
   const chargePercent = Math.min(100, Math.max(0, Math.round(xpProgress)));
   const pointsToNextBadge = nextBadge ? Math.max(0, nextBadge.minXp - xp) : 0;
 
-  const courses = enrollments
+  const courses = enrollmentsForUi
     .map((e, idx) => {
       const c = e.course;
       if (!c) return null;

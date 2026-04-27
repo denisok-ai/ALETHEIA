@@ -5,7 +5,7 @@ import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { buildLandingFaqPageJsonLd, FAQ_JSON_LD_ITEMS } from '@/lib/landing-faq';
 import { getSystemSettings } from '@/lib/settings';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
-import { SEO_FAQ } from '@/lib/seo/pages';
+import { DEFAULT_OG_IMAGE_PATH, SEO_FAQ } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -17,6 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
       title: SEO_FAQ.title,
       description: SEO_FAQ.description,
       canonical,
+      ogImageUrl: `${base}${DEFAULT_OG_IMAGE_PATH}`,
     }),
   };
 }

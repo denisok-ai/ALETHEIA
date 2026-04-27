@@ -4,9 +4,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getServerSession } from 'next-auth';
-import { notFound, redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { hasCourseLearningAccess } from '@/lib/course-learning-access';
+import { CourseNotFoundInPortal } from '@/components/portal/CourseNotFoundInPortal';
 
 export const metadata: Metadata = { title: 'Плеер' };
 
@@ -35,10 +37,11 @@ export default async function PlayLayout({
   }
 
   if (role !== 'admin' && role !== 'manager') {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!enrollment || enrollment.accessClosed) {
+    const ok = await hasCourseLearningAccess(userId, courseId, role);
+    if (!ok) {
+      const enrollment = await prisma.enrollment.findUnique({
+        where: { userId_courseId: { userId, courseId } },
+      });
       return (
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-6 text-center">
           <p className="max-w-md text-[var(--portal-text)]">
@@ -69,7 +72,7 @@ export default async function PlayLayout({
     where: { id: courseId },
     select: { id: true },
   });
-  if (!course) return notFound();
+  if (!course) return <CourseNotFoundInPortal />;
 
   return <>{children}</>;
 }

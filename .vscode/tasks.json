@@ -2,6 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
+      "label": "dev:share (Next + Cloudflare tunnel)",
+      "type": "npm",
+      "script": "dev:share",
+      "path": "package.json",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "dedicated", "focus": true }
+    },
+    {
       "label": "deploy:remote (SSH prod)",
       "type": "npm",
       "script": "deploy:remote",

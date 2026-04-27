@@ -1,7 +1,13 @@
 /**
  * Layout for auth flow pages (update-password, etc.).
  */
+import type { Metadata } from 'next';
 import Link from 'next/link';
+import { transactionalPageMetadata } from '@/lib/transactional-metadata';
+
+export async function generateMetadata(): Promise<Metadata> {
+  return transactionalPageMetadata('/auth/update-password', 'Смена пароля');
+}
 
 export default function AuthFlowLayout({
   children,

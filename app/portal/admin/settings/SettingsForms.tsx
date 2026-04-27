@@ -2,10 +2,72 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { Eye, EyeOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+
+function normalizePayKeeperServerInput(value: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try {
+    return new URL(trimmed.includes('://') ? trimmed : `https://${trimmed}`).host.toLowerCase();
+  } catch {
+    return trimmed.replace(/^https?:\/\//i, '').split('/')[0].trim().toLowerCase();
+  }
+}
+
+interface SecretInputProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  saved: boolean;
+  visible: boolean;
+  onVisibleChange: (visible: boolean) => void;
+  emptyPlaceholder: string;
+  savedMessage: string;
+}
+
+function SecretInput({
+  id,
+  label,
+  value,
+  onChange,
+  saved,
+  visible,
+  onVisibleChange,
+  emptyPlaceholder,
+  savedMessage,
+}: SecretInputProps) {
+  return (
+    <div>
+      <Label htmlFor={id}>{label}</Label>
+      <div className="relative mt-1">
+        <Input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          placeholder={saved ? '********' : emptyPlaceholder}
+          className="pr-11"
+          autoComplete="new-password"
+        />
+        <button
+          type="button"
+          onClick={() => onVisibleChange(!visible)}
+          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-[var(--portal-text-muted)] hover:text-[var(--portal-text)]"
+          aria-label={visible ? `Скрыть ${label.toLowerCase()}` : `Показать ${label.toLowerCase()}`}
+          title={visible ? 'Скрыть' : 'Показать'}
+        >
+          {visible ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
+        </button>
+      </div>
+      {saved && <p className="mt-1 text-xs text-emerald-700">{savedMessage}</p>}
+    </div>
+  );
+}
 
 interface PaymentEmailSettings {
   email_payment_course_subject: string;
@@ -28,13 +90,13 @@ interface SettingsKeys {
   email_payment_generic_body?: string;
   paykeeper_server: string;
   paykeeper_login: string;
-  paykeeper_password: boolean;
-  paykeeper_secret: boolean;
+  paykeeper_password: string;
+  paykeeper_secret: string;
   paykeeper_use_test: boolean;
   paykeeper_test_server: string;
   paykeeper_test_login: string;
-  paykeeper_test_password: boolean;
-  paykeeper_test_secret: boolean;
+  paykeeper_test_password: string;
+  paykeeper_test_secret: string;
   resend_api_key: boolean;
   telegram_bot_token: boolean;
   telegram_webhook_secret?: boolean;
@@ -98,6 +160,10 @@ export function SettingsForms() {
   const [paymentPreview, setPaymentPreview] = useState<{ subject: string; html: string; kind: string } | null>(null);
   const [confirmImportEnvOpen, setConfirmImportEnvOpen] = useState(false);
   const [importingEnv, setImportingEnv] = useState(false);
+  const [showPaykeeperPassword, setShowPaykeeperPassword] = useState(false);
+  const [showPaykeeperSecret, setShowPaykeeperSecret] = useState(false);
+  const [showPaykeeperTestPassword, setShowPaykeeperTestPassword] = useState(false);
+  const [showPaykeeperTestSecret, setShowPaykeeperTestSecret] = useState(false);
 
   useEffect(() => {
     fetch('/api/portal/admin/settings')
@@ -121,13 +187,13 @@ export function SettingsForms() {
           email_payment_generic_body: typeof k.email_payment_generic_body === 'string' ? k.email_payment_generic_body : '',
           paykeeper_server: typeof k.paykeeper_server === 'string' ? k.paykeeper_server : '',
           paykeeper_login: typeof k.paykeeper_login === 'string' ? k.paykeeper_login : '',
-          paykeeper_password: k.paykeeper_password === true,
-          paykeeper_secret: k.paykeeper_secret === true,
+          paykeeper_password: typeof k.paykeeper_password === 'string' ? k.paykeeper_password : '',
+          paykeeper_secret: typeof k.paykeeper_secret === 'string' ? k.paykeeper_secret : '',
           paykeeper_use_test: k.paykeeper_use_test === true || k.paykeeper_use_test === '1' || k.paykeeper_use_test === 'true',
           paykeeper_test_server: typeof k.paykeeper_test_server === 'string' ? k.paykeeper_test_server : '',
           paykeeper_test_login: typeof k.paykeeper_test_login === 'string' ? k.paykeeper_test_login : '',
-          paykeeper_test_password: k.paykeeper_test_password === true,
-          paykeeper_test_secret: k.paykeeper_test_secret === true,
+          paykeeper_test_password: typeof k.paykeeper_test_password === 'string' ? k.paykeeper_test_password : '',
+          paykeeper_test_secret: typeof k.paykeeper_test_secret === 'string' ? k.paykeeper_test_secret : '',
           resend_api_key: k.resend_api_key === true,
           telegram_bot_token: k.telegram_bot_token === true,
           telegram_webhook_secret: k.telegram_webhook_secret === true,
@@ -166,15 +232,15 @@ export function SettingsForms() {
         setPaykeeper({
           paykeeper_server: typeof k.paykeeper_server === 'string' ? k.paykeeper_server : '',
           paykeeper_login: typeof k.paykeeper_login === 'string' ? k.paykeeper_login : '',
-          paykeeper_password: '',
-          paykeeper_secret: '',
+          paykeeper_password: typeof k.paykeeper_password === 'string' ? k.paykeeper_password : '',
+          paykeeper_secret: typeof k.paykeeper_secret === 'string' ? k.paykeeper_secret : '',
         });
         setPaykeeperTest({
           use_test: k.paykeeper_use_test === true || k.paykeeper_use_test === '1' || k.paykeeper_use_test === 'true',
           paykeeper_test_server: typeof k.paykeeper_test_server === 'string' ? k.paykeeper_test_server : '',
           paykeeper_test_login: typeof k.paykeeper_test_login === 'string' ? k.paykeeper_test_login : '',
-          paykeeper_test_password: '',
-          paykeeper_test_secret: '',
+          paykeeper_test_password: typeof k.paykeeper_test_password === 'string' ? k.paykeeper_test_password : '',
+          paykeeper_test_secret: typeof k.paykeeper_test_secret === 'string' ? k.paykeeper_test_secret : '',
         });
       })
       .catch(() => toast.error('Ошибка загрузки настроек'))
@@ -205,12 +271,16 @@ export function SettingsForms() {
       ...p,
       paykeeper_server: keys.paykeeper_server ?? '',
       paykeeper_login: keys.paykeeper_login ?? '',
+      paykeeper_password: keys.paykeeper_password ?? '',
+      paykeeper_secret: keys.paykeeper_secret ?? '',
     }));
     setPaykeeperTest((p) => ({
       ...p,
       use_test: keys.paykeeper_use_test ?? false,
       paykeeper_test_server: keys.paykeeper_test_server ?? '',
       paykeeper_test_login: keys.paykeeper_test_login ?? '',
+      paykeeper_test_password: keys.paykeeper_test_password ?? '',
+      paykeeper_test_secret: keys.paykeeper_test_secret ?? '',
     }));
     setEnvVars((p) => ({
       ...p,
@@ -605,7 +675,7 @@ export function SettingsForms() {
       <div className="portal-card p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Платежи (PayKeeper)</h2>
         <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
-          Параметры для создания счетов и приёма уведомлений. Секретные поля хранятся в зашифрованном виде. Пустые поля пароля и секрета — не менять текущее значение.
+          Параметры для создания счетов и приёма уведомлений хранятся в БД. Сервер можно указать с https:// или без него — при сохранении останется только домен. Секретные поля хранятся в зашифрованном виде; глаз показывает сохранённое значение для администратора.
         </p>
         <form
           onSubmit={async (e) => {
@@ -613,14 +683,14 @@ export function SettingsForms() {
             setSavingPaykeeper(true);
             try {
               const body: Record<string, string> = {
-                paykeeper_server: paykeeper.paykeeper_server.trim(),
+                paykeeper_server: normalizePayKeeperServerInput(paykeeper.paykeeper_server),
                 paykeeper_login: paykeeper.paykeeper_login.trim(),
                 paykeeper_use_test: paykeeperTest.use_test ? '1' : '0',
               };
               if (paykeeper.paykeeper_password.trim()) body.paykeeper_password = paykeeper.paykeeper_password;
               if (paykeeper.paykeeper_secret.trim()) body.paykeeper_secret = paykeeper.paykeeper_secret;
               if (paykeeperTest.use_test) {
-                body.paykeeper_test_server = paykeeperTest.paykeeper_test_server.trim();
+                body.paykeeper_test_server = normalizePayKeeperServerInput(paykeeperTest.paykeeper_test_server);
                 body.paykeeper_test_login = paykeeperTest.paykeeper_test_login.trim();
                 if (paykeeperTest.paykeeper_test_password.trim()) body.paykeeper_test_password = paykeeperTest.paykeeper_test_password;
                 if (paykeeperTest.paykeeper_test_secret.trim()) body.paykeeper_test_secret = paykeeperTest.paykeeper_test_secret;
@@ -630,30 +700,50 @@ export function SettingsForms() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(body),
               });
-              if (!res.ok) throw new Error(await res.text());
+              const data = await res.json().catch(() => ({}));
+              if (!res.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Ошибка сохранения');
+              const saved = (data.values ?? body) as Record<string, string | boolean>;
+              const savedServer = typeof saved.paykeeper_server === 'string' ? saved.paykeeper_server : body.paykeeper_server;
+              const savedLogin = typeof saved.paykeeper_login === 'string' ? saved.paykeeper_login : body.paykeeper_login;
+              const savedPassword = typeof saved.paykeeper_password === 'string' ? saved.paykeeper_password : paykeeper.paykeeper_password;
+              const savedSecret = typeof saved.paykeeper_secret === 'string' ? saved.paykeeper_secret : paykeeper.paykeeper_secret;
+              const savedTestServer = typeof saved.paykeeper_test_server === 'string' ? saved.paykeeper_test_server : body.paykeeper_test_server;
+              const savedTestLogin = typeof saved.paykeeper_test_login === 'string' ? saved.paykeeper_test_login : body.paykeeper_test_login;
+              const savedTestPassword = typeof saved.paykeeper_test_password === 'string' ? saved.paykeeper_test_password : paykeeperTest.paykeeper_test_password;
+              const savedTestSecret = typeof saved.paykeeper_test_secret === 'string' ? saved.paykeeper_test_secret : paykeeperTest.paykeeper_test_secret;
               setKeys((prev) =>
                 prev
                   ? {
                       ...prev,
-                      paykeeper_server: body.paykeeper_server,
-                      paykeeper_login: body.paykeeper_login,
-                      paykeeper_password: !!body.paykeeper_password || prev.paykeeper_password,
-                      paykeeper_secret: !!body.paykeeper_secret || prev.paykeeper_secret,
+                      paykeeper_server: savedServer,
+                      paykeeper_login: savedLogin,
+                      paykeeper_password: savedPassword,
+                      paykeeper_secret: savedSecret,
                       paykeeper_use_test: paykeeperTest.use_test,
-                      paykeeper_test_server: body.paykeeper_test_server ?? prev.paykeeper_test_server,
-                      paykeeper_test_login: body.paykeeper_test_login ?? prev.paykeeper_test_login,
-                      paykeeper_test_password: !!body.paykeeper_test_password || prev.paykeeper_test_password,
-                      paykeeper_test_secret: !!body.paykeeper_test_secret || prev.paykeeper_test_secret,
+                      paykeeper_test_server: savedTestServer ?? prev.paykeeper_test_server,
+                      paykeeper_test_login: savedTestLogin ?? prev.paykeeper_test_login,
+                      paykeeper_test_password: savedTestPassword,
+                      paykeeper_test_secret: savedTestSecret,
                     }
                   : null
               );
-              if (body.paykeeper_password) setPaykeeper((p) => ({ ...p, paykeeper_password: '' }));
-              if (body.paykeeper_secret) setPaykeeper((p) => ({ ...p, paykeeper_secret: '' }));
-              if (body.paykeeper_test_password) setPaykeeperTest((p) => ({ ...p, paykeeper_test_password: '' }));
-              if (body.paykeeper_test_secret) setPaykeeperTest((p) => ({ ...p, paykeeper_test_secret: '' }));
+              setPaykeeper((p) => ({
+                ...p,
+                paykeeper_server: savedServer,
+                paykeeper_login: savedLogin,
+                paykeeper_password: savedPassword,
+                paykeeper_secret: savedSecret,
+              }));
+              setPaykeeperTest((p) => ({
+                ...p,
+                paykeeper_test_server: savedTestServer ?? p.paykeeper_test_server,
+                paykeeper_test_login: savedTestLogin ?? p.paykeeper_test_login,
+                paykeeper_test_password: savedTestPassword,
+                paykeeper_test_secret: savedTestSecret,
+              }));
               toast.success('Настройки PayKeeper сохранены');
-            } catch {
-              toast.error('Ошибка сохранения');
+            } catch (error) {
+              toast.error(error instanceof Error ? error.message : 'Ошибка сохранения');
             }
             setSavingPaykeeper(false);
           }}
@@ -695,30 +785,28 @@ export function SettingsForms() {
               className="mt-1"
             />
           </div>
-          <div>
-            <Label htmlFor="paykeeper_password">Пароль</Label>
-            <Input
-              id="paykeeper_password"
-              type="password"
-              value={paykeeper.paykeeper_password}
-              onChange={(e) => setPaykeeper((p) => ({ ...p, paykeeper_password: e.target.value }))}
-              placeholder={keys?.paykeeper_password ? 'Оставьте пустым, чтобы не менять' : 'Пароль для доступа к API'}
-              className="mt-1"
-              autoComplete="new-password"
-            />
-          </div>
-          <div>
-            <Label htmlFor="paykeeper_secret">Секретное слово для webhook</Label>
-            <Input
-              id="paykeeper_secret"
-              type="password"
-              value={paykeeper.paykeeper_secret}
-              onChange={(e) => setPaykeeper((p) => ({ ...p, paykeeper_secret: e.target.value }))}
-              placeholder={keys?.paykeeper_secret ? 'Оставьте пустым, чтобы не менять' : 'informer_seed из ЛК PayKeeper'}
-              className="mt-1"
-              autoComplete="new-password"
-            />
-          </div>
+          <SecretInput
+            id="paykeeper_password"
+            label="Пароль"
+            value={paykeeper.paykeeper_password}
+            onChange={(value) => setPaykeeper((p) => ({ ...p, paykeeper_password: value }))}
+            saved={!!keys?.paykeeper_password}
+            visible={showPaykeeperPassword}
+            onVisibleChange={setShowPaykeeperPassword}
+            emptyPlaceholder="Пароль для доступа к API"
+            savedMessage="Пароль сохранён. Маска ******** показывает, что значение есть в БД."
+          />
+          <SecretInput
+            id="paykeeper_secret"
+            label="Секретное слово для webhook"
+            value={paykeeper.paykeeper_secret}
+            onChange={(value) => setPaykeeper((p) => ({ ...p, paykeeper_secret: value }))}
+            saved={!!keys?.paykeeper_secret}
+            visible={showPaykeeperSecret}
+            onVisibleChange={setShowPaykeeperSecret}
+            emptyPlaceholder="informer_seed из ЛК PayKeeper"
+            savedMessage="Секрет сохранён. Маска ******** показывает, что значение есть в БД."
+          />
           </>)}
           {paykeeperTest.use_test && (
             <>
@@ -744,30 +832,28 @@ export function SettingsForms() {
               className="mt-1"
             />
           </div>
-          <div>
-            <Label htmlFor="paykeeper_test_password">Тестовый пароль</Label>
-            <Input
-              id="paykeeper_test_password"
-              type="password"
-              value={paykeeperTest.paykeeper_test_password}
-              onChange={(e) => setPaykeeperTest((p) => ({ ...p, paykeeper_test_password: e.target.value }))}
-              placeholder={keys?.paykeeper_test_password ? 'Оставьте пустым, чтобы не менять' : 'Пароль для тестового API'}
-              className="mt-1"
-              autoComplete="new-password"
-            />
-          </div>
-          <div>
-            <Label htmlFor="paykeeper_test_secret">Тестовое секретное слово для webhook</Label>
-            <Input
-              id="paykeeper_test_secret"
-              type="password"
-              value={paykeeperTest.paykeeper_test_secret}
-              onChange={(e) => setPaykeeperTest((p) => ({ ...p, paykeeper_test_secret: e.target.value }))}
-              placeholder={keys?.paykeeper_test_secret ? 'Оставьте пустым, чтобы не менять' : 'informer_seed для теста'}
-              className="mt-1"
-              autoComplete="new-password"
-            />
-          </div>
+          <SecretInput
+            id="paykeeper_test_password"
+            label="Тестовый пароль"
+            value={paykeeperTest.paykeeper_test_password}
+            onChange={(value) => setPaykeeperTest((p) => ({ ...p, paykeeper_test_password: value }))}
+            saved={!!keys?.paykeeper_test_password}
+            visible={showPaykeeperTestPassword}
+            onVisibleChange={setShowPaykeeperTestPassword}
+            emptyPlaceholder="Пароль для тестового API"
+            savedMessage="Тестовый пароль сохранён. Маска ******** показывает, что значение есть в БД."
+          />
+          <SecretInput
+            id="paykeeper_test_secret"
+            label="Тестовое секретное слово для webhook"
+            value={paykeeperTest.paykeeper_test_secret}
+            onChange={(value) => setPaykeeperTest((p) => ({ ...p, paykeeper_test_secret: value }))}
+            saved={!!keys?.paykeeper_test_secret}
+            visible={showPaykeeperTestSecret}
+            onVisibleChange={setShowPaykeeperTestSecret}
+            emptyPlaceholder="informer_seed для теста"
+            savedMessage="Тестовый секрет сохранён. Маска ******** показывает, что значение есть в БД."
+          />
           </>
           )}
           <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-3 text-sm text-[var(--portal-text-muted)] space-y-2">
@@ -794,7 +880,7 @@ export function SettingsForms() {
                 try {
                   const res = await fetch('/api/portal/admin/settings/test-paykeeper', { method: 'POST' });
                   const data = await res.json();
-                  if (res.ok) {
+                  if (res.ok && data.success !== false) {
                     toast.success('Подключение к PayKeeper успешно');
                   } else {
                     toast.error(data.error || 'Ошибка подключения');
@@ -809,7 +895,7 @@ export function SettingsForms() {
               {testingPaykeeper ? 'Проверка…' : 'Проверить подключение'}
             </Button>
             <a
-              href="https://help.paykeeper.ru/"
+              href="https://docs.paykeeper.ru/metody-integratsii/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-[var(--portal-accent)] hover:underline"

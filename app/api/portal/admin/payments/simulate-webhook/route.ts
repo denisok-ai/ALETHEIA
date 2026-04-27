@@ -40,6 +40,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!service.courseId) {
+      return NextResponse.json(
+        {
+          error:
+            'У товара не выбран курс. Привяжите курс в «Товары для продажи», затем повторите симуляцию.',
+        },
+        { status: 400 }
+      );
+    }
+
     const tariffIdToUse = service.paykeeperTariffId ?? service.slug;
     const orderNumber = `ALT-SIM-${nanoid(10)}`;
 

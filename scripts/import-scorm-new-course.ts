@@ -4,6 +4,7 @@
  * Примеры:
  *   npx tsx scripts/import-scorm-new-course.ts "C:\path\package.zip"
  *   npx tsx scripts/import-scorm-new-course.ts "/mnt/c/Users/.../package.zip" --id=course-my-scorm --title="Мой курс"
+ *   npx tsx scripts/import-scorm-new-course.ts course.zip --open
  */
 import { readFileSync, existsSync } from 'fs';
 import path from 'path';
@@ -15,13 +16,15 @@ function parseArgs() {
   const positional: string[] = [];
   let courseId = 'course-navyki-myshechnogo-import';
   let title = 'Навыки мышечного тестирования';
+  let openAccessForAllStudents = false;
   for (const a of rest) {
     if (a.startsWith('--id=')) courseId = a.slice(5).trim();
     else if (a.startsWith('--title=')) title = a.slice(8).trim();
+    else if (a === '--open') openAccessForAllStudents = true;
     else if (a.length) positional.push(a);
   }
   const zipPath = positional[0]?.trim() ?? '';
-  return { zipPath, courseId, title };
+  return { zipPath, courseId, title, openAccessForAllStudents };
 }
 
 async function ensureCourseGroupLink(courseId: string) {
@@ -41,7 +44,7 @@ async function ensureCourseGroupLink(courseId: string) {
 }
 
 async function main() {
-  const { zipPath, courseId, title } = parseArgs();
+  const { zipPath, courseId, title, openAccessForAllStudents } = parseArgs();
   if (!zipPath) {
     console.error(
       'Укажите путь к ZIP первым аргументом.\n' +
@@ -74,11 +77,13 @@ async function main() {
       courseFormat: 'scorm',
       price: null,
       aiTutorEnabled: true,
+      openAccessForAllStudents,
     },
     update: {
       title,
       status: 'published',
       courseFormat: 'scorm',
+      openAccessForAllStudents,
     },
   });
 

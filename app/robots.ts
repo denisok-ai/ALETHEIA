@@ -14,7 +14,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: '*',
         allow: '/',
-        disallow: ['/portal/', '/api/', '/auth/'],
+        disallow: ['/portal', '/portal/', '/api/', '/auth/'],
       },
     ],
     host: siteUrlHostForRobots(settings.site_url || 'https://avaterra.pro'),

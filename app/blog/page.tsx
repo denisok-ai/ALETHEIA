@@ -1,9 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
+import { JsonLdBlogIndex } from '@/components/JsonLdBlogIndex';
 import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
 import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
 import { getSystemSettings } from '@/lib/settings';
+import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
+import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
 const DESCRIPTION = 'Статьи о мышечном тестировании, теле и подсознании — школы АВАТЕРРА.';
@@ -15,11 +18,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const title = 'Блог | АВАТЕРРА';
 
   return {
-    title,
-    description: DESCRIPTION,
-    alternates: { canonical },
-    openGraph: { title, description: DESCRIPTION, url: canonical, type: 'website', locale: 'ru_RU' },
-    robots: { index: true, follow: true },
+    ...buildPublicPageMetadata({
+      title,
+      description: DESCRIPTION,
+      canonical,
+      ogImageUrl: `${base}${DEFAULT_OG_IMAGE_PATH}`,
+    }),
   };
 }
 
@@ -29,6 +33,10 @@ export default async function BlogIndexPage() {
 
   return (
     <>
+      <JsonLdBlogIndex
+        siteUrl={base}
+        posts={blogPostsMeta.map((p) => ({ slug: p.slug, title: p.title }))}
+      />
       <JsonLdBreadcrumbList
         items={[
           { name: 'Главная', url: `${base}/` },

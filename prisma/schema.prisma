@@ -155,6 +155,8 @@ model Course {
   /// Ссылка на вебинар (Zoom, Teams, TrueConf и т.д.)
   eventUrl       String?
   status         String   @default("published") // draft=В разработке, published=Опубликован, cancelled=Отменено, archived=В архиве
+  /// Если true — любой вошедший пользователь портала (роль user) видит курс и может проходить без записи (пробный/демо).
+  openAccessForAllStudents Boolean @default(false)
   price          Int?
   sortOrder      Int      @default(0)
   verificationRequiredLessonIds String? // JSON array of lesson identifiers that require phygital verification, e.g. ["lesson-1","lesson-2"]

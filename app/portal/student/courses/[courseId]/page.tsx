@@ -3,9 +3,9 @@
  */
 import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
-import { notFound } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { CourseNotFoundInPortal } from '@/components/portal/CourseNotFoundInPortal';
 import { parseVerificationLessons } from '@/lib/verification-lessons';
 import { getGamificationNumbers } from '@/lib/gamification-config';
 import { isLiveEventCourse } from '@/lib/course-format';
@@ -65,7 +65,7 @@ export default async function StudentCourseDetailPage({ params }: Props) {
   }
 
   const course = await prisma.course.findUnique({ where: { id: courseId } });
-  if (!course) notFound();
+  if (!course) return <CourseNotFoundInPortal />;
 
   const [enrollment, progressByLesson, completedByLesson, courseMedia, gamification] = await Promise.all([
     prisma.enrollment.findUnique({
@@ -100,7 +100,10 @@ export default async function StudentCourseDetailPage({ params }: Props) {
     getGamificationNumbers(),
   ]);
 
-  const canAccess = !!enrollment || role === 'admin';
+  const canAccess =
+    role === 'admin' ||
+    (course.status === 'published' && course.openAccessForAllStudents) ||
+    (!!enrollment && !enrollment.accessClosed);
   if (!canAccess) {
     return <StudentCourseAccessDenied />;
   }

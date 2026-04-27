@@ -16,6 +16,8 @@ export const courseCreateSchema = z.object({
   sortOrder: z.number().int().min(0).optional(),
   thumbnailUrl: z.string().max(2000).optional().nullable(),
   aiTutorEnabled: z.boolean().optional(),
+  /** Пробный курс: виден всем вошедшим в ЛК без записи */
+  openAccessForAllStudents: z.boolean().optional(),
   verificationRequiredLessonIds: z
     .array(
       z.union([

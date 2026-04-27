@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { cn } from '@/lib/utils';
+import { findActiveServiceForOrderTariff } from '@/lib/order-service';
 
 function maskEmail(email: string): string {
   const at = email.indexOf('@');
@@ -25,7 +26,13 @@ export default async function SuccessPage({
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
   let enrollments: { course: { title: string } }[] = [];
-  let orderInfo: { orderNumber: string; maskedEmail: string } | null = null;
+  let orderInfo: {
+    orderNumber: string;
+    maskedEmail: string;
+    /** Заказ привязан к ЛК (webhook уже создал пользователя / зачислил). */
+    linkedToAccount: boolean;
+    courseTitle: string | null;
+  } | null = null;
 
   if (userId) {
     enrollments = await prisma.enrollment.findMany({
@@ -36,10 +43,32 @@ export default async function SuccessPage({
   } else if (orderNumber) {
     const order = await prisma.order.findUnique({
       where: { orderNumber },
-      select: { orderNumber: true, clientEmail: true, status: true },
+      select: {
+        orderNumber: true,
+        clientEmail: true,
+        status: true,
+        userId: true,
+        tariffId: true,
+      },
     });
     if (order?.status === 'paid' && order.clientEmail) {
-      orderInfo = { orderNumber: order.orderNumber, maskedEmail: maskEmail(order.clientEmail) };
+      let courseTitle: string | null = null;
+      if (order.tariffId) {
+        const svc = await findActiveServiceForOrderTariff(order.tariffId);
+        if (svc?.courseId) {
+          const c = await prisma.course.findUnique({
+            where: { id: svc.courseId },
+            select: { title: true },
+          });
+          courseTitle = c?.title ?? null;
+        }
+      }
+      orderInfo = {
+        orderNumber: order.orderNumber,
+        maskedEmail: maskEmail(order.clientEmail),
+        linkedToAccount: Boolean(order.userId),
+        courseTitle,
+      };
     }
   }
 
@@ -56,23 +85,45 @@ export default async function SuccessPage({
               <> Первый: «{enrollments[0].course.title}».</>
             )}
           </p>
+        ) : userId && enrollments.length === 0 ? (
+          <p className="mt-4 text-white/80">
+            Спасибо за оплату. Если курс ещё не отображается в «Моих курсах», подождите минуту и обновите
+            страницу — доступ подключается автоматически. При проблемах проверьте почту или напишите в
+            поддержку.
+          </p>
+        ) : orderInfo?.linkedToAccount ? (
+          <div className="mt-4 rounded-xl border-2 border-accent/50 bg-accent/10 p-6 text-left space-y-3">
+            <p className="text-white font-semibold">Заказ № {orderInfo.orderNumber} оплачен.</p>
+            {orderInfo.courseTitle && (
+              <p className="text-white/90">Курс: «{orderInfo.courseTitle}».</p>
+            )}
+            <p className="text-white/90">
+              На email {orderInfo.maskedEmail} должно прийти письмо: если вы покупали впервые — со{' '}
+              <strong>ссылкой для установки пароля</strong>, если аккаунт уже был — с напоминанием о входе.
+            </p>
+            <p className="text-white/80 text-sm">
+              После установки пароля войдите в личный кабинет — материалы в разделе «Мои курсы».
+            </p>
+          </div>
         ) : orderInfo ? (
           <div className="mt-4 rounded-xl border-2 border-accent/50 bg-accent/10 p-6 text-left">
-            <p className="text-white font-semibold">
-              Заказ № {orderInfo.orderNumber} оплачен.
-            </p>
+            <p className="text-white font-semibold">Заказ № {orderInfo.orderNumber} оплачен.</p>
+            {orderInfo.courseTitle && (
+              <p className="mt-2 text-white/90">Курс: «{orderInfo.courseTitle}».</p>
+            )}
             <p className="mt-3 text-white/90">
-              Чтобы получить доступ к курсу, <strong>зарегистрируйтесь</strong> с тем же email, что указали при оплате ({orderInfo.maskedEmail}).
+              Чтобы получить доступ, <strong>зарегистрируйтесь</strong> с тем же email, что указали при оплате (
+              {orderInfo.maskedEmail}).
             </p>
             <p className="mt-1 text-white/70 text-sm">
-              Если аккаунт уже есть — войдите.
+              Если аккаунт уже есть — войдите: заказ будет привязан автоматически.
             </p>
           </div>
         ) : (
           <p className="mt-4 text-white/80">
-            Доступ к курсу открывается автоматически по указанному при оплате email.
-            Если у вас уже есть аккаунт с этим email — войдите в личный кабинет и перейдите в раздел «Мои курсы».
-            Если аккаунта нет — зарегистрируйтесь с тем же email, после чего курс будет доступен.
+            Доступ к курсу открывается автоматически по email из оплаты. Проверьте почту — мы отправляем
+            инструкции. Если аккаунт уже есть, войдите и откройте «Мои курсы». Если аккаунта нет —
+            зарегистрируйтесь с тем же email.
           </p>
         )}
         <div className="mt-8 flex flex-wrap justify-center gap-3">

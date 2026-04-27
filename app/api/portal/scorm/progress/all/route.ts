@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { hasCourseLearningAccess } from '@/lib/course-learning-access';
 
 export async function GET(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -19,19 +20,10 @@ export async function GET(request: NextRequest) {
   if (role === 'admin') {
     return NextResponse.json({ progress: [] });
   }
-  if (role === 'manager') {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!enrollment) return NextResponse.json({ progress: [] });
-  }
-  if (role === 'user') {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!enrollment || enrollment.accessClosed) {
-      return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
-    }
+  const okAccess = await hasCourseLearningAccess(userId, courseId, role);
+  if (!okAccess) {
+    if (role === 'manager') return NextResponse.json({ progress: [] });
+    return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
   }
 
   const list = await prisma.scormProgress.findMany({

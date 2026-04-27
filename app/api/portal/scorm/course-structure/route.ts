@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { hasCourseLearningAccess } from '@/lib/course-learning-access';
 import { scormPublicUrl } from '@/lib/scorm/public-url';
 
 type ManifestItem = { identifier: string; title?: string; href?: string };
@@ -21,10 +22,8 @@ export async function GET(request: NextRequest) {
   if (!courseId) return NextResponse.json({ error: 'Missing courseId' }, { status: 400 });
 
   if (role !== 'admin' && role !== 'manager') {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!enrollment || enrollment.accessClosed) return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
+    const ok = await hasCourseLearningAccess(userId, courseId, role);
+    if (!ok) return NextResponse.json({ error: 'Not enrolled' }, { status: 403 });
   }
 
   const course = await prisma.course.findUnique({

@@ -75,7 +75,7 @@ async function main() {
   await prisma.lead.deleteMany({});
 
   const deleted = await prisma.user.deleteMany({
-    where: { id: { notIn: [...keepIds] } },
+    where: { id: { notIn: Array.from(keepIds) } },
   });
 
   console.log(`[crmclean] Готово. Удалено пользователей: ${deleted.count}. Лиды: все (${leadCount} шт.).`);

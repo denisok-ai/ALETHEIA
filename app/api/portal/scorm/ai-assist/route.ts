@@ -7,6 +7,7 @@ import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { hasCourseLearningAccess } from '@/lib/course-learning-access';
 import { getLlmApiKey } from '@/lib/llm';
 import { applyCourseTutorPlaceholders } from '@/lib/ai-placeholders';
 import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
@@ -42,10 +43,8 @@ export async function POST(request: NextRequest) {
 
   const role = (session?.user as { role?: string })?.role;
   if (role !== 'admin' && role !== 'manager') {
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!enrollment) {
+    const ok = await hasCourseLearningAccess(userId, courseId, role);
+    if (!ok) {
       return new Response(JSON.stringify({ error: 'Not enrolled' }), { status: 403 });
     }
   }

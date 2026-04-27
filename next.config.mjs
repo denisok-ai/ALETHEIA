@@ -63,6 +63,18 @@ const nextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920],
     minimumCacheTTL: 60,
   },
+  /**
+   * Dev: без этого Next.js блокирует `/_next/*` для origin туннеля → ChunkLoadError при открытии через trycloudflare / localtunnel.
+   * @see https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
+   */
+  allowedDevOrigins: [
+    '127.0.0.1',
+    '::1',
+    '*.trycloudflare.com',
+    '*.loca.lt',
+    '*.ngrok-free.app',
+    '*.ngrok.io',
+  ],
   experimental: {
     /** lucide не в optimizePackageImports: с Turbopack + RSC иконки на сервере давали TypeError «null (reading 'useContext')». */
     instrumentationHook: true,

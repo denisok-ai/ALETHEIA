@@ -27,8 +27,8 @@ if [ -z "$orderNumber" ]; then
 fi
 
 echo "Заказ: $orderNumber, сумма: $amount. Вызов webhook..."
-KEY=$(echo -n "1|${amount}|${orderNumber}|${PAYKEEPER_SECRET}" | openssl md5 -binary | xxd -p -c 32)
+KEY=$(echo -n "1${amount}${EMAIL}${orderNumber}${PAYKEEPER_SECRET}" | openssl md5 -binary | xxd -p -c 32)
 curl -s -X POST "$BASE_URL/api/webhook/paykeeper" \
-  -F "id=1" -F "sum=$amount" -F "orderid=$orderNumber" -F "key=$KEY"
+  -F "id=1" -F "sum=$amount" -F "clientid=$EMAIL" -F "orderid=$orderNumber" -F "key=$KEY"
 echo ""
 echo "Готово. Войдите как $EMAIL (пароль Test123! после seed) → Мои курсы."

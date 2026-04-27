@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getSystemSettings } from '@/lib/settings';
+import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
+import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
 const DESCRIPTION =
@@ -12,16 +14,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const canonical = `${base}/oferta`;
   const title = 'Публичная оферта';
   return {
-    title,
-    description: DESCRIPTION,
-    alternates: { canonical },
-    openGraph: {
-      title: 'Публичная оферта — АВАТЕРРА',
-      description: 'Оплата, доступ к материалам, возвраты. Условия оказания услуг школы мышечного тестирования.',
-      url: canonical,
-      locale: 'ru_RU',
-    },
-    robots: { index: true, follow: true },
+    ...buildPublicPageMetadata({
+      title,
+      description: DESCRIPTION,
+      canonical,
+      ogImageUrl: `${base}${DEFAULT_OG_IMAGE_PATH}`,
+    }),
   };
 }
 

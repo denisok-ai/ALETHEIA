@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { validatePayKeeperWebhook, getPayKeeperConfigFromSettings } from '@/lib/paykeeper';
+import {
+  buildPayKeeperWebhookResponse,
+  getPayKeeperConfigFromSettings,
+  validatePayKeeperWebhook,
+} from '@/lib/paykeeper';
 import { prisma } from '@/lib/db';
 import { processPaidOrder } from '@/lib/paykeeper-webhook-process';
 
@@ -22,7 +26,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid signature' }, { status: 403 });
     }
 
-    const { orderid } = params;
+    const { id, orderid, sum, clientid } = params;
     const order = await prisma.order.findUnique({
       where: { orderNumber: orderid },
     });
@@ -31,6 +35,15 @@ export async function POST(request: NextRequest) {
       console.error('Webhook: order not found', orderid);
       return NextResponse.json({ error: 'Order not found' }, { status: 404 });
     }
+    const paidAmount = Number(sum);
+    if (!Number.isFinite(paidAmount) || Math.round(paidAmount * 100) !== order.amount * 100) {
+      console.warn('[PayKeeper webhook] amount_mismatch', { orderid, expected: order.amount, received: sum });
+      return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+    }
+    if (clientid && clientid.trim().toLowerCase() !== order.clientEmail.trim().toLowerCase()) {
+      console.warn('[PayKeeper webhook] client_mismatch', { orderid, expected: order.clientEmail, received: clientid });
+      return NextResponse.json({ error: 'Client mismatch' }, { status: 400 });
+    }
 
     const result = await processPaidOrder(orderid);
     if (!result.success) {
@@ -38,8 +51,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error ?? 'Processing failed' }, { status: 500 });
     }
 
-    console.info('[PayKeeper webhook] ok', { orderid });
-    return NextResponse.json({ success: true });
+    if (result.warnings?.length) {
+      console.warn('[PayKeeper webhook] ok_with_warnings', { orderid, warnings: result.warnings });
+    }
+    console.info('[PayKeeper webhook] ok', {
+      orderid,
+      enrollmentCreated: result.enrollmentCreated,
+      emailKind: result.emailKind,
+    });
+    return new NextResponse(buildPayKeeperWebhookResponse(id, secret), {
+      status: 200,
+      headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+    });
   } catch (error) {
     console.error('Webhook error:', error);
     return NextResponse.json(

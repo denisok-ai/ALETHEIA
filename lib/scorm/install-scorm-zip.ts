@@ -16,6 +16,43 @@ const DEFAULT_SCORM_MAX_MB = 200;
 /** Верхняя граница для значения из настроек (архивы с видео могут быть 1–2+ ГБ). */
 const SCORM_MAX_SIZE_MB_HARD_CAP = 3000;
 
+const NESTED_ZIP_MAX_DEPTH = 4;
+
+function hasImsManifestInZip(zip: JSZip): boolean {
+  return Object.keys(zip.files).some((p) => {
+    if (zip.files[p]?.dir) return false;
+    const l = p.replace(/\\/g, '/').toLowerCase();
+    return l === 'imsmanifest.xml' || l.endsWith('/imsmanifest.xml');
+  });
+}
+
+/** Часто приходят «обёртки»: папка + несколько .zip; выбираем полный пакет, не demo/trial. */
+function pickInnerScormZipPath(paths: string[]): string | null {
+  const zips = paths.filter((p) => p.replace(/\\/g, '/').toLowerCase().endsWith('.zip'));
+  if (zips.length === 0) return null;
+  const nonDemo = zips.filter((p) => !/(^|\/|_)(demo|trial|демо)(_|\.|$)/i.test(p.replace(/\\/g, '/')));
+  const pool = nonDemo.length > 0 ? nonDemo : zips;
+  pool.sort((a, b) => b.length - a.length);
+  return pool[0] ?? null;
+}
+
+/**
+ * Если в корне нет imsmanifest.xml, но есть вложенные .zip — грузим внутренний SCORM-пакет (рекурсия).
+ */
+async function resolveNestedScormZip(zip: JSZip, depth: number): Promise<JSZip> {
+  if (depth > NESTED_ZIP_MAX_DEPTH) return zip;
+  if (hasImsManifestInZip(zip)) return zip;
+
+  const keys = Object.keys(zip.files).filter((k) => !zip.files[k]?.dir);
+  const innerPath = pickInnerScormZipPath(keys);
+  if (!innerPath) return zip;
+
+  const inner = (await zip.files[innerPath].async('nodebuffer')) as Buffer;
+  console.warn(`[SCORM] В корне нет imsmanifest.xml — распаковываем вложенный пакет: ${innerPath}`);
+  const innerZip = await JSZip.loadAsync(inner);
+  return resolveNestedScormZip(innerZip, depth + 1);
+}
+
 /** Без импорта lib/settings (там React cache — ломает tsx-скрипты). */
 async function getScormMaxSizeMbForZip(): Promise<number> {
   const row = await prisma.systemSetting.findUnique({
@@ -64,6 +101,8 @@ export async function installScormZip(opts: {
   } catch {
     throw new Error('Invalid ZIP file');
   }
+
+  zip = await resolveNestedScormZip(zip, 0);
 
   const lastVersion = await prisma.scormVersion.findFirst({
     where: { courseId },

@@ -54,3 +54,15 @@ prisma/*.db.bak*
 # Windows WSL metadata
 *:Zone.Identifier
 *.Zone.Identifier
+
+# Supabase CLI кеш
+supabase/.temp/
+
+# Служебные выводы скриптов (не версионировать)
+scripts/ps-out.txt
+scripts/ss-result.txt
+scripts/bulk-replace-log.txt
+
+# Личные заметки в корне репозитория
+/ЗАПУСК-ДЕМО-ДЛЯ-ДРУГА.cmd
+/КАК-ПОКАЗАТЬ-САЙТ-ДРУГУ.txt

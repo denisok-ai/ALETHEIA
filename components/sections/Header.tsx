@@ -10,6 +10,7 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { BRAND_SITE_NAME } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 import { dispatchOpenAvaterraChat } from '@/lib/chat-events';
+import { isMinimalPublicShell } from '@/lib/public-shell-paths';
 
 const navLinks: { href: string; label: string; shortLabel?: string }[] = [
   { href: '#method', label: 'О методе' },
@@ -43,7 +44,7 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  if (pathname?.startsWith('/portal')) {
+  if (pathname?.startsWith('/portal') || isMinimalPublicShell(pathname)) {
     return null;
   }
 
