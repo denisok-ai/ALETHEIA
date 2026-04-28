@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { getPayKeeperConfigFromSettings, reversePayment } from '@/lib/paykeeper';
 
 export async function GET(
   request: NextRequest,
@@ -35,6 +36,12 @@ export async function GET(
       paidAt: order.paidAt?.toISOString() ?? null,
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
+      paykeeperInvoiceId: order.paykeeperInvoiceId ?? null,
+      paykeeperInvoiceUrl: order.paykeeperInvoiceUrl ?? null,
+      paykeeperPaymentId: order.paykeeperPaymentId ?? null,
+      paykeeperStatus: order.paykeeperStatus ?? null,
+      refundedAmountRub: order.refundedAmountRub,
+      lastSyncedAt: order.lastSyncedAt?.toISOString() ?? null,
     },
   });
 }
@@ -50,7 +57,7 @@ export async function PATCH(
   const orderId = parseInt(id, 10);
   if (Number.isNaN(orderId)) return NextResponse.json({ error: 'Invalid order id' }, { status: 400 });
 
-  let body: { status?: string };
+  let body: { status?: string; refundAmountRub?: number };
   try {
     body = await request.json();
   } catch {
@@ -69,23 +76,83 @@ export async function PATCH(
     if (order.status !== 'paid') {
       return NextResponse.json({ error: 'Возврат возможен только для оплаченных заказов' }, { status: 400 });
     }
+    const cfg = await getPayKeeperConfigFromSettings();
+    if (!order.paykeeperPaymentId) {
+      return NextResponse.json(
+        {
+          error:
+            'Нет идентификатора платежа PayKeeper. Сначала выполните сверку заказа в разделе «Оплаты» или дождитесь webhook.',
+        },
+        { status: 400 }
+      );
+    }
+    if (!cfg) {
+      return NextResponse.json({ error: 'PayKeeper не настроен — возврат через API невозможен' }, { status: 400 });
+    }
+
+    const remaining = order.amount - order.refundedAmountRub;
+    if (remaining <= 0) {
+      return NextResponse.json({ error: 'Сумма заказа уже полностью возвращена' }, { status: 400 });
+    }
+
+    const requested =
+      typeof body.refundAmountRub === 'number' && Number.isFinite(body.refundAmountRub)
+        ? Math.floor(body.refundAmountRub)
+        : remaining;
+    if (requested <= 0 || requested > remaining) {
+      return NextResponse.json(
+        { error: `Сумма возврата должна быть от 1 до ${remaining} ₽` },
+        { status: 400 }
+      );
+    }
+
+    const partial = requested < remaining;
+
+    try {
+      await reversePayment(cfg, {
+        paymentId: order.paykeeperPaymentId,
+        amount: requested.toFixed(2),
+        partial,
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'PayKeeper reverse failed';
+      return NextResponse.json({ error: msg }, { status: 502 });
+    }
+
     const service = await prisma.service.findFirst({
       where: { paykeeperTariffId: order.tariffId, isActive: true },
       select: { courseId: true },
     });
+
+    const newRefunded = order.refundedAmountRub + requested;
+    const fullyRefunded = newRefunded >= order.amount;
+
     await prisma.$transaction(async (tx) => {
+      await tx.paykeeperRefundRecord.create({
+        data: {
+          orderId: order.id,
+          paykeeperPaymentId: order.paykeeperPaymentId!,
+          amountRub: requested,
+          partial,
+          status: 'requested',
+          resultMsg: 'reverse API accepted',
+        },
+      });
       await tx.order.update({
         where: { id: orderId },
-        data: { status: 'refunded' },
+        data: {
+          refundedAmountRub: newRefunded,
+          status: fullyRefunded ? 'refunded' : order.status,
+        },
       });
-      if (service?.courseId && order.userId) {
+      if (fullyRefunded && service?.courseId && order.userId) {
         await tx.enrollment.updateMany({
           where: { userId: order.userId, courseId: service.courseId },
           data: { accessClosed: true },
         });
       }
     });
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, refundedAmountRub: requested, fullyRefunded });
   }
 
   await prisma.order.update({

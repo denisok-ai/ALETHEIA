@@ -41,6 +41,11 @@ export interface OrderRow {
   paidAt: string | null;
   createdAt: string;
   userId?: string | null;
+  paykeeperInvoiceUrl?: string | null;
+  paykeeperPaymentId?: string | null;
+  paykeeperStatus?: string | null;
+  refundedAmountRub?: number;
+  lastSyncedAt?: string | null;
 }
 
 
@@ -74,6 +79,7 @@ export function PaymentsTableClient({
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [refunding, setRefunding] = useState(false);
+  const [pkSyncing, setPkSyncing] = useState(false);
   const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => PAYMENTS_TABLE_COLUMNS.map((c) => c.id));
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDir>('asc');
@@ -136,17 +142,88 @@ export function PaymentsTableClient({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'refunded' }),
       });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        fullyRefunded?: boolean;
+        refundedAmountRub?: number;
+      };
       if (!res.ok) {
-        const data = await res.json();
         throw new Error(data.error ?? 'Ошибка');
       }
-      setOrders((prev) => prev.map((x) => (x.id === o.id ? { ...x, status: 'refunded' } : x)));
-      setDetailOrder((prev) => (prev?.id === o.id ? { ...prev, status: 'refunded' } : prev));
-      toast.success('Возврат оформлен. Доступ к курсу отозван.');
+      const fully = data.fullyRefunded !== false;
+      const delta =
+        typeof data.refundedAmountRub === 'number' ? data.refundedAmountRub : o.amount;
+      setOrders((prev) =>
+        prev.map((x) =>
+          x.id === o.id
+            ? {
+                ...x,
+                status: fully ? 'refunded' : x.status,
+                refundedAmountRub: (x.refundedAmountRub ?? 0) + delta,
+              }
+            : x
+        )
+      );
+      setDetailOrder((prev) =>
+        prev?.id === o.id
+          ? {
+              ...prev,
+              status: fully ? 'refunded' : prev.status,
+              refundedAmountRub: (prev.refundedAmountRub ?? 0) + delta,
+            }
+          : prev
+      );
+      toast.success(
+        fully
+          ? 'Запрос возврата отправлен в PayKeeper. Доступ отозван после полного возврата.'
+          : 'Частичный возврат отправлен в PayKeeper.'
+      );
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Ошибка возврата');
     }
     setRefunding(false);
+  }
+
+  async function handlePaykeeperSync(o: OrderRow) {
+    setPkSyncing(true);
+    try {
+      const res = await fetch('/api/portal/admin/paykeeper/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderNumber: o.orderNumber }),
+      });
+      const data = await res.json();
+      if (!data.ok) {
+        throw new Error(data.message ?? data.error ?? 'Сверка не удалась');
+      }
+      toast.success(data.message ?? 'Сверка выполнена');
+      if (data.orderStatusUpdated) {
+        setOrders((prev) =>
+          prev.map((x) => (x.id === o.id ? { ...x, status: 'paid', paidAt: new Date().toISOString() } : x))
+        );
+        setDetailOrder((prev) =>
+          prev?.id === o.id ? { ...prev, status: 'paid', paidAt: new Date().toISOString() } : prev
+        );
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка');
+    }
+    setPkSyncing(false);
+  }
+
+  async function handleRepeatNotify(paymentId: string) {
+    try {
+      const res = await fetch('/api/portal/admin/paykeeper/repeat-notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+      toast.success('Счётчик оповещений сброшен — webhook будет повторён');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Ошибка');
+    }
   }
 
   const searchLower = search.trim().toLowerCase();
@@ -362,6 +439,30 @@ export function PaymentsTableClient({
               <div><dt className="text-[var(--portal-text-muted)] inline">Статус: </dt><dd className="inline">{detailOrder.status}</dd></div>
               <div><dt className="text-[var(--portal-text-muted)] inline">Создан: </dt><dd className="inline">{format(new Date(detailOrder.createdAt), 'dd.MM.yyyy HH:mm')}</dd></div>
               {detailOrder.paidAt && <div><dt className="text-[var(--portal-text-muted)] inline">Оплачен: </dt><dd className="inline">{format(new Date(detailOrder.paidAt), 'dd.MM.yyyy HH:mm')}</dd></div>}
+              {(detailOrder.refundedAmountRub ?? 0) > 0 && (
+                <div>
+                  <dt className="text-[var(--portal-text-muted)] inline">Возвращено: </dt>
+                  <dd className="inline tabular-nums">{formatRub(detailOrder.refundedAmountRub ?? 0)} ₽</dd>
+                </div>
+              )}
+              {detailOrder.paykeeperPaymentId && (
+                <div>
+                  <dt className="text-[var(--portal-text-muted)] inline">PayKeeper payment id: </dt>
+                  <dd className="inline font-mono text-xs">{detailOrder.paykeeperPaymentId}</dd>
+                </div>
+              )}
+              {detailOrder.paykeeperStatus && (
+                <div>
+                  <dt className="text-[var(--portal-text-muted)] inline">Статус PayKeeper: </dt>
+                  <dd className="inline">{detailOrder.paykeeperStatus}</dd>
+                </div>
+              )}
+              {detailOrder.lastSyncedAt && (
+                <div>
+                  <dt className="text-[var(--portal-text-muted)] inline">Синхр.: </dt>
+                  <dd className="inline">{format(new Date(detailOrder.lastSyncedAt), 'dd.MM.yyyy HH:mm')}</dd>
+                </div>
+              )}
               {detailOrder.userId && (
                 <div>
                   <dt className="text-[var(--portal-text-muted)] inline">Пользователь: </dt>
@@ -371,6 +472,68 @@ export function PaymentsTableClient({
                 </div>
               )}
             </dl>
+            <div className="mt-4 flex flex-wrap gap-2 border-t border-[#E2E8F0] pt-4">
+              <p className="w-full text-xs text-[var(--portal-text-muted)]">PayKeeper</p>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void handlePaykeeperSync(detailOrder)}
+                disabled={pkSyncing}
+              >
+                {pkSyncing ? 'Сверка…' : 'Сверить с PayKeeper'}
+              </Button>
+              {detailOrder.paykeeperPaymentId && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => void handleRepeatNotify(detailOrder.paykeeperPaymentId!)}
+                >
+                  Повторить webhook
+                </Button>
+              )}
+              {detailOrder.paykeeperInvoiceUrl && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(
+                        `/api/portal/admin/paykeeper/sbp-qr?orderNumber=${encodeURIComponent(detailOrder.orderNumber)}`
+                      );
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+                      await navigator.clipboard.writeText(JSON.stringify(data.data, null, 2));
+                      toast.success('JSON СБП скопирован в буфер');
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : 'Ошибка');
+                    }
+                  }}
+                >
+                  СБП QR (JSON)
+                </Button>
+              )}
+              {detailOrder.paykeeperPaymentId && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      const res = await fetch(
+                        `/api/portal/admin/paykeeper/receipts?orderNumber=${encodeURIComponent(detailOrder.orderNumber)}`
+                      );
+                      const data = await res.json();
+                      if (!res.ok) throw new Error(data.error ?? 'Ошибка');
+                      await navigator.clipboard.writeText(JSON.stringify(data.data, null, 2));
+                      toast.success('Данные чеков скопированы');
+                    } catch (e) {
+                      toast.error(e instanceof Error ? e.message : 'Ошибка');
+                    }
+                  }}
+                >
+                  Чеки
+                </Button>
+              )}
+            </div>
             <div className="mt-4 flex flex-wrap gap-2">
               {detailOrder.status !== 'paid' && detailOrder.status !== 'cancelled' && detailOrder.status !== 'refunded' && (
                 <Button size="sm" variant="secondary" onClick={() => handleConfirm(detailOrder.id)} disabled={confirming === detailOrder.id}>
@@ -406,7 +569,11 @@ export function PaymentsTableClient({
         open={!!refundTarget}
         onOpenChange={(open) => !open && setRefundTarget(null)}
         title="Оформить возврат?"
-        description={refundTarget ? `Заказ ${refundTarget.orderNumber}: доступ к курсу будет отозван. Возврат средств выполните в личном кабинете PayKeeper.` : ''}
+        description={
+          refundTarget
+            ? `Заказ ${refundTarget.orderNumber}: будет вызван API возврата PayKeeper (/change/payment/reverse/). Нужен paykeeper payment id (сверка или webhook). Доступ к курсу закроется после полного возврата.`
+            : ''
+        }
         confirmLabel="Оформить возврат"
         variant="danger"
         onConfirm={() => { if (refundTarget) void handleRefund(refundTarget); }}

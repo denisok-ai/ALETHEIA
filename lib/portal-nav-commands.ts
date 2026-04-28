@@ -52,6 +52,8 @@ export const PORTAL_NAV_COMMAND_ITEMS: readonly PortalNavCommandItem[] = [
   { href: '/portal/admin/crm', label: 'CRM', section: 'Пользователи и продажи', roles: ['admin'] },
   { href: '/portal/admin/shop', label: 'Товары', section: 'Пользователи и продажи', roles: ['admin'] },
   { href: '/portal/admin/payments', label: 'Оплаты', section: 'Пользователи и продажи', roles: ['admin'] },
+  { href: '/portal/admin/paykeeper', label: 'PayKeeper (диагностика)', section: 'Пользователи и продажи', roles: ['admin'] },
+  { href: '/portal/admin/paykeeper-logs', label: 'Логи PayKeeper', section: 'Пользователи и продажи', roles: ['admin'] },
   { href: '/portal/admin/mailings', label: 'Рассылки', section: 'Коммуникации', roles: ['admin'] },
   { href: '/portal/admin/communications', label: 'Коммуникации', section: 'Коммуникации', roles: ['admin'] },
   { href: '/portal/admin/notification-sets', label: 'Наборы уведомлений', section: 'Коммуникации', roles: ['admin'] },

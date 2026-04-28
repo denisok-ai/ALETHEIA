@@ -43,7 +43,7 @@
 - **Стили:** Tailwind CSS. Цвета: primary #2D1B4E, secondary #D4AF37, dark #0A0E27.
 - **Анимации:** Framer Motion (reveal, модалки), React Three Fiber для 3D (Hero).
 - **UI:** Компоненты в components/ui (button, input, label, dialog).
-- **Платежи:** PayKeeper API (lib/paykeeper.ts). Валидация webhook по секрету.
+- **Платежи:** PayKeeper API (`lib/paykeeper/` — модульный клиент, см. `docs/PayKeeper-API-Map.md`). Валидация webhook по секрету.
 - **БД:** Prisma + SQLite (локально). Схема — prisma/schema.prisma, клиент — lib/db.ts. Для прода — PostgreSQL (сменить provider в schema).
 - **Деплой:** Vercel. Переменные окружения — см. .env.example.
 

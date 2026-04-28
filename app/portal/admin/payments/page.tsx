@@ -48,6 +48,11 @@ export default async function AdminPaymentsPage({
     paidAt: o.paidAt?.toISOString() ?? null,
     createdAt: o.createdAt.toISOString(),
     userId: o.userId ?? null,
+    paykeeperInvoiceUrl: o.paykeeperInvoiceUrl ?? null,
+    paykeeperPaymentId: o.paykeeperPaymentId ?? null,
+    paykeeperStatus: o.paykeeperStatus ?? null,
+    refundedAmountRub: o.refundedAmountRub,
+    lastSyncedAt: o.lastSyncedAt?.toISOString() ?? null,
   }));
 
   return (

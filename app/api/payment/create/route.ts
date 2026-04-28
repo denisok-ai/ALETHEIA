@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPayKeeperInvoice } from '@/lib/paykeeper';
+import { buildPaykeeperServiceNamePayload } from '@/lib/paykeeper/fiscal';
 import { prisma } from '@/lib/db';
 import { getSystemSettings } from '@/lib/settings';
 import { nanoid } from 'nanoid';
@@ -11,6 +12,10 @@ import {
   findActiveServiceForOrderTariff,
   orderTariffIdForStorage,
 } from '@/lib/order-service';
+import {
+  maskEmailForLog,
+  writePaykeeperIntegrationLog,
+} from '@/lib/paykeeper-integration-log';
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'payment-create', 10);
@@ -60,17 +65,45 @@ export async function POST(request: NextRequest) {
       });
     } catch (dbErr) {
       console.error('DB insert order:', dbErr);
+      await writePaykeeperIntegrationLog({
+        direction: 'outbound',
+        event: 'payment.create',
+        status: 'error',
+        message: 'Ошибка создания заказа в БД',
+        payload: { tariffId: tariffIdToUse, email: maskEmailForLog(String(email)) },
+      });
       return NextResponse.json(
         { error: 'Ошибка создания заказа', success: false },
         { status: 500 }
       );
     }
 
+    await writePaykeeperIntegrationLog({
+      direction: 'outbound',
+      event: 'payment.create',
+      status: 'success',
+      orderNumber,
+      message: 'Заказ создан (pending)',
+      payload: {
+        amount,
+        tariffId: tariffIdToUse,
+        email: maskEmailForLog(email.trim()),
+        serviceSlug: slug || null,
+      },
+    });
+
     const baseUrl = (await getSystemSettings()).site_url?.replace(/\/$/, '') || '';
 
     if (amount <= 0) {
       const paid = await processPaidOrder(orderNumber);
       if (!paid.success) {
+        await writePaykeeperIntegrationLog({
+          direction: 'outbound',
+          event: 'payment.free_access',
+          status: 'error',
+          orderNumber,
+          message: paid.error ?? 'processPaidOrder failed',
+        });
         return NextResponse.json(
           { error: paid.error || 'Не удалось оформить бесплатный доступ', success: false },
           { status: 500 }
@@ -79,6 +112,14 @@ export async function POST(request: NextRequest) {
       const paymentUrl = baseUrl
         ? `${baseUrl}/success?order=${encodeURIComponent(orderNumber)}`
         : `/success?order=${encodeURIComponent(orderNumber)}`;
+      await writePaykeeperIntegrationLog({
+        direction: 'outbound',
+        event: 'payment.free_access',
+        status: 'success',
+        orderNumber,
+        invoiceUrl: paymentUrl,
+        message: 'Бесплатный доступ оформлен',
+      });
       return NextResponse.json({
         success: true,
         paymentUrl,
@@ -87,19 +128,47 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    const successRedirectUrl = baseUrl
+      ? `${baseUrl}/success?order=${encodeURIComponent(orderNumber)}`
+      : undefined;
+    const serviceNamePayload = await buildPaykeeperServiceNamePayload(
+      serviceName,
+      amount,
+      successRedirectUrl
+    );
+    const servicePayloadIsObject = typeof serviceNamePayload === 'object';
+
     let paymentUrl: string;
     try {
-      paymentUrl = await createPayKeeperInvoice({
+      const inv = await createPayKeeperInvoice({
         sum: amount,
         orderid: orderNumber,
         clientid: email.trim(),
-        service_name: `AVATERRA — ${serviceName}`,
+        service_name: serviceNamePayload,
         client_email: email.trim(),
         client_phone: typeof phone === 'string' ? phone.trim() || undefined : undefined,
-        successRedirectUrl: baseUrl ? `${baseUrl}/success?order=${encodeURIComponent(orderNumber)}` : undefined,
+        // Для строкового service_name редирект дублируется полем формы; для JSON — обычно внутри объекта.
+        successRedirectUrl: servicePayloadIsObject ? undefined : successRedirectUrl,
+      });
+      paymentUrl = inv.paymentUrl;
+      await prisma.order.update({
+        where: { orderNumber },
+        data: {
+          paykeeperInvoiceId: inv.invoiceId,
+          paykeeperInvoiceUrl: inv.paymentUrl,
+        },
       });
     } catch (pkErr) {
       console.error('PayKeeper create invoice:', pkErr);
+      const msg =
+        pkErr instanceof Error ? pkErr.message : 'Ошибка создания платежа в PayKeeper';
+      await writePaykeeperIntegrationLog({
+        direction: 'outbound',
+        event: 'payment.create',
+        status: 'error',
+        orderNumber,
+        message: msg.slice(0, 500),
+      });
       return NextResponse.json(
         {
           error: 'Ошибка создания платежа. Проверьте настройки PayKeeper.',
@@ -109,6 +178,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    await writePaykeeperIntegrationLog({
+      direction: 'outbound',
+      event: 'payment.redirect',
+      status: 'success',
+      orderNumber,
+      invoiceUrl: paymentUrl,
+      message: 'Ссылка на оплату PayKeeper выдана клиенту',
+    });
+
     return NextResponse.json({
       success: true,
       paymentUrl,
@@ -117,6 +195,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Payment create error:', error);
+    await writePaykeeperIntegrationLog({
+      direction: 'outbound',
+      event: 'payment.create',
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Payment create error',
+    });
     return NextResponse.json(
       { error: 'Ошибка создания платежа', success: false },
       { status: 500 }

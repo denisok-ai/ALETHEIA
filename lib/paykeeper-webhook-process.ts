@@ -11,6 +11,7 @@ import { sendEmail } from '@/lib/email';
 import { triggerNotification } from '@/lib/notifications';
 import { createPasswordToken } from '@/lib/password-token';
 import { findActiveServiceForOrderTariff } from '@/lib/order-service';
+import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
 
 export type ProcessPaidOrderResult = {
   success: boolean;
@@ -25,7 +26,16 @@ export type ProcessPaidOrderResult = {
   warnings?: string[];
 };
 
-export async function processPaidOrder(orderNumber: string): Promise<ProcessPaidOrderResult> {
+export type ProcessPaidOrderPaykeeperMeta = {
+  paykeeperPaymentId?: string;
+  paykeeperStatus?: string;
+  paidAmountRub?: number;
+};
+
+export async function processPaidOrder(
+  orderNumber: string,
+  paykeeperMeta?: ProcessPaidOrderPaykeeperMeta
+): Promise<ProcessPaidOrderResult> {
   const warnings: string[] = [];
   const order = await prisma.order.findUnique({
     where: { orderNumber },
@@ -35,12 +45,41 @@ export async function processPaidOrder(orderNumber: string): Promise<ProcessPaid
   }
   if (order.status === 'paid') {
     console.info('[PayKeeper webhook] idempotent_ok already_paid', { orderNumber });
+    if (paykeeperMeta?.paykeeperPaymentId && order.paykeeperPaymentId !== paykeeperMeta.paykeeperPaymentId) {
+      await prisma.order
+        .update({
+          where: { orderNumber },
+          data: {
+            paykeeperPaymentId: paykeeperMeta.paykeeperPaymentId,
+            paykeeperStatus: paykeeperMeta.paykeeperStatus ?? order.paykeeperStatus,
+            paidAmountRub: paykeeperMeta.paidAmountRub ?? order.paidAmountRub,
+          },
+        })
+        .catch(() => {});
+    }
+    await writePaykeeperIntegrationLog({
+      direction: 'inbound',
+      event: 'process_paid_order.idempotent',
+      status: 'success',
+      orderNumber,
+      message: 'Заказ уже был оплачен — повторная обработка пропущена',
+    });
     return { success: true, alreadyPaid: true };
   }
 
   await prisma.order.update({
     where: { orderNumber },
-    data: { status: 'paid', paidAt: new Date() },
+    data: {
+      status: 'paid',
+      paidAt: new Date(),
+      ...(paykeeperMeta?.paykeeperPaymentId != null && {
+        paykeeperPaymentId: paykeeperMeta.paykeeperPaymentId,
+      }),
+      ...(paykeeperMeta?.paykeeperStatus != null && {
+        paykeeperStatus: paykeeperMeta.paykeeperStatus,
+      }),
+      ...(paykeeperMeta?.paidAmountRub != null && { paidAmountRub: paykeeperMeta.paidAmountRub }),
+    },
   });
 
   const emailNorm = order.clientEmail.trim().toLowerCase();
@@ -263,6 +302,14 @@ export async function processPaidOrder(orderNumber: string): Promise<ProcessPaid
   if (warnings.length > 0) {
     result.warnings = warnings;
     console.info('[PayKeeper] process_paid_order_done', { orderNumber, warnings });
+    await writePaykeeperIntegrationLog({
+      direction: 'inbound',
+      event: 'process_paid_order.warnings',
+      status: 'warning',
+      orderNumber,
+      message: 'processPaidOrder завершён с предупреждениями',
+      payload: { warnings, emailKind: result.emailKind, enrollmentCreated: result.enrollmentCreated },
+    });
   }
   return result;
 }

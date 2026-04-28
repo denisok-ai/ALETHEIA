@@ -391,6 +391,25 @@ model AuditLog {
   @@index([actorId])
 }
 
+/// Журнал интеграции PayKeeper (токен, счёт, webhook). В payload только безопасные поля.
+model PaykeeperIntegrationLog {
+  id          String   @id @default(cuid())
+  direction   String
+  event       String
+  status      String
+  orderNumber String?
+  invoiceUrl  String?
+  httpStatus  Int?
+  message     String?
+  payload     String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([orderNumber])
+  @@index([event])
+  @@index([status])
+}
+
 model NotificationTemplate {
   id        String   @id @default(cuid())
   name      String
@@ -586,10 +605,64 @@ model Order {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  /// Идентификатор счёта PayKeeper (invoice_id).
+  paykeeperInvoiceId   String?
+  /// Прямая ссылка на оплату из ответа PayKeeper (invoice_url).
+  paykeeperInvoiceUrl  String?
+  /// Идентификатор платежа PayKeeper после оплаты / сверки.
+  paykeeperPaymentId   String?
+  /// Нормализованный статус PayKeeper (success, obtained, …).
+  paykeeperStatus      String?
+  /// Сырой статус / источник последней синхронизации.
+  paykeeperRawStatus   String?
+  /// Фактически оплаченная сумма (руб., целое), если отличается от amount.
+  paidAmountRub        Int?
+  /// Уже возвращено через PayKeeper (руб., целое), для учёта частичных возвратов.
+  refundedAmountRub    Int      @default(0)
+  /// Ключ/идентификатор чека в PayKeeper (если передан).
+  receiptKey           String?
+  lastSyncedAt         DateTime?
+
+  paykeeperRefunds  PaykeeperRefundRecord[]
+  paykeeperReceipts PaykeeperReceiptRecord[]
+
   @@index([userId])
   @@index([status])
   @@index([paidAt])
   @@index([createdAt])
+  @@index([paykeeperPaymentId])
+  @@index([paykeeperInvoiceId])
+}
+
+/// Запросы возврата через PayKeeper (/change/payment/reverse/).
+model PaykeeperRefundRecord {
+  id                 String   @id @default(cuid())
+  orderId            Int
+  order              Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paykeeperPaymentId String
+  amountRub          Int
+  partial            Boolean  @default(false)
+  status             String   @default("requested")
+  resultMsg          String?
+  rawResponse        String?
+  createdAt          DateTime @default(now())
+
+  @@index([orderId])
+  @@index([paykeeperPaymentId])
+}
+
+/// Снимки данных чеков / ответов API по заказу.
+model PaykeeperReceiptRecord {
+  id        String   @id @default(cuid())
+  orderId   Int
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  paymentId String?
+  source    String   @default("api")
+  payload   String?
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([paymentId])
 }
 
 /// Одноразовый токен для установки/сброса пароля (конвертация лида, восстановление пароля).

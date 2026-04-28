@@ -29,6 +29,7 @@ import {
   Zap,
   TrendingUp,
   CheckCircle,
+  Landmark,
 } from 'lucide-react';
 import { PortalSidebar, type NavSection } from '@/components/portal/PortalSidebar';
 import { AdminMobileMenuBar } from '@/components/portal/AdminMobileMenuBar';
@@ -62,6 +63,8 @@ const adminSections: NavSection[] = [
       { href: '/portal/admin/crm', label: 'CRM', icon: icon(MessageSquare) },
       { href: '/portal/admin/shop', label: 'Товары', icon: icon(Package) },
       { href: '/portal/admin/payments', label: 'Оплаты', icon: icon(CreditCard) },
+      { href: '/portal/admin/paykeeper', label: 'PayKeeper', icon: icon(Landmark) },
+      { href: '/portal/admin/paykeeper-logs', label: 'Логи PayKeeper', icon: icon(FileText) },
     ],
   },
   {

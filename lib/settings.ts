@@ -3,7 +3,7 @@
  * Используются server-side: site_url, email sender/recipient и т.д.
  * Публичные поля и секреты интеграций: основной источник — БД; при пустых значениях — fallback из process.env (см. docs/Env-Config.md).
  */
-import { cache } from 'react';
+import { cache as reactCache } from 'react';
 import { prisma } from './db';
 import { decrypt } from './encrypt';
 import { applyNextAuthUrlToProcessEnv } from './site-url';
@@ -108,8 +108,10 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
 
 /**
  * Настройки сайта: один запрос к БД на RSC-запрос (React cache) + TTL между запросами.
+ * В plain Node (tsx, скрипты) `react.cache` недоступен — используем функцию без обёртки.
  */
-export const getSystemSettings = cache(loadSystemSettingsImpl);
+export const getSystemSettings =
+  typeof reactCache === 'function' ? reactCache(loadSystemSettingsImpl) : loadSystemSettingsImpl;
 
 /** Clear in-memory cache (e.g. after PATCH in admin). */
 export function clearSettingsCache(): void {
