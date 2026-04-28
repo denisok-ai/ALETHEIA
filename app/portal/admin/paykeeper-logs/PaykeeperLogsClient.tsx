@@ -50,8 +50,11 @@ export function PaykeeperLogsClient() {
           wrapperClassName="max-w-xs"
         />
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-[var(--portal-text-muted)]">Статус</label>
+          <label htmlFor="paykeeper-logs-status" className="text-xs text-[var(--portal-text-muted)]">
+            Статус
+          </label>
           <select
+            id="paykeeper-logs-status"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
             className="rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"

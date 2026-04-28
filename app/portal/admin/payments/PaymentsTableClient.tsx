@@ -476,7 +476,7 @@ export function PaymentsTableClient({
               <p className="w-full text-xs text-[var(--portal-text-muted)]">PayKeeper</p>
               <Button
                 size="sm"
-                variant="outline"
+                variant="secondary"
                 onClick={() => void handlePaykeeperSync(detailOrder)}
                 disabled={pkSyncing}
               >
@@ -485,7 +485,7 @@ export function PaymentsTableClient({
               {detailOrder.paykeeperPaymentId && (
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => void handleRepeatNotify(detailOrder.paykeeperPaymentId!)}
                 >
                   Повторить webhook
@@ -494,7 +494,7 @@ export function PaymentsTableClient({
               {detailOrder.paykeeperInvoiceUrl && (
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   onClick={async () => {
                     try {
                       const res = await fetch(
@@ -515,7 +515,7 @@ export function PaymentsTableClient({
               {detailOrder.paykeeperPaymentId && (
                 <Button
                   size="sm"
-                  variant="outline"
+                  variant="secondary"
                   onClick={async () => {
                     try {
                       const res = await fetch(
