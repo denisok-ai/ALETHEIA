@@ -105,7 +105,7 @@
 ### Вариант B — без `git pull` на сервере (rsync с WSL)
 
 1. На **ПК в WSL**, в корне репозитория:  
-   `cd ~/projects/ALETHEIA`
+   `cd ~/projects/AVATERRA`
 2. При необходимости:  
    `export DEPLOY_SSH_IDENTITY="$HOME/.ssh/ваш_ключ"`
 3. Запуск:  

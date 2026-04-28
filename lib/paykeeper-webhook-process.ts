@@ -5,6 +5,7 @@
  */
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getSystemSettings, getPaymentEmailTemplates, renderPaymentEmailTemplate } from '@/lib/settings';
 import { sendEmail } from '@/lib/email';
@@ -31,6 +32,37 @@ export type ProcessPaidOrderPaykeeperMeta = {
   paykeeperStatus?: string;
   paidAmountRub?: number;
 };
+
+/**
+ * Лиды с тем же email (без «потерянных»): lastOrderNumber; при наличии userId —
+ * конвертация new/contacted/qualified → converted + convertedToUserId.
+ * Поиск по lower(trim(email)) через SQL (SQLite), без полного скана таблицы в JS.
+ */
+async function syncLeadsAfterOrderPaid(orderNumber: string, clientEmailRaw: string, userId: string | null) {
+  const emailNorm = clientEmailRaw.trim().toLowerCase();
+  if (!emailNorm) return;
+
+  const rows = await prisma.$queryRaw<{ id: number }[]>(
+    Prisma.sql`SELECT id FROM "Lead" WHERE email IS NOT NULL AND lower(trim(email)) = ${emailNorm} AND status != 'lost'`
+  );
+  const ids = rows.map((r) => r.id);
+  if (ids.length === 0) return;
+
+  await prisma.lead.updateMany({
+    where: { id: { in: ids } },
+    data: { lastOrderNumber: orderNumber },
+  });
+
+  if (userId) {
+    await prisma.lead.updateMany({
+      where: {
+        id: { in: ids },
+        status: { in: ['new', 'contacted', 'qualified'] },
+      },
+      data: { status: 'converted', convertedToUserId: userId },
+    });
+  }
+}
 
 export async function processPaidOrder(
   orderNumber: string,
@@ -81,18 +113,6 @@ export async function processPaidOrder(
       ...(paykeeperMeta?.paidAmountRub != null && { paidAmountRub: paykeeperMeta.paidAmountRub }),
     },
   });
-
-  const emailNorm = order.clientEmail.trim().toLowerCase();
-  if (emailNorm) {
-    const leads = await prisma.lead.findMany({
-      where: { email: { not: null } },
-      select: { id: true, email: true },
-    });
-    const ids = leads.filter((l) => l.email?.trim().toLowerCase() === emailNorm).map((l) => l.id);
-    if (ids.length > 0) {
-      await prisma.lead.updateMany({ where: { id: { in: ids } }, data: { lastOrderNumber: orderNumber } }).catch(() => {});
-    }
-  }
 
   const service = order.tariffId
     ? await findActiveServiceForOrderTariff(order.tariffId)
@@ -290,6 +310,16 @@ export async function processPaidOrder(
       warnings.push('Не удалось отправить письмо об оплате.');
     }
   }
+
+  let crmUserId = resultUserId;
+  if (!crmUserId && order.clientEmail.trim()) {
+    const u = await prisma.user.findFirst({
+      where: { email: order.clientEmail.trim() },
+      select: { id: true },
+    });
+    crmUserId = u?.id ?? null;
+  }
+  await syncLeadsAfterOrderPaid(orderNumber, order.clientEmail, crmUserId);
 
   const result: ProcessPaidOrderResult = {
     success: true,

@@ -385,7 +385,7 @@ sudo bash scripts/deploy-pull.sh
 Сборка локально, на `95.181.224.70` уезжают артефакты (см. `scripts/deploy-rsync-from-local.sh`):
 
 ```bash
-cd ~/projects/ALETHEIA
+cd ~/projects/AVATERRA
 npm run deploy:rsync
 ```
 

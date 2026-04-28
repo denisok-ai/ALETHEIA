@@ -92,7 +92,10 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    const baseUrl = (await getSystemSettings()).site_url?.replace(/\/$/, '') || '';
+    const settings = await getSystemSettings();
+    const siteFromSettings = settings.site_url?.replace(/\/$/, '').trim() || '';
+    /** Если в БД/.env нет site_url — берём origin запроса (локально совпадёт с портом dev-сервера). */
+    const baseUrl = siteFromSettings || request.nextUrl.origin.replace(/\/$/, '');
 
     if (amount <= 0) {
       const paid = await processPaidOrder(orderNumber);
@@ -128,15 +131,12 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const successRedirectUrl = baseUrl
-      ? `${baseUrl}/success?order=${encodeURIComponent(orderNumber)}`
-      : undefined;
+    const successRedirectUrl = `${baseUrl}/success?order=${encodeURIComponent(orderNumber)}`;
     const serviceNamePayload = await buildPaykeeperServiceNamePayload(
       serviceName,
       amount,
       successRedirectUrl
     );
-    const servicePayloadIsObject = typeof serviceNamePayload === 'object';
 
     let paymentUrl: string;
     try {
@@ -147,8 +147,8 @@ export async function POST(request: NextRequest) {
         service_name: serviceNamePayload,
         client_email: email.trim(),
         client_phone: typeof phone === 'string' ? phone.trim() || undefined : undefined,
-        // Для строкового service_name редирект дублируется полем формы; для JSON — обычно внутри объекта.
-        successRedirectUrl: servicePayloadIsObject ? undefined : successRedirectUrl,
+        // Всегда передаём: invoices.ts ставит user_result_callback и для строки, и для JSON service_name.
+        successRedirectUrl,
       });
       paymentUrl = inv.paymentUrl;
       await prisma.order.update({

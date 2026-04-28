@@ -26,8 +26,8 @@ export function buildPayKeeperInvoiceParams(data: PaymentData, token: string): U
     token,
   });
   if (data.client_phone) form.set('client_phone', data.client_phone);
-  // Если service_name — JSON-объект, user_result_callback уже может быть внутри; иначе дублируем полем формы.
-  if (data.successRedirectUrl && typeof data.service_name === 'string') {
+  // Всегда дублируем верхнеуровневым полем: часть инсталляций PayKeeper учитывает только его, не JSON внутри service_name.
+  if (data.successRedirectUrl) {
     form.set('user_result_callback', data.successRedirectUrl);
   }
   return form;
@@ -62,7 +62,7 @@ export async function createPayKeeperInvoice(data: PaymentData): Promise<CreateP
     client_email: data.client_email,
   });
   if (data.client_phone) body.set('client_phone', data.client_phone);
-  if (data.successRedirectUrl && typeof data.service_name === 'string') {
+  if (data.successRedirectUrl) {
     body.set('user_result_callback', data.successRedirectUrl);
   }
 

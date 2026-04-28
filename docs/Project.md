@@ -98,7 +98,7 @@ graph TB
 **Роли:** user (студент), manager (поддержка), admin. RBAC в middleware для `/portal/*`.
 
 ```
-ALETHEIA/
+AVATERRA/
 ├── app/
 │   ├── layout.tsx, page.tsx, globals.css
 │   ├── (auth)/login, register, reset-password

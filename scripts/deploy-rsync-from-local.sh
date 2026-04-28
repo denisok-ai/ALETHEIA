@@ -2,7 +2,7 @@
 # Деплой без Git: локальная next build → rsync артефактов на VPS → npm ci, prisma generate,
 # сброс кеша nginx (каталог /var/cache/nginx при наличии), рестарт aletheia.
 #
-# ВАЖНО: запускать только на своём ПК (WSL), где есть ~/projects/ALETHEIA и npm run build.
+# ВАЖНО: запускать только на своём ПК (WSL), где есть ~/projects/AVATERRA и npm run build.
 # НЕ запускать на VPS (там нет скрипта deploy:rsync в старом package.json и нет ~/projects/...).
 #
 # Запуск из WSL (прод: root@95.181.224.70 — значение по умолчанию):

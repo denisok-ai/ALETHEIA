@@ -27,7 +27,7 @@
 Требуется [Node.js](https://nodejs.org/) 18+.
 
 ```bash
-cd /home/denisok/projects/ALETHEIA
+cd /home/denisok/projects/AVATERRA
 npm install
 npm run db:migrate
 npm run db:seed

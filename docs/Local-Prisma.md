@@ -8,7 +8,7 @@
 
 1. **Каталог и команды** — выполняйте команды из корня проекта. Одна команда в одну строку:
    ```bash
-   cd /home/denisok/projects/ALETHEIA
+   cd /home/denisok/projects/AVATERRA
    npm run dev
    ```
    Не склеивайте несколько команд в одну строку без `&&`.
@@ -59,7 +59,7 @@
 ## Шаг 1. Установка
 
 ```bash
-cd /home/denisok/projects/ALETHEIA
+cd /home/denisok/projects/AVATERRA
 npm install
 ```
 
@@ -138,7 +138,7 @@ npm run dev:debug:seed
 ```
 Либо по шагам (остановите dev через Ctrl+C перед этим):
 ```bash
-cd /home/denisok/projects/ALETHEIA
+cd /home/denisok/projects/AVATERRA
 npm run db:seed
 npm run dev
 ```

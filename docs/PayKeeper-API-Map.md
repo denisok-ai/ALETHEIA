@@ -48,6 +48,14 @@
 
 К URL счёта (из `invoice_url`) добавляются query-параметры: `pstype=sbp_default&returnFormat=json` — ответ JSON с данными QR (не смешивать с обычным редиректом на оплату без `returnFormat=json`).
 
+## Редирект после оплаты (`user_result_callback`)
+
+В счёт передаётся **дважды** (на практике надёжнее): внутри JSON `service_name` при 54-ФЗ и **отдельным полем формы** `user_result_callback` — URL вида `{site_url}/success?order=НОМЕР`. К URL PayKeeper **дописывает** параметры `payment_id`, `clientid`, `result` (см. [HTML-форма → адрес перенаправления](https://docs.paykeeper.ru/metody-integratsii/html-forma/)).
+
+Если callback **не дошёл или отклонён**, плательщик попадает на адрес из ЛК PayKeeper: раздел **«Адреса перенаправления клиента»** (по умолчанию — «главная» магазина; у старых настроек часто вида `http://<цифры>.ru/`). Имеет смысл там указать боевой домен или страницу `/success`.
+
+В **Портал → Настройки** задаётся `site_url` (и fallback `NEXT_PUBLIC_URL`). Если оба пусты, для редиректа используется **origin текущего запроса** к `/api/payment/create` (удобно на localhost с любым портом). На проде лучше явно задать канонический `https://…`.
+
 ## Webhook URL для кабинета PayKeeper
 
 Указать публичный URL вида: `https://<ваш-домен>/api/webhook/paykeeper`.

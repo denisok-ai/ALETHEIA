@@ -339,6 +339,15 @@ async function main() {
 • Обучение диагностике и применение в авторских техниках
 • Закрытый модуль: продвинутые техники, сложные кейсы, интеграция системы в жизнь`,
     },
+    {
+      slug: 'debug-paykeeper-10',
+      name: 'Тест оплаты 10 ₽ (отладка PayKeeper)',
+      price: 10,
+      paykeeperTariffId: 'debug-paykeeper-10',
+      description: `Служебная услуга для проверки полного цикла оплаты с минимальной суммой.
+• В ЛК PayKeeper должен существовать тариф с тем же ID, что и «ID тарифа PayKeeper» у этого товара
+• На проде после отладки отключите товар (снять «Показывать в магазине» / isActive) или удалите тариф в PayKeeper`,
+    },
   ];
   const publishedIds = courses.filter((_, i) => statuses[i % statuses.length] === 'published').map((c) => c.id);
   const defaultCourseId = publishedIds[0] ?? courses[0]?.id;

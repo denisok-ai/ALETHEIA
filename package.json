@@ -31,6 +31,8 @@
     "prod:readiness": "tsx scripts/prod-readiness-check.ts",
     "prod:prepare": "npm run prod:readiness && npm run predeploy",
     "db:clean-seed": "tsx scripts/clean-seed-test-data.ts",
+    "db:clean-local-test": "tsx scripts/clear-local-test-data-keep-courses-services.ts",
+    "db:check-notifications-enrollment": "tsx scripts/check-notification-enrollment-config.ts",
     "db:clear-crm-users": "tsx scripts/clear-crm-and-users.ts",
     "db:only-demo-course": "tsx scripts/delete-courses-except.ts",
     "db:clear-mediateka": "tsx scripts/clear-mediateka.ts",
