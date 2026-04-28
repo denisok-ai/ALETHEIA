@@ -17,11 +17,19 @@ fi
 
 HOST="${DEPLOY_HOST:-95.181.224.70}"
 USER="${DEPLOY_USER:-root}"
-KEY="${DEPLOY_SSH_KEY:-$HOME/.ssh/avaterra_pro_root}"
 REMOTE_DIR="${DEPLOY_REMOTE_DIR:-/opt/ALETHEIA}"
 
+# Ключ без passphrase для BatchMode (Cursor/CI): сначала .deploy.env → DEPLOY_SSH_KEY, иначе типичные пути.
+if [[ -n "${DEPLOY_SSH_KEY:-}" ]]; then
+  KEY="$DEPLOY_SSH_KEY"
+elif [[ -f "$HOME/.ssh/avaterra_deploy_nopass" ]]; then
+  KEY="$HOME/.ssh/avaterra_deploy_nopass"
+else
+  KEY="$HOME/.ssh/avaterra_pro_root"
+fi
+
 if [[ ! -f "$KEY" ]]; then
-  echo "Нет ключа: $KEY"
+  echo "Нет ключа: $KEY (задайте DEPLOY_SSH_KEY в scripts/.deploy.env — см. .deploy.env.example)"
   exit 1
 fi
 

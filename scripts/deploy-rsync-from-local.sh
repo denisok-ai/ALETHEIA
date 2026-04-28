@@ -21,11 +21,31 @@
 #
 set -euo pipefail
 
-DEPLOY_SSH="${DEPLOY_SSH:-root@95.181.224.70}"
-DEPLOY_ROOT="${DEPLOY_ROOT:-/opt/ALETHEIA}"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [[ -f "$SCRIPT_DIR/.deploy.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$SCRIPT_DIR/.deploy.env"
+  set +a
+fi
 
-ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+DEPLOY_SSH="${DEPLOY_SSH:-${DEPLOY_USER:-root}@${DEPLOY_HOST:-95.181.224.70}}"
+DEPLOY_ROOT="${DEPLOY_ROOT:-${DEPLOY_REMOTE_DIR:-/opt/ALETHEIA}}"
+
+ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$ROOT_DIR"
+
+# Тот же ключ, что и в deploy-remote.sh (DEPLOY_SSH_KEY или avaterra_deploy_nopass).
+if [[ -z "${DEPLOY_SSH_IDENTITY:-}" && -n "${DEPLOY_SSH_KEY:-}" ]]; then
+  DEPLOY_SSH_IDENTITY="$DEPLOY_SSH_KEY"
+fi
+if [[ -z "${DEPLOY_SSH_IDENTITY:-}" ]]; then
+  if [[ -f "$HOME/.ssh/avaterra_deploy_nopass" ]]; then
+    DEPLOY_SSH_IDENTITY="$HOME/.ssh/avaterra_deploy_nopass"
+  elif [[ -f "$HOME/.ssh/avaterra_pro_root" ]]; then
+    DEPLOY_SSH_IDENTITY="$HOME/.ssh/avaterra_pro_root"
+  fi
+fi
 
 SSH_OPTS=(-o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=20)
 if [[ -n "${DEPLOY_SSH_IDENTITY:-}" ]]; then
