@@ -15,6 +15,8 @@
 | **Репозиторий GitHub** | `https://github.com/denisok-ai/ALETHEIA` (ветка `main`) |
 | **Доступ** | SSH по ключу (`ssh root@95.181.224.70`) |
 
+**Почему `ALETHEIA`, а не `AVATERRA`:** на сервере код и сборка изначально развёрнуты в **`/opt/ALETHEIA`** (как в репозитории GitHub `ALETHEIA`). Локально проект часто лежит в `~/projects/AVATERRA` — это другой путь **только на твоей машине**; на VPS «историческая» и **единственная рабочая** папка продакшена — **`/opt/ALETHEIA`**. Любые команды `cd`, копирование `dev.db`, правка `.env` и деплой — только относительно этого каталога.
+
 Один «источник правды» для кода и `.next` на машине — **только** `/opt/ALETHEIA`. Второй клон в `/var/www/...` с параллельным процессом на том же порту приводит к 502 и «старой» админке.
 
 ---
@@ -26,7 +28,7 @@
 - **Порт upstream для nginx:** по умолчанию **3000** (переопределяется `PORT` в `.env` — тогда в nginx `proxy_pass` должен совпадать).
 - **`NODE_ENV`:** `production` (в unit или окружении).
 - **Секреты и URL:** файл **`.env`** в `/opt/ALETHEIA` (в git не коммитится). Список переменных — [.env.example](../.env.example), подробнее — [Env-Config.md](Env-Config.md).
-- **Рекомендуется в `.env` на проде:** `NEXTAUTH_URL=https://avaterra.pro` (иначе предупреждение next-auth в логах).
+- **`NEXTAUTH_URL`:** предпочтительно задавать **`nextauth_url` в БД** (Портал → Настройки → Интеграции), а не дублировать в `.env`; в `.env` оставляют при необходимости только bootstrap вместе с `DATABASE_URL` / `NEXTAUTH_SECRET` — см. [Env-Config.md](Env-Config.md). Если в `.env` указан прод-URL без записи в БД для dev — возможны предупреждения next-auth в логах.
 - **SQLite на этом VPS:** в `.env` задать `DATABASE_URL="file:/opt/ALETHEIA/prisma/dev.db"` (см. §5).
 - **Опционально:** `npm install sharp` в каталоге приложения — ускорение оптимизации изображений Next.js.
 
@@ -82,6 +84,12 @@
 | **encrypt** | Импорт из **`node:crypto`**; в **`next.config.mjs`** для server-бандла в `externals` добавлены `crypto` и `node:crypto` (страховка). |
 | **deploy-pull.sh** | Шаг **5b:** очистка **`/var/cache/nginx`** (или встроенная очистка, если нет `nginx-clear-proxy-cache.sh`) + `nginx reload` при наличии прав; шаги **6–7:** проверка `127.0.0.1:$PORT/api/health` и внешнего URL. |
 | **Деплой без git** | С ПК (WSL): **`npm run deploy:rsync`** → [`scripts/deploy-rsync-from-local.sh`](../scripts/deploy-rsync-from-local.sh) (по умолчанию `root@95.181.224.70:/opt/ALETHEIA`). **Не запускать** `deploy:rsync` на самом VPS. |
+| **Mailcow (черновик)** | [`scripts/setup-mailcow-docker-vps.sh`](../scripts/setup-mailcow-docker-vps.sh) — на VPS от root: Docker + clone Mailcow в `/opt/mailcow-dockerized`; дальше `generate_config.sh`, TLS/DNS — [Mail-Server.md](Mail-Server.md). |
+
+## 6.1 Развёртывание приложения без git на сервере + почта
+
+1. Собрать приложение локально и выгрузить на VPS: **`npm run deploy:rsync`** (см. §7 вариант B ниже). Файл `.env` на сервере **не перезаписывается** — добавьте в него переменные `MAIL_*` после установки Mailcow.
+2. Если продовые данные SQLite не нужны: **`RESET_AND_SEED=1 npm run deploy:rsync`** — полный сброс БД и seed на сервере (осторожно).
 
 ---
 
@@ -112,6 +120,9 @@
    `npm run deploy:rsync`
 
 Локально выполняется `next build`, на сервер синхронизируются `.next/`, `public/`, `prisma/` (без локальных `.db`), `package.json`, lockfile, `next.config.mjs`, `middleware.ts`; на сервере — `npm ci`, `prisma generate`, очистка кеша nginx (если есть), старт сервиса. Файл **`.env` на сервере не перезаписывается**.
+
+**Замена продовой SQLite локальной базой** (осознанно, прод-данные перезаписываются содержимым `prisma/dev.db` с вашего ПК):  
+`npm run deploy:rsync:with-db` или `DEPLOY_COPY_LOCAL_DB=1 npm run deploy:rsync`. Перед этим локально должна быть актуальная сборка и файл `prisma/dev.db`; после копирования на сервере по-прежнему выполняются `migrate deploy` и `generate`.
 
 ### Если `git pull` на сервере конфликтует с локальными правками
 

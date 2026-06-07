@@ -8,7 +8,7 @@
 
 **Татьяна Стрельцова (реальные фото)**  
 - В `public/images/tatiana/` размещены фотографии основательницы:
-  - **tatiana-hero.png** — для Hero-секции (основательница в центре первого экрана)
+  - **tatiana-hero.png** — OG/превью и др.; в Hero на главной — коллаж из `public/images/hero/collage-left.png`, `collage-top-right.png`, `collage-bottom-right.png` (`components/sections/HeroCollage.tsx`)
   - **tatiana-about.png** — для блока «О мастере»
 - При замене сохранять имена файлов или обновлять пути в `index.html`.
 

@@ -1,0 +1,17 @@
+[Unit]
+Description=Avaterra Telegram SMM Bot (docker compose)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=true
+WorkingDirectory=/opt/avaterra-bot
+EnvironmentFile=/opt/avaterra-bot/.env
+ExecStart=/usr/bin/docker compose -f /opt/avaterra-bot/docker-compose.yml up -d --build
+ExecStop=/usr/bin/docker compose -f /opt/avaterra-bot/docker-compose.yml down
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

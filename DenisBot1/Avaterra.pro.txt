@@ -1,0 +1,21 @@
+# Avaterra.pro - публичные параметры проекта
+# ВНИМАНИЕ: реальные секреты и ID не хранятся в этом файле.
+# Все ключи лежат в /opt/avaterra-bot/.env на боевом сервере (chmod 600, root:root).
+# Доступ к серверу: SSH-алиас `avaterra` (ключ ~/.ssh/avaterra_deploy_ed25519).
+# Замена/ротация секретов: см. docs/Security.md "Ротация ключей".
+
+# Telegram канал (целевой):
+#   - канал: @avaterra (или ID -100xxxxxxxxxx)
+#   - бот @AvaterraBot уже добавлен администратором канала
+
+# Админы бота (Telegram user IDs):
+#   - admin #1: см. ADMIN_TELEGRAM_IDS на сервере
+#   - admin #2: см. ADMIN_TELEGRAM_IDS на сервере
+
+# Внешние интеграции:
+#   - DeepSeek (текст): https://api.deepseek.com, ключ DEEPSEAK_API_KEY
+#   - KIE (изображения): https://api.kie.ai, ключ KIE_API_KEY
+
+# Сайт компании:
+#   - https://avaterra.pro/
+#   - sitemap: https://avaterra.pro/sitemap.xml

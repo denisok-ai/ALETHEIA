@@ -41,6 +41,16 @@ export const BLOG_TO_COURSE_ANCHORS: Partial<
       label: 'Фрагмент про эмоции и «карту» тела в программе курса',
     },
   ],
+  'probuzhdenie-21-den-osoznannosti': [
+    {
+      href: '/course/probuzhdenie',
+      label: 'Программа курса «Пробуждение» — 21 день практик осознанности',
+    },
+    {
+      href: '/course/probuzhdenie#tariffs',
+      label: 'Тарифы: групповой и индивидуальный формат',
+    },
+  ],
 };
 
 /** Слаги статей для блока «По теме» на странице курса. */

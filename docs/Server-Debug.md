@@ -265,3 +265,29 @@ curl -sS -o /dev/null -w "%{http_code}\n" http://127.0.0.1:3000/api/health
 ```bash
 head -n 12 /opt/ALETHEIA/app/portal/admin/layout.tsx
 ```
+
+---
+
+## Вход в портал: ошибки после деплоя, `cookie`, Server Actions
+
+### `Cannot find module 'next/dist/compiled/cookie'`
+
+Часто после **прерванного** `npm install` / rsync или смешения копий `node_modules`. Middleware и сессии парсят cookie через внутренний модуль Next.js — при отсутствии файла запросы к `/portal` и `/api/auth/*` падают.
+
+**На сервере** (интерактивный SSH, где есть `npm` в PATH):
+
+```bash
+cd /opt/ALETHEIA
+npm ci
+npm run build
+sudo systemctl restart aletheia.service
+```
+
+Либо полный цикл из репозитория: `sudo bash scripts/deploy-pull.sh`.
+
+Неинтерактивная SSH-сессия иногда **не подхватывает PATH** к Node/npm — подключайтесь как обычно: `ssh root@95.181.224.70`, затем команды выше в интерактивной оболочке.
+
+### `Failed to find Server Action ... older or newer deployment`
+
+Браузер держит **старый JS** (кеш), а на сервере уже **новая** сборка `.next`. Решение пользователю: **полное обновление страницы** (Ctrl+F5 / очистка кеша для сайта). После выката полезно проверить, что nginx **не кеширует** HTML/RSC для `/` (см. раздел про `proxy_cache` выше).
+

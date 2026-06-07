@@ -1,0 +1,16 @@
+/var/lib/docker/volumes/avaterra-bot_bot_logs/_data/*.log
+/opt/avaterra-bot/logs/*.log
+{
+    daily
+    rotate 14
+    maxage 14
+    missingok
+    notifempty
+    compress
+    delaycompress
+    copytruncate
+    dateext
+    dateformat -%Y-%m-%d
+    su root root
+    create 0640 root root
+}

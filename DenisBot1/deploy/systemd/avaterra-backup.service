@@ -1,0 +1,11 @@
+[Unit]
+Description=Avaterra bot daily backup
+After=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=/opt/avaterra-bot/.env
+Environment=APP_DIR=/opt/avaterra-bot
+Environment=BACKUP_DIR=/var/backups/avaterra-bot
+Environment=BACKUP_RETENTION_DAYS=7
+ExecStart=/bin/bash /opt/avaterra-bot/deploy/backup.sh

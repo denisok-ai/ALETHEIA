@@ -1,0 +1,73 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: avaterra-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-avaterra}
+      POSTGRES_USER: ${POSTGRES_USER:-avaterra}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?postgres password is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-avaterra}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  redis:
+    image: redis:7-alpine
+    container_name: avaterra-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: avaterra-bot:latest
+    container_name: avaterra-bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-avaterra}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-avaterra}
+      REDIS_URL: redis://redis:6379/0
+      LOG_DIR: /app/logs
+    volumes:
+      - bot_logs:/app/logs
+      - bot_runtime:/app/runtime
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "7"
+
+volumes:
+  postgres_data:
+  redis_data:
+  bot_logs:
+  bot_runtime:

@@ -1,0 +1,22 @@
+# Cursor Rules for Avaterra Telegram SMM Bot
+
+## Workflow
+- Перед каждым значимым шагом перечитывать этот файл.
+- Сначала актуализировать документацию, затем менять код.
+- Архитектурные решения - в `docs/Project.md`.
+- Прогресс - в `docs/Tasktracker.md`.
+- Журнал решений - в `docs/Diary.md`.
+- Открытые вопросы - в `docs/qa.md`.
+- История изменений - в `docs/changelog.md`.
+
+## Engineering Principles
+- SOLID, KISS, DRY.
+- Безопасность, производительность, поддерживаемость - в приоритете.
+- Никаких неиспользуемых блоков и устаревших комментариев.
+- Единый стиль через ruff и mypy.
+
+## Operational Standards
+- Секреты - только в `.env`/secret storage; см. `docs/Security.md`.
+- Логи - структурный JSON с ротацией 14 дней; см. `docs/Logging.md`.
+- Бэкапы перед каждой выкаткой, ротация 7 дней; см. `docs/Deployment.md`.
+- Антидубли - обязательная проверка перед публикацией; см. `docs/Deduplication.md`.

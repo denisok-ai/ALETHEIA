@@ -2,13 +2,61 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-04-29 — Let's Encrypt для mail.avaterra.pro и nginx → Mailcow
+
+**Задача:** выпустить бесплатный LE для поддомена почты и настроить на VPS.
+
+**Сделано:** webroot `/var/www/certbot`, конфиг **`/etc/nginx/sites-available/mail-avaterra.conf`** (HTTP редирект + HTTPS reverse-proxy на **`https://127.0.0.1:8448`**), **`certbot certonly --webroot -d mail.avaterra.pro`** (ECDSA, истечение **2026-07-28**). Проверка: cookie **MCSESSID** через внешний nginx. Скрипт повторного развёртывания: **`scripts/mail-nginx-le-on-vps.sh`**. Email для ACME: **`CERTBOT_EMAIL`** (по умолчанию `admin@avaterra.pro`).
+
+## 2026-04-29 — Деплой 3.5.0 на прод и Mailcow на том же VPS
+
+**Задача:** самостоятельный выкат `npm run deploy:rsync`, установка Mailcow без конфликта с nginx сайта.
+
+**Сделано:** деплой на `/opt/ALETHEIA`, сайт отвечает; установлен пакет `docker-compose-v2`, развёрнут Mailcow с `MAILCOW_HOSTNAME=mail.avaterra.pro`, из‑за занятости `:80`/`:443` nginx UI Mailcow переведён на `127.0.0.1:8088` и `127.0.0.1:8448`, `SKIP_LETS_ENCRYPT=y` до выдачи сертификата/reverse-proxy для `mail.*`. На сервер установлен Docker Compose v2; скрипт `setup-mailcow-docker-vps.sh` дополнен установкой `docker-compose-v2` и предупреждением про порты.
+
+## 2026-04-29 — Релиз 3.5.0: версионность, прод и TLS для Mailcow
+
+**Задача:** версия продукта **3.5.0**, описание деплоя приложения без git на VPS и различие HTTPS для сайта и для почтового хоста.
+
+**Сделано:** bump в `package.json`, CHANGELOG, Project.md, Tasktracker.md; дополнены Mail-Server.md и Production-Server.md; скрипт `scripts/setup-mailcow-docker-vps.sh`. Автоматический выкат на прод из этой среды без вашего SSH-ключа недоступен — деплой: **`npm run deploy:rsync`** или **`RESET_AND_SEED=1 npm run deploy:rsync`** с вашего WSL при настроенном ключе.
+
+## 2026-04-29 — Единый UI «Почта» в админке
+
+**Задача:** один понятный вход к доставке (Resend/SMTP), ящикам @avaterra.pro, входящим IMAP, оперативным письмам и рассылкам; переиспользуемый блок доставки вместо дубля только в «Настройках».
+
+**Сделано:** маршрут `/portal/admin/mail` + `MailCenterClient` (вкладки и обзор с ошибками IMAP и журналами); компонент `OutboundMailSettingsBlock`; сайдбар и палитра ⌘K с главным пунктом «Почта» и быстрыми ссылками `?tab=…`; редиректы с `/portal/admin/domain-mailboxes` и `/portal/admin/inmail`; сбор данных на сервере в `lib/mail-center-server.ts`; правки `docs/Support.md`, `docs/Inbound-Mail-Scope.md`.
+
+## 2026-04-29 — Автономная почта @avaterra.pro
+
+**Задача:** зафиксировать в коде и документации связку с почтовым стеком Mailcow (отдельно от Next.js): создание ящиков, IMAP-синхронизация, транзакционный SMTP через переменные окружения.
+
+**Сделано:** документы `docs/Mail-*.md`, `infra/mail/`; модель Prisma `DomainMailbox`; клиент Mailcow (`lib/mail-provisioning/mailcow.ts`), сервис `lib/domain-mailbox-service.ts`; админка `/portal/admin/domain-mailboxes`; страница списка IMAP `/portal/admin/inmail`; маршруты API и `GET /api/cron/inmail-sync`; подстановка `MAIL_SMTP_*` в `lib/email.ts`; обновлены `docs/Env-Config.md`, `docs/Support.md`.
+
+---
+
+## 2026-04-29 — Настройки интеграций и текстов из админки
+
+**Задача:** почта (транспорт Resend/SMTP), интеграции и импорт из env — без разрозненных блоков; типовые тексты уведомлений и шаблонов коммуникаций; безопасный upsert шаблонов в БД.
+
+**Сделано:** карточки «Исходящая почта», «Интеграции», список ключей импорта из `SETTINGS_IMPORT_ENV_MAP`; в `PATCH /api/portal/admin/settings` — валидация `email_transport`, `smtp_port`, `smtp_secure`, `scorm_max_size_mb`; общая карта импорта `lib/settings-import-env.ts`; дополнены `DEFAULT_NOTIFICATION_TEMPLATES` (`event_cancelled`, `event_completed`, `training_start`); данные для Comms — `lib/default-comms-templates.ts` и скрипт `npm run db:upsert-comms-templates`; обновлены `docs/Env-Config.md`, `Production-Server.md`, `Tasktracker.md`.
+
+---
+
+## 2026-04-28 — Релиз 3.4.0: показ пароля на формах
+
+**Задача:** на экранах с вводом пароля и замаскированных секретов — переключатель видимости («глаз»).
+
+**Сделано:** компонент `components/ui/PasswordInput`; замена полей на страницах входа, регистрации, установки пароля, в диалоге добавления пользователя, в блоках переменных окружения и API-ключей LLM. Версия продукта **3.4.0** (`package.json`, `CHANGELOG`, `docs/Project.md`, `docs/Tasktracker.md`).
+
+---
+
 ## 2026-04-05 — Релиз 3.3.0: AI-чаты, справка портала, шаблоны тьютора
 
 **Задача:** зафиксировать в продукте и документации доработки вокруг публичного чата, AI-тьютора в SCORM, ЛК студента и админской справки.
 
 **Сделано (код, кратко):** `ChatMarkdown` + `lib/linkify-bare-urls.ts` для кликабельных URL в ответах LLM; шаблоны промптов с `scope` `chatbot` | `course-tutor`, приоритет активного шаблона тьютора в `ai-assist`, учёт usage; удалён неиспользуемый `CourseTutorForm.tsx`; `/portal/student/gamification` без редиректа admin/manager из ЛК студента; убрана кнопка «Админка» со страницы курса студента; `HelpContent` — карточки и якоря `#ai-tutor`, `#ai-tutor-admin`, прокрутка по hash; палитра ⌘K (`portal-nav-commands`); UX подсказок на странице курса, в `CourseAIChat`, ссылки из `CourseAiTutorBlock` и `LlmAndChatbotBlock`.
 
-**Документация и версия:** `package.json` → **3.3.0**; `CHANGELOG.md` — секция **[3.3.0] - 2026-04-05**; обновлены `docs/Project.md` (в. 3.3, блок про AI), `docs/Support.md` (помощь и якоря), `docs/Tasktracker.md` (версия продукта), `docs/AI-Assistants-Audit.md` (чат и тьютор).
+**Документация и версия:** `package.json` → **3.3.0**; `CHANGELOG.md` — секция **[3.3.0] - 2026-04-05**; обновлены `docs/Project.md` (в. 3.3.0, блок про AI), `docs/Support.md` (помощь и якоря), `docs/Tasktracker.md` (версия продукта), `docs/AI-Assistants-Audit.md` (чат и тьютор).
 
 ---
 

@@ -19,12 +19,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const publicPaths = [
     { path: '', changeFrequency: 'weekly' as const, priority: 1 },
     { path: '/course/navyki-myshechnogo-testirovaniya', changeFrequency: 'weekly' as const, priority: 0.85 },
+    { path: '/course/probuzhdenie', changeFrequency: 'weekly' as const, priority: 0.85 },
     { path: '/about', changeFrequency: 'monthly' as const, priority: 0.8 },
     { path: '/blog', changeFrequency: 'weekly' as const, priority: 0.75 },
     { path: '/faq', changeFrequency: 'monthly' as const, priority: 0.72 },
     { path: '/contacts', changeFrequency: 'monthly' as const, priority: 0.7 },
     { path: '/oferta', changeFrequency: 'monthly' as const, priority: 0.9 },
     { path: '/privacy', changeFrequency: 'yearly' as const, priority: 0.5 },
+    { path: '/pd-consent', changeFrequency: 'yearly' as const, priority: 0.45 },
   ];
 
   const staticEntries: MetadataRoute.Sitemap = [

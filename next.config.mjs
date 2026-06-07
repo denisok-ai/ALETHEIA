@@ -4,6 +4,17 @@ import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
+
+/** Как у Next без «внешнего» @opentelemetry/api: иначе dev бандлит OTEL в vendor-chunks и worker падает с MODULE_NOT_FOUND. */
+const nextCompiledOtelApi = join(
+  __dirname,
+  'node_modules',
+  'next',
+  'dist',
+  'compiled',
+  '@opentelemetry',
+  'api',
+);
 const pkg = JSON.parse(readFileSync(join(__dirname, 'package.json'), 'utf8'));
 
 function shortGitRef(raw) {
@@ -56,6 +67,17 @@ const nextConfig = {
         destination: '/course/navyki-myshechnogo-testirovaniya',
         permanent: true,
       },
+      /** Основной лендинг курса: /course/probuzhdenie */
+      {
+        source: '/course/probuzhdenie-berlinska',
+        destination: '/course/probuzhdenie',
+        permanent: true,
+      },
+      {
+        source: '/course/probuzhdenie-spokoynaya',
+        destination: '/course/probuzhdenie',
+        permanent: true,
+      },
     ];
   },
   images: {
@@ -82,6 +104,11 @@ const nextConfig = {
   // instrumentation / server: встроенный `crypto` не должен резолвиться как npm-пакет.
   webpack: (config, { isServer }) => {
     if (!isServer) return config;
+    config.resolve = config.resolve ?? {};
+    config.resolve.alias = {
+      ...(config.resolve.alias ?? {}),
+      '@opentelemetry/api': nextCompiledOtelApi,
+    };
     const ext = config.externals;
     if (Array.isArray(ext)) {
       ext.push('crypto', 'node:crypto');
