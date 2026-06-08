@@ -126,7 +126,7 @@ jobs:
             sudo nginx -t 2>/dev/null && sudo nginx -s reload || true
           fi
           if systemctl list-unit-files 2>/dev/null | grep -q '^aletheia.service'; then
-            sudo systemctl start aletheia.service
+            sudo systemctl restart aletheia.service
             sudo systemctl is-active aletheia.service
           elif command -v pm2 >/dev/null 2>&1; then
             pm2 restart aletheia 2>/dev/null || pm2 start npm --name aletheia --cwd "$DEPLOY_ROOT" -- start

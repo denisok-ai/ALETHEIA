@@ -56,7 +56,7 @@ export function Author() {
             animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.5, delay: 0.1 }}
           >
-            <span className="block text-sm font-semibold uppercase tracking-widest text-plum">
+            <span className="block text-sm font-semibold leading-snug text-plum">
               {ABOUT_MASTER.eyebrow}
             </span>
             <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">

@@ -8,7 +8,9 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label } from '@/components/ui/label';
+import { PersonalDataConsentCheckbox } from '@/components/forms/PersonalDataConsentCheckbox';
 
 export default function RegisterPage() {
   const [email, setEmail] = useState('');
@@ -16,6 +18,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pdConsent, setPdConsent] = useState(false);
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -38,7 +41,7 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, name: name || undefined }),
+        body: JSON.stringify({ email, password, name: name || undefined, pdConsent: true }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -83,10 +86,14 @@ export default function RegisterPage() {
           />
         </div>
         <div>
-          <Label htmlFor="password">Пароль</Label>
-          <Input
+          <div className="flex items-center justify-between">
+            <Label htmlFor="password">Пароль</Label>
+            <Link href="/reset-password" className="text-xs text-[var(--portal-accent)] hover:underline">
+              Забыли пароль?
+            </Link>
+          </div>
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -101,7 +108,13 @@ export default function RegisterPage() {
             {error}
           </p>
         )}
-        <Button type="submit" className="w-full" disabled={loading}>
+        <PersonalDataConsentCheckbox
+          id="register-pd-consent"
+          checked={pdConsent}
+          onCheckedChange={setPdConsent}
+          disabled={loading}
+        />
+        <Button type="submit" className="w-full" disabled={loading || !pdConsent}>
           {loading ? 'Отправка…' : 'Зарегистрироваться'}
         </Button>
       </form>

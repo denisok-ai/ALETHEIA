@@ -295,7 +295,11 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
               )}
             </>
           )}
-          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Без подложки используется макет по умолчанию при генерации PDF.</p>
+          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+            Без подложки PDF строится встроенным макетом. Если в JSON указать{' '}
+            <code className="rounded bg-[#F1F5F9] px-1">pdfLayout</code> (например vitality, awaken, path), этот макет
+            подставится при скачивании без параметра <code className="rounded bg-[#F1F5F9] px-1">?template=</code>.
+          </p>
         </div>
         <div>
           <Label htmlFor="ct-textmapping">textMapping (JSON, опционально)</Label>
@@ -304,11 +308,14 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
             value={textMapping}
             onChange={(e) => setTextMapping(e.target.value)}
             rows={4}
-            placeholder='{"name":{"x":100,"y":420,"fontSize":16},"courseTitle":{"x":100,"y":480,"fontSize":14},"certNumber":{"x":72,"y":750,"fontSize":9},"date":{"x":400,"y":750,"fontSize":9},"expiryDate":{"x":100,"y":780,"fontSize":9}}'
+            placeholder='{"pdfLayout":"vitality","name":{"x":100,"y":420,"fontSize":16}}'
             className="mt-1 w-full rounded-lg border border-[#E2E8F0] focus:ring-2 focus:ring-[var(--portal-accent)] px-3 py-2 font-mono text-sm"
           />
           <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
-            Координаты в pt (A4 ≈ 595×842): name, courseTitle, certNumber, date, expiryDate (опционально). Текст срока: «Действителен до …».
+            Для подложки: координаты в pt (A4 ≈ 595×842) — name, courseTitle, certNumber, date, expiryDate. Для встроенного
+            макета без картинки достаточно{' '}
+            <code className="rounded bg-[#F1F5F9] px-1">{`{"pdfLayout":"awaken"}`}</code> — см. список макетов у студента при
+            скачивании.
           </p>
         </div>
         <div>

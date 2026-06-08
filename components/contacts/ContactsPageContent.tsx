@@ -29,11 +29,11 @@ export function ContactsPageContent({ phone, phoneHref }: Props) {
         <li>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-plum">Email</h2>
           <a
-            href="mailto:info@avaterra.pro"
+            href="mailto:support@avaterra.pro"
             className="mt-2 flex items-center gap-2 text-[var(--text)] hover:text-plum"
           >
             <Mail className="h-5 w-5 shrink-0 text-accent" aria-hidden />
-            info@avaterra.pro
+            support@avaterra.pro
           </a>
         </li>
         <li>

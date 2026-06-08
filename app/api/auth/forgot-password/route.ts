@@ -7,12 +7,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { createPasswordToken } from '@/lib/password-token';
-import { sendEmail } from '@/lib/email';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import { buildPasswordResetEmail } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'forgot-password', 5);
@@ -39,15 +36,18 @@ export async function POST(request: NextRequest) {
     const setPasswordUrl = siteUrl
       ? `${siteUrl}/set-password?token=${encodeURIComponent(token)}`
       : `/set-password?token=${encodeURIComponent(token)}`;
-    const name = user.displayName || email.split('@')[0];
-    const html = `
-      <p>Здравствуйте, ${escapeHtml(name)}!</p>
-      <p>Вы запросили сброс пароля. Перейдите по ссылке, чтобы установить новый пароль (действует 48 часов):</p>
-      <p><a href="${setPasswordUrl}">Установить новый пароль</a></p>
-      <p>Если вы не запрашивали сброс, проигнорируйте это письмо.</p>
-      <p>— ${settings.portal_title || 'AVATERRA'}</p>
-    `;
-    await sendEmail(email, 'Сброс пароля — AVATERRA', html);
+    const name = user.displayName ?? '';
+    const passwordEmail = buildPasswordResetEmail({
+      displayName: name,
+      setPasswordUrl,
+      systemTitle: settings.portal_title || 'AVATERRA',
+    });
+    await sendTransactionalEmail({
+      to: email,
+      subject: passwordEmail.subject,
+      html: passwordEmail.html,
+      context: { module: 'auth', entityId: user.id, userId: user.id },
+    });
 
     return NextResponse.json({ success: true });
   } catch (e) {

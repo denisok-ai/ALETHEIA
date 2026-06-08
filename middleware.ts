@@ -4,6 +4,7 @@
  */
 import { getToken } from 'next-auth/jwt';
 import { NextResponse, type NextRequest } from 'next/server';
+import { getPortalHomeForRole } from '@/lib/portal-role-home';
 
 const PORTAL_PREFIX = '/portal';
 const LOGIN_PATH = '/login';
@@ -23,7 +24,9 @@ export async function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   if (token && AUTH_PAGES.includes(path)) {
-    return NextResponse.redirect(new URL('/portal', request.url));
+    const role = (token.role as string) ?? 'user';
+    const home = getPortalHomeForRole(role).path;
+    return NextResponse.redirect(new URL(home, request.url));
   }
 
   if (!path.startsWith(PORTAL_PREFIX)) {

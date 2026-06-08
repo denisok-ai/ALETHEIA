@@ -68,33 +68,35 @@ export function PortalAccountBlock({ collapsed, className }: { collapsed?: boole
       <div
         className={cn(
           'flex items-center gap-2.5 pt-1',
-          collapsed && 'justify-center'
+          collapsed ? 'flex-col justify-center gap-2' : ''
         )}
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)] text-xs font-bold select-none border border-[var(--portal-accent-muted)]">
           {letters}
         </span>
         {!collapsed && (
-          <>
-            <div className="min-w-0 flex-1">
-              <p className="text-[0.8125rem] font-semibold text-[var(--portal-text)] truncate leading-tight">
-                {displayName}
-              </p>
-              <p className="text-[0.7rem] text-[var(--portal-text-soft)] truncate leading-tight mt-0.5">
-                {user.email}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-[var(--portal-text-soft)] hover:text-red-500 hover:bg-red-50 transition"
-              title="Выйти"
-              aria-label="Выйти"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
-          </>
+          <div className="min-w-0 flex-1">
+            <p className="text-[0.8125rem] font-semibold text-[var(--portal-text)] truncate leading-tight">
+              {displayName}
+            </p>
+            <p className="text-[0.7rem] text-[var(--portal-text-soft)] truncate leading-tight mt-0.5">
+              {user.email}
+            </p>
+          </div>
         )}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className={cn(
+            'flex shrink-0 items-center justify-center rounded-md text-[var(--portal-text-soft)] hover:text-red-500 hover:bg-red-50 transition',
+            collapsed ? 'h-8 w-8' : 'h-7 w-7',
+            !collapsed && 'self-start mt-0.5'
+          )}
+          title="Выйти из портала"
+          aria-label="Выйти из портала"
+        >
+          <LogOut className={collapsed ? 'h-4 w-4' : 'h-3.5 w-3.5'} />
+        </button>
       </div>
     </div>
   );

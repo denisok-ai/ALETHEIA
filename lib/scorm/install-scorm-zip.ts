@@ -10,6 +10,7 @@ import { parseScormManifest, type ParsedManifest } from '@/lib/scorm/manifest-pa
 import { pickScormEntryPath } from '@/lib/scorm/launch-path';
 import { extractCourseContent } from '@/lib/scorm/course-content-extractor';
 import { applyScormVideoOverrides } from '@/lib/scorm/apply-video-overrides';
+import { fixTemplateFontAliases } from '@/lib/scorm/fix-template-font-aliases';
 
 const MAX_VERSIONS_KEPT = 5;
 const DEFAULT_SCORM_MAX_MB = 200;
@@ -139,6 +140,14 @@ export async function installScormZip(opts: {
   await applyScormVideoOverrides(prefix).catch((e) => {
     console.warn('[SCORM] applyScormVideoOverrides:', e);
   });
+
+  const fontAliases = await fixTemplateFontAliases(prefix).catch((e) => {
+    console.warn('[SCORM] fixTemplateFontAliases:', e);
+    return 0;
+  });
+  if (fontAliases > 0) {
+    console.info(`[SCORM] font aliases created: ${fontAliases}`);
+  }
 
   const manifestEntry = Object.keys(zip.files).find(
     (p) => p.toLowerCase() === 'imsmanifest.xml' || p.toLowerCase().endsWith('/imsmanifest.xml')

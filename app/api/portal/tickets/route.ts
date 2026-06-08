@@ -7,15 +7,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import {
+  buildTicketAutoReplyEmail,
+  buildTicketCreatedEmail,
+  buildTicketManagerNotificationEmail,
+} from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
 import { claimPaidOrdersForUser } from '@/lib/claim-orders';
 import { generateAutoReply, isConfidentReply } from '@/lib/ticket-auto-reply';
 import { ticketCreateSchema } from '@/lib/validations/ticket';
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 /** Найти первый оплаченный заказ по email, по которому у пользователя нет доступа к курсу. */
 async function findPaidOrderWithoutAccess(userId: string, emailNorm: string): Promise<string | null> {
@@ -88,14 +89,18 @@ export async function POST(request: NextRequest) {
 
   if (user?.email) {
     try {
-      const htmlConfirm = `
-        <p>Здравствуйте, ${escapeHtml(displayName)}!</p>
-        <p>Ваше обращение в поддержку принято в работу.</p>
-        <p><strong>Тема:</strong> ${escapeHtml(subject)}</p>
-        <p>Номер обращения: #${ticket.id}. Мы ответим вам в ближайшее время.</p>
-        <p>— ${settings.portal_title || 'AVATERRA'}</p>
-      `;
-      await sendEmail(user.email, 'Обращение в поддержку принято', htmlConfirm);
+      const email = buildTicketCreatedEmail({
+        displayName,
+        subject,
+        ticketId: ticket.id,
+        systemTitle: settings.portal_title || 'AVATERRA',
+      });
+      await sendTransactionalEmail({
+        to: user.email,
+        subject: email.subject,
+        html: email.html,
+        context: { module: 'tickets', entityId: ticket.id, userId },
+      });
     } catch (e) {
       console.error('Ticket: confirm email to student', e);
     }
@@ -104,18 +109,21 @@ export async function POST(request: NextRequest) {
   const notifyEmail = settings.resend_notify_email?.trim();
   if (notifyEmail) {
     try {
-      const orderLine = ticket.orderNumber
-        ? `<p><strong>Привязан заказ (нет доступа):</strong> ${escapeHtml(ticket.orderNumber)}</p>`
-        : '';
-      const htmlNotify = `
-        <p>Новое обращение в поддержку.</p>
-        <p><strong>От:</strong> ${escapeHtml(displayName)} (${escapeHtml(user?.email ?? '')})</p>
-        <p><strong>Тема:</strong> ${escapeHtml(subject)}</p>
-        ${orderLine}
-        ${message ? `<p><strong>Сообщение:</strong><br/>${escapeHtml(message)}</p>` : ''}
-        <p>Тикет #${ticket.id}. ${siteUrl ? `<a href="${siteUrl}/portal/manager/tickets">Открыть в портале</a>` : ''}</p>
-      `;
-      await sendEmail(notifyEmail, `Поддержка: новое обращение — ${subject.slice(0, 50)}`, htmlNotify);
+      const email = buildTicketManagerNotificationEmail({
+        displayName,
+        email: user?.email ?? '',
+        subject,
+        message,
+        ticketId: ticket.id,
+        ticketUrl: siteUrl ? `${siteUrl}/portal/manager/tickets` : undefined,
+        orderNumber: ticket.orderNumber,
+      });
+      await sendTransactionalEmail({
+        to: notifyEmail,
+        subject: email.subject,
+        html: email.html,
+        context: { module: 'tickets', entityId: ticket.id, userId },
+      });
     } catch (e) {
       console.error('Ticket: notify manager', e);
     }
@@ -141,15 +149,19 @@ export async function POST(request: NextRequest) {
           });
           if (user?.email) {
             const ticketUrl = siteUrl ? `${siteUrl}/portal/student/support/${ticket.id}` : '';
-            const htmlReply = `
-              <p>Здравствуйте, ${escapeHtml(displayName)}!</p>
-              <p>По вашему обращению «${escapeHtml(subject)}» подготовлен ответ.</p>
-              <p><strong>Ответ:</strong></p>
-              <p>${escapeHtml(autoReply).replace(/\n/g, '<br/>')}</p>
-              ${ticketUrl ? `<p><a href="${escapeHtml(ticketUrl)}">Открыть обращение</a></p>` : ''}
-              <p>— ${settings.portal_title || 'AVATERRA'}</p>
-            `;
-            await sendEmail(user.email, `Ответ по обращению: ${subject.slice(0, 50)}`, htmlReply);
+            const email = buildTicketAutoReplyEmail({
+              displayName,
+              subject,
+              autoReply,
+              ticketUrl: ticketUrl || undefined,
+              systemTitle: settings.portal_title || 'AVATERRA',
+            });
+            await sendTransactionalEmail({
+              to: user.email,
+              subject: email.subject,
+              html: email.html,
+              context: { module: 'tickets', entityId: ticket.id, userId },
+            });
           }
         }
       } catch (e) {

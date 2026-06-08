@@ -1,12 +1,14 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 import { BlogArticleCourseLinks } from '@/components/BlogArticleCourseLinks';
 import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
 import { JsonLdBlogArticle } from '@/components/JsonLdBlogArticle';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import {
   BLOG_DEFAULT_OG_IMAGE,
+  type BlogArticleBody,
   blogArticleBodies,
   blogPostsMeta,
 } from '@/lib/content/course-lynda-teaser';
@@ -14,6 +16,13 @@ import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
 type Props = { params: { slug: string } };
+
+function isMarkdownBody(body: BlogArticleBody): body is { h1: string; markdown: string } {
+  return 'markdown' in body;
+}
+
+const blogMarkdownClassName =
+  'mt-6 text-[var(--text)] leading-[var(--leading-body)] [&>h2]:mt-10 [&>h2]:font-heading [&>h2]:text-2xl [&>h2]:font-semibold [&>h2]:text-[var(--text)] [&>h2]:first:mt-0 [&>h3]:mt-8 [&>h3]:mb-2 [&>h3]:font-heading [&>h3]:text-xl [&>h3]:font-semibold [&>h3]:text-[var(--text)] [&>p]:mt-0 [&>p]:leading-relaxed [&>p+p]:mt-4 [&>ul]:my-4 [&>ul]:ml-5 [&>ul]:list-disc [&>ul]:space-y-2 [&>ul>li]:text-[var(--text-muted)] [&>hr]:my-10 [&>hr]:border-0 [&>hr]:border-t [&>hr]:border-[var(--border)] [&_strong]:font-semibold [&_strong]:text-[var(--text)]';
 
 export function generateStaticParams() {
   return blogPostsMeta.map((p) => ({ slug: p.slug }));
@@ -111,11 +120,41 @@ export default async function BlogArticlePage({ params }: Props) {
             {body.h1}
           </h1>
           <p className="mt-2 text-sm text-[var(--text-soft)]">Опубликовано: {publishedLabel}</p>
-          <div className="mt-6 space-y-4 leading-[var(--leading-body)] text-[var(--text)]">
-            {body.paragraphs.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </div>
+          {isMarkdownBody(body) ? (
+            <div className={blogMarkdownClassName}>
+              <ReactMarkdown
+                components={{
+                  a({ href, children }) {
+                    if (href?.startsWith('/')) {
+                      return (
+                        <Link href={href} className="font-medium text-plum underline-offset-2 hover:underline">
+                          {children}
+                        </Link>
+                      );
+                    }
+                    return (
+                      <a
+                        href={href}
+                        className="font-medium text-plum underline-offset-2 hover:underline"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {children}
+                      </a>
+                    );
+                  },
+                }}
+              >
+                {body.markdown}
+              </ReactMarkdown>
+            </div>
+          ) : (
+            <div className="mt-6 space-y-4 leading-[var(--leading-body)] text-[var(--text)]">
+              {body.paragraphs.map((p, i) => (
+                <p key={i}>{p}</p>
+              ))}
+            </div>
+          )}
           <BlogArticleCourseLinks slug={slug} />
         </article>
 

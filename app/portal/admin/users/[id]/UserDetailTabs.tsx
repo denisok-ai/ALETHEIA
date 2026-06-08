@@ -14,6 +14,8 @@ import {
   type NotificationLogItem,
   type MailingLogItem,
   type InAppNotificationItem,
+  type EmailDeliveryLogItem,
+  type InboundMatchedMessageItem,
 } from './UserCommunicationsBlock';
 import { UserGroupsBlock } from './UserGroupsBlock';
 import { UserRecentActions } from './UserRecentActions';
@@ -81,6 +83,8 @@ export function UserDetailTabs({
   notificationLogs,
   mailingLogs,
   inAppNotifications,
+  emailDeliveryLogs,
+  inboundMatchedMessages,
 }: {
   userId: string;
   accountEmail: string;
@@ -97,6 +101,8 @@ export function UserDetailTabs({
   notificationLogs: NotificationLogItem[];
   mailingLogs: MailingLogItem[];
   inAppNotifications: InAppNotificationItem[];
+  emailDeliveryLogs: EmailDeliveryLogItem[];
+  inboundMatchedMessages: InboundMatchedMessageItem[];
 }) {
   const [activeTab, setActiveTab] = useState<TabId>('profile');
   const enrolledCourseIds = enrollments.map((e) => e.courseId);
@@ -130,13 +136,26 @@ export function UserDetailTabs({
       {activeTab === 'groups' && <UserGroupsBlock userId={userId} />}
 
       {activeTab === 'communications' && (
-        <UserCommunicationsBlock
-          userId={userId}
-          accountEmail={accountEmail}
-          notificationLogs={notificationLogs}
-          mailingLogs={mailingLogs}
-          inAppNotifications={inAppNotifications}
-        />
+        <div className="space-y-3">
+          <div className="flex justify-end">
+            <Link
+              href={`/portal/admin/communications?userId=${encodeURIComponent(userId)}`}
+              className="inline-flex items-center gap-1 text-sm text-[var(--portal-accent)] hover:underline"
+            >
+              <Send className="h-4 w-4" />
+              Отправить через «Коммуникации»
+            </Link>
+          </div>
+          <UserCommunicationsBlock
+            userId={userId}
+            accountEmail={accountEmail}
+            notificationLogs={notificationLogs}
+            mailingLogs={mailingLogs}
+            inAppNotifications={inAppNotifications}
+            emailDeliveryLogs={emailDeliveryLogs}
+            inboundMatchedMessages={inboundMatchedMessages}
+          />
+        </div>
       )}
 
       {activeTab === 'profile' && (

@@ -1,4 +1,4 @@
-/* Шрифты: <link> в app/layout.tsx — Lora + Inter (см. docs/design-notes-typography.md). */
+/* Шрифты: next/font в app/layout.tsx → --font-lora / --font-inter (см. docs/design-notes-typography.md). */
 
 @tailwind base;
 @tailwind components;
@@ -6,8 +6,8 @@
 
 /* ─── Публичный сайт (палитра заказчика: лаванда, перивинкль, plum, rose, sand) ─── */
 :root {
-  --font-heading: 'Lora', Georgia, 'Times New Roman', serif;
-  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: var(--font-lora), Georgia, 'Times New Roman', serif;
+  --font-body: var(--font-inter), system-ui, -apple-system, sans-serif;
   /* legacy aliases */
   --font-literata: var(--font-heading);
   --font-outfit: var(--font-body);

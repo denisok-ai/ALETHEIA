@@ -39,6 +39,8 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   aiTutorConversations    AiTutorConversation[]
   verificationThreadComments PhygitalVerificationThreadComment[]
+  inboundMessages          InboundMessage[]
+  emailDeliveryLogs        EmailDeliveryLog[]
 }
 
 // Иерархические группы для модулей Курсы, Медиатека, Пользователи
@@ -474,14 +476,115 @@ model CommsTemplate {
 }
 
 model CommsSend {
-  id         String   @id @default(cuid())
-  templateId String?
-  channel    String
-  recipient  String
-  subject    String?
-  status     String   @default("sent")
-  sentAt     DateTime @default(now())
-  sentBy     String?
+  id           String   @id @default(cuid())
+  templateId   String?
+  channel      String
+  recipient    String
+  subject      String?
+  status       String   @default("sent")
+  sentAt       DateTime @default(now())
+  sentBy       String?
+  errorMessage String?
+  isTest       Boolean  @default(false)
+}
+
+/// Входящая почта (IMAP): ящик админки.
+model InboundMailbox {
+  id           String   @id @default(cuid())
+  label        String
+  imapHost     String
+  imapPort     Int      @default(993)
+  imapTls      Boolean  @default(true)
+  username     String
+  passwordEnc  String
+  folder       String   @default("INBOX")
+  lastUid      Int?
+  lastSyncedAt DateTime?
+  lastSyncStatus String?
+  lastSyncError  String?
+  lastSyncCheckedAt DateTime?
+  retentionDays Int      @default(365)
+  enabled      Boolean  @default(true)
+  smtpHost     String?
+  smtpPort     Int?
+  smtpTls      Boolean? @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  messages InboundMessage[]
+  domainMailbox DomainMailbox?
+}
+
+/// Ящик на домене @avaterra.pro (Mailcow и связь с InboundMailbox для IMAP).
+model DomainMailbox {
+  id               String   @id @default(cuid())
+  email            String   @unique
+  localPart        String
+  domain           String   @default("avaterra.pro")
+  label            String
+  status           String   @default("active") // active | suspended
+  passwordEnc      String
+  provisioningKind String   @default("mailcow") // mailcow | manual
+  provisioningRef  String?
+  inboundMailboxId String?  @unique
+  inboundMailbox   InboundMailbox? @relation(fields: [inboundMailboxId], references: [id], onDelete: SetNull)
+  createdById      String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([domain])
+  @@index([localPart, domain])
+}
+
+/// Сообщение, импортированное с IMAP.
+model InboundMessage {
+  id             String   @id @default(cuid())
+  mailboxId      String
+  mailbox        InboundMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+  imapUid        Int
+  messageId      String?
+  inReplyTo      String?
+  references     String?
+  fromAddress    String
+  fromName       String?
+  toAddresses    String   @default("[]")
+  subject        String?
+  receivedAt     DateTime
+  bodyText       String?
+  bodyHtml       String?
+  matchedUserId  String?
+  matchedUser    User?    @relation(fields: [matchedUserId], references: [id], onDelete: SetNull)
+  hasAttachments Boolean  @default(false)
+  snippet        String?
+
+  @@unique([mailboxId, imapUid])
+  @@index([receivedAt])
+  @@index([fromAddress])
+  @@index([matchedUserId])
+  @@index([mailboxId, receivedAt])
+}
+
+/// Общий журнал доставки исходящих писем (без тела письма).
+model EmailDeliveryLog {
+  id           String   @id @default(cuid())
+  module       String
+  entityId     String?
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  recipient    String
+  subject      String?
+  status       String   // sent | failed | skipped
+  provider     String   // resend | smtp
+  direction    String   @default("outbound")
+  errorMessage String?
+  sentBy       String?
+  createdAt    DateTime @default(now())
+
+  @@index([module])
+  @@index([entityId])
+  @@index([userId])
+  @@index([recipient])
+  @@index([createdAt])
 }
 
 /// Сохранённые API-ключи для LLM (несколько ключей, выбор в настройках чат-бота/тьютора).
@@ -598,6 +701,8 @@ model Order {
   amount      Int
   clientEmail String
   clientPhone String?
+  /// ФИО клиента из формы оплаты (используется в письмах вместо локальной части email).
+  clientName  String?
   status      String   @default("pending")
   paidAt      DateTime?
   userId      String?
@@ -766,4 +871,21 @@ model PublicationComment {
   createdAt      DateTime @default(now())
 
   @@index([publicationId])
+}
+
+/// Журнал фиксации согласий на обработку ПДн и связанных событий (152-ФЗ).
+model ConsentLog {
+  id          String   @id @default(cuid())
+  kind        String
+  context     String?
+  userId      String?
+  emailNorm   String?
+  orderNumber String?
+  docVersion  String   @default("2026-04-30")
+  ipHash      String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([emailNorm])
 }

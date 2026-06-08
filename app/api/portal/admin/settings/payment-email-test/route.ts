@@ -4,7 +4,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { getSystemSettings, getPaymentEmailTemplates, renderPaymentEmailTemplate } from '@/lib/settings';
-import { sendEmail } from '@/lib/email';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import { wrapEmailHtml } from '@/lib/email-templates';
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminSession();
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
 
   if (kind === 'generic') {
     const subject = renderPaymentEmailTemplate(tpl.genericSubject, vars);
-    const html = renderPaymentEmailTemplate(tpl.genericBody, vars);
+    const html = wrapEmailHtml(renderPaymentEmailTemplate(tpl.genericBody, vars), { title: subject });
     if (!doSend) {
       return NextResponse.json({ subject, html, kind: 'generic' });
     }
@@ -49,13 +50,22 @@ export async function POST(request: NextRequest) {
     if (!to) {
       return NextResponse.json({ error: 'Заполните email уведомлений (resend_notify_email)' }, { status: 400 });
     }
-    const ok = await sendEmail(to, `[Тест] ${subject}`, html);
-    if (!ok) return NextResponse.json({ error: 'Не удалось отправить (проверьте Resend API ключ)' }, { status: 502 });
+    const r = await sendTransactionalEmail({
+      to,
+      subject: `[Тест] ${subject}`,
+      html,
+      context: { module: 'settings', sentBy: auth.userId },
+    });
+    if (!r.ok)
+      return NextResponse.json(
+        { error: r.error || 'Не удалось отправить (проверьте Resend API ключ)' },
+        { status: 502 }
+      );
     return NextResponse.json({ ok: true, sentTo: to, kind: 'generic' });
   }
 
   const subject = renderPaymentEmailTemplate(tpl.courseSubject, vars);
-  const html = renderPaymentEmailTemplate(tpl.courseBody, vars);
+  const html = wrapEmailHtml(renderPaymentEmailTemplate(tpl.courseBody, vars), { title: subject });
   if (!doSend) {
     return NextResponse.json({ subject, html, kind: 'course' });
   }
@@ -63,7 +73,16 @@ export async function POST(request: NextRequest) {
   if (!to) {
     return NextResponse.json({ error: 'Заполните email уведомлений (resend_notify_email)' }, { status: 400 });
   }
-  const ok = await sendEmail(to, `[Тест] ${subject}`, html);
-  if (!ok) return NextResponse.json({ error: 'Не удалось отправить (проверьте Resend API ключ)' }, { status: 502 });
+  const r = await sendTransactionalEmail({
+    to,
+    subject: `[Тест] ${subject}`,
+    html,
+    context: { module: 'settings', sentBy: auth.userId },
+  });
+  if (!r.ok)
+    return NextResponse.json(
+      { error: r.error || 'Не удалось отправить (проверьте Resend API ключ)' },
+      { status: 502 }
+    );
   return NextResponse.json({ ok: true, sentTo: to, kind: 'course' });
 }

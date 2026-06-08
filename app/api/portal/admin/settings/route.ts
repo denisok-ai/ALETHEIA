@@ -6,9 +6,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { writeAuditLog } from '@/lib/audit';
-import { clearSettingsCache, clearEnvOverridesCache, clearPaymentEmailTemplatesCache } from '@/lib/settings';
+import { clearSettingsCache, clearEnvOverridesCache, clearPaymentEmailTemplatesCache, resolvePaymentEmailField, DEFAULT_PAYMENT_EMAIL_TEMPLATES } from '@/lib/settings';
 import { decrypt, encrypt } from '@/lib/encrypt';
 import { clearPayKeeperConfigCache, normalizePayKeeperServer } from '@/lib/paykeeper';
+import { getMailDomain, getMailSmtpHost, getMailSmtpPort } from '@/lib/mail-stack-env';
+import { isLoopbackHostname, normalizeSiteUrl } from '@/lib/site-url';
 
 const ALLOWED_KEYS = [
   'site_url',
@@ -31,7 +33,13 @@ const ALLOWED_KEYS = [
   'paykeeper_test_login',
   'paykeeper_test_password',
   'paykeeper_test_secret',
+  'email_transport',
   'resend_api_key',
+  'smtp_host',
+  'smtp_port',
+  'smtp_user',
+  'smtp_password',
+  'smtp_secure',
   'telegram_bot_token',
   'telegram_webhook_secret',
   'cron_secret',
@@ -61,7 +69,13 @@ const KEY_CATEGORY: Record<(typeof ALLOWED_KEYS)[number], string> = {
   paykeeper_test_login: 'payments',
   paykeeper_test_password: 'payments',
   paykeeper_test_secret: 'payments',
+  email_transport: 'env',
   resend_api_key: 'env',
+  smtp_host: 'env',
+  smtp_port: 'env',
+  smtp_user: 'env',
+  smtp_password: 'env',
+  smtp_secure: 'env',
   telegram_bot_token: 'env',
   telegram_webhook_secret: 'env',
   cron_secret: 'env',
@@ -78,12 +92,97 @@ const PAYKEEPER_SENSITIVE = new Set([
 ]);
 
 const SENSITIVE_KEYS = new Set([
-  'paykeeper_password', 'paykeeper_secret', 'paykeeper_test_password', 'paykeeper_test_secret',
-  'resend_api_key', 'telegram_bot_token', 'telegram_webhook_secret', 'cron_secret',
-  'openai_api_key', 'deepseek_api_key',
+  'paykeeper_password',
+  'paykeeper_secret',
+  'paykeeper_test_password',
+  'paykeeper_test_secret',
+  'resend_api_key',
+  'smtp_password',
+  'telegram_bot_token',
+  'telegram_webhook_secret',
+  'cron_secret',
+  'openai_api_key',
+  'deepseek_api_key',
 ]);
 
 const PAYKEEPER_SERVER_KEYS = new Set(['paykeeper_server', 'paykeeper_test_server']);
+
+/** Допустимые значения транспорта почты (пусто = авто). */
+function normalizeEmailTransport(raw: string): string | null {
+  const v = raw.trim().toLowerCase();
+  if (v === '' || v === 'auto') return '';
+  if (v === 'resend' || v === 'smtp') return v;
+  return null;
+}
+
+function normalizeSmtpSecure(raw: string): string | null {
+  const v = raw.trim().toLowerCase();
+  if (v === '') return '';
+  if (v === 'true' || v === '1') return 'true';
+  if (v === 'false' || v === '0') return 'false';
+  return null;
+}
+
+function validateSettingsPatchValue(key: string, raw: unknown): { ok: true; value: string } | { ok: false; message: string } {
+  if (raw === undefined) return { ok: false, message: 'Отсутствует значение' };
+  if (typeof raw !== 'string') return { ok: false, message: 'Ожидалась строка' };
+
+  if (key === 'email_transport') {
+    const n = normalizeEmailTransport(raw);
+    if (n === null) {
+      return { ok: false, message: 'email_transport: укажите auto (или пусто), resend или smtp' };
+    }
+    return { ok: true, value: n };
+  }
+
+  if (key === 'smtp_port') {
+    const trimmed = raw.trim();
+    if (trimmed === '') return { ok: true, value: '' };
+    const n = parseInt(trimmed, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 65535) {
+      return { ok: false, message: 'smtp_port: укажите число от 1 до 65535' };
+    }
+    return { ok: true, value: String(n) };
+  }
+
+  if (key === 'smtp_secure') {
+    const n = normalizeSmtpSecure(raw);
+    if (n === null) {
+      return { ok: false, message: 'smtp_secure: допустимо пусто, true/false или 1/0' };
+    }
+    return { ok: true, value: n };
+  }
+
+  if (key === 'scorm_max_size_mb') {
+    const trimmed = raw.trim();
+    if (trimmed === '') return { ok: true, value: '' };
+    const n = parseInt(trimmed, 10);
+    if (!Number.isFinite(n) || n < 1 || n > 10000) {
+      return { ok: false, message: 'scorm_max_size_mb: от 1 до 10000' };
+    }
+    return { ok: true, value: String(n) };
+  }
+
+  if (key === 'nextauth_url') {
+    const trimmed = raw.trim();
+    if (trimmed === '') return { ok: true, value: '' };
+    try {
+      const host = new URL(normalizeSiteUrl(trimmed)).hostname;
+      if (process.env.NODE_ENV === 'production' && isLoopbackHostname(host)) {
+        return {
+          ok: false,
+          message:
+            'nextauth_url: на продакшене нельзя указывать localhost — сломается сессия NextAuth и админка. Укажите публичный https://… вашего сайта или оставьте поле пустым (будет site_url / .env).',
+        };
+      }
+    } catch {
+      return { ok: false, message: 'nextauth_url: укажите корректный URL, например https://example.com' };
+    }
+    return { ok: true, value: trimmed };
+  }
+
+  return { ok: true, value: raw.trim() };
+}
 
 export async function GET() {
   const auth = await requireAdminSession();
@@ -93,8 +192,6 @@ export async function GET() {
     where: { key: { in: [...ALLOWED_KEYS] } },
   });
 
-  // Для PayKeeper env-fallback намеренно не используется: настройки должны храниться в БД.
-  // Для остальных блоков env оставляем как стартовые значения при первой настройке.
   const envFallback: Record<string, string> = {
     site_url: process.env.NEXT_PUBLIC_URL ?? '',
     portal_title: 'AVATERRA',
@@ -112,7 +209,13 @@ export async function GET() {
     paykeeper_test_login: '',
     paykeeper_test_password: '',
     paykeeper_test_secret: '',
+    email_transport: process.env.EMAIL_TRANSPORT ?? '',
     resend_api_key: process.env.RESEND_API_KEY ?? '',
+    smtp_host: process.env.SMTP_HOST ?? '',
+    smtp_port: process.env.SMTP_PORT ?? String(getMailSmtpPort()),
+    smtp_user: process.env.SMTP_USER ?? '',
+    smtp_password: process.env.SMTP_PASSWORD ?? '',
+    smtp_secure: process.env.SMTP_SECURE ?? '',
     telegram_bot_token: process.env.TELEGRAM_BOT_TOKEN ?? '',
     telegram_webhook_secret: process.env.TELEGRAM_WEBHOOK_SECRET ?? '',
     cron_secret: process.env.CRON_SECRET ?? '',
@@ -136,7 +239,18 @@ export async function GET() {
     const v = byKey[k] ?? '';
     if (KEY_CATEGORY[k] === 'general') general[k] = v;
     else if (KEY_CATEGORY[k] === 'email') email[k] = v;
-    else if (KEY_CATEGORY[k] === 'payment_email') payment_email[k] = v;
+    else if (KEY_CATEGORY[k] === 'payment_email') {
+      const raw = v ?? '';
+      if (k === 'email_payment_course_subject') {
+        payment_email[k] = resolvePaymentEmailField(raw, DEFAULT_PAYMENT_EMAIL_TEMPLATES.courseSubject);
+      } else if (k === 'email_payment_course_body') {
+        payment_email[k] = resolvePaymentEmailField(raw, DEFAULT_PAYMENT_EMAIL_TEMPLATES.courseBody);
+      } else if (k === 'email_payment_generic_subject') {
+        payment_email[k] = resolvePaymentEmailField(raw, DEFAULT_PAYMENT_EMAIL_TEMPLATES.genericSubject);
+      } else if (k === 'email_payment_generic_body') {
+        payment_email[k] = resolvePaymentEmailField(raw, DEFAULT_PAYMENT_EMAIL_TEMPLATES.genericBody);
+      }
+    }
     if (PAYKEEPER_SENSITIVE.has(k)) {
       try {
         keysOut[k] = v ? decrypt(v) : '';
@@ -146,13 +260,26 @@ export async function GET() {
     } else if (SENSITIVE_KEYS.has(k)) {
       keysOut[k] = v.length > 0;
     } else {
-      keysOut[k] = PAYKEEPER_SERVER_KEYS.has(k) ? normalizePayKeeperServer(v) : v;
+      keysOut[k] = PAYKEEPER_SERVER_KEYS.has(k)
+        ? normalizePayKeeperServer(v)
+        : KEY_CATEGORY[k] === 'payment_email'
+          ? payment_email[k]
+          : v;
     }
   }
+
+  const outboundMailPreset = {
+    /** Подсказки для формы «Доставка» под встроенный SMTP (Mailcow и env MAIL_*). */
+    smtpHost: getMailSmtpHost(),
+    smtpPort: String(getMailSmtpPort()),
+    senderExample: `notifications@${getMailDomain()}`,
+    notifyExample: `admin@${getMailDomain()}`,
+  };
 
   return NextResponse.json({
     settings: { general, email, payment_email },
     keys: keysOut,
+    outboundMailPreset,
   });
 }
 
@@ -181,7 +308,11 @@ export async function PATCH(request: NextRequest) {
       continue;
     }
     if (typeof body[k] === 'string') {
-      const value = body[k].trim();
+      const validated = validateSettingsPatchValue(k, body[k]);
+      if (!validated.ok) {
+        return NextResponse.json({ error: validated.message }, { status: 400 });
+      }
+      const value = validated.value.trim();
       updates[k] = PAYKEEPER_SERVER_KEYS.has(k) ? normalizePayKeeperServer(value) : value;
     }
   }
@@ -199,7 +330,11 @@ export async function PATCH(request: NextRequest) {
       update: { value },
     });
     diffForAudit[key] = SENSITIVE_KEYS.has(key) ? '[set]' : value;
-    savedValues[key] = PAYKEEPER_SENSITIVE.has(key) ? String(body[key] ?? '') : SENSITIVE_KEYS.has(key) ? true : value;
+    savedValues[key] = PAYKEEPER_SENSITIVE.has(key)
+      ? String(body[key] ?? '')
+      : SENSITIVE_KEYS.has(key)
+        ? true
+        : value;
   }
 
   await writeAuditLog({

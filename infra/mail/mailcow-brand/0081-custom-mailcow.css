@@ -1,0 +1,166 @@
+/*
+ * AVATERRA — кастомизация Mailcow UI (официальный путь: data/web/css/build/).
+ * Палитра как у портала и лендинга: см. app/globals.css (--portal-*, plum, rose).
+ * Логотип входа: только PNG (public/images/LOGO.png) — без второго слоя SVG, чтобы подпись не
+ * наезжала на круглую эмблему. Корова cow_mailcow скрыта, вместо неё — ::after с PNG.
+ */
+
+:root {
+  --avaterra-plum: #856b92;
+  --avaterra-plum-dark: #6d5679;
+  --avaterra-plum-soft: #f2f0f8;
+  --avaterra-rose: #ce8fb0;
+  --avaterra-periwinkle: #b4b1d8;
+  --avaterra-bg: #f6f4f9;
+  --avaterra-bg-mid: #ececf0;
+  --avaterra-bg-end: #e8e6ef;
+  --avaterra-surface: #ffffff;
+  --avaterra-text: #0f172a;
+  --avaterra-muted: #64748b;
+  --avaterra-border: rgba(15, 23, 42, 0.08);
+}
+
+/* Страница входа и общий фон */
+body {
+  background: linear-gradient(
+    165deg,
+    var(--avaterra-bg) 0%,
+    var(--avaterra-bg-mid) 50%,
+    var(--avaterra-bg-end) 100%
+  ) !important;
+  color: var(--avaterra-text) !important;
+}
+
+body.login .card,
+.card.shadow-lg {
+  border-radius: 1rem !important;
+  border: 1px solid var(--avaterra-border) !important;
+  background-color: var(--avaterra-surface) !important;
+  box-shadow:
+    0 4px 24px -4px rgba(15, 23, 42, 0.06),
+    0 8px 32px -8px rgba(15, 23, 42, 0.08),
+    0 16px 48px -16px rgba(133, 107, 146, 0.1) !important;
+}
+
+/* Логотип: на всю ширину карточки + flex — эмблема строго по центру (inline-flex дал сдвиг влево) */
+.mailcow-logo {
+  position: relative !important;
+  display: flex !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  /* Круглый знак: выше блок и воздух до заголовка «mail… UI» */
+  min-height: 7.5rem;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  margin-bottom: 1.75rem !important;
+  padding-bottom: 0.25rem;
+}
+
+.mailcow-logo img.main-logo {
+  display: block !important;
+  opacity: 0 !important;
+  width: min(200px, 72vw) !important;
+  max-width: 100% !important;
+  height: 7.5rem !important;
+  max-height: 7.5rem !important;
+  object-fit: contain !important;
+  pointer-events: none;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  flex-shrink: 0;
+}
+
+.mailcow-logo::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  /* Один слой — только эмблема (LOGO.png); SVG не подмешиваем */
+  width: min(200px, 72vw);
+  height: 7.5rem;
+  background: url("/img/avaterra-login-logo.png") center center no-repeat;
+  background-size: contain;
+  pointer-events: none;
+}
+
+/* Чуть больше воздуха между блоком бренда и следующим заголовком карточки */
+body.login .card-body > hr,
+body.login .mailcow-logo ~ h4,
+body.login .mailcow-logo ~ .alert {
+  margin-top: 0.5rem !important;
+}
+
+/* Mailcow по умолчанию красит «Login» в btn-success — в палитру портала */
+body.login .btn-success {
+  background-color: var(--avaterra-plum) !important;
+  border-color: var(--avaterra-plum) !important;
+  color: #fff !important;
+}
+
+body.login .btn-success:hover,
+body.login .btn-success:focus {
+  background-color: var(--avaterra-plum-dark) !important;
+  border-color: var(--avaterra-plum-dark) !important;
+  color: #fff !important;
+}
+
+/* Кнопки и акценты Bootstrap */
+.btn-primary {
+  background-color: var(--avaterra-plum) !important;
+  border-color: var(--avaterra-plum) !important;
+}
+
+.btn-primary:hover,
+.btn-primary:focus {
+  background-color: var(--avaterra-plum-dark) !important;
+  border-color: var(--avaterra-plum-dark) !important;
+}
+
+.btn-outline-primary {
+  color: var(--avaterra-plum) !important;
+  border-color: var(--avaterra-plum) !important;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--avaterra-plum) !important;
+  border-color: var(--avaterra-plum) !important;
+  color: #fff !important;
+}
+
+a:not(.btn):not(.nav-link):not(.dropdown-item) {
+  color: var(--avaterra-plum-dark) !important;
+}
+
+a:not(.btn):hover {
+  color: var(--avaterra-rose) !important;
+}
+
+.text-muted {
+  color: var(--avaterra-muted) !important;
+}
+
+/* Верхняя панель админки */
+.navbar-dark.bg-dark,
+.navbar.bg-dark {
+  background-color: var(--avaterra-plum) !important;
+  border-bottom: 2px solid var(--avaterra-rose);
+}
+
+.navbar-dark .navbar-nav .nav-link {
+  color: rgba(255, 255, 255, 0.92) !important;
+}
+
+.navbar-dark .navbar-nav .nav-link:hover {
+  color: #fff !important;
+}
+
+/* Поля ввода на карточке — чуть ближе к порталу */
+.form-control:focus {
+  border-color: var(--avaterra-plum);
+  box-shadow: 0 0 0 0.2rem rgba(133, 107, 146, 0.22);
+}

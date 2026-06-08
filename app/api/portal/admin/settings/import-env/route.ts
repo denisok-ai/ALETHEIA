@@ -9,32 +9,7 @@ import { encrypt } from '@/lib/encrypt';
 import { writeAuditLog } from '@/lib/audit';
 import { clearSettingsCache, clearEnvOverridesCache, clearPaymentEmailTemplatesCache } from '@/lib/settings';
 import { clearPayKeeperConfigCache } from '@/lib/paykeeper';
-
-const IMPORT_MAP: { key: string; env: string; sensitive?: boolean }[] = [
-  { key: 'site_url', env: 'NEXT_PUBLIC_URL' },
-  { key: 'portal_title', env: 'PORTAL_TITLE' },
-  { key: 'resend_from', env: 'RESEND_FROM' },
-  { key: 'resend_notify_email', env: 'RESEND_NOTIFY_EMAIL' },
-  { key: 'contact_phone', env: 'CONTACT_PHONE' },
-  { key: 'company_legal_address', env: 'COMPANY_LEGAL_ADDRESS' },
-  { key: 'scorm_max_size_mb', env: 'SCORM_MAX_SIZE_MB' },
-  { key: 'paykeeper_server', env: 'PAYKEEPER_SERVER' },
-  { key: 'paykeeper_login', env: 'PAYKEEPER_LOGIN' },
-  { key: 'paykeeper_password', env: 'PAYKEEPER_PASSWORD', sensitive: true },
-  { key: 'paykeeper_secret', env: 'PAYKEEPER_SECRET', sensitive: true },
-  { key: 'paykeeper_use_test', env: 'PAYKEEPER_USE_TEST' },
-  { key: 'paykeeper_test_server', env: 'PAYKEEPER_TEST_SERVER' },
-  { key: 'paykeeper_test_login', env: 'PAYKEEPER_TEST_LOGIN' },
-  { key: 'paykeeper_test_password', env: 'PAYKEEPER_TEST_PASSWORD', sensitive: true },
-  { key: 'paykeeper_test_secret', env: 'PAYKEEPER_TEST_SECRET', sensitive: true },
-  { key: 'resend_api_key', env: 'RESEND_API_KEY', sensitive: true },
-  { key: 'telegram_bot_token', env: 'TELEGRAM_BOT_TOKEN', sensitive: true },
-  { key: 'telegram_webhook_secret', env: 'TELEGRAM_WEBHOOK_SECRET', sensitive: true },
-  { key: 'cron_secret', env: 'CRON_SECRET', sensitive: true },
-  { key: 'nextauth_url', env: 'NEXTAUTH_URL' },
-  { key: 'openai_api_key', env: 'OPENAI_API_KEY', sensitive: true },
-  { key: 'deepseek_api_key', env: 'DEEPSEEK_API_KEY', sensitive: true },
-];
+import { SETTINGS_IMPORT_ENV_MAP } from '@/lib/settings-import-env';
 
 const KEY_CATEGORY: Record<string, string> = {
   site_url: 'general',
@@ -53,7 +28,13 @@ const KEY_CATEGORY: Record<string, string> = {
   paykeeper_test_login: 'payments',
   paykeeper_test_password: 'payments',
   paykeeper_test_secret: 'payments',
+  email_transport: 'env',
   resend_api_key: 'env',
+  smtp_host: 'env',
+  smtp_port: 'env',
+  smtp_user: 'env',
+  smtp_password: 'env',
+  smtp_secure: 'env',
   telegram_bot_token: 'env',
   telegram_webhook_secret: 'env',
   cron_secret: 'env',
@@ -80,7 +61,7 @@ export async function POST(request: NextRequest) {
   }
 
   const updated: string[] = [];
-  for (const { key, env, sensitive } of IMPORT_MAP) {
+  for (const { key, env, sensitive } of SETTINGS_IMPORT_ENV_MAP) {
     const raw = process.env[env];
     if (raw === undefined || String(raw).trim() === '') continue;
     const value = String(raw).trim();

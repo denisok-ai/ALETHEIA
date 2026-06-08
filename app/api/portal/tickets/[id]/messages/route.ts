@@ -6,12 +6,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import { buildTicketAutoReplyEmail } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 interface MessageItem {
   role: 'user' | 'manager';
@@ -81,15 +78,19 @@ export async function POST(
         const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
         const displayName = user.profile?.displayName ?? user.email;
         const ticketUrl = siteUrl ? `${siteUrl}/portal/student/support/${id}` : '';
-        const html = `
-          <p>Здравствуйте, ${escapeHtml(displayName)}!</p>
-          <p>В вашем обращении «${escapeHtml(ticket.subject)}» появился новый ответ от поддержки.</p>
-          <p><strong>Ответ:</strong></p>
-          <p>${escapeHtml(content).replace(/\n/g, '<br/>')}</p>
-          ${ticketUrl ? `<p><a href="${escapeHtml(ticketUrl)}">Открыть обращение</a></p>` : ''}
-          <p>— ${escapeHtml(settings.portal_title || 'AVATERRA')}</p>
-        `;
-        await sendEmail(user.email, `Ответ по обращению: ${ticket.subject.slice(0, 50)}`, html);
+        const email = buildTicketAutoReplyEmail({
+          displayName,
+          subject: ticket.subject,
+          autoReply: content,
+          ticketUrl: ticketUrl || undefined,
+          systemTitle: settings.portal_title || 'AVATERRA',
+        });
+        await sendTransactionalEmail({
+          to: user.email,
+          subject: email.subject,
+          html: email.html,
+          context: { module: 'tickets', entityId: ticket.id, userId: ticket.userId, sentBy: userId },
+        });
       } catch (e) {
         console.error('Ticket: notify student of manager reply', e);
       }

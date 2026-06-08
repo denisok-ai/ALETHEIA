@@ -46,8 +46,8 @@ export default async function FaqPage() {
           Вопросы и ответы
         </h1>
         <p className="mt-4 text-[var(--text-muted)] leading-relaxed">
-          Собрали ответы о методе, формате обучения и организационных моментах. Полный список совпадает с блоком на{' '}
-          <Link href="/#faq" className="text-plum hover:underline">
+          Ответы о практиках и форматах, а также о курсе мышечного тестирования. Первые пять вопросов совпадают с блоком на{' '}
+          <Link href="/#faq" className="font-medium text-plum underline-offset-2 hover:underline">
             главной странице
           </Link>
           .
@@ -57,17 +57,30 @@ export default async function FaqPage() {
           {FAQ_JSON_LD_ITEMS.map((item) => (
             <details
               key={item.q}
-              className="group overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg)] open:bg-[var(--lavender-light)]"
+              className="group overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)] open:border-plum/25 open:bg-[var(--lavender-light)]"
             >
               <summary className="cursor-pointer list-none p-4 font-medium text-[var(--text)] marker:hidden [&::-webkit-details-marker]:hidden">
                 <span className="flex items-start justify-between gap-3">
-                  <span>{item.q}</span>
-                  <span className="text-[var(--text-muted)] transition-transform group-open:rotate-180">▼</span>
+                  <span className="pr-2 font-heading text-[var(--text)]">{item.q}</span>
+                  <span
+                    className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg)] text-xs text-plum transition-transform group-open:rotate-180"
+                    aria-hidden
+                  >
+                    ▼
+                  </span>
                 </span>
               </summary>
-              <p className="border-t border-[var(--border)] px-4 pb-4 pt-0 leading-relaxed text-[var(--text-muted)]">
-                {item.a}
-              </p>
+              <div className="border-t border-[var(--border)] px-4 pb-4 pt-4">
+                {item.a
+                  .split(/\n\n+/)
+                  .map((p) => p.trim())
+                  .filter(Boolean)
+                  .map((para, j) => (
+                    <p key={`${item.q}-${j}`} className="leading-relaxed text-[var(--text-muted)]">
+                      {para}
+                    </p>
+                  ))}
+              </div>
             </details>
           ))}
         </div>

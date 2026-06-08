@@ -3,7 +3,7 @@
 /**
  * Admin Communications: CRUD templates, send form (Resend/Telegram), recent sends.
  */
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, type ChangeEvent } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -28,7 +28,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
-import { Plus, Pencil, Trash2, Send, Search, Mail, Sparkles, Loader2 } from 'lucide-react';
+import { Plus, Pencil, Trash2, Send, Search, Mail, Sparkles, Loader2, Eye, Paperclip, X } from 'lucide-react';
 
 const TEMPLATES_TABLE_COLUMNS: ColumnConfigItem[] = [
   { id: 'name', label: 'Название' },
@@ -62,6 +62,8 @@ interface CommsSendRow {
   subject: string | null;
   status: string;
   sentAt: string;
+  errorMessage?: string | null;
+  isTest?: boolean;
 }
 
 const TEMPLATE_SORT_GETTERS: Record<string, (t: Template) => unknown> = {
@@ -87,15 +89,41 @@ interface RecipientUser {
 const CHANNELS = ['email', 'telegram'] as const;
 const ROLES = ['user', 'manager', 'admin'] as const;
 
+const PREVIEW_SAMPLE = { name: 'Иван Иванов', email: 'student@example.com', displayName: 'Иван Иванов', userId: 'clxxxxxxxx' };
+
+function buildPreviewHtml(html: string) {
+  return html
+    .replace(/\{\{name\}\}/g, PREVIEW_SAMPLE.name)
+    .replace(/\{\{email\}\}/g, PREVIEW_SAMPLE.email)
+    .replace(/\{\{displayName\}\}/g, PREVIEW_SAMPLE.displayName)
+    .replace(/\{\{userId\}\}/g, PREVIEW_SAMPLE.userId);
+}
+
 export function CommunicationsClient({
   initialTemplates,
   initialSends,
+  prefillUserId,
 }: {
   initialTemplates: Template[];
   initialSends: CommsSendRow[];
+  prefillUserId?: string | null;
 }) {
   const [templates, setTemplates] = useState<Template[]>(initialTemplates);
   const [sends, setSends] = useState<CommsSendRow[]>(initialSends);
+  const [sendsTotal, setSendsTotal] = useState(initialSends.length);
+  const [sendMode, setSendMode] = useState<'template' | 'custom'>('template');
+  const [customChannel, setCustomChannel] = useState<'email' | 'telegram'>('email');
+  const [customSubject, setCustomSubject] = useState('');
+  const [customHtmlBody, setCustomHtmlBody] = useState('');
+  const [testEmail, setTestEmail] = useState('');
+  const [testing, setTesting] = useState(false);
+  const [attachmentPaths, setAttachmentPaths] = useState<{ path: string; name: string }[]>([]);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterChannel, setFilterChannel] = useState('');
+  const [filterIsTest, setFilterIsTest] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
   const [editing, setEditing] = useState<Template | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Template | null>(null);
@@ -137,12 +165,14 @@ export function CommunicationsClient({
     downloadXlsxFromArrays(headers, rows, `comms-templates-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
   const handleSendsExportExcel = () => {
-    const headers = ['Дата', 'Канал', 'Получатель', 'Статус'];
+    const headers = ['Дата', 'Канал', 'Получатель', 'Статус', 'Тест', 'Ошибка'];
     const rows = sortedSends.map((s) => [
       format(new Date(s.sentAt), 'dd.MM.yyyy HH:mm'),
       s.channel,
       s.recipient,
       s.status,
+      s.isTest ? 'да' : 'нет',
+      s.errorMessage ?? '—',
     ]);
     downloadXlsxFromArrays(headers, rows, `comms-sends-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
@@ -153,6 +183,13 @@ export function CommunicationsClient({
       .then((d) => setRecipients(d.users ?? []))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (prefillUserId?.trim()) {
+      setRecipientType('list');
+      setRecipientIds([prefillUserId.trim()]);
+    }
+  }, [prefillUserId]);
 
   useEffect(() => {
     fetch('/api/portal/admin/groups?moduleType=user')
@@ -169,13 +206,30 @@ export function CommunicationsClient({
     }
   }
 
-  async function loadSends() {
-    const r = await fetch('/api/portal/admin/comms/sends');
+  const loadSends = useCallback(async () => {
+    const params = new URLSearchParams();
+    params.set('page', String(sendsPage));
+    params.set('pageSize', String(sendsPageSize));
+    if (filterStatus.trim()) params.set('status', filterStatus.trim());
+    if (filterChannel.trim()) params.set('channel', filterChannel.trim());
+    if (filterIsTest === 'true' || filterIsTest === 'false') params.set('isTest', filterIsTest);
+    if (filterDateFrom.trim()) params.set('dateFrom', filterDateFrom.trim());
+    if (filterDateTo.trim()) params.set('dateTo', filterDateTo.trim());
+    const r = await fetch(`/api/portal/admin/comms/sends?${params.toString()}`);
     if (r.ok) {
       const d = await r.json();
       setSends(d.sends ?? []);
+      setSendsTotal(typeof d.total === 'number' ? d.total : d.sends?.length ?? 0);
     }
-  }
+  }, [sendsPage, sendsPageSize, filterStatus, filterChannel, filterIsTest, filterDateFrom, filterDateTo]);
+
+  useEffect(() => {
+    void loadSends();
+  }, [loadSends]);
+
+  useEffect(() => {
+    setSendsPage(0);
+  }, [filterStatus, filterChannel, filterIsTest, filterDateFrom, filterDateTo]);
 
   async function handleCreate(data: { name: string; channel: string; subject?: string; htmlBody?: string; variables?: string }) {
     const r = await fetch('/api/portal/admin/comms/templates', {
@@ -220,29 +274,100 @@ export function CommunicationsClient({
     toast.success('Шаблон удалён');
   }
 
-  async function refetchSends() {
-    const r = await fetch('/api/portal/admin/comms/sends');
-    if (r.ok) {
-      const d = await r.json();
-      setSends(d.sends ?? []);
+  async function handleTestSend() {
+    if (!sendTemplateId) {
+      toast.error('Выберите шаблон для теста');
+      return;
     }
+    const tpl = templates.find((t) => t.id === sendTemplateId);
+    if (tpl?.channel !== 'email') {
+      toast.error('Тестовая отправка только для шаблонов email');
+      return;
+    }
+    if (!testEmail.trim()) {
+      toast.error('Укажите email для теста');
+      return;
+    }
+    setTesting(true);
+    try {
+      const r = await fetch('/api/portal/admin/comms/send-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ templateId: sendTemplateId, testEmail: testEmail.trim() }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Ошибка');
+      toast.success(data.message ?? 'Тестовое письмо отправлено');
+      await loadSends();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка');
+    }
+    setTesting(false);
+  }
+
+  async function handleAttachmentPick(e: ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const isEmailChannel =
+      sendMode === 'template'
+        ? templates.find((t) => t.id === sendTemplateId)?.channel === 'email'
+        : customChannel === 'email';
+    if (!isEmailChannel) {
+      toast.error('Вложения только для канала email');
+      return;
+    }
+    if (attachmentPaths.length >= 5) {
+      toast.error('Не больше 5 файлов');
+      return;
+    }
+    setUploadingFile(true);
+    try {
+      const fd = new FormData();
+      fd.set('file', file);
+      const r = await fetch('/api/portal/admin/comms/upload', { method: 'POST', body: fd });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error ?? 'Ошибка загрузки');
+      setAttachmentPaths((prev) => [...prev, { path: data.path, name: data.name ?? file.name }]);
+      toast.success('Файл добавлен');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Ошибка');
+    }
+    setUploadingFile(false);
   }
 
   async function handleSend() {
-    if (!sendTemplateId) {
+    if (sendMode === 'template' && !sendTemplateId) {
       toast.error('Выберите шаблон');
       return;
     }
+    if (sendMode === 'custom') {
+      if (!customHtmlBody.trim()) {
+        toast.error('Введите текст/HTML сообщения');
+        return;
+      }
+      if (customChannel === 'email' && !customSubject.trim()) {
+        toast.error('Для email укажите тему');
+        return;
+      }
+    }
     setSending(true);
     try {
-      const body: {
-        templateId: string;
-        recipientType: string;
-        role?: string;
-        recipientIds?: string[];
-        groupIds?: string[];
-        excludeGroupIds?: string[];
-      } = { templateId: sendTemplateId, recipientType };
+      const body: Record<string, unknown> = { recipientType };
+      if (sendMode === 'template') {
+        body.templateId = sendTemplateId;
+        if (attachmentPaths.length > 0) {
+          const tpl = templates.find((t) => t.id === sendTemplateId);
+          if (tpl?.channel === 'email') body.attachmentPaths = attachmentPaths.map((a) => a.path);
+        }
+      } else {
+        body.channel = customChannel;
+        body.htmlBody = customHtmlBody;
+        if (customChannel === 'email') {
+          body.subject = customSubject;
+          if (attachmentPaths.length > 0) body.attachmentPaths = attachmentPaths.map((a) => a.path);
+        }
+      }
       if (recipientType === 'role') body.role = sendRole;
       if (recipientType === 'list' && recipientIds.length) body.recipientIds = recipientIds;
       if (recipientType === 'groups' && sendGroupIds.length) body.groupIds = sendGroupIds;
@@ -257,12 +382,21 @@ export function CommunicationsClient({
         throw new Error(e.error ?? 'Ошибка отправки');
       }
       const data = await r.json();
-      toast.success(`Отправлено: ${data.sent}, ошибок: ${data.failed}`);
+      if (data.async) {
+        toast.success(
+          `Запущена фоновая отправка (${data.recipientCount} получ.). Задача: ${data.taskId?.slice(0, 8)}… — см. Мониторинг.`
+        );
+      } else {
+        toast.success(`Отправлено: ${data.sent}, ошибок: ${data.failed}`);
+      }
       setSendTemplateId('');
       setRecipientIds([]);
       setSendGroupIds([]);
       setSendExcludeGroupIds([]);
-      await refetchSends();
+      setAttachmentPaths([]);
+      setCustomSubject('');
+      setCustomHtmlBody('');
+      await loadSends();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Ошибка');
     }
@@ -295,11 +429,10 @@ export function CommunicationsClient({
     return sortTableBy(sends, COMMS_SEND_SORT_GETTERS[sendsSortKey], sendsSortDir);
   }, [sends, sendsSortKey, sendsSortDir]);
 
-  const sendsTotal = sortedSends.length;
-  const sendsTotalPages = Math.max(1, Math.ceil(sendsTotal / sendsPageSize));
+  const sendsServerTotal = sendsTotal;
+  const sendsTotalPages = Math.max(1, Math.ceil(sendsServerTotal / sendsPageSize));
   const sendsCurrentPage = Math.min(sendsPage, sendsTotalPages - 1);
-  const sendsStart = sendsCurrentPage * sendsPageSize;
-  const sendsPageRows = sortedSends.slice(sendsStart, sendsStart + sendsPageSize);
+  const sendsPageRows = sortedSends;
 
   return (
     <div className="mt-6 space-y-8">
@@ -394,20 +527,114 @@ export function CommunicationsClient({
 
       <section>
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Отправить</h2>
-        <div className="mt-3 portal-card bg-white p-4 space-y-4 max-w-xl">
-          <div>
-            <Label>Шаблон</Label>
-            <select
-              value={sendTemplateId}
-              onChange={(e) => setSendTemplateId(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
-            >
-              <option value="">Выберите шаблон</option>
-              {templates.map((t) => (
-                <option key={t.id} value={t.id}>{t.name} ({t.channel})</option>
-              ))}
-            </select>
+        <div className="mt-3 portal-card bg-white p-4 space-y-4 max-w-2xl">
+          <div className="flex flex-wrap gap-4 text-sm">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="sendMode"
+                checked={sendMode === 'template'}
+                onChange={() => setSendMode('template')}
+              />
+              По шаблону
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="sendMode"
+                checked={sendMode === 'custom'}
+                onChange={() => { setSendMode('custom'); setAttachmentPaths([]); }}
+              />
+              Разовое сообщение (без шаблона)
+            </label>
           </div>
+          {sendMode === 'template' ? (
+            <div>
+              <Label>Шаблон</Label>
+              <select
+                value={sendTemplateId}
+                onChange={(e) => { setSendTemplateId(e.target.value); setAttachmentPaths([]); }}
+                className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
+              >
+                <option value="">Выберите шаблон</option>
+                {templates.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name} ({t.channel})</option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-3 rounded-lg border border-dashed border-[#E2E8F0] p-3">
+              <div>
+                <Label>Канал</Label>
+                <select
+                  value={customChannel}
+                  onChange={(e) => {
+                    const v = e.target.value as 'email' | 'telegram';
+                    setCustomChannel(v);
+                    if (v === 'telegram') setAttachmentPaths([]);
+                  }}
+                  className="mt-1 block w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm"
+                >
+                  {CHANNELS.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              {customChannel === 'email' && (
+                <div>
+                  <Label>Тема</Label>
+                  <Input value={customSubject} onChange={(e) => setCustomSubject(e.target.value)} className="mt-1" placeholder="Тема письма" />
+                </div>
+              )}
+              <div>
+                <Label>Текст / HTML</Label>
+                <textarea
+                  value={customHtmlBody}
+                  onChange={(e) => setCustomHtmlBody(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm min-h-[100px] font-mono"
+                  placeholder="{{name}}, {{email}} — подстановки как в шаблонах"
+                />
+              </div>
+            </div>
+          )}
+          {((sendMode === 'template' && sendTemplateId && templates.find((t) => t.id === sendTemplateId)?.channel === 'email') ||
+            (sendMode === 'custom' && customChannel === 'email')) && (
+            <div>
+              <Label className="flex items-center gap-2">
+                <Paperclip className="h-4 w-4" />
+                Вложения (до 5 файлов, только email)
+              </Label>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <input type="file" className="text-sm" onChange={handleAttachmentPick} disabled={uploadingFile || sending} />
+                {attachmentPaths.map((a) => (
+                  <span key={a.path} className="inline-flex items-center gap-1 rounded-full bg-[#F1F5F9] px-2 py-0.5 text-xs">
+                    {a.name}
+                    <button type="button" className="text-red-600" aria-label="Убрать" onClick={() => setAttachmentPaths((p) => p.filter((x) => x.path !== a.path))}>
+                      <X className="h-3 w-3" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {sendMode === 'template' && sendTemplateId && (
+            <div className="rounded-lg border border-[#E2E8F0] bg-slate-50/80 p-3 space-y-2">
+              <Label>Тестовая отправка (только email-шаблоны)</Label>
+              <div className="flex flex-wrap gap-2 items-end">
+                <div className="flex-1 min-w-[200px]">
+                  <Input
+                    type="email"
+                    placeholder="email для проверки"
+                    value={testEmail}
+                    onChange={(e) => setTestEmail(e.target.value)}
+                  />
+                </div>
+                <Button type="button" variant="secondary" size="sm" onClick={handleTestSend} disabled={testing || !sendTemplateId}>
+                  {testing ? '…' : 'Отправить тест'}
+                </Button>
+              </div>
+            </div>
+          )}
           <div>
             <Label>Получатели</Label>
             <select
@@ -500,10 +727,15 @@ export function CommunicationsClient({
               ))}
             </div>
           </div>
+          <p className="text-xs text-[var(--portal-text-muted)]">
+            При получателях от 25 письмо уходит в фоне — статус в разделе «Мониторинг» → «Выполняемые задачи».
+          </p>
           <Button
             onClick={handleSend}
             disabled={
               sending ||
+              (sendMode === 'template' && !sendTemplateId) ||
+              (sendMode === 'custom' && (!customHtmlBody.trim() || (customChannel === 'email' && !customSubject.trim()))) ||
               (recipientType === 'groups' && sendGroupIds.length === 0) ||
               (recipientType === 'list' && recipientIds.length === 0)
             }
@@ -515,11 +747,58 @@ export function CommunicationsClient({
       </section>
 
       <section>
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="text-base font-semibold text-[var(--portal-text)]">Последние отправки</h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-semibold text-[var(--portal-text)]">Журнал отправок</h2>
           <Button type="button" variant="ghost" size="sm" onClick={() => loadSends()}>
             Обновить
           </Button>
+        </div>
+        <div className="mt-3 flex flex-wrap gap-2 items-end text-sm">
+          <div>
+            <Label className="text-xs">Статус</Label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="mt-0.5 block rounded-lg border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm"
+            >
+              <option value="">Все</option>
+              <option value="sent">sent</option>
+              <option value="failed">failed</option>
+              <option value="skipped">skipped</option>
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs">Канал</Label>
+            <select
+              value={filterChannel}
+              onChange={(e) => setFilterChannel(e.target.value)}
+              className="mt-0.5 block rounded-lg border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm"
+            >
+              <option value="">Все</option>
+              <option value="email">email</option>
+              <option value="telegram">telegram</option>
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs">Тест</Label>
+            <select
+              value={filterIsTest}
+              onChange={(e) => setFilterIsTest(e.target.value)}
+              className="mt-0.5 block rounded-lg border border-[#E2E8F0] bg-white px-2 py-1.5 text-sm"
+            >
+              <option value="">Все</option>
+              <option value="false">Боевые</option>
+              <option value="true">Тестовые</option>
+            </select>
+          </div>
+          <div>
+            <Label className="text-xs">Дата с</Label>
+            <Input type="date" value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} className="mt-0.5 h-9 w-[140px]" />
+          </div>
+          <div>
+            <Label className="text-xs">по</Label>
+            <Input type="date" value={filterDateTo} onChange={(e) => setFilterDateTo(e.target.value)} className="mt-0.5 h-9 w-[140px]" />
+          </div>
         </div>
         <div className="mt-3 overflow-x-auto rounded-xl border border-[#E2E8F0] bg-white">
           <Table>
@@ -545,7 +824,14 @@ export function CommunicationsClient({
                     <TableCell className="text-[var(--portal-text-muted)]">{format(new Date(s.sentAt), 'dd.MM.yyyy HH:mm')}</TableCell>
                     <TableCell className="text-[var(--portal-text-muted)]">{s.channel}</TableCell>
                     <TableCell className="text-[var(--portal-text-muted)]">{s.recipient}</TableCell>
-                    <TableCell className="text-[var(--portal-text-muted)]">{s.status}</TableCell>
+                    <TableCell className="text-[var(--portal-text-muted)]">
+                      <span className="inline-flex flex-wrap items-center gap-1">
+                        {s.status}
+                        {s.isTest ? (
+                          <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-medium text-amber-900">тест</span>
+                        ) : null}
+                      </span>
+                    </TableCell>
                     <TableCell>
                       <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => setDetailSend(s)}>
                         Детали
@@ -557,11 +843,11 @@ export function CommunicationsClient({
             </TableBody>
           </Table>
         </div>
-        {sends.length > 0 && (
+        {sendsServerTotal > 0 && (
           <TablePagination
-            currentPage={Math.min(sendsPage, Math.max(0, Math.ceil(sends.length / sendsPageSize) - 1))}
-            totalPages={Math.max(1, Math.ceil(sends.length / sendsPageSize))}
-            total={sends.length}
+            currentPage={sendsCurrentPage}
+            totalPages={sendsTotalPages}
+            total={sendsServerTotal}
             pageSize={sendsPageSize}
             pageSizeOptions={STANDARD_PAGE_SIZES}
             onPageChange={setSendsPage}
@@ -585,7 +871,13 @@ export function CommunicationsClient({
               <div><dt className="text-[var(--portal-text-muted)] inline">Канал: </dt><dd className="inline">{detailSend.channel}</dd></div>
               <div><dt className="text-[var(--portal-text-muted)] inline">Получатель: </dt><dd className="inline break-all">{detailSend.recipient}</dd></div>
               {detailSend.subject && <div><dt className="text-[var(--portal-text-muted)] inline">Тема: </dt><dd className="inline">{detailSend.subject}</dd></div>}
-              <div><dt className="text-[var(--portal-text-muted)] inline">Статус: </dt><dd className="inline">{detailSend.status}</dd></div>
+              <div><dt className="text-[var(--portal-text-muted)] inline">Статус: </dt><dd className="inline">{detailSend.status}{detailSend.isTest ? ' (тест)' : ''}</dd></div>
+              {detailSend.errorMessage ? (
+                <div className="rounded-md bg-red-50 p-2 text-red-800">
+                  <dt className="text-xs font-medium">Ошибка</dt>
+                  <dd className="mt-1 break-words text-sm">{detailSend.errorMessage}</dd>
+                </div>
+              ) : null}
               <div><dt className="text-[var(--portal-text-muted)] inline">Дата: </dt><dd className="inline">{format(new Date(detailSend.sentAt), 'dd.MM.yyyy HH:mm:ss')}</dd></div>
             </dl>
           </DialogContent>
@@ -620,6 +912,30 @@ export function CommunicationsClient({
   );
 }
 
+const STANDARD_TEMPLATE_VARS = ['name', 'email', 'displayName', 'userId'] as const;
+
+function parseExtraVarCsvFromInitial(vars: string | null | undefined): string {
+  try {
+    const arr = JSON.parse(vars ?? '[]') as unknown;
+    if (!Array.isArray(arr)) return '';
+    const std = new Set(STANDARD_TEMPLATE_VARS);
+    return arr
+      .filter((x): x is string => typeof x === 'string' && x.length > 0 && !std.has(x as (typeof STANDARD_TEMPLATE_VARS)[number]))
+      .join(', ');
+  } catch {
+    return '';
+  }
+}
+
+function mergeTemplateVariablesJson(extraCsv: string): string {
+  const extra = extraCsv
+    .split(/[,;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const merged = Array.from(new Set([...STANDARD_TEMPLATE_VARS, ...extra]));
+  return JSON.stringify(merged);
+}
+
 function TemplateForm({
   initial,
   onClose,
@@ -635,6 +951,8 @@ function TemplateForm({
   const [channel, setChannel] = useState(initial?.channel ?? 'email');
   const [subject, setSubject] = useState(initial?.subject ?? '');
   const [htmlBody, setHtmlBody] = useState(initial?.htmlBody ?? '');
+  const [extraVarCsv, setExtraVarCsv] = useState(() => parseExtraVarCsvFromInitial(initial?.variables));
+  const [showPreview, setShowPreview] = useState(false);
   const [saving, setSaving] = useState(false);
   const [generating, setGenerating] = useState(false);
 
@@ -702,19 +1020,70 @@ function TemplateForm({
           </div>
           <div>
             <Label htmlFor="t-body">Тело (HTML для email, текст для Telegram)</Label>
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+              Стандартные подстановки: {'{{name}}'}, {'{{email}}'}, {'{{displayName}}'}, {'{{userId}}'}.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {(['{{name}}', '{{email}}', '{{displayName}}', '{{userId}}'] as const).map((tag) => (
+                <Button
+                  key={tag}
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={() => setHtmlBody((b) => `${b}${tag}`)}
+                >
+                  + {tag}
+                </Button>
+              ))}
+            </div>
             <textarea
               id="t-body"
               value={htmlBody}
               onChange={(e) => setHtmlBody(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm min-h-[120px] font-mono"
+              className="mt-2 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm min-h-[120px] font-mono"
               placeholder="Подстановки: {{name}}, {{email}}"
             />
           </div>
+          <div>
+            <Label htmlFor="t-extra-vars">Дополнительные ключи подстановок (через запятую)</Label>
+            <Input
+              id="t-extra-vars"
+              value={extraVarCsv}
+              onChange={(e) => setExtraVarCsv(e.target.value)}
+              className="mt-1"
+              placeholder="например: courseTitle, city"
+            />
+          </div>
+          {channel === 'email' && htmlBody.trim() && (
+            <div>
+              <Button type="button" variant="ghost" size="sm" className="h-8 px-2" onClick={() => setShowPreview((v) => !v)}>
+                <Eye className="mr-1 h-4 w-4" />
+                {showPreview ? 'Скрыть превью' : 'Превью (тестовые данные)'}
+              </Button>
+              {showPreview ? (
+                <div className="mt-2 rounded-lg border border-[#E2E8F0] bg-[#fafafa] p-2">
+                  <iframe
+                    title="email-preview"
+                    sandbox=""
+                    className="h-72 w-full rounded border border-[#E2E8F0] bg-white"
+                    srcDoc={buildPreviewHtml(htmlBody)}
+                  />
+                </div>
+              ) : null}
+            </div>
+          )}
           <div className="flex gap-2 pt-2">
             <Button
               onClick={() => {
                 setSaving(true);
-                onSave({ name, channel, subject: subject || undefined, htmlBody: htmlBody || undefined });
+                onSave({
+                  name,
+                  channel,
+                  subject: subject || undefined,
+                  htmlBody: htmlBody || undefined,
+                  variables: mergeTemplateVariablesJson(extraVarCsv),
+                });
                 setSaving(false);
               }}
               disabled={saving || generating || !name.trim()}

@@ -11,6 +11,16 @@ const CHUNK_FAIL_RE =
 
 const STORAGE_KEY = 'avaterra-chunk-reload-once';
 
+function reloadOnceForStaleChunks() {
+  if (typeof sessionStorage === 'undefined') {
+    window.location.reload();
+    return;
+  }
+  if (sessionStorage.getItem(STORAGE_KEY)) return;
+  sessionStorage.setItem(STORAGE_KEY, '1');
+  window.location.reload();
+}
+
 export function ChunkLoadRecovery() {
   useEffect(() => {
     const onRejection = (e: PromiseRejectionEvent) => {
@@ -23,16 +33,24 @@ export function ChunkLoadRecovery() {
             : String(reason);
       if (!CHUNK_FAIL_RE.test(msg)) return;
       e.preventDefault();
-      if (typeof sessionStorage === 'undefined') {
-        window.location.reload();
-        return;
-      }
-      if (sessionStorage.getItem(STORAGE_KEY)) return;
-      sessionStorage.setItem(STORAGE_KEY, '1');
-      window.location.reload();
+      reloadOnceForStaleChunks();
     };
+
+    /** Скрипт чанка вернул 404/HTML — не всегда попадает в unhandledrejection (Webpack логирует в console). */
+    const onError = (e: ErrorEvent) => {
+      const t = e.target;
+      if (!t || !(t instanceof HTMLScriptElement)) return;
+      const src = t.src || '';
+      if (!src.includes('/_next/static/chunks/')) return;
+      reloadOnceForStaleChunks();
+    };
+
     window.addEventListener('unhandledrejection', onRejection);
-    return () => window.removeEventListener('unhandledrejection', onRejection);
+    window.addEventListener('error', onError, true);
+    return () => {
+      window.removeEventListener('unhandledrejection', onRejection);
+      window.removeEventListener('error', onError, true);
+    };
   }, []);
   return null;
 }

@@ -1,6 +1,6 @@
 /**
  * Админ: демо-PDF встроенного макета для просмотра в браузере (inline).
- * GET ?template=default|heritage|prestige|minimal|elegant
+ * GET ?template=… — см. CERTIFICATE_TEMPLATE_IDS (в т.ч. vitality, awaken, path).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';

@@ -30,6 +30,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 import { Plus, Pencil, Trash2, Send, Copy, FileText, Paperclip, Loader2, Sparkles } from 'lucide-react';
+import { DEFAULT_MAILING_PRESETS } from '@/lib/email-templates';
 
 const MAILINGS_TABLE_COLUMNS: ColumnConfigItem[] = [
   { id: 'internalTitle', label: 'Название' },
@@ -82,6 +83,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
   const [users, setUsers] = useState<UserOption[]>([]);
 
   const [formTitle, setFormTitle] = useState('');
+  const [formPresetId, setFormPresetId] = useState('');
   const [formSubject, setFormSubject] = useState('');
   const [formBody, setFormBody] = useState('');
   const [formAiGenerating, setFormAiGenerating] = useState(false);
@@ -158,6 +160,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
 
   function openCreate() {
     setEditingId(null);
+    setFormPresetId('');
     setFormTitle('');
     setFormSubject('');
     setFormBody('');
@@ -177,6 +180,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
   function openEdit(m: MailingRow) {
     if (m.status !== 'planned') return;
     setEditingId(m.id);
+    setFormPresetId('');
     setFormOpen(true);
     fetch(`/api/portal/admin/mailings/${m.id}`)
       .then((r) => (r.ok ? r.json() : null))
@@ -358,6 +362,16 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
     }
   }
 
+  function applyMailingPreset(id: string) {
+    setFormPresetId(id);
+    if (!id) return;
+    const preset = DEFAULT_MAILING_PRESETS.find((p) => p.id === id);
+    if (!preset) return;
+    setFormTitle(preset.internalTitle);
+    setFormSubject(preset.emailSubject);
+    setFormBody(preset.emailBody);
+  }
+
   async function handleAiSuggestMailing() {
     const title = formTitle.trim() || 'Рассылка';
     setFormAiGenerating(true);
@@ -366,7 +380,7 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          instruction: `Сгенерируй тему письма и HTML-текст рассылки по названию «${title}». Используй подстановки %FirstName%, %LastName%, %date%, %unsubscribe% где уместно. Ответь строго в формате:\nТема:\n...\n\nТекст:\n...`,
+          instruction: `Сгенерируй тему письма и HTML-текст рассылки по названию «${title}». Используй подстановки %FirstName%, %LastName%, %date%, %systemtitle%, %unsubscribe%, %loginUrl%, %portalUrl% где уместно. Ответь строго в формате:\nТема:\n...\n\nТекст:\n...`,
           systemPrompt: 'Ты помогаешь писать рассылки для школы AVATERRA. Отвечай только в формате: блок Тема, затем блок Текст (HTML). Без пояснений.',
           maxTokens: 1024,
         }),
@@ -536,6 +550,26 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                 />
               </div>
               <div>
+                <Label htmlFor="mail-preset">Типовой текст рассылки</Label>
+                <select
+                  id="mail-preset"
+                  value={formPresetId}
+                  onChange={(e) => applyMailingPreset(e.target.value)}
+                  className="mt-1 w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
+                >
+                  <option value="">— Выберите шаблон или заполните поля ниже вручную —</option>
+                  {DEFAULT_MAILING_PRESETS.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.label}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+                  Подстановки при отправке: %FirstName%, %LastName%, %date%, %systemtitle%, %portalUrl%, %loginUrl%,
+                  %unsubscribe%
+                </p>
+              </div>
+              <div>
                 <div className="flex items-center gap-2">
                   <Label htmlFor="mail-subject" className="mb-0">Тема письма</Label>
                   <Button type="button" variant="ghost" size="sm" className="h-7 text-xs" onClick={handleAiSuggestMailing} disabled={formAiGenerating}>
@@ -553,7 +587,10 @@ export function MailingsAdminClient({ initialMailings }: { initialMailings: Mail
                 />
               </div>
               <div>
-                <Label htmlFor="mail-body">Текст (HTML). Ключевые слова: %FirstName%, %LastName%, %date%, %unsubscribe%</Label>
+                <Label htmlFor="mail-body">
+                  Текст (HTML). Подстановки: %FirstName%, %LastName%, %date%, %systemtitle%, %portalUrl%, %loginUrl%,
+                  %unsubscribe%
+                </Label>
                 <textarea
                   id="mail-body"
                   value={formBody}

@@ -1,7 +1,7 @@
 /**
  * Admin: download any certificate PDF.
  * Кеш: отдельный файл на макет (v2-{layout}) или v2-bg для подложки — старый uploads/.../id.pdf не используется.
- * Query: ?template=default|heritage|prestige|minimal|elegant — макет PDF (если подложка не задана).
+ * Query: ?template=… — макет PDF (если подложка не задана); иначе из JSON шаблона поле pdfLayout.
  */
 import path from 'path';
 import { existsSync } from 'fs';
@@ -17,8 +17,9 @@ import {
 import {
   builtinPdfStoragePath,
   customBgPdfStoragePath,
-  parseCertificateLayoutQuery,
+  resolveCertificateBuiltinLayout,
 } from '@/lib/certificate-pdf-cache';
+import { parseCertificateTemplateJson } from '@/lib/certificate-template-text-mapping';
 import { resolveCertificateRecipientName } from '@/lib/certificate-recipient-name';
 
 function resolveBackgroundPath(backgroundImageUrl: string): string {
@@ -53,7 +54,10 @@ export async function GET(
 
   const certTemplate = cert.template;
   const usesCustomBg = Boolean(certTemplate?.backgroundImageUrl);
-  const builtinLayout = parseCertificateLayoutQuery(request.nextUrl.searchParams.get('template'));
+  const builtinLayout = resolveCertificateBuiltinLayout(
+    request.nextUrl.searchParams.get('template'),
+    certTemplate?.textMapping ?? null
+  );
 
   const versionedCachePath = usesCustomBg
     ? customBgPdfStoragePath(certId)
@@ -99,11 +103,8 @@ export async function GET(
     if (existsSync(backgroundPath)) {
       let mapping: CertificateTextMapping = {};
       if (certTemplate.textMapping) {
-        try {
-          mapping = JSON.parse(certTemplate.textMapping) as CertificateTextMapping;
-        } catch {
-          // пустой mapping
-        }
+        const { rest } = parseCertificateTemplateJson(certTemplate.textMapping);
+        mapping = rest as CertificateTextMapping;
       }
       buffer = await generateCertificatePdfWithImage(data, backgroundPath, mapping);
     } else {

@@ -34,6 +34,7 @@ const FALLBACK_TARIFFS: TariffItem[] = [
       'Видео 3 — практика: простой само-тест «Да/Нет» на вашем теле',
       'Видео 4 — полный путь в школе и предложение тарифов «Практик» и VIP',
     ],
+    imageUrl: '/images/tariffs/kod-tela-start-cover.png',
   },
   {
     id: 'avaterra-praktik',
@@ -44,11 +45,12 @@ const FALLBACK_TARIFFS: TariffItem[] = [
       'Тариф «Практик»: фундаментальный навык мышечного тестирования — на себе, для близких или старта работы с клиентами.',
     features: [
       'Полный дистанционный курс: введение, основы тестирования, подсознание, методы работы с подсознанием',
-      'Доп. видео: библиотека эмоций, ошибки новичков, скрипты и алгоритмы',
+      'Отдельного блока «доп. видео» (библиотека эмоций, ошибки новичков, скрипты и алгоритмы) не будет — эти материалы уже включены в состав курса',
       'Регулярные Zoom с сертифицированными кураторами школы',
       'Вопросы и ответы на живых встречах, отработка техники под наблюдением эксперта, разбор ваших ситуаций',
     ],
     popular: true,
+    imageUrl: '/images/tariffs/avaterra-praktik-cover.png',
   },
   {
     id: 'avaterra-master-vip',
@@ -63,6 +65,7 @@ const FALLBACK_TARIFFS: TariffItem[] = [
       'Авторские техники и их применение на практике',
       'Продвинутые техники, сложные кейсы, интеграция системы в жизнь',
     ],
+    imageUrl: '/images/tariffs/avaterra-master-vip-cover.png',
   },
 ];
 
@@ -143,7 +146,7 @@ export function Pricing() {
               >
                 <TiltCard maxTilt={6} className="h-full">
                   <div
-                    className={`relative h-full rounded-2xl border p-7 transition-shadow md:p-8 ${
+                    className={`relative flex h-full flex-col rounded-2xl border transition-shadow ${
                       tariff.popular
                         ? 'border-rose/50 bg-[var(--surface)] shadow-xl shadow-rose/15'
                         : 'border-[var(--border)] bg-[var(--surface)] hover:border-plum/35 hover:shadow-xl hover:shadow-black/5'
@@ -155,39 +158,47 @@ export function Pricing() {
                     }}
                   >
                     {tariff.popular && (
-                      <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-rose px-4 py-1 text-sm font-bold text-white">
+                      <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-rose px-4 py-1 text-sm font-bold text-white">
                         Хит продаж
                       </span>
                     )}
-                    {tariff.imageUrl ? (
-                      <div className="mb-4 aspect-[16/10] w-full overflow-hidden rounded-xl bg-[var(--lavender-light)]">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
-                          src={tariff.imageUrl}
-                          alt=""
-                          className="h-full w-full object-cover"
-                        />
+                    <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
+                      {tariff.imageUrl ? (
+                        <div className="relative aspect-[3/2] w-full shrink-0 bg-[var(--lavender-light)]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={tariff.imageUrl}
+                            alt=""
+                            className="absolute inset-0 h-full w-full object-cover object-center"
+                          />
+                        </div>
+                      ) : null}
+                      <div
+                        className={
+                          tariff.imageUrl
+                            ? 'flex flex-1 flex-col p-7 pt-6 md:p-8 md:pt-7'
+                            : 'flex flex-1 flex-col p-7 md:p-8'
+                        }
+                      >
+                      <h3 className="font-heading text-xl font-semibold text-[var(--text)]">{tariff.name}</h3>
+                      <p className="mt-2 text-sm text-[var(--text-muted)]">{tariff.description}</p>
+                      <ul className="mt-4 space-y-2 text-sm text-[var(--text-muted)]">
+                        {tariff.features.map((f) => (
+                          <li key={f}>• {f}</li>
+                        ))}
+                      </ul>
+                      <p className="mt-6 text-3xl font-bold text-plum">
+                        {tariff.price <= 0 ? 'Бесплатно' : `${tariff.price.toLocaleString('ru-RU')} ₽`}
+                      </p>
+                      <Button
+                        variant={tariff.popular ? 'landingRose' : 'landingSoft'}
+                        className="mt-6 w-full"
+                        onClick={() => setModalTariff(tariff)}
+                      >
+                        {tariff.price <= 0 ? 'Получить бесплатно' : 'Купить'}
+                      </Button>
                       </div>
-                    ) : null}
-                    <h3 className="font-heading text-xl font-semibold text-[var(--text)]">
-                      {tariff.name}
-                    </h3>
-                    <p className="mt-2 text-sm text-[var(--text-muted)]">{tariff.description}</p>
-                    <ul className="mt-4 space-y-2 text-sm text-[var(--text-muted)]">
-                      {tariff.features.map((f) => (
-                        <li key={f}>• {f}</li>
-                      ))}
-                    </ul>
-                    <p className="mt-6 text-3xl font-bold text-plum">
-                      {tariff.price <= 0 ? 'Бесплатно' : `${tariff.price.toLocaleString('ru-RU')} ₽`}
-                    </p>
-                    <Button
-                      variant={tariff.popular ? 'landingRose' : 'landingSoft'}
-                      className="mt-6 w-full"
-                      onClick={() => setModalTariff(tariff)}
-                    >
-                      {tariff.price <= 0 ? 'Получить бесплатно' : 'Купить'}
-                    </Button>
+                    </div>
                   </div>
                 </TiltCard>
               </motion.div>

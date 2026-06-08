@@ -6,8 +6,9 @@ import { notFound } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { PageHeader } from '@/components/portal/PageHeader';
-import { CrmLeadDetailClient } from './CrmLeadDetailClient';
+import { CrmLeadDetailClient, type LeadEmailDeliveryLogItem } from './CrmLeadDetailClient';
 import { formatPersonName } from '@/lib/format-person-name';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -39,6 +40,41 @@ export default async function CrmLeadDetailPage({ params }: PageProps) {
   const lead = await prisma.lead.findUnique({ where: { id: leadId } });
   if (!lead) notFound();
 
+  let emailDeliveryLogs: LeadEmailDeliveryLogItem[] = [];
+  if (lead.email?.trim()) {
+    const addr = lead.email.trim();
+    const rows = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        module: string;
+        entityId: string | null;
+        recipient: string;
+        subject: string | null;
+        status: string;
+        provider: string;
+        createdAt: Date;
+        errorMessage: string | null;
+      }>
+    >(Prisma.sql`
+      SELECT id, module, entityId, recipient, subject, status, provider, createdAt, errorMessage
+      FROM EmailDeliveryLog
+      WHERE lower(recipient) = lower(${addr})
+      ORDER BY datetime(createdAt) DESC
+      LIMIT 40
+    `);
+    emailDeliveryLogs = rows.map((r) => ({
+      id: r.id,
+      module: r.module,
+      entityId: r.entityId,
+      recipient: r.recipient,
+      subject: r.subject,
+      status: r.status,
+      provider: r.provider,
+      createdAt: r.createdAt.toISOString(),
+      errorMessage: r.errorMessage,
+    }));
+  }
+
   const initial = {
     id: lead.id,
     name: lead.name,
@@ -65,7 +101,7 @@ export default async function CrmLeadDetailPage({ params }: PageProps) {
         title={formatPersonName(lead.name)}
         description={`Лид №${lead.id}`}
       />
-      <CrmLeadDetailClient initialLead={initial} />
+      <CrmLeadDetailClient initialLead={initial} emailDeliveryLogs={emailDeliveryLogs} />
     </div>
   );
 }

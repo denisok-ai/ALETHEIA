@@ -1,12 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
-import { Eye, EyeOff } from 'lucide-react';
+import { SETTINGS_IMPORT_ENV_MAP } from '@/lib/settings-import-env';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { OutboundMailSettingsBlock } from '@/components/portal/admin/settings/OutboundMailSettingsBlock';
 
 function normalizePayKeeperServerInput(value: string): string {
   const trimmed = value.trim();
@@ -24,8 +27,6 @@ interface SecretInputProps {
   value: string;
   onChange: (value: string) => void;
   saved: boolean;
-  visible: boolean;
-  onVisibleChange: (visible: boolean) => void;
   emptyPlaceholder: string;
   savedMessage: string;
 }
@@ -36,34 +37,20 @@ function SecretInput({
   value,
   onChange,
   saved,
-  visible,
-  onVisibleChange,
   emptyPlaceholder,
   savedMessage,
 }: SecretInputProps) {
   return (
     <div>
       <Label htmlFor={id}>{label}</Label>
-      <div className="relative mt-1">
-        <Input
-          id={id}
-          type={visible ? 'text' : 'password'}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={saved ? '********' : emptyPlaceholder}
-          className="pr-11"
-          autoComplete="new-password"
-        />
-        <button
-          type="button"
-          onClick={() => onVisibleChange(!visible)}
-          className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-[var(--portal-text-muted)] hover:text-[var(--portal-text)]"
-          aria-label={visible ? `Скрыть ${label.toLowerCase()}` : `Показать ${label.toLowerCase()}`}
-          title={visible ? 'Скрыть' : 'Показать'}
-        >
-          {visible ? <EyeOff className="h-4 w-4" aria-hidden /> : <Eye className="h-4 w-4" aria-hidden />}
-        </button>
-      </div>
+      <PasswordInput
+        id={id}
+        className="mt-1"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={saved ? 'Оставьте пустым, чтобы не менять' : emptyPlaceholder}
+        autoComplete="new-password"
+      />
       {saved && <p className="mt-1 text-xs text-emerald-700">{savedMessage}</p>}
     </div>
   );
@@ -104,13 +91,18 @@ interface SettingsKeys {
   nextauth_url: string;
   openai_api_key?: boolean;
   deepseek_api_key?: boolean;
+  email_transport?: string;
+  smtp_host?: string;
+  smtp_port?: string;
+  smtp_user?: string;
+  smtp_password?: boolean;
+  smtp_secure?: string;
 }
 
 export function SettingsForms() {
   const [keys, setKeys] = useState<SettingsKeys | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingGeneral, setSavingGeneral] = useState(false);
-  const [savingEmail, setSavingEmail] = useState(false);
   const [savingPaymentEmail, setSavingPaymentEmail] = useState(false);
 
   const [general, setGeneral] = useState({
@@ -120,7 +112,6 @@ export function SettingsForms() {
     company_legal_address: '',
     scorm_max_size_mb: '200',
   });
-  const [email, setEmail] = useState({ resend_from: '', resend_notify_email: '' });
   const [paymentEmail, setPaymentEmail] = useState<PaymentEmailSettings>({
     email_payment_course_subject: '',
     email_payment_course_body: '',
@@ -141,7 +132,6 @@ export function SettingsForms() {
     paykeeper_test_secret: '',
   });
   const [envVars, setEnvVars] = useState({
-    resend_api_key: '',
     telegram_bot_token: '',
     telegram_webhook_secret: '',
     cron_secret: '',
@@ -151,8 +141,8 @@ export function SettingsForms() {
   });
   const [savingPaykeeper, setSavingPaykeeper] = useState(false);
   const [testingPaykeeper, setTestingPaykeeper] = useState(false);
-  const [savingEnv, setSavingEnv] = useState(false);
-  const [testingEmail, setTestingEmail] = useState(false);
+  const [savingIntegrations, setSavingIntegrations] = useState(false);
+  const [mailTransportReady, setMailTransportReady] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [confirmUrlOpen, setConfirmUrlOpen] = useState(false);
   const [paymentPreviewLoading, setPaymentPreviewLoading] = useState(false);
@@ -160,11 +150,6 @@ export function SettingsForms() {
   const [paymentPreview, setPaymentPreview] = useState<{ subject: string; html: string; kind: string } | null>(null);
   const [confirmImportEnvOpen, setConfirmImportEnvOpen] = useState(false);
   const [importingEnv, setImportingEnv] = useState(false);
-  const [showPaykeeperPassword, setShowPaykeeperPassword] = useState(false);
-  const [showPaykeeperSecret, setShowPaykeeperSecret] = useState(false);
-  const [showPaykeeperTestPassword, setShowPaykeeperTestPassword] = useState(false);
-  const [showPaykeeperTestSecret, setShowPaykeeperTestSecret] = useState(false);
-
   useEffect(() => {
     fetch('/api/portal/admin/settings')
       .then(async (r) => {
@@ -201,9 +186,14 @@ export function SettingsForms() {
           nextauth_url: typeof k.nextauth_url === 'string' ? k.nextauth_url : '',
           openai_api_key: k.openai_api_key === true,
           deepseek_api_key: k.deepseek_api_key === true,
+          email_transport: typeof k.email_transport === 'string' ? k.email_transport : '',
+          smtp_host: typeof k.smtp_host === 'string' ? k.smtp_host : '',
+          smtp_port: typeof k.smtp_port === 'string' && k.smtp_port ? k.smtp_port : '465',
+          smtp_user: typeof k.smtp_user === 'string' ? k.smtp_user : '',
+          smtp_password: k.smtp_password === true,
+          smtp_secure: typeof k.smtp_secure === 'string' ? k.smtp_secure : '',
         });
         setEnvVars({
-          resend_api_key: '',
           telegram_bot_token: '',
           telegram_webhook_secret: '',
           cron_secret: '',
@@ -217,10 +207,6 @@ export function SettingsForms() {
           contact_phone: k.contact_phone ?? '',
           company_legal_address: typeof k.company_legal_address === 'string' ? k.company_legal_address : '',
           scorm_max_size_mb: k.scorm_max_size_mb ?? '200',
-        });
-        setEmail({
-          resend_from: k.resend_from ?? '',
-          resend_notify_email: k.resend_notify_email ?? '',
         });
         const pe = data.settings?.payment_email ?? {};
         setPaymentEmail({
@@ -255,10 +241,6 @@ export function SettingsForms() {
       contact_phone: keys.contact_phone,
       company_legal_address: keys.company_legal_address ?? '',
       scorm_max_size_mb: keys.scorm_max_size_mb ?? '200',
-    });
-    setEmail({
-      resend_from: keys.resend_from,
-      resend_notify_email: keys.resend_notify_email,
     });
     setPaymentEmail((p) => ({
       ...p,
@@ -321,25 +303,50 @@ export function SettingsForms() {
     doSaveGeneral();
   }
 
-  async function saveEmail(e: React.FormEvent) {
+  async function saveIntegrations(e: React.FormEvent) {
     e.preventDefault();
-    setSavingEmail(true);
+    setSavingIntegrations(true);
     try {
+      const body: Record<string, string> = {
+        nextauth_url: envVars.nextauth_url.trim(),
+      };
+      if (envVars.telegram_bot_token.trim()) body.telegram_bot_token = envVars.telegram_bot_token.trim();
+      if (envVars.telegram_webhook_secret.trim()) body.telegram_webhook_secret = envVars.telegram_webhook_secret.trim();
+      if (envVars.cron_secret.trim()) body.cron_secret = envVars.cron_secret.trim();
+      if (envVars.openai_api_key.trim()) body.openai_api_key = envVars.openai_api_key.trim();
+      if (envVars.deepseek_api_key.trim()) body.deepseek_api_key = envVars.deepseek_api_key.trim();
+
       const res = await fetch('/api/portal/admin/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          resend_from: email.resend_from,
-          resend_notify_email: email.resend_notify_email,
-        }),
+        body: JSON.stringify(body),
       });
-      if (!res.ok) throw new Error(await res.text());
-      setKeys((prev) => prev ? { ...prev, ...email } : null);
-      toast.success('Настройки почты сохранены');
+      const errText = await res.text();
+      if (!res.ok) throw new Error(errText || res.statusText);
+
+      setKeys((prev) =>
+        prev
+          ? {
+              ...prev,
+              nextauth_url: body.nextauth_url ?? prev.nextauth_url,
+              telegram_bot_token: !!body.telegram_bot_token || prev.telegram_bot_token,
+              telegram_webhook_secret: !!body.telegram_webhook_secret || prev.telegram_webhook_secret,
+              cron_secret: !!body.cron_secret || prev.cron_secret,
+              openai_api_key: !!body.openai_api_key || prev.openai_api_key,
+              deepseek_api_key: !!body.deepseek_api_key || prev.deepseek_api_key,
+            }
+          : null
+      );
+      if (body.telegram_bot_token) setEnvVars((p) => ({ ...p, telegram_bot_token: '' }));
+      if (body.telegram_webhook_secret) setEnvVars((p) => ({ ...p, telegram_webhook_secret: '' }));
+      if (body.cron_secret) setEnvVars((p) => ({ ...p, cron_secret: '' }));
+      if (body.openai_api_key) setEnvVars((p) => ({ ...p, openai_api_key: '' }));
+      if (body.deepseek_api_key) setEnvVars((p) => ({ ...p, deepseek_api_key: '' }));
+      toast.success('Интеграции сохранены в БД');
     } catch {
       toast.error('Ошибка сохранения');
     }
-    setSavingEmail(false);
+    setSavingIntegrations(false);
   }
 
   async function savePaymentEmail(e: React.FormEvent) {
@@ -450,42 +457,24 @@ export function SettingsForms() {
         />
       </div>
 
-      <div className="portal-card p-6">
-        <h2 className="text-base font-semibold text-[var(--portal-text)]">Почта (уведомления)</h2>
-        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Email отправителя и получателя уведомлений. API-ключ Resend — в блоке «Переменные окружения» ниже или в .env (RESEND_API_KEY).</p>
-        <form onSubmit={saveEmail} className="mt-4 space-y-4 max-w-xl">
-          <div>
-            <Label htmlFor="resend_from">Email отправителя</Label>
-            <Input
-              id="resend_from"
-              type="email"
-              value={email.resend_from}
-              onChange={(e) => setEmail((p) => ({ ...p, resend_from: e.target.value }))}
-              placeholder="notifications@yourdomain.com"
-              className="mt-1"
-            />
-          </div>
-          <div>
-            <Label htmlFor="resend_notify_email">Email получателя уведомлений</Label>
-            <Input
-              id="resend_notify_email"
-              type="email"
-              value={email.resend_notify_email}
-              onChange={(e) => setEmail((p) => ({ ...p, resend_notify_email: e.target.value }))}
-              placeholder="admin@yourdomain.com"
-              className="mt-1"
-            />
-          </div>
-          <Button type="submit" disabled={savingEmail}>
-            {savingEmail ? 'Сохранение…' : 'Сохранить'}
-          </Button>
-        </form>
+      <div className="rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] px-4 py-3 text-sm text-[var(--portal-text)]">
+        <p className="font-medium text-[var(--portal-text)]">Где почтовые ящики и входящие</p>
+        <p className="mt-1 text-[var(--portal-text-muted)]">
+          Раздел{' '}
+          <Link href="/portal/admin/mail" className="font-medium text-[var(--portal-accent)] underline">
+            Почта
+          </Link>{' '}
+          в меню слева — вкладки «Доставка», «Почтовые ящики», «Входящие», журналы. Ниже — те же настройки исходящей
+          почты (можно править и здесь).
+        </p>
       </div>
+
+      <OutboundMailSettingsBlock onMailTransportReadyChange={setMailTransportReady} />
 
       <div className="portal-card p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Шаблоны писем об оплате</h2>
         <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
-          Тема и тело писем после оплаты. Если пусто — используется текст по умолчанию. Плейсхолдеры: {'{{orderid}}'}, {'{{courseTitle}}'}, {'{{userName}}'}, {'{{orderAmount}}'}, {'{{loginUrl}}'}, {'{{successUrl}}'}, {'{{portalUrl}}'}, {'{{ofertaUrl}}'} (к ссылке можно добавить якорь: #oplata, #dostup, #vozvrat), {'{{supportEmail}}'}, {'{{company_address}}'}, {'{{portal_title}}'}.
+          Тема и тело писем после оплаты. Если сохранить пустые поля, будут использоваться типовые тексты из кода (совпадают с тем, что подставляется автоматически при отправке). Плейсхолдеры: {'{{orderid}}'}, {'{{courseTitle}}'}, {'{{userName}}'}, {'{{orderAmount}}'}, {'{{loginUrl}}'}, {'{{successUrl}}'}, {'{{portalUrl}}'}, {'{{ofertaUrl}}'} (к ссылке можно добавить якорь: #oplata, #dostup, #vozvrat), {'{{supportEmail}}'}, {'{{company_address}}'}, {'{{portal_title}}'}.
         </p>
         <form onSubmit={savePaymentEmail} className="mt-4 space-y-4 max-w-2xl">
           <div>
@@ -493,7 +482,7 @@ export function SettingsForms() {
             <Input
               value={paymentEmail.email_payment_course_subject}
               onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_course_subject: e.target.value }))}
-              placeholder="Оплата получена — доступ к курсу открыт"
+              placeholder="Доступ к курсу открыт — {{courseTitle}}"
               className="mt-1"
             />
           </div>
@@ -502,7 +491,7 @@ export function SettingsForms() {
             <textarea
               value={paymentEmail.email_payment_course_body}
               onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_course_body: e.target.value }))}
-              placeholder="<p>Здравствуйте!</p><p>Оплата по заказу {{orderid}} получена...</p>"
+              placeholder="<p>Здравствуйте, {{userName}}!</p><p>Спасибо за оплату…</p>"
               rows={6}
               className="mt-1 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:border-[var(--portal-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--portal-accent)]"
             />
@@ -512,7 +501,7 @@ export function SettingsForms() {
             <Input
               value={paymentEmail.email_payment_generic_subject}
               onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_generic_subject: e.target.value }))}
-              placeholder="Оплата получена"
+              placeholder="Оплата получена — {{portal_title}}"
               className="mt-1"
             />
           </div>
@@ -521,7 +510,7 @@ export function SettingsForms() {
             <textarea
               value={paymentEmail.email_payment_generic_body}
               onChange={(e) => setPaymentEmail((p) => ({ ...p, email_payment_generic_body: e.target.value }))}
-              placeholder="<p>Здравствуйте!</p><p>Оплата по заказу {{orderid}} получена...</p>"
+              placeholder="<p>Здравствуйте, {{userName}}!</p><p>Мы получили оплату по заказу {{orderid}}…</p>"
               rows={4}
               className="mt-1 w-full rounded-md border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)] focus:border-[var(--portal-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--portal-accent)]"
             />
@@ -601,7 +590,7 @@ export function SettingsForms() {
               type="button"
               variant="secondary"
               size="sm"
-              disabled={paymentTestSending || !keys?.resend_api_key}
+              disabled={paymentTestSending || !mailTransportReady}
               onClick={async () => {
                 setPaymentTestSending(true);
                 try {
@@ -629,7 +618,7 @@ export function SettingsForms() {
               type="button"
               variant="secondary"
               size="sm"
-              disabled={paymentTestSending || !keys?.resend_api_key}
+              disabled={paymentTestSending || !mailTransportReady}
               onClick={async () => {
                 setPaymentTestSending(true);
                 try {
@@ -655,7 +644,7 @@ export function SettingsForms() {
             </Button>
           </div>
           <p className="text-xs text-[var(--portal-text-muted)]">
-            Тест уходит на «Email получателя уведомлений» из блока «Почта». Нужен сохранённый Resend API-ключ.
+            Тест уходит на «Email получателя уведомлений» из блока «Доставка писем» выше (или из раздела «Почта» в админке). Нужен выбранный транспорт (Resend или SMTP) и сохранённые ключи.
           </p>
           {paymentPreview && (
             <div className="rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
@@ -791,10 +780,8 @@ export function SettingsForms() {
             value={paykeeper.paykeeper_password}
             onChange={(value) => setPaykeeper((p) => ({ ...p, paykeeper_password: value }))}
             saved={!!keys?.paykeeper_password}
-            visible={showPaykeeperPassword}
-            onVisibleChange={setShowPaykeeperPassword}
             emptyPlaceholder="Пароль для доступа к API"
-            savedMessage="Пароль сохранён. Маска ******** показывает, что значение есть в БД."
+            savedMessage="Пароль уже сохранён в базе. Чтобы изменить — введите новый; поле можно показать кнопкой с глазом."
           />
           <SecretInput
             id="paykeeper_secret"
@@ -802,10 +789,8 @@ export function SettingsForms() {
             value={paykeeper.paykeeper_secret}
             onChange={(value) => setPaykeeper((p) => ({ ...p, paykeeper_secret: value }))}
             saved={!!keys?.paykeeper_secret}
-            visible={showPaykeeperSecret}
-            onVisibleChange={setShowPaykeeperSecret}
             emptyPlaceholder="informer_seed из ЛК PayKeeper"
-            savedMessage="Секрет сохранён. Маска ******** показывает, что значение есть в БД."
+            savedMessage="Секрет уже сохранён в базе. Чтобы изменить — введите новый; поле можно показать кнопкой с глазом."
           />
           </>)}
           {paykeeperTest.use_test && (
@@ -838,10 +823,8 @@ export function SettingsForms() {
             value={paykeeperTest.paykeeper_test_password}
             onChange={(value) => setPaykeeperTest((p) => ({ ...p, paykeeper_test_password: value }))}
             saved={!!keys?.paykeeper_test_password}
-            visible={showPaykeeperTestPassword}
-            onVisibleChange={setShowPaykeeperTestPassword}
             emptyPlaceholder="Пароль для тестового API"
-            savedMessage="Тестовый пароль сохранён. Маска ******** показывает, что значение есть в БД."
+            savedMessage="Тестовый пароль сохранён в базе. Чтобы изменить — введите новый; поле можно показать кнопкой с глазом."
           />
           <SecretInput
             id="paykeeper_test_secret"
@@ -849,10 +832,8 @@ export function SettingsForms() {
             value={paykeeperTest.paykeeper_test_secret}
             onChange={(value) => setPaykeeperTest((p) => ({ ...p, paykeeper_test_secret: value }))}
             saved={!!keys?.paykeeper_test_secret}
-            visible={showPaykeeperTestSecret}
-            onVisibleChange={setShowPaykeeperTestSecret}
             emptyPlaceholder="informer_seed для теста"
-            savedMessage="Тестовый секрет сохранён. Маска ******** показывает, что значение есть в БД."
+            savedMessage="Тестовый секрет сохранён в базе. Чтобы изменить — введите новый; поле можно показать кнопкой с глазом."
           />
           </>
           )}
@@ -907,75 +888,20 @@ export function SettingsForms() {
       </div>
 
       <div className="mt-6 portal-card p-6">
-        <h2 className="text-base font-semibold text-[var(--portal-text)]">Переменные окружения</h2>
-        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">
-          Значения сохраняются в БД и используются с приоритетом над <code className="rounded bg-[#F1F5F9] px-1.5">.env</code>. Секреты хранятся в зашифрованном виде. Пустые поля секретов — не менять текущее значение. NEXTAUTH_SECRET и DATABASE_URL задаются только в .env.
+        <h2 className="text-base font-semibold text-[var(--portal-text)]">Интеграции</h2>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)] max-w-2xl">
+          Telegram-бот, секрет cron-задач, операционный URL NextAuth и запасные ключи OpenAI / DeepSeek. Сохраняются в БД с приоритетом над{' '}
+          <code className="rounded bg-[#F1F5F9] px-1.5">.env</code>. Пустые поля секретов не меняют уже сохранённые значения.{' '}
+          <code className="rounded bg-[#F1F5F9] px-1">DATABASE_URL</code> и{' '}
+          <code className="rounded bg-[#F1F5F9] px-1">NEXTAUTH_SECRET</code> задаются только при запуске процесса.
         </p>
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setSavingEnv(true);
-            try {
-              const body: Record<string, string> = {
-                nextauth_url: envVars.nextauth_url.trim(),
-              };
-              if (envVars.resend_api_key.trim()) body.resend_api_key = envVars.resend_api_key;
-              if (envVars.telegram_bot_token.trim()) body.telegram_bot_token = envVars.telegram_bot_token;
-              if (envVars.telegram_webhook_secret.trim()) body.telegram_webhook_secret = envVars.telegram_webhook_secret;
-              if (envVars.cron_secret.trim()) body.cron_secret = envVars.cron_secret;
-              if (envVars.openai_api_key.trim()) body.openai_api_key = envVars.openai_api_key;
-              if (envVars.deepseek_api_key.trim()) body.deepseek_api_key = envVars.deepseek_api_key;
-              const res = await fetch('/api/portal/admin/settings', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(body),
-              });
-              if (!res.ok) throw new Error(await res.text());
-              setKeys((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      resend_api_key: !!body.resend_api_key || prev.resend_api_key,
-                      telegram_bot_token: !!body.telegram_bot_token || prev.telegram_bot_token,
-                      telegram_webhook_secret: !!body.telegram_webhook_secret || prev.telegram_webhook_secret,
-                      cron_secret: !!body.cron_secret || prev.cron_secret,
-                      nextauth_url: body.nextauth_url ?? prev.nextauth_url,
-                      openai_api_key: !!body.openai_api_key || prev.openai_api_key,
-                      deepseek_api_key: !!body.deepseek_api_key || prev.deepseek_api_key,
-                    }
-                  : null
-              );
-              if (body.resend_api_key) setEnvVars((p) => ({ ...p, resend_api_key: '' }));
-              if (body.telegram_bot_token) setEnvVars((p) => ({ ...p, telegram_bot_token: '' }));
-              if (body.telegram_webhook_secret) setEnvVars((p) => ({ ...p, telegram_webhook_secret: '' }));
-              if (body.cron_secret) setEnvVars((p) => ({ ...p, cron_secret: '' }));
-              if (body.openai_api_key) setEnvVars((p) => ({ ...p, openai_api_key: '' }));
-              if (body.deepseek_api_key) setEnvVars((p) => ({ ...p, deepseek_api_key: '' }));
-              toast.success('Переменные окружения сохранены');
-            } catch {
-              toast.error('Ошибка сохранения');
-            }
-            setSavingEnv(false);
-          }}
-          className="mt-4 space-y-4 max-w-xl"
-        >
-          <div>
-            <Label htmlFor="env_resend_api_key">Resend API ключ (почта)</Label>
-            <Input
-              id="env_resend_api_key"
-              type="password"
-              value={envVars.resend_api_key}
-              onChange={(e) => setEnvVars((p) => ({ ...p, resend_api_key: e.target.value }))}
-              placeholder={keys?.resend_api_key ? 'Оставьте пустым, чтобы не менять' : 're_xxx'}
-              className="mt-1"
-              autoComplete="new-password"
-            />
-          </div>
+        <form onSubmit={saveIntegrations} className="mt-4 space-y-4 max-w-xl">
           <div>
             <Label htmlFor="env_telegram_bot_token">Telegram Bot Token</Label>
-            <Input
+            <PasswordInput
               id="env_telegram_bot_token"
-              type="password"
+              ariaLabelShow="Показать токен"
+              ariaLabelHide="Скрыть токен"
               value={envVars.telegram_bot_token}
               onChange={(e) => setEnvVars((p) => ({ ...p, telegram_bot_token: e.target.value }))}
               placeholder={keys?.telegram_bot_token ? 'Оставьте пустым, чтобы не менять' : '123456:ABC...'}
@@ -985,9 +911,10 @@ export function SettingsForms() {
           </div>
           <div>
             <Label htmlFor="env_telegram_webhook_secret">Telegram Webhook Secret</Label>
-            <Input
+            <PasswordInput
               id="env_telegram_webhook_secret"
-              type="password"
+              ariaLabelShow="Показать секрет"
+              ariaLabelHide="Скрыть секрет"
               value={envVars.telegram_webhook_secret}
               onChange={(e) => setEnvVars((p) => ({ ...p, telegram_webhook_secret: e.target.value }))}
               placeholder={keys?.telegram_webhook_secret ? 'Оставьте пустым, чтобы не менять' : 'X-Telegram-Bot-Api-Secret-Token'}
@@ -997,10 +924,11 @@ export function SettingsForms() {
             <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Секрет для проверки webhook Telegram (заголовок X-Telegram-Bot-Api-Secret-Token).</p>
           </div>
           <div>
-            <Label htmlFor="env_cron_secret">Cron secret (для запланированных рассылок)</Label>
-            <Input
+            <Label htmlFor="env_cron_secret">Cron secret (запланированные рассылки)</Label>
+            <PasswordInput
               id="env_cron_secret"
-              type="password"
+              ariaLabelShow="Показать секрет"
+              ariaLabelHide="Скрыть секрет"
               value={envVars.cron_secret}
               onChange={(e) => setEnvVars((p) => ({ ...p, cron_secret: e.target.value }))}
               placeholder={keys?.cron_secret ? 'Оставьте пустым, чтобы не менять' : 'Authorization: Bearer ...'}
@@ -1009,10 +937,11 @@ export function SettingsForms() {
             />
           </div>
           <div>
-            <Label htmlFor="env_openai_api_key">OpenAI API ключ (генерация обложек курсов, DALL·E)</Label>
-            <Input
+            <Label htmlFor="env_openai_api_key">OpenAI API ключ (обложки курсов, DALL·E)</Label>
+            <PasswordInput
               id="env_openai_api_key"
-              type="password"
+              ariaLabelShow="Показать ключ"
+              ariaLabelHide="Скрыть ключ"
               value={envVars.openai_api_key}
               onChange={(e) => setEnvVars((p) => ({ ...p, openai_api_key: e.target.value }))}
               placeholder={keys?.openai_api_key ? 'Оставьте пустым, чтобы не менять' : 'sk-...'}
@@ -1022,16 +951,17 @@ export function SettingsForms() {
           </div>
           <div>
             <Label htmlFor="env_deepseek_api_key">DeepSeek API ключ (запасной для чата и тьютора)</Label>
-            <Input
+            <PasswordInput
               id="env_deepseek_api_key"
-              type="password"
+              ariaLabelShow="Показать ключ"
+              ariaLabelHide="Скрыть ключ"
               value={envVars.deepseek_api_key}
               onChange={(e) => setEnvVars((p) => ({ ...p, deepseek_api_key: e.target.value }))}
               placeholder={keys?.deepseek_api_key ? 'Оставьте пустым, чтобы не менять' : 'Основные ключи — в Настройки AI'}
               className="mt-1"
               autoComplete="new-password"
             />
-            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Используется, если в Настройки AI не заданы сохранённые ключи.</p>
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">Используется, если в «Настройки AI» не заданы сохранённые ключи.</p>
           </div>
           <div>
             <Label htmlFor="env_nextauth_url">NEXTAUTH_URL (URL для NextAuth)</Label>
@@ -1040,7 +970,7 @@ export function SettingsForms() {
               type="url"
               value={envVars.nextauth_url}
               onChange={(e) => setEnvVars((p) => ({ ...p, nextauth_url: e.target.value }))}
-              placeholder="http://localhost:3000 или https://yourdomain.com"
+              placeholder="http://localhost:4000 или https://yourdomain.com"
               className="mt-1"
             />
             <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
@@ -1048,36 +978,16 @@ export function SettingsForms() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button type="submit" disabled={savingEnv}>
-              {savingEnv ? 'Сохранение…' : 'Сохранить'}
+            <Button type="submit" disabled={savingIntegrations}>
+              {savingIntegrations ? 'Сохранение…' : 'Сохранить интеграции'}
             </Button>
             <Button
               type="button"
               variant="secondary"
-              disabled={testingEmail || !keys?.resend_api_key}
-              onClick={async () => {
-                setTestingEmail(true);
-                try {
-                  const res = await fetch('/api/portal/admin/settings/test-email', { method: 'POST' });
-                  const data = await res.json();
-                  if (res.ok) {
-                    toast.success(`Тестовое письмо отправлено на ${data.sentTo}`);
-                  } else {
-                    toast.error(data.error || 'Ошибка отправки');
-                  }
-                } catch {
-                  toast.error('Ошибка запроса');
-                } finally {
-                  setTestingEmail(false);
-                }
-              }}
-            >
-              {testingEmail ? 'Отправка…' : 'Отправить тестовое письмо'}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={testingTelegram || !keys?.telegram_bot_token}
+              disabled={
+                testingTelegram ||
+                !(keys?.telegram_bot_token || envVars.telegram_bot_token.trim())
+              }
               onClick={async () => {
                 setTestingTelegram(true);
                 try {
@@ -1099,7 +1009,7 @@ export function SettingsForms() {
             </Button>
           </div>
           <p className="text-xs text-[var(--portal-text-muted)]">
-            Тестовое письмо уходит на адрес из блока «Почта». Telegram: проверка токена через getMe.
+            Тест Telegram использует токен из БД: сохраните форму перед проверкой, если только что ввели новый токен.
           </p>
         </form>
       </div>
@@ -1110,8 +1020,29 @@ export function SettingsForms() {
           После первого деплоя можно перенести значения из <code className="rounded bg-[#F1F5F9] px-1">.env</code> на сервере в БД одной операцией.
           Перезаписываются только те ключи, для которых в окружении процесса задано непустое значение.{' '}
           <code className="rounded bg-[#F1F5F9] px-1">DATABASE_URL</code> и{' '}
-          <code className="rounded bg-[#F1F5F9] px-1">NEXTAUTH_SECRET</code> сюда не входят — их задают только в панели хостинга.
+          <code className="rounded bg-[#F1F5F9] px-1">NEXTAUTH_SECRET</code> сюда не входят — их задают только в панели хостинга / bootstrap-<code className="rounded bg-[#F1F5F9] px-1">.env</code>.
         </p>
+        <details className="mt-4 max-w-3xl rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] p-4">
+          <summary className="cursor-pointer text-sm font-medium text-[var(--portal-text)]">
+            Какие ключи могут быть импортированы ({SETTINGS_IMPORT_ENV_MAP.length})
+          </summary>
+          <ul className="mt-3 grid gap-x-4 gap-y-1 text-xs font-mono text-[var(--portal-text-muted)] sm:grid-cols-2">
+            {SETTINGS_IMPORT_ENV_MAP.map((e) => (
+              <li key={e.key}>
+                <span className="text-[var(--portal-text)]">{e.key}</span>
+                {' ← '}
+                {e.env}
+                {e.sensitive ? (
+                  <span className="text-amber-700"> (секрет)</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-[var(--portal-text-muted)]">
+            Полное соответствие ключей и переменных см. в <code className="rounded bg-[#F1F5F9] px-1">lib/settings-import-env.ts</code> и{' '}
+            <code className="rounded bg-[#F1F5F9] px-1">docs/Env-Config.md</code>.
+          </p>
+        </details>
         <Button
           type="button"
           variant="secondary"

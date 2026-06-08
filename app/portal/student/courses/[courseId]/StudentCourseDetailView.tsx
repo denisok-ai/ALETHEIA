@@ -116,6 +116,7 @@ export function StudentCourseDetailView({
               fill
               className="object-cover"
               sizes="(max-width: 1024px) 100vw, 896px"
+              unoptimized={thumbnailUrl.startsWith('/uploads/') || thumbnailUrl.startsWith('/images/tariffs/') || thumbnailUrl.startsWith('/covers/')}
             />
           ) : (
             <CourseCoverPlaceholder title={title} variant={0} className="absolute inset-0 w-full h-full" />

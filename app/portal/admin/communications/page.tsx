@@ -11,7 +11,14 @@ import { prisma } from '@/lib/db';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { CommunicationsClient } from './CommunicationsClient';
 
-export default async function AdminCommunicationsPage() {
+export default async function AdminCommunicationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ userId?: string }>;
+}) {
+  const sp = await searchParams;
+  const prefillUserId = sp.userId?.trim() || null;
+
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return (
@@ -25,7 +32,7 @@ export default async function AdminCommunicationsPage() {
     prisma.commsTemplate.findMany({ orderBy: { name: 'asc' } }),
     prisma.commsSend.findMany({
       orderBy: { sentAt: 'desc' },
-      take: 50,
+      take: 25,
     }),
   ]);
 
@@ -47,6 +54,8 @@ export default async function AdminCommunicationsPage() {
     subject: s.subject,
     status: s.status,
     sentAt: s.sentAt.toISOString(),
+    errorMessage: s.errorMessage,
+    isTest: s.isTest,
   }));
 
   return (
@@ -57,9 +66,9 @@ export default async function AdminCommunicationsPage() {
           { label: 'Коммуникации' },
         ]}
         title="Коммуникации"
-        description="Рассылки, шаблоны, Resend и Telegram"
+        description="Оперативные сообщения (email/Telegram) администратором или по шаблону. Маркетинговые кампании — в разделе «Рассылки»."
       />
-      <CommunicationsClient initialTemplates={initialTemplates} initialSends={initialSends} />
+      <CommunicationsClient initialTemplates={initialTemplates} initialSends={initialSends} prefillUserId={prefillUserId} />
     </div>
   );
 }

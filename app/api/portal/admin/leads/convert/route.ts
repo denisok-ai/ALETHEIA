@@ -7,7 +7,8 @@ import { prisma } from '@/lib/db';
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
 import { createPasswordToken } from '@/lib/password-token';
-import { sendEmail } from '@/lib/email';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import { buildSetPasswordEmail } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
 
 export async function POST(request: NextRequest) {
@@ -84,14 +85,22 @@ export async function POST(request: NextRequest) {
     const settings = await getSystemSettings();
     const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
     const setPasswordUrl = siteUrl ? `${siteUrl}/set-password?token=${encodeURIComponent(token)}` : `/set-password?token=${encodeURIComponent(token)}`;
-    const html = `
-      <p>Здравствуйте, ${escapeHtml(lead.name)}!</p>
-      <p>Для вас создан аккаунт в личном кабинете AVATERRA. Установите пароль по ссылке (действует 48 часов):</p>
-      <p><a href="${setPasswordUrl}">Установить пароль</a></p>
-      <p>Если ссылка не открывается, скопируйте в браузер: ${setPasswordUrl}</p>
-      <p>— Школа AVATERRA</p>
-    `;
-    await sendEmail(email, 'AVATERRA: установите пароль для входа в личный кабинет', html);
+    const emailTemplate = buildSetPasswordEmail({
+      displayName: lead.name,
+      setPasswordUrl,
+      systemTitle: settings.portal_title || 'AVATERRA',
+    });
+    await sendTransactionalEmail({
+      to: email,
+      subject: emailTemplate.subject,
+      html: emailTemplate.html,
+      context: {
+        module: 'crm',
+        entityId: String(leadId),
+        userId: user.id,
+        sentBy: auth.userId,
+      },
+    });
   } catch (mailErr) {
     console.error('Lead convert: send set-password email', mailErr);
   }
@@ -100,8 +109,4 @@ export async function POST(request: NextRequest) {
     userId: user.id,
     message: 'User created. Set-password email sent to client.',
   });
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }

@@ -6,7 +6,7 @@ export type BreadcrumbItem = { label: string; href?: string };
 export function Breadcrumbs({ items }: { items: BreadcrumbItem[] }) {
   if (items.length === 0) return null;
   return (
-    <nav className="mb-6 text-sm text-[var(--text-muted)]" aria-label="Хлебные крошки">
+    <nav className="mb-3 text-sm text-[var(--text-muted)]" aria-label="Хлебные крошки">
       <ol className="flex flex-wrap items-center gap-x-2 gap-y-1">
         {items.map((item, i) => {
           const last = i === items.length - 1;

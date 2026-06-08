@@ -15,24 +15,33 @@ const FOCUSABLE =
 const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
   const contentRef = React.useRef<HTMLDivElement>(null);
   const previousActiveRef = React.useRef<HTMLElement | null>(null);
+  const onOpenChangeRef = React.useRef(onOpenChange);
+  onOpenChangeRef.current = onOpenChange;
 
   React.useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onOpenChange(false);
-    };
-    if (open) {
-      previousActiveRef.current = document.activeElement as HTMLElement | null;
-      document.addEventListener('keydown', handler);
-      document.body.style.overflow = 'hidden';
+    if (!open) {
+      document.body.style.overflow = '';
+      return;
     }
+    previousActiveRef.current = document.activeElement as HTMLElement | null;
+    document.body.style.overflow = 'hidden';
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onOpenChangeRef.current(false);
+    };
+    document.addEventListener('keydown', handler);
     return () => {
       document.removeEventListener('keydown', handler);
       document.body.style.overflow = '';
-      if (previousActiveRef.current?.focus) {
-        previousActiveRef.current.focus();
-      }
     };
-  }, [open, onOpenChange]);
+  }, [open]);
+
+  React.useEffect(() => {
+    if (open) return;
+    const prev = previousActiveRef.current;
+    if (prev?.focus) {
+      prev.focus();
+    }
+  }, [open]);
 
   React.useEffect(() => {
     if (!open || !contentRef.current) return;
@@ -67,7 +76,7 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
       <div
         className="fixed inset-0 bg-black/60"
         aria-hidden
-        onClick={() => onOpenChange(false)}
+        onClick={() => onOpenChangeRef.current(false)}
       />
       <div ref={contentRef} className="relative z-50" role="presentation">
         {children}

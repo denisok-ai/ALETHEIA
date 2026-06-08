@@ -18,6 +18,7 @@
 10. **Production-Server.md** — продуктивный VPS (95.181.224.70), конфигурация, порядок обновления, nginx/systemd.
 11. **manual-qa-checklist.md** — ручной чек-лист функционала по ролям (гость, студент, менеджер, админ).
 12. **manual-testing-form.md** — форма проведения прогона и шаблон обратной связи по багам.
+13. **Mail-Server.md** — автономная почта @avaterra.pro (Mailcow, DNS, переменные `MAIL_*`), см. также Mail-Current-State.md.
 
 ---
 
@@ -61,6 +62,7 @@
 ## Локальная среда и деплой (Cursor / WSL)
 
 - **Каталог репозитория на диске (WSL):** `~/projects/AVATERRA`. Старое имя папки `audio-mastering-web` не используется.
+- **Каталог приложения на прод-VPS:** **`/opt/ALETHEIA`**. Имя папки совпадает с репозиторием GitHub **ALETHEIA**; старая и актуальная сборка сайта живут именно там. Локально папка может называться `AVATERRA` — при SSH, `scp`, `DATABASE_URL` и скриптах деплоя ориентируйся на **`/opt/ALETHEIA`** (`DEPLOY_REMOTE_DIR` по умолчанию).
 - В Windows для проекта задан терминал по умолчанию **Ubuntu (WSL)** — см. `.vscode/settings.json`.
 - Деплой на VPS: **`npm run deploy:remote`** или задача VS Code / Cursor: **Run Task → deploy:remote (SSH prod)**.
 - **Авторежим без ввода passphrase:** скопировать `scripts/.deploy.env.example` → `scripts/.deploy.env`, указать `DEPLOY_SSH_KEY=` путь к отдельному ключу **без** пароля (публичный ключ — в `authorized_keys` на сервере). Файл `.deploy.env` в `.gitignore`, не коммитить.

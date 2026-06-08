@@ -6,6 +6,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { publicationCommentSchema } from '@/lib/validations/publication';
+import { logPersonalDataConsent } from '@/lib/consent-log';
 
 export async function GET(
   _request: NextRequest,
@@ -68,6 +69,13 @@ export async function POST(
       authorName: authorName || (userId ? null : 'Гость'),
       content: parsed.data.content,
     },
+  });
+
+  await logPersonalDataConsent({
+    kind: 'pd_processing',
+    context: `publication_comment:${id}`,
+    userId: userId ?? undefined,
+    emailNorm: null,
   });
 
   return NextResponse.json({

@@ -7,7 +7,7 @@ import Link from 'next/link';
 import {
   BookOpen,
   Users,
-  Send,
+  Mail,
   BarChart3,
   Settings,
   ChevronRight,
@@ -41,12 +41,15 @@ const SECTIONS = [
   },
   {
     title: 'Коммуникации',
-    description: 'Рассылки, уведомления, шаблоны',
-    href: '/portal/admin/mailings',
-    icon: Send,
+    description: 'Почта, доставка, ящики @домен, рассылки, уведомления',
+    href: '/portal/admin/mail',
+    icon: Mail,
     links: [
+      { label: 'Почта', href: '/portal/admin/mail' },
+      { label: 'Почтовые ящики', href: '/portal/admin/mail?tab=mailboxes' },
       { label: 'Рассылки', href: '/portal/admin/mailings' },
       { label: 'Наборы уведомлений', href: '/portal/admin/notification-sets' },
+      { label: 'Шаблоны уведомлений', href: '/portal/admin/notification-templates' },
       { label: 'Журнал уведомлений', href: '/portal/admin/notification-logs' },
     ],
   },

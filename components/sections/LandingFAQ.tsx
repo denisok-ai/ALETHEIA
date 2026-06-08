@@ -28,7 +28,7 @@ export function LandingFAQ() {
             Часто задаваемые вопросы
           </h2>
           <p className="mt-4 text-[var(--text-muted)] leading-relaxed">
-            Кратко о методе, аудитории курса и требованиях к подготовке.
+            Практики, время в день, форматы участия и частые вопросы перед стартом.
           </p>
         </motion.div>
 
@@ -39,7 +39,7 @@ export function LandingFAQ() {
               initial={{ opacity: 0, y: 12 }}
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.06 + i * 0.04 }}
-              className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg)]"
+              className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)]"
             >
               <button
                 type="button"
@@ -64,7 +64,15 @@ export function LandingFAQ() {
                     transition={{ duration: 0.2 }}
                     className="overflow-hidden border-t border-[var(--border)]"
                   >
-                    <p className="p-4 leading-relaxed text-[var(--text-muted)]">{item.a}</p>
+                    <div className="space-y-3 p-4 leading-relaxed text-[var(--text-muted)]">
+                      {item.a
+                        .split(/\n\n+/)
+                        .map((p) => p.trim())
+                        .filter(Boolean)
+                        .map((para, j) => (
+                          <p key={j}>{para}</p>
+                        ))}
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>

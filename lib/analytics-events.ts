@@ -1,5 +1,5 @@
 /**
- * События GA4 (gtag) и цели Яндекс.Метрики — только в production.
+ * События аналитики: в layout Google Analytics не подключается; цели Яндекс.Метрики — после согласия на cookie.
  */
 
 export const ANALYTICS = {

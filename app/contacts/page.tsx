@@ -28,7 +28,7 @@ export default async function ContactsPage() {
   const pageUrl = `${base}/contacts`;
   const phone = settings.contact_phone?.trim() || '+7 (495) 123-45-67';
   const phoneHref = phone.replace(/\D/g, '').length >= 10 ? `tel:${phone.replace(/\D/g, '')}` : '#';
-  const notifyEmail = settings.resend_notify_email?.trim() || 'info@avaterra.pro';
+  const notifyEmail = settings.resend_notify_email?.trim() || 'support@avaterra.pro';
   const legal = settings.company_legal_address?.trim();
   const streetAddress = legal || 'ул. Здоровья, д. 10';
   const addressLocality = 'Москва';

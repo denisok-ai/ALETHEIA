@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import { prisma } from '@/lib/db';
-import { getSystemSettings, getEnvOverrides } from '@/lib/settings';
+import { getSystemSettings } from '@/lib/settings';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import {
+  buildContactConfirmationEmail,
+  buildContactNotificationEmail,
+} from '@/lib/email-templates';
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'contact', 5);
@@ -32,8 +36,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    let leadId: string | null = null;
     try {
-      await prisma.lead.create({
+      const lead = await prisma.lead.create({
         data: {
           name: String(name).slice(0, 200),
           phone: String(phone).slice(0, 50),
@@ -41,49 +46,46 @@ export async function POST(request: NextRequest) {
           message: message ? String(message).slice(0, 2000) : null,
         },
       });
+      leadId = String(lead.id);
     } catch (dbErr) {
       console.error('Lead insert:', dbErr);
     }
 
-    const overrides = await getEnvOverrides();
-    const apiKey = overrides.resend_api_key;
-    if (apiKey) {
-      const resend = new Resend(apiKey);
-      if (notifyEmail) {
-        try {
-          await resend.emails.send({
-            from: fromEmail,
-            to: notifyEmail,
-            subject: `AVATERRA: новая заявка от ${String(name).slice(0, 50)}`,
-            html: [
-              `<p><strong>Имя:</strong> ${escapeHtml(name)}</p>`,
-              `<p><strong>Телефон:</strong> ${escapeHtml(phone)}</p>`,
-              email ? `<p><strong>Email:</strong> ${escapeHtml(email)}</p>` : '',
-              message ? `<p><strong>Сообщение:</strong><br/>${escapeHtml(message)}</p>` : '',
-            ].join(''),
-          });
-        } catch (mailErr) {
-          console.error('Resend notify:', mailErr);
-        }
+    if (notifyEmail) {
+      const emailTemplate = buildContactNotificationEmail({
+        name: String(name).slice(0, 200),
+        phone: String(phone).slice(0, 50),
+        email: email ? String(email).slice(0, 200) : null,
+        message: message ? String(message).slice(0, 2000) : null,
+      });
+      const notifyResult = await sendTransactionalEmail({
+        from: fromEmail,
+        to: notifyEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        context: { module: 'contact', entityId: leadId },
+      });
+      if (!notifyResult.ok) {
+        console.error('Contact notify email failed:', notifyResult.error);
       }
-      // Письмо клиенту «Заявка принята» (если указан email)
-      const clientEmail = email ? String(email).trim() : '';
-      if (clientEmail && /@/.test(clientEmail)) {
-        try {
-          await resend.emails.send({
-            from: fromEmail,
-            to: clientEmail,
-            subject: 'AVATERRA: заявка принята',
-            html: [
-              `<p>Здравствуйте, ${escapeHtml(String(name).slice(0, 100))}!</p>`,
-              '<p>Мы получили вашу заявку и свяжемся с вами в ближайшее время.</p>',
-              '<p>Если у вас есть вопросы, вы можете написать нам или ознакомиться с форматами работы на сайте.</p>',
-              '<p>— Школа AVATERRA</p>',
-            ].join(''),
-          });
-        } catch (clientMailErr) {
-          console.error('Resend client confirm:', clientMailErr);
-        }
+    }
+
+    // Письмо клиенту «Заявка принята» (если указан email)
+    const clientEmail = email ? String(email).trim() : '';
+    if (clientEmail && /@/.test(clientEmail)) {
+      const emailTemplate = buildContactConfirmationEmail({
+        name: String(name).slice(0, 100),
+        systemTitle: settings.portal_title || 'AVATERRA',
+      });
+      const clientResult = await sendTransactionalEmail({
+        from: fromEmail,
+        to: clientEmail,
+        subject: emailTemplate.subject,
+        html: emailTemplate.html,
+        context: { module: 'contact', entityId: leadId },
+      });
+      if (!clientResult.ok) {
+        console.error('Contact client confirm email failed:', clientResult.error);
       }
     }
 
@@ -95,12 +97,4 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
 }

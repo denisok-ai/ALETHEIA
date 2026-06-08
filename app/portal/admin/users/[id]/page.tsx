@@ -36,7 +36,15 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
 
   const { id: userId } = await params;
 
-  const [user, courses, notificationLogs, mailingLogs, inAppNotifications] = await Promise.all([
+  const [
+    user,
+    courses,
+    notificationLogs,
+    mailingLogs,
+    inAppNotifications,
+    emailDeliveryLogs,
+    inboundMatchedMessages,
+  ] = await Promise.all([
     prisma.user.findUnique({
       where: { id: userId },
       include: {
@@ -66,6 +74,17 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: 25,
+    }),
+    prisma.emailDeliveryLog.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    }),
+    prisma.inboundMessage.findMany({
+      where: { matchedUserId: userId },
+      orderBy: { receivedAt: 'desc' },
+      take: 25,
+      include: { mailbox: { select: { label: true } } },
     }),
   ]);
 
@@ -144,6 +163,25 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
           content: n.content,
           isRead: n.isRead,
           createdAt: n.createdAt.toISOString(),
+        }))}
+        emailDeliveryLogs={emailDeliveryLogs.map((r) => ({
+          id: r.id,
+          module: r.module,
+          entityId: r.entityId,
+          recipient: r.recipient,
+          subject: r.subject,
+          status: r.status,
+          provider: r.provider,
+          createdAt: r.createdAt.toISOString(),
+          errorMessage: r.errorMessage,
+        }))}
+        inboundMatchedMessages={inboundMatchedMessages.map((m) => ({
+          id: m.id,
+          subject: m.subject,
+          fromAddress: m.fromAddress,
+          receivedAt: m.receivedAt.toISOString(),
+          snippet: m.snippet,
+          mailboxLabel: m.mailbox.label,
         }))}
       />
     </div>

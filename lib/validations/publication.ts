@@ -20,6 +20,9 @@ export const publicationUpdateSchema = publicationCreateSchema.partial();
 export const publicationCommentSchema = z.object({
   content: z.string().min(1, 'Текст комментария обязателен').max(5000),
   authorName: z.string().max(200).optional().nullable(), // для гостей
+  pdConsent: z
+    .boolean()
+    .refine((v) => v === true, { message: 'Необходимо согласие на обработку персональных данных' }),
 });
 
 export const publicationRateSchema = z.object({

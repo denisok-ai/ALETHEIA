@@ -1,9 +1,11 @@
 import Script from 'next/script';
 
 /**
- * Яндекс.Метрика — глобально на всех страницах (корневой layout).
- * ID по умолчанию из задачи; переопределение: `NEXT_PUBLIC_YANDEX_METRIKA_ID`.
- * В `next dev` не грузится (как GA/Clarity), на production-сборке — да.
+ * Устарело: Метрику подключает только AnalyticsConsentLoader после согласия на аналитические cookie.
+ * Компонент оставлен для истории; в app/layout.tsx не используется.
+ *
+ * ID по умолчанию из задачи; переопределение: NEXT_PUBLIC_YANDEX_METRIKA_ID.
+ * В next dev не грузится; на production-сборке — да (если импортировать).
  */
 export function YandexMetrika() {
   if (process.env.NODE_ENV !== 'production') return null;

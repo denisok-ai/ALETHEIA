@@ -10,6 +10,14 @@ export const NOTIFICATION_SET_EVENT_LABELS: Record<string, string> = {
   event_cancelled: 'Отмена мероприятия',
   event_completed: 'Завершение мероприятия',
   training_start: 'Наступление даты начала обучения слушателя на мероприятии',
+  gamification_level_up: 'Новый уровень заряда',
+  gamification_badge_unlocked: 'Новый бейдж',
+  system: 'Системное уведомление',
+  mailing: 'Рассылка',
+  support_ticket_created: 'Создание обращения в поддержку',
+  support_ticket_reply: 'Ответ по обращению в поддержку',
+  email_verification: 'Подтверждение email',
+  password_reset: 'Сброс пароля',
 };
 
 export function getNotificationSetEventLabel(eventType: string): string {

@@ -29,7 +29,7 @@ const navLinks: NavLink[] = [
   { href: '#pricing', label: 'Цены' },
   {
     href: '/course/navyki-myshechnogo-testirovaniya',
-    label: 'Курсы',
+    label: 'Курс',
     children: [
       {
         href: '/course/navyki-myshechnogo-testirovaniya',

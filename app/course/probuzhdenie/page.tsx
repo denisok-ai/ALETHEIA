@@ -130,6 +130,7 @@ export default async function ProbuzhdeniePage() {
                   src="/images/probuzhdenie/hero-berlinska-key.png"
                   alt="Образ курса «Пробуждение» — ключ, священная книга и свет"
                   fill
+                  unoptimized
                   className="object-cover object-center"
                   sizes="(min-width: 1024px) 400px, 90vw"
                   priority

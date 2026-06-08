@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
   ).replace(/\/$/, '');
   const courseUrl = absoluteCourseCheckoutUrl(siteBase);
   const supportEmail =
-    (systemSettings.resend_notify_email || 'info@avaterra.pro').trim() || 'info@avaterra.pro';
+    (systemSettings.resend_notify_email || 'support@avaterra.pro').trim() || 'support@avaterra.pro';
 
   const tutorLlmRow = await prisma.llmSetting.findUnique({
     where: { key: 'course-tutor' },

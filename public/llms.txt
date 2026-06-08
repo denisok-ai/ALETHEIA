@@ -10,7 +10,8 @@
 - https://avaterra.pro/faq — вопросы и ответы
 - https://avaterra.pro/contacts — контакты
 - https://avaterra.pro/oferta — публичная оферта
-- https://avaterra.pro/privacy — политика конфиденциальности
+- https://avaterra.pro/privacy — политика обработки персональных данных
+- https://avaterra.pro/pd-consent — согласие на обработку персональных данных
 - https://avaterra.pro/feed.xml — RSS
 
 ## Неиндексируемые / служебные зоны (для людей и авторизации)

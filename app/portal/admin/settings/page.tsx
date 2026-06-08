@@ -2,6 +2,7 @@
  * Admin: global settings — editable (DB) + env indicators, doc links, version.
  */
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { PageHeader } from '@/components/portal/PageHeader';
 
 export const metadata: Metadata = { title: 'Настройки' };
@@ -9,7 +10,7 @@ export const metadata: Metadata = { title: 'Настройки' };
 import { SettingsEnvIndicators } from './SettingsEnvIndicators';
 import { SettingsForms } from './SettingsForms';
 import { HealthStatus } from './HealthStatus';
-import packageJson from '../../../../package.json';
+import { APP_VERSION } from '@/lib/app-version';
 
 export default function AdminSettingsPage() {
   return (
@@ -25,13 +26,21 @@ export default function AdminSettingsPage() {
 
       <div className="portal-card p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">О системе</h2>
-        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Версия: {packageJson.version}</p>
+        <p className="mt-1 text-sm text-[var(--portal-text-muted)]">Версия: {APP_VERSION}</p>
         <p className="mt-0.5 text-xs text-[var(--portal-text-muted)]">Окружение: {process.env.NODE_ENV ?? 'development'}</p>
         <HealthStatus />
       </div>
 
       <div className="portal-card p-6">
-        <h2 className="text-base font-semibold text-[var(--portal-text)]">Состояние интеграций</h2>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h2 className="text-base font-semibold text-[var(--portal-text)]">Состояние интеграций</h2>
+          <Link
+            href="/signout"
+            className="text-sm font-medium text-[var(--portal-accent)] hover:underline shrink-0"
+          >
+            Выйти из портала
+          </Link>
+        </div>
         <SettingsEnvIndicators />
       </div>
 

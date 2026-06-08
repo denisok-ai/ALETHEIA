@@ -123,7 +123,13 @@ export function clearSettingsCache(): void {
 }
 
 const ENV_OVERRIDE_KEYS = [
+  'email_transport',
   'resend_api_key',
+  'smtp_host',
+  'smtp_port',
+  'smtp_user',
+  'smtp_password',
+  'smtp_secure',
   'telegram_bot_token',
   'telegram_webhook_secret',
   'cron_secret',
@@ -133,6 +139,7 @@ const ENV_OVERRIDE_KEYS = [
 ] as const;
 const ENV_OVERRIDE_SENSITIVE = new Set([
   'resend_api_key',
+  'smtp_password',
   'telegram_bot_token',
   'telegram_webhook_secret',
   'cron_secret',
@@ -143,7 +150,13 @@ let envOverridesCache: { at: number; data: Record<string, string> } | null = nul
 
 /** Имена переменных ОС для fallback, если в БД пусто (поэтапная миграция и аварийный запуск). */
 const ENV_OVERRIDE_PROCESS_NAMES: Record<(typeof ENV_OVERRIDE_KEYS)[number], string> = {
+  email_transport: 'EMAIL_TRANSPORT',
   resend_api_key: 'RESEND_API_KEY',
+  smtp_host: 'SMTP_HOST',
+  smtp_port: 'SMTP_PORT',
+  smtp_user: 'SMTP_USER',
+  smtp_password: 'SMTP_PASSWORD',
+  smtp_secure: 'SMTP_SECURE',
   telegram_bot_token: 'TELEGRAM_BOT_TOKEN',
   telegram_webhook_secret: 'TELEGRAM_WEBHOOK_SECRET',
   cron_secret: 'CRON_SECRET',
@@ -172,6 +185,11 @@ export async function getEnvOverrides(): Promise<Record<string, string>> {
         try {
           data[k] = decrypt(v);
         } catch {
+          if (k === 'smtp_password') {
+            console.warn(
+              '[settings] Не удалось расшифровать smtp_password в БД — проверьте NEXTAUTH_SECRET (он же ключ для encrypt/decrypt при сохранении). Письма через SMTP работать не будут.'
+            );
+          }
           // ignore invalid/missing decryption
         }
       } else {
@@ -237,19 +255,27 @@ const PAYMENT_EMAIL_KEYS = [
   'email_payment_generic_body',
 ] as const;
 
-const DEFAULT_PAYMENT_COURSE_SUBJECT = '{{courseTitle}} — доступ открыт';
+const DEFAULT_PAYMENT_COURSE_SUBJECT = 'Доступ к курсу открыт — {{courseTitle}}';
 const DEFAULT_PAYMENT_COURSE_BODY = `<p>Здравствуйте, {{userName}}!</p>
-<p>Спасибо за оплату — ваш доступ к материалам курса «{{courseTitle}}» открыт. Войдите в личный кабинет: <a href="{{portalUrl}}">{{portalUrl}}</a> → раздел «Мои курсы».</p>
-<p>Чтобы обучение принесло максимум пользы, рекомендуем проходить курс <strong>осознанно и последовательно</strong>: закладывайте регулярное время, следуйте структуре уроков, выполняйте практические задания. При технических вопросах пишите в поддержку: <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.</p>
-<p>Условия оплаты, доступа и возврата — на странице <a href="{{ofertaUrl}}#oplata">оферты</a> (разделы оплата, доступ, возврат). Сумма заказа: {{orderAmount}}.</p>
-<p>С уважением, команда {{portal_title}}</p>`;
+<p>Спасибо за оплату. Доступ к курсу <strong>«{{courseTitle}}»</strong> открыт.</p>
+<p>Следующий шаг: войдите в личный кабинет и откройте раздел <strong>«Мои курсы»</strong>: <a href="{{portalUrl}}">{{portalUrl}}</a>.</p>
+<p>Рекомендуем проходить материалы последовательно и выделять регулярное время на практику. Если возникнут вопросы по доступу или оплате, напишите в поддержку: <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.</p>
+<p style="font-size:14px;color:#5c5854;">Сумма заказа: {{orderAmount}}. Условия оплаты, доступа и возврата доступны в <a href="{{ofertaUrl}}#oplata">оферте</a>.</p>
+<p>С уважением,<br/>команда {{portal_title}}</p>`;
 
-const DEFAULT_PAYMENT_GENERIC_SUBJECT = 'Оплата получена';
+const DEFAULT_PAYMENT_GENERIC_SUBJECT = 'Оплата получена — {{portal_title}}';
 const DEFAULT_PAYMENT_GENERIC_BODY = `<p>Здравствуйте, {{userName}}!</p>
-<p>Оплата по заказу {{orderid}} получена ({{orderAmount}}). Спасибо!</p>
-<p>Личный кабинет: <a href="{{portalUrl}}">{{portalUrl}}</a>. Вопросы: <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.</p>
-<p>Условия — в <a href="{{ofertaUrl}}#oplata">оферте</a> (оплата, доступ, возврат).</p>
-<p>— {{portal_title}}</p>`;
+<p>Мы получили оплату по заказу <strong>{{orderid}}</strong>. Сумма: {{orderAmount}}.</p>
+<p>Если заказ связан с обучением, проверьте личный кабинет: <a href="{{portalUrl}}">{{portalUrl}}</a>. Доступы и материалы отображаются в разделе <strong>«Мои курсы»</strong>.</p>
+<p>Если доступ не появился или есть вопрос по оплате, напишите в поддержку: <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.</p>
+<p style="font-size:14px;color:#5c5854;">Условия оплаты, доступа и возврата доступны в <a href="{{ofertaUrl}}#oplata">оферте</a>.</p>
+<p>С уважением,<br/>команда {{portal_title}}</p>`;
+
+/** Пустая строка в БД не считается значением — подставляется fallback (как при отправке писем). */
+export function resolvePaymentEmailField(stored: string | undefined, fallback: string): string {
+  const s = stored?.trim();
+  return s ? stored! : fallback;
+}
 
 export interface PaymentEmailTemplates {
   courseSubject: string;
@@ -257,6 +283,14 @@ export interface PaymentEmailTemplates {
   genericSubject: string;
   genericBody: string;
 }
+
+/** Типовые тексты по умолчанию (если в БД нет или ключ пустой). Можно импортировать в скриптах upsert. */
+export const DEFAULT_PAYMENT_EMAIL_TEMPLATES: PaymentEmailTemplates = {
+  courseSubject: DEFAULT_PAYMENT_COURSE_SUBJECT,
+  courseBody: DEFAULT_PAYMENT_COURSE_BODY,
+  genericSubject: DEFAULT_PAYMENT_GENERIC_SUBJECT,
+  genericBody: DEFAULT_PAYMENT_GENERIC_BODY,
+};
 
 let paymentTemplatesCache: { at: number; data: PaymentEmailTemplates } | null = null;
 
@@ -271,11 +305,12 @@ export async function getPaymentEmailTemplates(): Promise<PaymentEmailTemplates>
   });
   const byKey: Record<string, string> = {};
   for (const r of rows) byKey[r.key] = r.value;
+
   const data: PaymentEmailTemplates = {
-    courseSubject: byKey.email_payment_course_subject ?? DEFAULT_PAYMENT_COURSE_SUBJECT,
-    courseBody: byKey.email_payment_course_body ?? DEFAULT_PAYMENT_COURSE_BODY,
-    genericSubject: byKey.email_payment_generic_subject ?? DEFAULT_PAYMENT_GENERIC_SUBJECT,
-    genericBody: byKey.email_payment_generic_body ?? DEFAULT_PAYMENT_GENERIC_BODY,
+    courseSubject: resolvePaymentEmailField(byKey.email_payment_course_subject, DEFAULT_PAYMENT_COURSE_SUBJECT),
+    courseBody: resolvePaymentEmailField(byKey.email_payment_course_body, DEFAULT_PAYMENT_COURSE_BODY),
+    genericSubject: resolvePaymentEmailField(byKey.email_payment_generic_subject, DEFAULT_PAYMENT_GENERIC_SUBJECT),
+    genericBody: resolvePaymentEmailField(byKey.email_payment_generic_body, DEFAULT_PAYMENT_GENERIC_BODY),
   };
   paymentTemplatesCache = { at: now, data };
   return data;

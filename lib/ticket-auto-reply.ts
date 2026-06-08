@@ -47,7 +47,7 @@ export async function generateAutoReply(subject: string, firstMessage: string): 
   ).replace(/\/$/, '');
   const courseUrl = absoluteCourseCheckoutUrl(siteBase);
   const supportEmail =
-    (systemSettings.resend_notify_email || 'info@avaterra.pro').trim() || 'info@avaterra.pro';
+    (systemSettings.resend_notify_email || 'support@avaterra.pro').trim() || 'support@avaterra.pro';
 
   let knowledgeSnippet = '';
   try {

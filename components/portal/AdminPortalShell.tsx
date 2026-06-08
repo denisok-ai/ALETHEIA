@@ -17,7 +17,6 @@ import {
   Bot,
   FileText,
   Settings,
-  Send,
   Mail,
   Bell,
   BarChart3,
@@ -71,8 +70,7 @@ const adminSections: NavSection[] = [
     sectionLabel: 'Коммуникации',
     items: [
       { href: '/portal/manager/tickets', label: 'Тикеты', icon: icon(MessageSquare) },
-      { href: '/portal/admin/mailings', label: 'Рассылки', icon: icon(Send) },
-      { href: '/portal/admin/communications', label: 'Коммуникации', icon: icon(Mail) },
+      { href: '/portal/admin/mail', label: 'Почта', icon: icon(Mail) },
       { href: '/portal/admin/notification-sets', label: 'Наборы уведомлений', icon: icon(Bell) },
       { href: '/portal/admin/notification-templates', label: 'Шаблоны уведомлений', icon: icon(LayoutTemplate) },
       { href: '/portal/admin/notification-logs', label: 'Журнал уведомлений', icon: icon(FileText) },

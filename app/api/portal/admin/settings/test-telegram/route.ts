@@ -4,6 +4,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { getEnvOverrides } from '@/lib/settings';
+import { telegramApiFetch } from '@/lib/telegram-fetch';
 
 export async function POST() {
   const auth = await requireAdminSession();
@@ -19,7 +20,7 @@ export async function POST() {
   }
 
   try {
-    const res = await fetch(`https://api.telegram.org/bot${token}/getMe`);
+    const res = await telegramApiFetch(`https://api.telegram.org/bot${token}/getMe`);
     const data = await res.json();
     if (!data.ok) {
       return NextResponse.json(

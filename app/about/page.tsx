@@ -65,7 +65,7 @@ export default async function AboutPage() {
             </div>
           </div>
           <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-plum">{ABOUT_MASTER.eyebrow}</p>
+            <p className="text-sm font-semibold leading-snug text-plum">{ABOUT_MASTER.eyebrow}</p>
             <h1 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">
               {ABOUT_MASTER.name}
             </h1>

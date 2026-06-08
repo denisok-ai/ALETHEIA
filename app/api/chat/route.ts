@@ -50,7 +50,7 @@ export async function POST(request: NextRequest) {
     /** {{COURSE_URL}} — URL оформления курса (как CTA на лендинге). */
     const courseUrl = absoluteCourseCheckoutUrl(siteBase);
     const supportEmail =
-      (systemSettings.resend_notify_email || 'info@avaterra.pro').trim() || 'info@avaterra.pro';
+      (systemSettings.resend_notify_email || 'support@avaterra.pro').trim() || 'support@avaterra.pro';
 
     const knowledgeBase = await getKnowledgeBase();
     if (!knowledgeBase.trim()) {

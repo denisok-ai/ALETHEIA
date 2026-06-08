@@ -3,7 +3,7 @@
  * запись в ленту (Notification), отправка email, журнал (NotificationLog).
  */
 import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
+import { sendTransactionalEmail } from '@/lib/email-service';
 import {
   wrapEmailHtml,
   renderNotificationTemplate,
@@ -13,9 +13,18 @@ import { getSystemSettings } from '@/lib/settings';
 
 const SYSTEM_TITLE = 'AVATERRA';
 
+/**
+ * Делит displayName на «имя» и «фамилия» по пробелам. Если значение — email
+ * (или одиночный токен без пробелов, похожий на логин), возвращает пустые строки,
+ * чтобы шаблон выводил нейтральное «Здравствуйте!» без локальной части почты.
+ */
 function splitDisplayName(displayName: string | null): { recfirstname: string; reclastname: string } {
-  if (!displayName?.trim()) return { recfirstname: '', reclastname: '' };
-  const parts = displayName.trim().split(/\s+/);
+  const raw = displayName?.trim() ?? '';
+  if (!raw || /@/.test(raw)) return { recfirstname: '', reclastname: '' };
+  const parts = raw.split(/\s+/);
+  if (parts.length === 1 && /^[a-z0-9_.+-]+$/i.test(parts[0]!)) {
+    return { recfirstname: '', reclastname: '' };
+  }
   return {
     recfirstname: parts[0] ?? '',
     reclastname: parts.slice(1).join(' ') ?? '',
@@ -93,8 +102,11 @@ export async function triggerNotification(params: TriggerNotificationParams): Pr
 
   const contentJson = JSON.stringify({ subject, body });
 
+  /** Запись в ленте ЛК — только для internal/both; для связи с EmailDeliveryLog при email. */
+  let notificationRecord: { id: string } | null = null;
+
   if (deliveryType === 'internal' || deliveryType === 'both') {
-    await prisma.notification.create({
+    notificationRecord = await prisma.notification.create({
       data: {
         userId,
         type: eventType,
@@ -114,12 +126,20 @@ export async function triggerNotification(params: TriggerNotificationParams): Pr
   }
 
   if (deliveryType === 'email' || deliveryType === 'both') {
-    const email = user.profile?.email ?? user.email;
-    if (email) {
+    const emailAddr = user.profile?.email ?? user.email;
+    if (emailAddr) {
       const html = wrapEmailHtml(body, { title: subject });
       const settings = await getSystemSettings();
-      await sendEmail(email, subject, html, {
+      await sendTransactionalEmail({
+        to: emailAddr,
+        subject,
+        html,
         from: settings?.resend_from || undefined,
+        context: {
+          module: 'notifications',
+          userId,
+          entityId: notificationRecord?.id ?? null,
+        },
       });
       await prisma.notificationLog.create({
         data: {

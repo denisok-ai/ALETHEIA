@@ -1,16 +1,27 @@
 /**
- * Admin: send message by template to recipients (Resend for email, Telegram API for telegram).
+ * Admin: send message by template or ad-hoc body to recipients (Resend / Telegram).
+ * При большом числе получателей — фоновая отправка + taskId для мониторинга.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { nanoid } from 'nanoid';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-import { sendEmail } from '@/lib/email';
-import { wrapEmailHtml } from '@/lib/email-templates';
-import { getSystemSettings } from '@/lib/settings';
-import { sendTelegramMessage } from '@/lib/telegram';
-import { renderTemplate } from '@/lib/email';
+import {
+  executeCommsBatch,
+  loadCommsAttachmentsFromPaths,
+  resolveCommsRecipients,
+  type CommsMessageContent,
+} from '@/lib/comms-batch';
 import { commsSendSchema } from '@/lib/validations/comms';
-import { convert } from 'html-to-text';
+import {
+  registerTask,
+  updateTaskProgress,
+  removeTask,
+} from '@/lib/background-tasks';
+import type { EmailAttachment } from '@/lib/email';
+
+/** Порог: больше — ответ сразу с taskId, отправка в фоне (долгий HTTP не блокируется). */
+const COMMS_ASYNC_RECIPIENT_THRESHOLD = 25;
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminSession();
@@ -28,136 +39,81 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Validation failed', issues: parsed.error.issues }, { status: 400 });
   }
 
-  const template = await prisma.commsTemplate.findUnique({
-    where: { id: parsed.data.templateId },
-  });
-  if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
-
-  const settings = await getSystemSettings();
-
-  const whereProfile = { status: 'active' as const };
-  if (parsed.data.recipientType === 'role' && parsed.data.role) {
-    (whereProfile as { role?: string }).role = parsed.data.role;
-  }
-
-  let profiles: { userId: string; email: string | null; telegramId: number | null; displayName: string | null }[];
-  if (parsed.data.recipientType === 'groups') {
-    if (!parsed.data.groupIds?.length) {
-      profiles = [];
-    } else {
-      const ug = await prisma.userGroup.findMany({
-        where: { groupId: { in: parsed.data.groupIds } },
-        select: { userId: true },
-        distinct: ['userId'],
-      });
-      const userIds = ug.map((x) => x.userId);
-      if (userIds.length === 0) {
-        profiles = [];
-      } else {
-        const list = await prisma.profile.findMany({
-          where: { userId: { in: userIds }, status: 'active' },
-          include: { user: { select: { email: true } } },
-        });
-        profiles = list.map((p) => ({
-          userId: p.userId,
-          email: p.email ?? p.user.email ?? null,
-          telegramId: p.telegramId,
-          displayName: p.displayName,
-        }));
-      }
-    }
-  } else if (parsed.data.recipientType === 'list' && parsed.data.recipientIds?.length) {
-    const list = await prisma.profile.findMany({
-      where: { userId: { in: parsed.data.recipientIds } },
-      include: { user: { select: { email: true } } },
+  let content: CommsMessageContent;
+  if (parsed.data.templateId) {
+    const template = await prisma.commsTemplate.findUnique({
+      where: { id: parsed.data.templateId },
     });
-    profiles = list.map((p) => ({
-      userId: p.userId,
-      email: p.email ?? p.user.email ?? null,
-      telegramId: p.telegramId,
-      displayName: p.displayName,
-    }));
-  } else {
-    const list = await prisma.profile.findMany({
-      where: whereProfile,
-      include: { user: { select: { email: true } } },
-    });
-    profiles = list.map((p) => ({
-      userId: p.userId,
-      email: p.email ?? p.user.email ?? null,
-      telegramId: p.telegramId,
-      displayName: p.displayName,
-    }));
-  }
-
-  if (parsed.data.excludeGroupIds?.length) {
-    const excludeUg = await prisma.userGroup.findMany({
-      where: { groupId: { in: parsed.data.excludeGroupIds } },
-      select: { userId: true },
-      distinct: ['userId'],
-    });
-    const excludeSet = new Set(excludeUg.map((x) => x.userId));
-    profiles = profiles.filter((p) => !excludeSet.has(p.userId));
-  }
-
-  const channel = template.channel;
-  const subject = template.subject ?? '';
-  const htmlBody = template.htmlBody ?? '';
-  const varsJson = template.variables ?? '[]';
-  let vars: Record<string, string> = {};
-  try {
-    const arr = JSON.parse(varsJson) as string[];
-    arr.forEach((k) => { vars[k] = ''; });
-  } catch {
-    // no vars
-  }
-
-  const results: { recipient: string; status: string; id?: string }[] = [];
-  let sent = 0;
-  let failed = 0;
-
-  for (const p of profiles) {
-    const recipient = channel === 'email' ? (p.email ?? '') : (p.telegramId ? String(p.telegramId) : '');
-    if (!recipient) {
-      results.push({ recipient: p.userId, status: 'skipped' });
-      failed++;
-      continue;
-    }
-
-    const templateVars = {
-      ...vars,
-      email: p.email ?? '',
-      userId: p.userId,
-      name: p.displayName ?? '',
-      displayName: p.displayName ?? '',
+    if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+    content = {
+      templateId: template.id,
+      channel: template.channel,
+      subject: template.subject ?? '',
+      htmlBody: template.htmlBody ?? '',
+      variablesJson: template.variables ?? '[]',
     };
-    const renderedHtml = renderTemplate(htmlBody, templateVars);
-    const renderedText = convert(renderedHtml, { wordwrap: 200 });
-
-    let ok = false;
-    if (channel === 'email') {
-      const wrappedHtml = wrapEmailHtml(renderedHtml, { title: subject });
-      ok = await sendEmail(recipient, subject, wrappedHtml, { from: settings.resend_from || undefined });
-    } else {
-      ok = await sendTelegramMessage(recipient, renderedText);
-    }
-
-    const status = ok ? 'sent' : 'failed';
-    if (ok) sent++; else failed++;
-
-    await prisma.commsSend.create({
-      data: {
-        templateId: template.id,
-        channel: template.channel,
-        recipient: channel === 'email' ? recipient : `tg:${recipient}`,
-        subject: channel === 'email' ? subject : null,
-        status,
-        sentBy: auth.userId,
-      },
-    });
-
-    results.push({ recipient, status });
+  } else {
+    content = {
+      templateId: null,
+      channel: parsed.data.channel!,
+      subject: parsed.data.subject?.trim() ?? '',
+      htmlBody: parsed.data.htmlBody?.trim() ?? '',
+      variablesJson: '[]',
+    };
   }
 
-  return NextResponse.json({ sent, failed, results });
+  const profiles = await resolveCommsRecipients(parsed.data);
+
+  let attachments: EmailAttachment[] = [];
+  if (parsed.data.attachmentPaths?.length && content.channel === 'email') {
+    const loaded = await loadCommsAttachmentsFromPaths(parsed.data.attachmentPaths);
+    if (!loaded.ok) {
+      return NextResponse.json({ error: loaded.error }, { status: 400 });
+    }
+    attachments = loaded.attachments;
+  } else if (parsed.data.attachmentPaths?.length && content.channel === 'telegram') {
+    return NextResponse.json({ error: 'Вложения поддерживаются только для канала email' }, { status: 400 });
+  }
+
+  const sentByUserId = auth.userId;
+
+  if (profiles.length >= COMMS_ASYNC_RECIPIENT_THRESHOLD) {
+    const taskId = nanoid();
+    registerTask(taskId, {
+      name: `Коммуникации: ${profiles.length} получателей`,
+      initiatorId: sentByUserId,
+    });
+
+    void (async () => {
+      try {
+        await executeCommsBatch({
+          profiles,
+          content,
+          sentByUserId,
+          attachments,
+          onProgress: (done, total) => {
+            if (total > 0) updateTaskProgress(taskId, Math.round((done / total) * 100));
+          },
+        });
+      } finally {
+        removeTask(taskId);
+      }
+    })();
+
+    return NextResponse.json({
+      async: true,
+      taskId,
+      recipientCount: profiles.length,
+      message: 'Отправка выполняется в фоне. Прогресс: Портал → Мониторинг → Выполняемые задачи.',
+    });
+  }
+
+  const { sent, failed, results } = await executeCommsBatch({
+    profiles,
+    content,
+    sentByUserId,
+    attachments,
+  });
+
+  return NextResponse.json({ sent, failed, results, async: false });
 }

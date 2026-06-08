@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { getPortalHomeForRole } from '@/lib/portal-role-home';
 
@@ -36,7 +37,18 @@ function LoginForm() {
         redirect: false,
       });
       if (res?.error) {
-        setError(res.error === 'CredentialsSignin' ? 'Неверный email или пароль' : res.error);
+        const code = res.error;
+        if (code === 'CredentialsSignin') {
+          setError('Неверный email или пароль');
+        } else if (code === 'Configuration') {
+          setError('Ошибка конфигурации входа на сервере. Напишите администратору.');
+        } else if (code === 'AccessDenied') {
+          setError('Доступ запрещён');
+        } else {
+          setError(
+            `Не удалось войти (${code}). Если сайт недавно обновляли — обновите страницу полностью (Ctrl+F5 или «Жёсткое обновление»).`
+          );
+        }
         setLoading(false);
         return;
       }
@@ -53,7 +65,9 @@ function LoginForm() {
       await new Promise((r) => setTimeout(r, 100));
       window.location.href = target;
     } catch {
-      setError('Ошибка входа');
+      setError(
+        'Сеть или сервер недоступны. Проверьте интернет и попробуйте снова; после обновления сайта сделайте полное обновление страницы (Ctrl+F5).'
+      );
     }
     setLoading(false);
   }
@@ -91,9 +105,8 @@ function LoginForm() {
               Забыли пароль?
             </Link>
           </div>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}

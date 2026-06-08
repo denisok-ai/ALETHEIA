@@ -4,11 +4,12 @@
  */
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { APP_VERSION } from '@/lib/app-version';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
-  const version = process.env.NEXT_PUBLIC_APP_VERSION ?? null;
+  const version = APP_VERSION;
   const commit =
     process.env.NEXT_PUBLIC_BUILD_COMMIT ||
     process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||

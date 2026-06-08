@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
-import { ArrowLeft, Pencil, Sparkles, UserPlus } from 'lucide-react';
+import { ArrowLeft, Pencil, Sparkles, UserPlus, Mail } from 'lucide-react';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
@@ -33,7 +33,25 @@ export type CrmLeadDetail = {
   updated_at: string;
 };
 
-export function CrmLeadDetailClient({ initialLead }: { initialLead: CrmLeadDetail }) {
+export type LeadEmailDeliveryLogItem = {
+  id: string;
+  module: string;
+  entityId: string | null;
+  recipient: string;
+  subject: string | null;
+  status: string;
+  provider: string;
+  createdAt: string;
+  errorMessage: string | null;
+};
+
+export function CrmLeadDetailClient({
+  initialLead,
+  emailDeliveryLogs = [],
+}: {
+  initialLead: CrmLeadDetail;
+  emailDeliveryLogs?: LeadEmailDeliveryLogItem[];
+}) {
   const router = useRouter();
   const [lead, setLead] = useState(initialLead);
   const [notes, setNotes] = useState(lead.notes ?? '');
@@ -237,6 +255,42 @@ export function CrmLeadDetailClient({ initialLead }: { initialLead: CrmLeadDetai
           )}
         </dl>
       </Card>
+
+      {lead.email && (
+        <Card title="Исходящая почта по этому email" description="Общий журнал доставки (EmailDeliveryLog) для адреса лида — до и после конвертации в пользователя">
+          {emailDeliveryLogs.length === 0 ? (
+            <p className="text-sm text-[var(--portal-text-muted)]">Записей журнала для этого адреса пока нет.</p>
+          ) : (
+            <ul className="space-y-2 text-sm">
+              {emailDeliveryLogs.map((row) => (
+                <li key={row.id} className="border-b border-[#E2E8F0]/80 pb-2 last:border-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Mail className="h-4 w-4 shrink-0 text-[var(--portal-text-muted)]" />
+                    <span className="text-xs text-[var(--portal-text-muted)]">
+                      {format(new Date(row.createdAt), 'dd.MM.yyyy HH:mm')}
+                    </span>
+                    <span className="rounded bg-[#F1F5F9] px-1.5 py-0.5 text-xs">{row.module}</span>
+                    <span className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">{row.provider}</span>
+                    <span
+                      className={
+                        row.status === 'sent'
+                          ? 'rounded bg-emerald-50 px-1.5 py-0.5 text-xs text-emerald-800'
+                          : row.status === 'skipped'
+                            ? 'rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-900'
+                            : 'rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-800'
+                      }
+                    >
+                      {row.status}
+                    </span>
+                  </div>
+                  <p className="mt-1 font-medium line-clamp-2">{row.subject ?? '—'}</p>
+                  {row.errorMessage ? <p className="mt-1 text-xs text-red-700">{row.errorMessage}</p> : null}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+      )}
 
       <Card title="Источник" description="Откуда пришёл лид (форма, лендинг, ручной ввод)">
         <div className="flex flex-wrap items-end gap-2">

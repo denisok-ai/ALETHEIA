@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Inter, Lora } from 'next/font/google';
 import nextDynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
@@ -8,10 +9,9 @@ import { FooterOnPublicOnly } from '@/components/FooterOnPublicOnly';
 import { ChunkLoadRecovery } from '@/components/ChunkLoadRecovery';
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import { getSystemSettings } from '@/lib/settings';
-import { AnalyticsScripts } from '@/components/AnalyticsScripts';
-import { GoogleTagInHead } from '@/components/GoogleTagInHead';
-import { YandexMetrika } from '@/components/YandexMetrika';
 import { JsonLdOrganization } from '@/components/JsonLdOrganization';
+import { CookieConsentBanner } from '@/components/CookieConsentBanner';
+import { AnalyticsConsentLoader } from '@/components/AnalyticsConsentLoader';
 import { JsonLdWebSite } from '@/components/JsonLdWebSite';
 import { RootMain } from '@/components/RootMain';
 import { normalizeSiteUrl } from '@/lib/site-url';
@@ -25,9 +25,20 @@ const ChatBot = nextDynamic(
   { ssr: false }
 );
 
-/** Lora (заголовки) + Inter (тело/UI) — ближе к визуалу референса Netlify, полная кириллица; см. docs/design-notes-typography.md */
-const GOOGLE_FONTS_STYLESHEET =
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap';
+/** Lora + Inter через next/font — без ручного `<head>` (иначе в App Router часто «сыро» без Tailwind/chunk CSS). Кириллица: subsets latin + cyrillic. */
+const lora = Lora({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-lora',
+  display: 'swap',
+});
+const inter = Inter({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['400', '500', '600', '700'],
+  variable: '--font-inter',
+  display: 'swap',
+});
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -116,18 +127,12 @@ export default async function RootLayout({
   const settings = await getSystemSettings();
   const siteUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
   return (
-    <html lang="ru">
-      <head>
-        <GoogleTagInHead />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href={GOOGLE_FONTS_STYLESHEET} rel="stylesheet" />
-      </head>
+    <html lang="ru" className={`${lora.variable} ${inter.variable}`}>
       <body className="min-h-screen font-body antialiased">
         <JsonLdOrganization siteUrl={siteUrl} phone={settings.contact_phone} />
         <JsonLdWebSite siteUrl={siteUrl} name={BRAND_SITE_NAME} />
-        <YandexMetrika />
-        <AnalyticsScripts />
+        <AnalyticsConsentLoader />
+        <CookieConsentBanner />
         <ChunkLoadRecovery />
         <SessionProvider>
           <Suspense fallback={<div className="min-h-[100dvh]" aria-hidden />}>

@@ -107,54 +107,64 @@ export async function createDomainMailbox(params: {
 
   const passwordEnc = encrypt(password);
 
-  const inbound = await prisma.inboundMailbox.create({
-    data: {
-      label: params.label.trim() || email,
-      imapHost: getMailImapHost(),
-      imapPort: getMailImapPort(),
-      imapTls: true,
-      username: email,
-      passwordEnc,
-      folder: 'INBOX',
-      enabled: true,
-      smtpHost: getMailSmtpHost(),
-      smtpPort: getMailSmtpPort(),
-      smtpTls: true,
-    },
-  });
-
   try {
-    const dm = await prisma.domainMailbox.create({
+    const inbound = await prisma.inboundMailbox.create({
       data: {
-        email,
-        localPart,
-        domain,
-        label: params.label.trim() || localPart,
-        status: 'active',
+        label: params.label.trim() || email,
+        imapHost: getMailImapHost(),
+        imapPort: getMailImapPort(),
+        imapTls: true,
+        username: email,
         passwordEnc,
-        provisioningKind: mode === 'mailcow' ? 'mailcow' : 'manual',
-        provisioningRef: provisioningRef ?? null,
-        inboundMailboxId: inbound.id,
-        createdById: params.createdById,
+        folder: 'INBOX',
+        enabled: true,
+        smtpHost: getMailSmtpHost(),
+        smtpPort: getMailSmtpPort(),
+        smtpTls: true,
       },
     });
 
-    return {
-      ok: true,
-      domainMailboxId: dm.id,
-      email,
-      inboundMailboxId: inbound.id,
-      plainPassword: password,
-      mailcowSummary,
-    };
+    try {
+      const dm = await prisma.domainMailbox.create({
+        data: {
+          email,
+          localPart,
+          domain,
+          label: params.label.trim() || localPart,
+          status: 'active',
+          passwordEnc,
+          provisioningKind: mode === 'mailcow' ? 'mailcow' : 'manual',
+          provisioningRef: provisioningRef ?? null,
+          inboundMailboxId: inbound.id,
+          createdById: params.createdById,
+        },
+      });
+
+      return {
+        ok: true,
+        domainMailboxId: dm.id,
+        email,
+        inboundMailboxId: inbound.id,
+        plainPassword: password,
+        mailcowSummary,
+      };
+    } catch (e) {
+      await prisma.inboundMailbox.delete({ where: { id: inbound.id } }).catch(() => {});
+      if (mode === 'mailcow') {
+        await mailcowDeleteMailbox(email).catch(() => {});
+      }
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : 'Не удалось сохранить ящик в БД',
+      };
+    }
   } catch (e) {
-    await prisma.inboundMailbox.delete({ where: { id: inbound.id } }).catch(() => {});
     if (mode === 'mailcow') {
-      await mailcowDeleteMailbox(email);
+      await mailcowDeleteMailbox(email).catch(() => {});
     }
     return {
       ok: false,
-      error: e instanceof Error ? e.message : 'Не удалось сохранить ящик в БД',
+      error: e instanceof Error ? e.message : 'Не удалось сохранить связанную запись в БД',
     };
   }
 }
@@ -218,27 +228,53 @@ export async function changeDomainMailboxPassword(params: {
   if (!dm) return { ok: false, error: 'Не найдено' };
 
   const mode = getMailProvisioningMode();
+  const oldEnc = dm.passwordEnc;
+  const passwordEnc = encrypt(newPassword);
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.domainMailbox.update({
+        where: { id: dm.id },
+        data: { passwordEnc },
+      });
+      if (dm.inboundMailboxId) {
+        await tx.inboundMailbox.update({
+          where: { id: dm.inboundMailboxId },
+          data: { passwordEnc },
+        });
+      }
+    });
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Не удалось обновить пароль в базе',
+    };
+  }
+
   if (mode === 'mailcow') {
     const mc = await mailcowEditMailboxPassword(dm.email, newPassword);
     if (!mc.ok) {
+      try {
+        await prisma.$transaction(async (tx) => {
+          await tx.domainMailbox.update({
+            where: { id: dm.id },
+            data: { passwordEnc: oldEnc },
+          });
+          if (dm.inboundMailboxId) {
+            await tx.inboundMailbox.update({
+              where: { id: dm.inboundMailboxId },
+              data: { passwordEnc: oldEnc },
+            });
+          }
+        });
+      } catch (revertErr) {
+        console.error('[changeDomainMailboxPassword] DB revert after Mailcow failure failed', revertErr);
+      }
       return {
         ok: false,
         error: mc.error + (mc.raw ? ` — ${JSON.stringify(mc.raw).slice(0, 400)}` : ''),
       };
     }
-  }
-
-  const passwordEnc = encrypt(newPassword);
-  await prisma.domainMailbox.update({
-    where: { id: dm.id },
-    data: { passwordEnc },
-  });
-
-  if (dm.inboundMailboxId) {
-    await prisma.inboundMailbox.update({
-      where: { id: dm.inboundMailboxId },
-      data: { passwordEnc },
-    });
   }
 
   return { ok: true };
@@ -251,17 +287,33 @@ export async function deleteDomainMailbox(domainMailboxId: string): Promise<{ ok
   });
   if (!dm) return { ok: false, error: 'Не найдено' };
 
+  const inboundId = dm.inboundMailboxId;
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.domainMailbox.delete({ where: { id: domainMailboxId } });
+      if (inboundId) {
+        await tx.inboundMailbox.delete({ where: { id: inboundId } });
+      }
+    });
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : 'Не удалось удалить запись из базы',
+    };
+  }
+
   const mode = getMailProvisioningMode();
   if (mode === 'mailcow') {
     const del = await mailcowDeleteMailbox(dm.email);
     if (!del.ok) {
-      return { ok: false, error: del.error };
+      // Записи в БД уже удалены — не подменяем ok:true на false, иначе клиент решит, что удаления не было.
+      console.error(
+        '[deleteDomainMailbox] Mailcow delete failed after DB removal; remove mailbox manually in Mailcow:',
+        dm.email,
+        del.error
+      );
     }
-  }
-
-  await prisma.domainMailbox.delete({ where: { id: domainMailboxId } });
-  if (dm.inboundMailboxId) {
-    await prisma.inboundMailbox.delete({ where: { id: dm.inboundMailboxId } }).catch(() => {});
   }
 
   return { ok: true };

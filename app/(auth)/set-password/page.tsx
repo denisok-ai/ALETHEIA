@@ -10,6 +10,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label } from '@/components/ui/label';
 
 function SetPasswordForm() {
@@ -86,9 +87,8 @@ function SetPasswordForm() {
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <div>
           <Label htmlFor="password">Новый пароль *</Label>
-          <Input
+          <PasswordInput
             id="password"
-            type="password"
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -100,9 +100,10 @@ function SetPasswordForm() {
         </div>
         <div>
           <Label htmlFor="confirm">Повторите пароль *</Label>
-          <Input
+          <PasswordInput
             id="confirm"
-            type="password"
+            ariaLabelShow="Показать пароль подтверждения"
+            ariaLabelHide="Скрыть пароль подтверждения"
             autoComplete="new-password"
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}

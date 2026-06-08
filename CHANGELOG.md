@@ -5,9 +5,51 @@ All notable changes to the AVATERRA project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.5.2] - 2026-05-04
+
+### Fixed
+
+- **Доменные ящики (Mailcow + БД):** атомарные обновления пароля в Prisma до вызова Mailcow с откатом при сбое API; при создании ящика — откат Mailcow, если не создалась запись `InboundMailbox`; при удалении — сначала транзакция в БД, затем Mailcow (раньше возможны «осиротевшие» записи или рассинхрон пароля).
+
+### Changed
+
+- **Герой (главная):** левая панель коллажа — `object-contain`, чтобы кадр руки не обрезался контейнером.
+
+## [3.5.1] - 2026-05-03
+
+### Fixed
+
+- **Чат-консультант (LLM):** `getLlmApiKey` при ошибке расшифровки ключа из «Настройки AI» снова проверяет inline-ключ, затем резерв через `getEnvOverrides()` — ключ DeepSeek/OpenAI из блока «Переменные окружения» в админке или из `DEEPSEEK_API_KEY` / `OPENAI_API_KEY` в окружении (ранее возвращался `null` и `/api/chat` отвечал 503 при битой расшифровке).
+- **Админка — состояние интеграций:** показатель **«Чат консультанта (LLM ключ)»** (`CHATBOT_LLM_READY`) совпадает с тем, получит ли `/api/chat` ключ (вместо отдельной проверки только `deepseek_api_key` в overrides).
 
 ### Added
+
+- `scripts/prod-chat-llm-diagnose-remote.sh` — одна команда по SSH: HTTP-код `POST /api/chat`, метаданные SQLite по `LlmSetting`/`LlmApiKey` и счётчики строк в `.env` (без вывода секретов).
+
+## [3.5.0] - 2026-04-29
+
+### Added
+- **Центр «Почта» в админке:** маршрут `/portal/admin/mail` с вкладками (обзор доставки и журналов, доставка писем, почтовые ящики домена, входящие IMAP, ссылки на коммуникации и рассылки, объединённые журналы). Единый пункт в сайдбаре и палитре ⌘K; редиректы со старых URL `/portal/admin/domain-mailboxes` и `/portal/admin/inmail`.
+- **Компонент `OutboundMailSettingsBlock`:** общая форма доставки (Resend/SMTP) для «Настройки» и вкладки «Доставка»; серверная сборка данных обзора в `lib/mail-center-server.ts`.
+- **`scripts/setup-mailcow-docker-vps.sh`:** черновая установка Docker Engine и клонирование Mailcow на VPS (полная настройка — `generate_config.sh`, DNS, ACME по [Mail-Server.md](docs/Mail-Server.md)).
+
+### Changed
+- Версия продукта **3.5.0**; обновлены [Production-Server.md](docs/Production-Server.md) и [Mail-Server.md](docs/Mail-Server.md) — разделение HTTPS сайта (`avaterra.pro`) и HTTPS интерфейса почты (`mail.*`), рекомендации по TLS для Mailcow.
+
+### Notes (деплой)
+- Приложение на прод без `git pull` на сервере: **`npm run deploy:rsync`** с рабочего ПК (WSL), см. [Production-Server.md §7 вариант B](docs/Production-Server.md). Полный сброс SQLite на проде (если данные не нужны): **`RESET_AND_SEED=1 npm run deploy:rsync`**.
+
+---
+
+## [Unreleased]
+
+### Fixed
+
+- **Деплой (systemd):** после rsync вызывается `systemctl restart aletheia`, а не `start` — иначе при уже запущенном юните процесс Node не перезапускался, в памяти оставался старый `buildManifest`, а новые `/_next/static/chunks/*.js` отдавали **404** и ломался админ-дашборд (ChunkLoadError / MIME text/html).
+
+### Added
+- **Соответствие 152-ФЗ / РКН (снижение рисков):** политика обработки ПДн на `/privacy`; отдельное согласие `/pd-consent`; компонент `PersonalDataConsentCheckbox` на регистрации, в оплате и в комментариях к новостям; серверная проверка `pdConsent` и запись в журнал `ConsentLog` (Prisma, миграция); cookie-баннер и загрузка Яндекс.Метрики только после выбора «аналитика» (`AnalyticsConsentLoader`, без webvisor); Google Tag и Clarity в layout не подключаются; публичные реквизиты оператора — переменные `NEXT_PUBLIC_PDN_*` (см. `.env.example`); чеклист для уведомления РКН — `docs/Personal-Data-RKN-Checklist.md`.
+- **Telegram API:** исходящие запросы (`sendMessage`, тест токена) через `lib/telegram-fetch.ts` с опциональным `HTTPS_PROXY` / `HTTP_PROXY` (зависимость `undici`, `ProxyAgent`) — обход блокировки `api.telegram.org` с VPS. Документация: `docs/Support.md`, `docs/Env-Config.md`; комментарий в `.env.example`.
 - **План доработок портала (Portal improvements):** Безопасность: фильтр `revokedAt: null` в списке и API скачивания сертификатов; проверка роли (defense-in-depth) в страницах менеджера (verifications, tickets, dashboard); проверка enrollment в verifications/upload; документация media-access. UX: исправлены ссылки на тикеты в UserDetailTabs; ссылки на пользователей в VerificationsList по роли (manager→/portal/manager/users, admin→/portal/admin/users); убраны невалидные Tailwind-классы в PortalHeader; удалено дублирование мобильного бургер-меню; column visibility в UsersTable; актуальное имя менеджера в TicketThread при смене. Навигация: ссылки на пользователей в таблице тикетов; ссылки на курсы и сертификаты в карточке пользователя менеджера; замена хардкода цветов на CSS-переменные; loading.tsx для SCORM player; Promise.all в profile page; реальный счётчик непрочитанных уведомлений в header; пустое состояние пагинации «Нет записей»; локализованные роли в UsersTable (Студент, Менеджер, Администратор).
 - **Тикеты: автоответ при создании и база знаний из обращений.** В Настройках AI — блок «Автоответ при создании обращения» (флаг `ticket_auto_reply_enabled`): при создании тикета с текстом LLM формирует краткий ответ по базе знаний; при «уверенном» ответе (без дискалеймеров) он сохраняется как первое сообщение от поддержки и отправляется студенту на email. Для админа на странице тикета при статусе «Решён»/«Закрыт» — блок «Добавить в базу типовых ответов» (тема + вопрос + ответ); API `POST /api/portal/admin/ai-settings/knowledge-base/append`. Файлы: lib/ticket-auto-reply.ts, TicketAutoReplyBlock, TicketThread (canAddToKb), GET/PATCH ticket-auto-reply.
 - **Верификация: загрузка видео студентом.** API `POST /api/portal/verifications/upload` (видео до 200 МБ в public/uploads/verifications/). На странице «Задания на проверку» и в блоке верификации на странице курса — кнопка «Загрузить видео»; форма редактирования задания (pending) поддерживает URL вида `/uploads/...`. Учёт уроков с обязательной верификацией при выдаче сертификатов (auto + массовая).
@@ -32,6 +74,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **SEO:** метаданные (title, description, openGraph) для /oferta и /privacy; app/sitemap.ts и app/robots.ts (sitemap.xml, robots.txt с disallow для /portal/, /api/, /auth/).
 - **Редизайн админки (план docs/Admin-Redesign-Plan.md):** PageHeader и единая навигация; компонент Card, табы в карточке пользователя; колонка №, пагинация +5/+10/+50, поиск «Найти в списке», ConfirmDialog при конвертации лида; EmptyState во всех таблицах и табах, TableSkeleton при загрузке; каталог /portal/admin/notification-sets; форма «Добавить пользователя» (POST /api/portal/admin/users); aria-label для доступности; раздел «Админ-панель» в docs/Support.md.
 
+### Notes (деплой)
+- После релиза блока ПДн на проде выполните **`npx prisma migrate deploy`**, чтобы создать таблицу журнала согласий (`ConsentLog`). Задайте **`NEXT_PUBLIC_PDN_*`** в окружении сборки/рантайма для корректных реквизитов на сайте.
+
 ### Changed
 - **Доработки по плану тестирования:** PaymentModal — toast вместо alert при ошибке создания платежа; /success — выделенный блок «зарегистрируйтесь с тем же email» для гостя, приоритет кнопки «Зарегистрироваться»; регистрация → redirect с ?registered=1, на login — блок «Аккаунт создан»; пагинация тикетов студента (10/25/50, навигация); seed — разнообразие уведомлений, тикетов, публикаций; исправление опечатки «Тело не врем» в курсах; витрина — 4 основных тарифа (consult, group, course, online) в seed; валидация paykeeperTariffId в форме сервиса (предупреждение при courseId без тарифа); логирование в processPaidOrder при tariffId без привязки к курсу; страница выхода на русском (app/signout/page.tsx, pages.signOut). **Автосоздание аккаунта при оплате курса гостем:** в processPaidOrder при отсутствии пользователя создаётся User + Profile + Enrollment, отправляется письмо со ссылкой «Установить пароль» (48 ч). При ошибке создания (например, уникальный email) — fallback на поиск существующего пользователя.
 - **Устранение замечаний UI (browser-тест):** Header — z-[100] isolate для корректного отображения поверх Hero (клик «Вход»); Signout — await signOut, индикатор «Выход…»; lib/format-person-name.ts — форматирование имён «Имя Фамилия» для отображения лидов в RecentEvents и CrmLeadsClient.
@@ -43,6 +88,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Группы публикаций (рубрики):** функционал удалён — модель PublicationGroup, API и страница «Группы публикаций», выбор рубрики в форме публикации, фильтр по группе в API. Публикации остаются без рубрик.
 - **Supabase:** lib/supabase/, пакеты @supabase/*, supabase; папка supabase/ (миграции, config).
 - **docs/Supabase-Setup.md, Local-NoCloud.md, LocalDB.md** — удалены как устаревшие.
+
+---
+
+## [3.4.0] - 2026-04-28
+
+### Added
+- **Формы с паролем и секретами:** компонент `components/ui/PasswordInput` (переключатель видимости «глаз»). Используется на входе и регистрации, установке пароля, при добавлении пользователя админом, в переменных окружения настроек и в блоке API-ключей LLM.
 
 ---
 

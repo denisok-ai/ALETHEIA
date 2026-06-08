@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatMarkdown } from '@/components/ChatMarkdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AVATERRA_OPEN_CHAT_EVENT } from '@/lib/chat-events';
+import { isMinimalPublicShell } from '@/lib/public-shell-paths';
 
 type Message = { role: 'user' | 'bot'; text: string };
 
@@ -64,7 +66,7 @@ export function ChatBot() {
     }
   };
 
-  if (pathname?.startsWith('/portal/admin')) {
+  if (pathname?.startsWith('/portal/admin') || isMinimalPublicShell(pathname)) {
     return null;
   }
 
@@ -99,9 +101,19 @@ export function ChatBot() {
               className="h-80 overflow-y-auto p-5 space-y-4 bg-white"
             >
               {messages.length === 0 && (
-                <p className="text-sm text-[var(--portal-text)]">
-                  Задайте любой вопрос о курсе, здоровье, усталости, страхах, деньгах или отношениях. Я отвечу по базе знаний курса.
-                </p>
+                <div className="text-sm text-[var(--portal-text)] space-y-2">
+                  <p>
+                    Задайте любой вопрос о курсе, здоровье, усталости, страхах, деньгах или отношениях. Я отвечу по базе знаний курса.
+                  </p>
+                  <p className="text-xs text-[var(--portal-text-muted)]">
+                    Не указывайте в сообщениях персональные данные третьих лиц, паспортные данные, адрес и сведения о состоянии здоровья.
+                    Текст запроса обрабатывается для ответа (в т.ч. может передаваться поставщику ИИ). Подробнее — в{' '}
+                    <Link href="/privacy" className="text-accent underline hover:opacity-90">
+                      Политике обработки персональных данных
+                    </Link>
+                    .
+                  </p>
+                </div>
               )}
               {messages.map((m, i) => (
                 <div

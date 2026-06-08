@@ -41,9 +41,10 @@ export default async function PortalLayout({
     user?.id && profile?.role === 'user'
       ? await prisma.notification.count({ where: { userId: user.id, isRead: false } })
       : 0;
-  if (!user) redirect('/login');
+  // Доступ к /portal/* уже закрыт в middleware.ts по JWT; здесь не делаем redirect('/login'):
+  // при расхождении Host/NEXTAUTH_URL getServerSession иногда пустой при валидном токене → петля «login ↔ portal».
 
-  if (profile?.role === 'user' && user.id) {
+  if (profile?.role === 'user' && user?.id) {
     const dbProfile = await prisma.profile.findUnique({
       where: { userId: user.id },
       select: { emailVerifiedAt: true },
@@ -56,11 +57,11 @@ export default async function PortalLayout({
   const portalTitle = settings.portal_title || 'АВАТЕРРА';
 
   return (
-    <PortalUIProvider user={user} profile={profile} portalTitle={portalTitle}>
+    <PortalUIProvider user={user ?? {}} profile={profile} portalTitle={portalTitle}>
       <PortalCommandPalette />
       {profile?.role === 'user' && <ClaimOrdersTrigger />}
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-        <PortalHeaderWrapper user={user} profile={profile} portalTitle={portalTitle} unreadNotificationCount={unreadCount} />
+        <PortalHeaderWrapper user={user ?? {}} profile={profile} portalTitle={portalTitle} unreadNotificationCount={unreadCount} />
         <div className="flex min-h-0 flex-1 overflow-hidden">{children}</div>
       </div>
     </PortalUIProvider>

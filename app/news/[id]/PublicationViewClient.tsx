@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Star, MessageCircle } from 'lucide-react';
+import { PersonalDataConsentCheckbox } from '@/components/forms/PersonalDataConsentCheckbox';
 
 interface PublicationViewClientProps {
   publicationId: string;
@@ -30,6 +31,7 @@ export function PublicationViewClient({
   const [currentRatingCount, setCurrentRatingCount] = useState(ratingCount);
   const [commentValue, setCommentValue] = useState('');
   const [authorName, setAuthorName] = useState('');
+  const [pdConsent, setPdConsent] = useState(false);
   const [comments, setComments] = useState<{ id: string; content: string; authorName: string; createdAt: string }[]>([]);
   const [submittingComment, setSubmittingComment] = useState(false);
 
@@ -73,7 +75,11 @@ export function PublicationViewClient({
       const r = await fetch(`/api/publications/${publicationId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: commentValue.trim(), authorName: authorName.trim() || undefined }),
+        body: JSON.stringify({
+          content: commentValue.trim(),
+          authorName: authorName.trim() || undefined,
+          pdConsent: true,
+        }),
       });
       if (r.ok) {
         const d = await r.json();
@@ -131,7 +137,13 @@ export function PublicationViewClient({
               required
               className="w-full rounded-lg border border-[#E2E8F0] px-3 py-2 text-sm"
             />
-            <Button type="submit" size="sm" disabled={submittingComment}>
+            <PersonalDataConsentCheckbox
+              id={`pub-comment-pd-${publicationId}`}
+              checked={pdConsent}
+              onCheckedChange={setPdConsent}
+              disabled={submittingComment}
+            />
+            <Button type="submit" size="sm" disabled={submittingComment || !pdConsent}>
               {submittingComment ? 'Отправка…' : 'Отправить'}
             </Button>
           </form>

@@ -7,6 +7,10 @@ if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET?.trim(
   throw new Error('NEXTAUTH_SECRET must be set in production. Do not use dev fallback.');
 }
 import { getServerSession } from 'next-auth';
+import { getToken } from 'next-auth/jwt';
+import type { JWT } from 'next-auth/jwt';
+import { cookies } from 'next/headers';
+import { NextRequest } from 'next/server';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { compare } from 'bcryptjs';
 import { prisma } from './db';
@@ -15,8 +19,13 @@ import { closeVisit } from './visits';
 /** Расширение session.user (id, role задаются в callbacks). */
 export type SessionUser = { id?: string; role?: string; email?: string | null; name?: string | null };
 
+/** Расширение типов NextAuth v4: trustHost поддерживается рантаймом (прокси / Host). */
+type AuthOptionsExtended = NextAuthOptions & { trustHost?: boolean };
+
 /** NEXTAUTH_URL задаётся из БД (`nextauth_url`, иначе `site_url`) — см. `applyNextAuthUrlToProcessEnv` в lib/site-url.ts и docs/Env-Config.md. */
-export const authOptions: NextAuthOptions = {
+export const authOptions: AuthOptionsExtended = {
+  /** Иначе за reverse-proxy / при расхождении Host и NEXTAUTH_URL `getServerSession` может вернуть null при живом JWT → петля login ↔ portal (middleware видит cookie, layout редиректит на login). */
+  trustHost: true,
   providers: [
     CredentialsProvider({
       name: 'credentials',
@@ -81,6 +90,27 @@ export type Profile = {
   email?: string | null;
 };
 
+/**
+ * Читает JWT из Cookie так же, как middleware (`getToken`), без зависимости от совпадения NEXTAUTH_URL с Host.
+ * Нужен, когда `getServerSession` в API возвращает null при живом токене (рассинхрон URL после настроек в БД).
+ */
+async function readJwtFromRequestCookies(): Promise<JWT | null> {
+  try {
+    const store = await cookies();
+    const parts = store.getAll().map((c) => `${c.name}=${c.value}`);
+    const cookieHeader = parts.join('; ');
+    if (!cookieHeader.trim()) return null;
+    const secret =
+      process.env.NODE_ENV === 'production'
+        ? process.env.NEXTAUTH_SECRET!
+        : (process.env.NEXTAUTH_SECRET ?? 'avaterra-dev-secret');
+    const req = new NextRequest('http://internal.local/next-auth-resolve', { headers: { cookie: cookieHeader } });
+    return await getToken({ req, secret });
+  } catch {
+    return null;
+  }
+}
+
 export async function getUser() {
   const session = await getServerSession(authOptions);
   if (!session?.user) return { user: null, profile: null };
@@ -104,8 +134,21 @@ export async function requireAdminSession(): Promise<
 > {
   const session = await getServerSession(authOptions);
   const user = session?.user as SessionUser | undefined;
-  if (!session?.user || !user?.id || user.role !== 'admin') return null;
-  return { session, userId: user.id, role: user.role };
+  if (session?.user && user?.id && user.role === 'admin') {
+    return { session, userId: user.id, role: user.role };
+  }
+  const token = await readJwtFromRequestCookies();
+  if (!token?.sub || token.role !== 'admin') return null;
+  const synthetic = {
+    user: {
+      id: token.sub,
+      email: (token.email as string | undefined) ?? null,
+      name: (token.name as string | undefined) ?? null,
+      role: token.role as string,
+    },
+    expires: session?.expires ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  } as Awaited<ReturnType<typeof getServerSession>>;
+  return { session: synthetic, userId: token.sub, role: 'admin' };
 }
 
 /**
@@ -116,7 +159,21 @@ export async function requireManagerSession(): Promise<
 > {
   const session = await getServerSession(authOptions);
   const user = session?.user as SessionUser | undefined;
-  if (!session?.user || !user?.id) return null;
-  if (user.role !== 'manager' && user.role !== 'admin') return null;
-  return { session, userId: user.id, role: user.role };
+  if (session?.user && user?.id && (user.role === 'manager' || user.role === 'admin')) {
+    return { session, userId: user.id, role: user.role ?? 'user' };
+  }
+  const token = await readJwtFromRequestCookies();
+  if (!token?.sub) return null;
+  const role = (token.role as string) ?? 'user';
+  if (role !== 'manager' && role !== 'admin') return null;
+  const synthetic = {
+    user: {
+      id: token.sub,
+      email: (token.email as string | undefined) ?? null,
+      name: (token.name as string | undefined) ?? null,
+      role,
+    },
+    expires: session?.expires ?? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+  } as Awaited<ReturnType<typeof getServerSession>>;
+  return { session: synthetic, userId: token.sub, role };
 }

@@ -19,9 +19,9 @@ export const BRAND_LOGO_PATHS = [
 ] as const;
 
 /**
- * Для PDF: золотой знак (лучше класть PNG ≥400px по стороне в avaterra-gold-logo.png), затем запасные как на сайте.
+ * Для PDF и вложений: сначала те же файлы, что у сайта ({@link BRAND_LOGO_PATHS}); затем отдельный золотой знак.
  */
-export const CERTIFICATE_LOGO_PATHS = ['/images/avaterra-gold-logo.png', ...BRAND_LOGO_PATHS] as const;
+export const CERTIFICATE_LOGO_PATHS = [...BRAND_LOGO_PATHS, '/images/avaterra-gold-logo.png'] as const;
 
 /** Канонический URL логотипа для ссылок, фавиконов и портала. */
 export const BRAND_LOGO_URL = BRAND_LOGO_PATHS[0];

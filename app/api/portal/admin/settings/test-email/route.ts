@@ -1,10 +1,11 @@
 /**
- * Admin: отправить тестовое письмо на адрес получателя уведомлений (проверка Resend).
+ * Admin: отправить тестовое письмо на адрес получателя уведомлений (проверка Resend/SMTP).
  */
 import { NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { getSystemSettings } from '@/lib/settings';
-import { sendEmail } from '@/lib/email';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import { buildSettingsTestEmail } from '@/lib/email-templates';
 
 export async function POST() {
   const auth = await requireAdminSession();
@@ -19,16 +20,24 @@ export async function POST() {
     );
   }
 
-  const ok = await sendEmail(
-    to.trim(),
-    'AVATERRA: тестовое письмо из настроек',
-    '<p>Это тестовое письмо отправлено из раздела Настройки для проверки подключения Resend.</p><p>Если вы получили его — почта настроена корректно.</p>',
-    { from: settings.resend_from || undefined }
-  );
+  const emailTemplate = buildSettingsTestEmail({
+    systemTitle: settings.portal_title || 'AVATERRA',
+  });
+  const result = await sendTransactionalEmail({
+    to: to.trim(),
+    subject: emailTemplate.subject,
+    html: emailTemplate.html,
+    from: settings.resend_from || undefined,
+    context: { module: 'settings', sentBy: auth.userId },
+  });
 
-  if (!ok) {
+  if (!result.ok) {
     return NextResponse.json(
-      { error: 'Не удалось отправить письмо. Проверьте Resend API ключ (Переменные окружения) и настройки отправителя.' },
+      {
+        error:
+          result.error ||
+          'Не удалось отправить письмо. Проверьте транспорт почты (Resend/SMTP), ключи и адрес отправителя в разделе «Исходящая почта».',
+      },
       { status: 502 }
     );
   }

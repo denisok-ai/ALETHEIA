@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useReducedMotion } from 'framer-motion';
 import { buttonVariants } from '@/components/ui/button';
@@ -8,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { COURSE_CHECKOUT_URL } from '@/lib/content/course-lynda-teaser';
 import { BRAND_SCHOOL_LINE } from '@/lib/brand';
 import { ANALYTICS, trackGa4AndYm } from '@/lib/analytics-events';
+import { HeroCollage } from '@/components/sections/HeroCollage';
 
 export function Hero() {
   const checkoutHref = COURSE_CHECKOUT_URL;
@@ -89,21 +89,10 @@ export function Hero() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={t(0.5, 0.08)}
-            className="relative w-full max-w-[min(100%,340px)] shrink-0 sm:max-w-[380px] lg:max-w-[420px]"
+            className="relative w-full max-w-[min(100%,360px)] shrink-0 sm:max-w-[400px] lg:max-w-[440px]"
           >
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border-2 border-periwinkle/50 bg-[var(--surface)] shadow-[var(--shadow-card)]">
-              <Image
-                src="/images/tatiana/tatiana-hero.png"
-                alt="Татьяна Стрельцова - основательница школы кинезиологии AVATERRA, 22 года практики"
-                fill
-                className="object-cover object-center"
-                sizes="(max-width: 1024px) min(340px, 100vw), 420px"
-                priority
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                }}
-              />
+            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border-2 border-periwinkle/50 bg-white shadow-[var(--shadow-card)]">
+              <HeroCollage />
             </div>
           </motion.div>
         </div>

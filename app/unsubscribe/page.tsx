@@ -49,6 +49,13 @@ export default function UnsubscribePage() {
       <p className="mt-2 text-sm text-white/70">
         Укажите адрес электронной почты, с которого больше не хотите получать информационные рассылки школы AVATERRA.
       </p>
+      <p className="mt-2 text-xs text-white/50">
+        Обработка адреса — для исполнения отписки. Подробнее —{' '}
+        <Link href="/privacy" className="underline hover:text-white/80">
+          Политика обработки персональных данных
+        </Link>
+        .
+      </p>
 
       {status === 'success' ? (
         <div className="mt-8 rounded-lg border border-green-500/50 bg-green-500/10 p-4 text-green-200">

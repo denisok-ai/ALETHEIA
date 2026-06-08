@@ -16,6 +16,7 @@ import {
   maskEmailForLog,
   writePaykeeperIntegrationLog,
 } from '@/lib/paykeeper-integration-log';
+import { logPersonalDataConsent } from '@/lib/consent-log';
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'payment-create', 10);
@@ -24,6 +25,12 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { tariffId, serviceSlug, email, name, phone } = body;
+    if (body?.pdConsent !== true) {
+      return NextResponse.json(
+        { error: 'Необходимо согласие на обработку персональных данных' },
+        { status: 400 }
+      );
+    }
     if ((!tariffId && !serviceSlug) || !email || !name) {
       return NextResponse.json(
         { error: 'Укажите serviceSlug (или tariffId), email и имя' },
@@ -60,6 +67,7 @@ export async function POST(request: NextRequest) {
           amount,
           clientEmail: email.trim(),
           clientPhone: typeof phone === 'string' ? phone.trim() || null : null,
+          clientName: typeof name === 'string' ? name.trim() || null : null,
           status: 'pending',
         },
       });
@@ -90,6 +98,13 @@ export async function POST(request: NextRequest) {
         email: maskEmailForLog(email.trim()),
         serviceSlug: slug || null,
       },
+    });
+
+    await logPersonalDataConsent({
+      kind: 'pd_processing',
+      context: 'payment_create',
+      emailNorm: String(email).trim().toLowerCase(),
+      orderNumber,
     });
 
     const settings = await getSystemSettings();

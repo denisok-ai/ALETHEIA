@@ -5,13 +5,11 @@ import { triggerNotification } from '@/lib/notifications';
 import { claimPaidOrdersForUser } from '@/lib/claim-orders';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { createEmailVerificationToken } from '@/lib/email-verification';
-import { sendEmail } from '@/lib/email';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import { buildEmailVerificationEmail } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
 import { registerSchema } from '@/lib/validations/auth';
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+import { logPersonalDataConsent } from '@/lib/consent-log';
 
 async function isEmailVerificationEnabled(): Promise<boolean> {
   const row = await prisma.systemSetting.findUnique({
@@ -27,6 +25,12 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
+    if (body?.pdConsent !== true) {
+      return NextResponse.json(
+        { error: 'Необходимо согласие на обработку персональных данных' },
+        { status: 400 }
+      );
+    }
     const parsed = registerSchema.safeParse({ ...body, displayName: body?.displayName ?? body?.name ?? null });
     if (!parsed.success) {
       const msg = parsed.error.issues[0]?.message ?? 'Неверные данные';
@@ -67,6 +71,13 @@ export async function POST(req: Request) {
       console.error('Register: claim paid orders', claimErr);
     }
 
+    await logPersonalDataConsent({
+      kind: 'pd_processing',
+      context: 'register',
+      userId: user.id,
+      emailNorm,
+    });
+
     if (verificationRequired) {
       try {
         const token = await createEmailVerificationToken(user.id);
@@ -75,15 +86,18 @@ export async function POST(req: Request) {
         const verifyUrl = siteUrl
           ? `${siteUrl}/verify-email?token=${encodeURIComponent(token)}`
           : `/verify-email?token=${encodeURIComponent(token)}`;
-        const displayName = user.displayName || emailNorm.split('@')[0];
-        const html = `
-          <p>Здравствуйте, ${escapeHtml(displayName)}!</p>
-          <p>Подтвердите ваш email, перейдя по ссылке (действует 48 часов):</p>
-          <p><a href="${verifyUrl}">Подтвердить email</a></p>
-          <p>Если вы не регистрировались, проигнорируйте это письмо.</p>
-          <p>— ${settings.portal_title || 'AVATERRA'}</p>
-        `;
-        await sendEmail(emailNorm, `Подтверждение email — ${settings.portal_title || 'AVATERRA'}`, html);
+        const displayName = user.displayName ?? '';
+        const email = buildEmailVerificationEmail({
+          displayName,
+          verifyUrl,
+          systemTitle: settings.portal_title || 'AVATERRA',
+        });
+        await sendTransactionalEmail({
+          to: emailNorm,
+          subject: email.subject,
+          html: email.html,
+          context: { module: 'auth', entityId: user.id, userId: user.id },
+        });
       } catch (emailErr) {
         console.error('Register: verification email', emailErr);
       }

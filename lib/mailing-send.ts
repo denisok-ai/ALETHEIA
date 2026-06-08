@@ -5,14 +5,22 @@
 import path from 'path';
 import { readFile } from 'fs/promises';
 import { prisma } from './db';
-import { sendEmail, type EmailAttachment } from './email';
-import { wrapEmailHtml, renderMailingTemplate } from './email-templates';
+import type { EmailAttachment } from './email';
+import { sendTransactionalEmail } from './email-service';
+import { wrapEmailHtml, renderMailingTemplate, emailPreheaderFromHtmlFragment } from './email-templates';
+
+/** Пауза между письмами (мс), чтобы снизить риск лимитов SMTP/провайдера при больших списках. */
+const MAILING_SEND_GAP_MS = 80;
 import { getSystemSettings } from './settings';
 import { writeAuditLog } from './audit';
 
 function splitName(displayName: string | null): { firstName: string; lastName: string } {
-  if (!displayName?.trim()) return { firstName: '', lastName: '' };
-  const parts = displayName.trim().split(/\s+/);
+  const raw = displayName?.trim() ?? '';
+  if (!raw || /@/.test(raw)) return { firstName: '', lastName: '' };
+  const parts = raw.split(/\s+/);
+  if (parts.length === 1 && /^[a-z0-9_.+-]+$/i.test(parts[0]!)) {
+    return { firstName: '', lastName: '' };
+  }
   return { firstName: parts[0] ?? '', lastName: parts.slice(1).join(' ') ?? '' };
 }
 
@@ -118,6 +126,7 @@ export async function runMailingSend(
   const settings = await getSystemSettings();
   const baseUrl = settings.site_url?.replace(/\/$/, '') || 'http://localhost:3000';
   const unsubscribeUrl = `${baseUrl}/unsubscribe`;
+  const loginUrl = `${baseUrl}/login`;
 
   await prisma.mailing.update({
     where: { id: mailingId },
@@ -175,17 +184,27 @@ export async function runMailingSend(
         LastName: lastName,
         date: new Date().toLocaleDateString('ru'),
         unsubscribe: unsubscribeUrl,
-        systemtitle: 'AVATERRA',
+        systemtitle: settings.portal_title?.trim() || 'AVATERRA',
+        portalUrl: baseUrl,
+        loginUrl,
       }
     );
 
-    const html = wrapEmailHtml(body, { title: subject });
-    const ok = await sendEmail(email, subject, html, {
+    const preheader = emailPreheaderFromHtmlFragment(body);
+    const html = wrapEmailHtml(body, {
+      title: subject,
+      ...(preheader ? { preheader } : {}),
+    });
+    const result = await sendTransactionalEmail({
+      to: email,
+      subject,
+      html,
       from: mailing.senderEmail || settings?.resend_from || undefined,
       attachments: emailAttachments.length > 0 ? emailAttachments : undefined,
+      context: { module: 'mailings', entityId: mailingId, userId: p.userId },
     });
 
-    if (ok) {
+    if (result.ok) {
       await prisma.mailingLog.create({
         data: {
           mailingId,
@@ -205,10 +224,14 @@ export async function runMailingSend(
           recipientEmail: email,
           recipientName: p.displayName,
           status: 'failed',
-          errorMessage: 'Ошибка отправки (SMTP/Resend)',
+          errorMessage: result.error,
         },
       });
       failed++;
+    }
+
+    if (MAILING_SEND_GAP_MS > 0) {
+      await new Promise((r) => setTimeout(r, MAILING_SEND_GAP_MS));
     }
   }
 

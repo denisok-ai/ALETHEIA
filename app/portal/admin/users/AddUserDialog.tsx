@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label } from '@/components/ui/label';
 import {
   Dialog,
@@ -100,9 +101,8 @@ export function AddUserDialog() {
             </div>
             <div>
               <Label htmlFor="add-user-password">Пароль *</Label>
-              <Input
+              <PasswordInput
                 id="add-user-password"
-                type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Не менее 6 символов"

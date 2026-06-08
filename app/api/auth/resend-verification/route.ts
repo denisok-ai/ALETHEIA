@@ -6,13 +6,10 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { createEmailVerificationToken } from '@/lib/email-verification';
-import { sendEmail } from '@/lib/email';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import { buildEmailVerificationEmail } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
 import { checkRateLimit } from '@/lib/rate-limit';
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'resend-verification', 3);
@@ -48,15 +45,19 @@ export async function POST(request: NextRequest) {
     const verifyUrl = siteUrl
       ? `${siteUrl}/verify-email?token=${encodeURIComponent(token)}`
       : `/verify-email?token=${encodeURIComponent(token)}`;
-    const displayName = user.displayName || user.email.split('@')[0];
-    const html = `
-      <p>Здравствуйте, ${escapeHtml(displayName)}!</p>
-      <p>Подтвердите ваш email, перейдя по ссылке (действует 48 часов):</p>
-      <p><a href="${verifyUrl}">Подтвердить email</a></p>
-      <p>Если вы не запрашивали это письмо, проигнорируйте его.</p>
-      <p>— ${settings.portal_title || 'AVATERRA'}</p>
-    `;
-    await sendEmail(user.email, `Подтверждение email — ${settings.portal_title || 'AVATERRA'}`, html);
+    const displayName = user.displayName ?? '';
+    const email = buildEmailVerificationEmail({
+      displayName,
+      verifyUrl,
+      systemTitle: settings.portal_title || 'AVATERRA',
+      isResend: true,
+    });
+    await sendTransactionalEmail({
+      to: user.email,
+      subject: email.subject,
+      html: email.html,
+      context: { module: 'auth', entityId: userId, userId },
+    });
     return NextResponse.json({ ok: true });
   } catch (e) {
     console.error('Resend verification:', e);

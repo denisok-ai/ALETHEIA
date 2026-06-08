@@ -8,11 +8,31 @@ import { nanoid } from 'nanoid';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getSystemSettings, getPaymentEmailTemplates, renderPaymentEmailTemplate } from '@/lib/settings';
-import { sendEmail } from '@/lib/email';
+import { wrapEmailHtml } from '@/lib/email-templates';
+import { sendTransactionalEmail } from '@/lib/email-service';
 import { triggerNotification } from '@/lib/notifications';
 import { createPasswordToken } from '@/lib/password-token';
 import { findActiveServiceForOrderTariff } from '@/lib/order-service';
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
+
+async function sendPaymentEmail(params: {
+  order: { id: number; clientEmail: string };
+  subject: string;
+  html: string;
+  userId: string | null;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const html = wrapEmailHtml(params.html, { title: params.subject });
+  return sendTransactionalEmail({
+    to: params.order.clientEmail.trim(),
+    subject: params.subject,
+    html,
+    context: {
+      module: 'payments',
+      entityId: String(params.order.id),
+      userId: params.userId,
+    },
+  });
+}
 
 export type ProcessPaidOrderResult = {
   success: boolean;
@@ -168,7 +188,12 @@ export async function processPaidOrder(
         const tempPassword = nanoid(24);
         const passwordHash = await hash(tempPassword, 10);
         const emailTrim = order.clientEmail.trim();
-        const displayName = emailTrim.split('@')[0] || null;
+        /** Берём ФИО из формы checkout (Order.clientName), если оно похоже на имя. Иначе оставляем null — письма используют общее обращение. */
+        const rawClientName = order.clientName?.trim() ?? '';
+        const displayName: string | null =
+          rawClientName && !/@/.test(rawClientName) && !/^[a-z0-9_.+-]+$/i.test(rawClientName)
+            ? rawClientName
+            : null;
         const newUser = await prisma.user.create({
           data: {
             email: emailTrim,
@@ -225,9 +250,14 @@ export async function processPaidOrder(
     }
 
     const courseTitle = course?.title ?? 'Курс';
+    /** ФИО клиента: предпочтение Order.clientName из checkout-формы, затем displayName профиля, иначе общее обращение, чтобы в письме не появлялся email-логин. */
+    const profileName = user?.profile?.displayName?.trim() ?? '';
+    const orderName = order.clientName?.trim() ?? '';
+    const candidateName = orderName || profileName;
     const userName =
-      user?.profile?.displayName?.trim() ||
-      emailLocal;
+      candidateName && !/@/.test(candidateName) && !/^[a-z0-9_.+-]+$/i.test(candidateName)
+        ? candidateName
+        : 'уважаемый клиент';
 
     if (userId && userWasAutoCreated) {
       emailKind = 'set_password';
@@ -243,10 +273,9 @@ export async function processPaidOrder(
 <p>Если ссылка не открывается, скопируйте в браузер: ${setPasswordUrl}</p>
 <p>После установки пароля войдите на сайт и откройте раздел «Мои курсы».</p>
 <p>— ${portalTitle}</p>`;
-      try {
-        await sendEmail(order.clientEmail, subject, body);
-      } catch (mailErr) {
-        console.error('[PayKeeper] Send set-password email:', mailErr);
+      const mailRes = await sendPaymentEmail({ order, subject, html: body, userId });
+      if (!mailRes.ok) {
+        console.error('[PayKeeper] Send set-password email:', mailRes.error);
         warnings.push('Не удалось отправить письмо со ссылкой на установку пароля.');
       }
     } else if (userId) {
@@ -266,10 +295,9 @@ export async function processPaidOrder(
       };
       const subject = renderPaymentEmailTemplate(paymentTpl.courseSubject, vars);
       const body = renderPaymentEmailTemplate(paymentTpl.courseBody, vars);
-      try {
-        await sendEmail(order.clientEmail, subject, body);
-      } catch (mailErr) {
-        console.error('[PayKeeper] Send course access email:', mailErr);
+      const mailResAccess = await sendPaymentEmail({ order, subject, html: body, userId });
+      if (!mailResAccess.ok) {
+        console.error('[PayKeeper] Send course access email:', mailResAccess.error);
         warnings.push('Не удалось отправить письмо о доступе к курсу.');
       }
     } else {
@@ -279,10 +307,9 @@ export async function processPaidOrder(
 <p>Оплата по заказу ${orderNumber} получена. Курс «${courseTitle}» оплачен.</p>
 <p>Зарегистрируйтесь на сайте с тем же email, чтобы получить доступ к курсу: <a href="${registerUrl}">Регистрация</a>. Если аккаунт уже есть — <a href="${loginUrl}">войдите</a>.</p>
 <p>— ${portalTitle}</p>`;
-      try {
-        await sendEmail(order.clientEmail, subject, body);
-      } catch (mailErr) {
-        console.error('[PayKeeper] Send fallback course email:', mailErr);
+      const mailRes = await sendPaymentEmail({ order, subject, html: body, userId: null });
+      if (!mailRes.ok) {
+        console.error('[PayKeeper] Send fallback course email:', mailRes.error);
         warnings.push('Не удалось отправить письмо с инструкцией по регистрации.');
       }
     }
@@ -294,7 +321,7 @@ export async function processPaidOrder(
       successUrl,
       portal_title: portalTitle,
       courseTitle: '',
-      userName: emailLocal,
+      userName: 'уважаемый клиент',
       orderAmount,
       supportEmail,
       portalUrl,
@@ -303,10 +330,14 @@ export async function processPaidOrder(
     };
     const subject = renderPaymentEmailTemplate(paymentTpl.genericSubject, vars);
     const body = renderPaymentEmailTemplate(paymentTpl.genericBody, vars);
-    try {
-      await sendEmail(order.clientEmail, subject, body);
-    } catch (mailErr) {
-      console.error('[PayKeeper] Send generic payment email:', mailErr);
+    const mailRes = await sendPaymentEmail({
+      order,
+      subject,
+      html: body,
+      userId: resultUserId ?? order.userId ?? null,
+    });
+    if (!mailRes.ok) {
+      console.error('[PayKeeper] Send generic payment email:', mailRes.error);
       warnings.push('Не удалось отправить письмо об оплате.');
     }
   }

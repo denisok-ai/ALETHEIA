@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/portal/Card';
 import {
@@ -278,9 +279,10 @@ export function LlmAndChatbotBlock({
             </div>
             <div className="min-w-[200px] flex-1">
               <Label htmlFor="new-key-value">API-ключ</Label>
-              <Input
+              <PasswordInput
                 id="new-key-value"
-                type="password"
+                ariaLabelShow="Показать API-ключ"
+                ariaLabelHide="Скрыть API-ключ"
                 value={newKeyValue}
                 onChange={(e) => setNewKeyValue(e.target.value)}
                 placeholder="sk-..."
@@ -331,9 +333,10 @@ export function LlmAndChatbotBlock({
             {!chatbot.api_key_id && (
               <div>
                 <Label htmlFor="cb-api-key">Свой API-ключ (если не выбран сохранённый)</Label>
-                <Input
+                <PasswordInput
                   id="cb-api-key"
-                  type="password"
+                  ariaLabelShow="Показать API-ключ"
+                  ariaLabelHide="Скрыть API-ключ"
                   value={chatbot.api_key}
                   onChange={(e) => setChatbot((p) => ({ ...p, api_key: e.target.value }))}
                   placeholder={chatbot.api_key_set ? '•••••• (пусто — не менять)' : 'sk-...'}
@@ -478,9 +481,10 @@ export function LlmAndChatbotBlock({
             {!tutor.api_key_id && (
               <div>
                 <Label htmlFor="ct-api-key">Свой API-ключ (необязательно)</Label>
-                <Input
+                <PasswordInput
                   id="ct-api-key"
-                  type="password"
+                  ariaLabelShow="Показать API-ключ"
+                  ariaLabelHide="Скрыть API-ключ"
                   value={tutor.api_key}
                   onChange={(e) => setTutor((p) => ({ ...p, api_key: e.target.value }))}
                   placeholder={tutor.api_key_set ? '•••••• (пусто — ключ чат-бота)' : 'Оставьте пустым для ключа чат-бота'}

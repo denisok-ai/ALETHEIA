@@ -19,8 +19,8 @@ export function siteUrlHostForRobots(raw: string): string {
   }
 }
 
-/** Локальная разработка: не затирать NEXTAUTH_URL продакшен-URL из БД (иначе next-auth/react: CLIENT_FETCH_ERROR). */
-function isLoopbackHost(host: string): boolean {
+/** localhost / 127.0.0.1 — для проверок NextAuth и валидации поля nextauth_url в админке. */
+export function isLoopbackHostname(host: string): boolean {
   const h = host.toLowerCase();
   return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '::1';
 }
@@ -48,16 +48,42 @@ export function applyNextAuthUrlToProcessEnv(params: {
 
   if (process.env.NODE_ENV === 'development') {
     if (explicit) {
-      process.env.NEXTAUTH_URL = normalizeSiteUrl(explicit);
+      Reflect.set(process.env, 'NEXTAUTH_URL', normalizeSiteUrl(explicit));
       return;
     }
     try {
       const host = new URL(normalizeSiteUrl(raw)).hostname;
-      if (!isLoopbackHost(host)) return;
+      if (!isLoopbackHostname(host)) return;
     } catch {
       return;
     }
   }
 
-  process.env.NEXTAUTH_URL = normalizeSiteUrl(raw);
+  /**
+   * В production нельзя применять из БД URL на localhost — иначе ломается getServerSession,
+   * админские API отдают 403, а блок «Состояние интеграций» из‑за пустого JSON показывает всё красным.
+   */
+  let effective = raw;
+  if (process.env.NODE_ENV === 'production' && explicit) {
+    try {
+      const explicitHost = new URL(normalizeSiteUrl(explicit)).hostname;
+      if (isLoopbackHostname(explicitHost)) {
+        const withoutExplicit = site || pub || envFallback;
+        if (withoutExplicit) {
+          console.warn(
+            '[applyNextAuthUrlToProcessEnv] В production nextauth_url в БД указывает на localhost — игнорируем, используем site_url / NEXT_PUBLIC_URL / NEXTAUTH_URL из .env'
+          );
+          effective = withoutExplicit;
+        }
+      }
+    } catch {
+      const withoutExplicit = site || pub || envFallback;
+      if (withoutExplicit) {
+        console.warn('[applyNextAuthUrlToProcessEnv] Некорректный nextauth_url в БД — используем запасной URL');
+        effective = withoutExplicit;
+      }
+    }
+  }
+
+  Reflect.set(process.env, 'NEXTAUTH_URL', normalizeSiteUrl(effective));
 }

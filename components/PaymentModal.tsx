@@ -14,6 +14,7 @@ import type { TariffItem } from '@/components/sections/Pricing';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { ANALYTICS, trackGa4AndYm } from '@/lib/analytics-events';
+import { PersonalDataConsentCheckbox } from '@/components/forms/PersonalDataConsentCheckbox';
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -27,6 +28,7 @@ interface PaymentModalProps {
  */
 function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
   const [loading, setLoading] = useState(false);
+  const [pdConsent, setPdConsent] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -37,10 +39,11 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
     e.preventDefault();
     setLoading(true);
     try {
-      const body: Record<string, string> = {
+      const body: Record<string, string | boolean> = {
         email: formData.email,
         name: formData.name,
         phone: formData.phone,
+        pdConsent: true,
       };
       if (tariff.slug) {
         body.serviceSlug = tariff.slug;
@@ -125,7 +128,20 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
           <span className="text-2xl font-bold text-plum">{priceLabel}</span>
         </div>
       </div>
-      <Button type="submit" variant="landingPlum" className="w-full" size="lg" disabled={loading}>
+      <PersonalDataConsentCheckbox
+        id="payment-pd-consent"
+        checked={pdConsent}
+        onCheckedChange={setPdConsent}
+        disabled={loading}
+        className="px-0.5"
+      />
+      <Button
+        type="submit"
+        variant="landingPlum"
+        className="w-full"
+        size="lg"
+        disabled={loading || !pdConsent}
+      >
         {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -137,29 +153,15 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
           'Перейти к оплате'
         )}
       </Button>
-      <p className="text-xs text-[var(--text-muted)] text-center">
-        {tariff.price <= 0 ? (
-          <>
-            Нажимая кнопку, вы соглашаетесь с{' '}
-            <a href="/privacy" className="underline hover:text-plum">
-              политикой конфиденциальности
-            </a>
-            .
-          </>
-        ) : (
-          <>
-            Нажимая кнопку, вы соглашаетесь с{' '}
-            <a href="/oferta#oplata" className="underline hover:text-plum">
-              офертой
-            </a>{' '}
-            и{' '}
-            <a href="/privacy" className="underline hover:text-plum">
-              политикой конфиденциальности
-            </a>
-            .
-          </>
-        )}
-      </p>
+      {tariff.price > 0 ? (
+        <p className="text-xs text-[var(--text-muted)] text-center">
+          Оплата осуществляется в соответствии с{' '}
+          <a href="/oferta#oplata" className="underline hover:text-plum">
+            публичной офертой
+          </a>
+          .
+        </p>
+      ) : null}
     </form>
   );
 }
