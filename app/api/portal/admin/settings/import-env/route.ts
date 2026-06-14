@@ -35,6 +35,7 @@ const KEY_CATEGORY: Record<string, string> = {
   smtp_user: 'env',
   smtp_password: 'env',
   smtp_secure: 'env',
+  telegram_admin_chat_ids: 'env',
   telegram_bot_token: 'env',
   telegram_webhook_secret: 'env',
   cron_secret: 'env',

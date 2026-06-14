@@ -5,6 +5,19 @@ All notable changes to the AVATERRA project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.4] - 2026-06-14
+
+### Added
+
+- **Telegram — оповещения админов:** `lib/telegram-admin-notify.ts` — заявки с сайта, регистрации, оплаты (PayKeeper), тикеты поддержки, ошибки webhook PayKeeper.
+- **Telegram — восстановление webhook:** `lib/telegram-webhook-setup.ts`, API `GET/POST /api/portal/admin/settings/telegram-webhook`, тест `POST …/test-telegram-notify`, CLI `npm run telegram:setup-webhook`, скрипт `scripts/activate-telegram-prod.sh`.
+- **Настройки:** ключ `telegram_admin_chat_ids` (Chat ID админов через запятую); команды бота `/myid`, `/admin_on`.
+
+### Changed
+
+- **Портал → Настройки → Интеграции:** поле Chat ID админов, кнопки «Зарегистрировать webhook» и «Тест оповещения админов».
+- Документация: `Project.md`, `Support.md`, `Env-Config.md`, `Tasktracker.md`, `Diary.md`.
+
 ## [3.5.3] - 2026-06-14
 
 ### Added

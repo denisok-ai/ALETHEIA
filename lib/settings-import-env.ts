@@ -33,6 +33,7 @@ export const SETTINGS_IMPORT_ENV_MAP: SettingsImportEnvEntry[] = [
   { key: 'smtp_user', env: 'SMTP_USER' },
   { key: 'smtp_password', env: 'SMTP_PASSWORD', sensitive: true },
   { key: 'smtp_secure', env: 'SMTP_SECURE' },
+  { key: 'telegram_admin_chat_ids', env: 'TELEGRAM_ADMIN_CHAT_IDS' },
   { key: 'telegram_bot_token', env: 'TELEGRAM_BOT_TOKEN', sensitive: true },
   { key: 'telegram_webhook_secret', env: 'TELEGRAM_WEBHOOK_SECRET', sensitive: true },
   { key: 'cron_secret', env: 'CRON_SECRET', sensitive: true },

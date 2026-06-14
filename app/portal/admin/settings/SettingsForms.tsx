@@ -85,6 +85,7 @@ interface SettingsKeys {
   paykeeper_test_password: string;
   paykeeper_test_secret: string;
   resend_api_key: boolean;
+  telegram_admin_chat_ids?: string;
   telegram_bot_token: boolean;
   telegram_webhook_secret?: boolean;
   cron_secret: boolean;
@@ -132,6 +133,7 @@ export function SettingsForms() {
     paykeeper_test_secret: '',
   });
   const [envVars, setEnvVars] = useState({
+    telegram_admin_chat_ids: '',
     telegram_bot_token: '',
     telegram_webhook_secret: '',
     cron_secret: '',
@@ -144,6 +146,8 @@ export function SettingsForms() {
   const [savingIntegrations, setSavingIntegrations] = useState(false);
   const [mailTransportReady, setMailTransportReady] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
+  const [registeringTelegramWebhook, setRegisteringTelegramWebhook] = useState(false);
+  const [testingTelegramNotify, setTestingTelegramNotify] = useState(false);
   const [confirmUrlOpen, setConfirmUrlOpen] = useState(false);
   const [paymentPreviewLoading, setPaymentPreviewLoading] = useState(false);
   const [paymentTestSending, setPaymentTestSending] = useState(false);
@@ -180,6 +184,7 @@ export function SettingsForms() {
           paykeeper_test_password: typeof k.paykeeper_test_password === 'string' ? k.paykeeper_test_password : '',
           paykeeper_test_secret: typeof k.paykeeper_test_secret === 'string' ? k.paykeeper_test_secret : '',
           resend_api_key: k.resend_api_key === true,
+          telegram_admin_chat_ids: typeof k.telegram_admin_chat_ids === 'string' ? k.telegram_admin_chat_ids : '',
           telegram_bot_token: k.telegram_bot_token === true,
           telegram_webhook_secret: k.telegram_webhook_secret === true,
           cron_secret: k.cron_secret === true,
@@ -194,6 +199,7 @@ export function SettingsForms() {
           smtp_secure: typeof k.smtp_secure === 'string' ? k.smtp_secure : '',
         });
         setEnvVars({
+          telegram_admin_chat_ids: typeof k.telegram_admin_chat_ids === 'string' ? k.telegram_admin_chat_ids : '',
           telegram_bot_token: '',
           telegram_webhook_secret: '',
           cron_secret: '',
@@ -309,6 +315,7 @@ export function SettingsForms() {
     try {
       const body: Record<string, string> = {
         nextauth_url: envVars.nextauth_url.trim(),
+        telegram_admin_chat_ids: envVars.telegram_admin_chat_ids.trim(),
       };
       if (envVars.telegram_bot_token.trim()) body.telegram_bot_token = envVars.telegram_bot_token.trim();
       if (envVars.telegram_webhook_secret.trim()) body.telegram_webhook_secret = envVars.telegram_webhook_secret.trim();
@@ -329,6 +336,7 @@ export function SettingsForms() {
           ? {
               ...prev,
               nextauth_url: body.nextauth_url ?? prev.nextauth_url,
+              telegram_admin_chat_ids: body.telegram_admin_chat_ids ?? prev.telegram_admin_chat_ids,
               telegram_bot_token: !!body.telegram_bot_token || prev.telegram_bot_token,
               telegram_webhook_secret: !!body.telegram_webhook_secret || prev.telegram_webhook_secret,
               cron_secret: !!body.cron_secret || prev.cron_secret,
@@ -897,6 +905,19 @@ export function SettingsForms() {
         </p>
         <form onSubmit={saveIntegrations} className="mt-4 space-y-4 max-w-xl">
           <div>
+            <Label htmlFor="env_telegram_admin_chat_ids">Chat ID админов для оповещений</Label>
+            <Input
+              id="env_telegram_admin_chat_ids"
+              value={envVars.telegram_admin_chat_ids}
+              onChange={(e) => setEnvVars((p) => ({ ...p, telegram_admin_chat_ids: e.target.value }))}
+              placeholder="123456789, 987654321"
+              className="mt-1"
+            />
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+              Через запятую. Узнать свой ID: напишите боту /myid или /admin_on для автоподписки.
+            </p>
+          </div>
+          <div>
             <Label htmlFor="env_telegram_bot_token">Telegram Bot Token</Label>
             <PasswordInput
               id="env_telegram_bot_token"
@@ -1007,9 +1028,59 @@ export function SettingsForms() {
             >
               {testingTelegram ? 'Проверка…' : 'Проверить Telegram'}
             </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={registeringTelegramWebhook || !(keys?.telegram_bot_token || envVars.telegram_bot_token.trim())}
+              onClick={async () => {
+                setRegisteringTelegramWebhook(true);
+                try {
+                  const res = await fetch('/api/portal/admin/settings/telegram-webhook', { method: 'POST' });
+                  const data = await res.json();
+                  if (res.ok) {
+                    toast.success(data.webhookUrl ? `Webhook: ${data.webhookUrl}` : 'Webhook зарегистрирован');
+                  } else {
+                    toast.error(data.error || 'Ошибка регистрации webhook');
+                  }
+                } catch {
+                  toast.error('Ошибка запроса');
+                } finally {
+                  setRegisteringTelegramWebhook(false);
+                }
+              }}
+            >
+              {registeringTelegramWebhook ? 'Регистрация…' : 'Зарегистрировать webhook'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={
+                testingTelegramNotify ||
+                !envVars.telegram_admin_chat_ids.trim() ||
+                !(keys?.telegram_bot_token || envVars.telegram_bot_token.trim())
+              }
+              onClick={async () => {
+                setTestingTelegramNotify(true);
+                try {
+                  const res = await fetch('/api/portal/admin/settings/test-telegram-notify', { method: 'POST' });
+                  const data = await res.json();
+                  if (res.ok) {
+                    toast.success(`Оповещение отправлено (${data.sent ?? 1})`);
+                  } else {
+                    toast.error(data.error || 'Ошибка отправки');
+                  }
+                } catch {
+                  toast.error('Ошибка запроса');
+                } finally {
+                  setTestingTelegramNotify(false);
+                }
+              }}
+            >
+              {testingTelegramNotify ? 'Отправка…' : 'Тест оповещения админов'}
+            </Button>
           </div>
           <p className="text-xs text-[var(--portal-text-muted)]">
-            Тест Telegram использует токен из БД: сохраните форму перед проверкой, если только что ввели новый токен.
+            После смены токена: сохраните форму → «Проверить Telegram» → «Зарегистрировать webhook». Оповещения: заявки, регистрации, оплаты, тикеты.
           </p>
         </form>
       </div>

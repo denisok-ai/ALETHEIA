@@ -17,6 +17,7 @@ import { getSystemSettings } from '@/lib/settings';
 import { claimPaidOrdersForUser } from '@/lib/claim-orders';
 import { generateAutoReply, isConfidentReply } from '@/lib/ticket-auto-reply';
 import { ticketCreateSchema } from '@/lib/validations/ticket';
+import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 /** Найти первый оплаченный заказ по email, по которому у пользователя нет доступа к курсу. */
 async function findPaidOrderWithoutAccess(userId: string, emailNorm: string): Promise<string | null> {
@@ -128,6 +129,13 @@ export async function POST(request: NextRequest) {
       console.error('Ticket: notify manager', e);
     }
   }
+
+  notifyAdminsTelegramAsync('support_ticket', [
+    `Тема: ${subject}`,
+    `От: ${displayName}${user?.email ? ` (${user.email})` : ''}`,
+    ...(message ? [`Сообщение: ${message.slice(0, 400)}`] : []),
+    ...(ticket.orderNumber ? [`Заказ: ${ticket.orderNumber}`] : []),
+  ]);
 
   // Опциональный автоответ от AI при включённой настройке
   if (message) {

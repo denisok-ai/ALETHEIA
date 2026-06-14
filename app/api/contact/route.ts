@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { getSystemSettings } from '@/lib/settings';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { sendTransactionalEmail } from '@/lib/email-service';
+import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import {
   buildContactConfirmationEmail,
   buildContactNotificationEmail,
@@ -69,6 +70,13 @@ export async function POST(request: NextRequest) {
         console.error('Contact notify email failed:', notifyResult.error);
       }
     }
+
+    notifyAdminsTelegramAsync('contact_lead', [
+      `Имя: ${String(name).slice(0, 200)}`,
+      `Телефон: ${String(phone).slice(0, 50)}`,
+      ...(email ? [`Email: ${String(email).slice(0, 200)}`] : []),
+      ...(message ? [`Сообщение: ${String(message).slice(0, 500)}`] : []),
+    ]);
 
     // Письмо клиенту «Заявка принята» (если указан email)
     const clientEmail = email ? String(email).trim() : '';

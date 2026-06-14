@@ -1,6 +1,6 @@
 {
   "name": "avaterra-course",
-  "version": "3.5.3",
+  "version": "3.5.4",
   "private": true,
   "scripts": {
     "postinstall": "prisma generate",
@@ -66,8 +66,10 @@
     "deploy:prod": "bash scripts/push-and-deploy-prod.sh",
     "deploy:rsync": "bash scripts/deploy-rsync-from-local.sh",
     "mailcow:apply-branding": "bash scripts/mailcow-apply-branding-remote.sh",
+    "mail:e2e-selfcheck": "bash scripts/mail-e2e-selfcheck-remote.sh",
     "deploy:rsync:with-db": "bash -c 'DEPLOY_COPY_LOCAL_DB=1 bash scripts/deploy-rsync-from-local.sh'",
-    "prod:import-courses-services": "bash scripts/run-prod-import-courses-services.sh"
+    "prod:import-courses-services": "bash scripts/run-prod-import-courses-services.sh",
+    "telegram:setup-webhook": "tsx scripts/setup-telegram-webhook.ts"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.24",

@@ -14,6 +14,7 @@ import { triggerNotification } from '@/lib/notifications';
 import { createPasswordToken } from '@/lib/password-token';
 import { findActiveServiceForOrderTariff } from '@/lib/order-service';
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
+import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 async function sendPaymentEmail(params: {
   order: { id: number; clientEmail: string };
@@ -168,6 +169,7 @@ export async function processPaidOrder(
   let resultUserId: string | null = null;
   let userWasAutoCreated = false;
   let emailKind: ProcessPaidOrderResult['emailKind'] = 'none';
+  let courseTitleLabel = '';
 
   if (courseId) {
     const [user, course] = await Promise.all([
@@ -250,6 +252,7 @@ export async function processPaidOrder(
     }
 
     const courseTitle = course?.title ?? 'Курс';
+    courseTitleLabel = courseTitle;
     /** ФИО клиента: предпочтение Order.clientName из checkout-формы, затем displayName профиля, иначе общее обращение, чтобы в письме не появлялся email-логин. */
     const profileName = user?.profile?.displayName?.trim() ?? '';
     const orderName = order.clientName?.trim() ?? '';
@@ -372,5 +375,14 @@ export async function processPaidOrder(
       payload: { warnings, emailKind: result.emailKind, enrollmentCreated: result.enrollmentCreated },
     });
   }
+
+  notifyAdminsTelegramAsync('payment_received', [
+    `Заказ: ${orderNumber}`,
+    `Сумма: ${orderAmount}`,
+    `Email: ${order.clientEmail.trim()}`,
+    ...(courseTitleLabel ? [`Курс: ${courseTitleLabel}`] : []),
+    enrollmentCreated ? 'Зачисление: да' : 'Зачисление: нет',
+  ]);
+
   return result;
 }

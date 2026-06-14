@@ -3,6 +3,26 @@
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
 
+## 2026-06-14 — Telegram-бот: webhook, оповещения админов
+
+**Задача:** восстановить работу бота сайта и оповещать админов о событиях на сервере.
+
+**Сделано:** `lib/telegram-admin-notify.ts` (заявки, регистрации, оплаты, тикеты, ошибки PayKeeper); `lib/telegram-webhook-setup.ts` + API `POST/GET /api/portal/admin/settings/telegram-webhook`; тест `POST …/test-telegram-notify`; в webhook — `/myid`, `/admin_on`; настройка `telegram_admin_chat_ids` в Портал → Настройки → Интеграции; CLI `npm run telegram:setup-webhook`. Документация: `Support.md`, `Env-Config.md`.
+
+**Активация на проде:** сохранить токен → «Проверить Telegram» → указать Chat ID (или `/admin_on` боту) → «Зарегистрировать webhook» → «Тест оповещения». При блокировке `api.telegram.org` — `HTTPS_PROXY` в `.env` unit aletheia.
+
+---
+
+## 2026-06-14 — SOGo Unauthorized, quota2 и красные протоколы в Mailcow UI
+
+**Симптом:** вход в Mailcow UI как `info@`, протоколы с красным крестиком, квота 0/∞; `/SOGo/so/` — «Unauthorized»; IMAP с VPS работает.
+
+**Причина:** ящики, созданные через SQL/старые скрипты, без строк в **`quota2`** (Mailcow API не видит ящик) и без **`_sogo_static_view`** (SOGo 401). Прямой UPDATE `attributes` в MySQL UI не подхватывает.
+
+**Исправление на проде:** `prod-mailcow-sync-quota2-remote.sh`, `prod-mailcow-apply-mailbox-defaults-api-remote.sh`, rebuild SOGo через `prod-mailcow-fix-mailbox-attrs-remote.sh`. Веб-почта: **https://mail.avaterra.pro/SOGo/** (не `/SOGo/so/`).
+
+---
+
 ## 2026-06-14 - deploy-pull: Restart= during build
 
 **Problem:** ~20 aletheia restart failures 14:16-14:18 MSK while deploy removed .next and next build ran; script already restarts only after build (step 5), but systemd Restart=always retried next start on incomplete .next.

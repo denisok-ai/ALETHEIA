@@ -10,6 +10,7 @@ import {
   maskEmailForLog,
   writePaykeeperIntegrationLog,
 } from '@/lib/paykeeper-integration-log';
+import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 export async function POST(request: NextRequest) {
   try {
@@ -162,6 +163,10 @@ export async function POST(request: NextRequest) {
         orderNumber: orderid,
         message: result.error ?? 'processPaidOrder failed',
       });
+      notifyAdminsTelegramAsync('paykeeper_webhook_error', [
+        `Заказ: ${orderid}`,
+        `Ошибка: ${result.error ?? 'processPaidOrder failed'}`,
+      ]);
       return NextResponse.json({ error: result.error ?? 'Processing failed' }, { status: 500 });
     }
 
@@ -206,6 +211,9 @@ export async function POST(request: NextRequest) {
       status: 'error',
       message: error instanceof Error ? error.message : 'Webhook processing failed',
     });
+    notifyAdminsTelegramAsync('paykeeper_webhook_error', [
+      `Исключение: ${error instanceof Error ? error.message : 'Webhook processing failed'}`,
+    ]);
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }

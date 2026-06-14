@@ -90,6 +90,33 @@ BACKFILL_CONFIRM=YES npx tsx scripts/backfill-leads-from-orders.ts
 
 На проде (2026-06-14) восстановлено **7** лидов. Не запускать `npm run db:clear-crm-users` на проде без бэкапа; не использовать `DEPLOY_COPY_LOCAL_DB=1`, если локальный CRM пуст. Подробнее — Diary 2026-06-14.
 
+### Прод-почта: `[NO] Authentication failed` (IMAP)
+
+**Симптом:** в **Портал → Почта → Входящие** у ящика `@avaterra.pro` — `lastSyncError` с `Authentication failed` / `AUTHENTICATIONFAILED`.
+
+**Частая причина:** на VPS не заданы `MAIL_PROVISIONING_MODE=mailcow` и `MAILCOW_API_KEY` — ящик создан только в БД приложения, пароль в Dovecot/Mailcow не совпадает. Подробнее — [Mail-Server.md — ошибка Authentication failed](Mail-Server.md#ошибка-no-authentication-failed-при-imap).
+
+**Диагностика и исправление (с WSL в корне репозитория, SSH-ключ как для деплоя):**
+
+```bash
+# 1. Один раз на VPS (если таблица api в Mailcow пуста или ключ не задан):
+ssh root@95.181.224.70 'cd /opt/ALETHEIA && sudo bash scripts/setup-mailcow-api-prod.sh && sudo systemctl restart aletheia'
+
+# 2. Выровнять пароль существующего ящика (MySQL hash в Mailcow):
+MAILBOX_EMAIL=info@avaterra.pro bash scripts/prod-mailcow-create-domain-mailbox-remote.sh
+
+# Альтернатива — через Mailcow API (если MAILCOW_API_* уже в .env на VPS):
+MAILBOX_EMAIL=info@avaterra.pro bash scripts/prod-mailcow-align-password-remote.sh
+
+# 3. Обновить статус синка всех ящиков в UI:
+bash scripts/prod-inmail-sync-all-remote.sh
+
+# 4. Полная E2E-проверка (создание тестового ящика, SMTP, IMAP, cleanup):
+npm run mail:e2e-selfcheck
+```
+
+После смены пароля в админке (**Ящики домена → Пароль**) при `MAIL_PROVISIONING_MODE=mailcow` пароль обновляется в Mailcow и проверяется IMAP автоматически. При `mode=none` — только БД; пароль в Mailcow нужно выставить вручную.
+
 ### Локальная очистка тестовых данных (курсы и товары сохраняются)
 
 - **Только localhost / `file:` SQLite.** Скрипт откажется работать при `NODE_ENV=production` или подозрительном `DATABASE_URL`.
@@ -288,15 +315,33 @@ npm run db:seed
 
 ### Где задать в продуктиве
 
-1. **Портал → Настройки → Переменные окружения:** `Telegram Bot Token`, при необходимости `Telegram Webhook Secret` → сохранить.
-2. Либо переменные в `/opt/ALETHEIA/.env`; при изменении **только** `.env` перезапустите сервис: `sudo systemctl restart aletheia` (имя unit см. `docs/Production-Server.md`).
-3. Проверка: кнопка **«Проверить Telegram»** на той же странице.
+1. **Портал → Настройки → Интеграции:** `Telegram Bot Token`, `Chat ID админов`, при необходимости `Telegram Webhook Secret` → **Сохранить интеграции**.
+2. **Проверить Telegram** → **Зарегистрировать webhook** (кнопки на той же странице; URL берётся из `site_url`).
+3. **Тест оповещения админов** — проверка доставки в указанные Chat ID.
+4. Либо переменные в `/opt/ALETHEIA/.env`; при изменении **только** `.env` перезапустите сервис: `sudo systemctl restart aletheia`.
+5. CLI на VPS: `cd /opt/ALETHEIA && npx tsx scripts/setup-telegram-webhook.ts` (после деплоя с этим скриптом).
 
 Значения из БД имеют приоритет над `process.env` — см. `docs/Env-Config.md` (`getEnvOverrides`).
 
+### Оповещения администраторов
+
+События (модуль `lib/telegram-admin-notify.ts`):
+
+| Событие | Когда |
+|---------|--------|
+| Заявка с сайта | POST `/api/contact` |
+| Регистрация | POST `/api/auth/register` |
+| Оплата | успешный `processPaidOrder` (PayKeeper) |
+| Тикет поддержки | создание тикета студентом |
+| Ошибка PayKeeper | сбой webhook / processPaidOrder |
+
+Подписка админа: в Telegram боту `/admin_on` или вручную Chat ID из `/myid` в настройках.
+
 ### Регистрация webhook у Telegram
 
-В репозитории нет автоматического `setWebhook` — один раз выполните запрос к API **с любой машины**, где открывается `api.telegram.org` (можно с ПК за VPN):
+**Рекомендуется:** кнопка **«Зарегистрировать webhook»** в Портал → Настройки → Интеграции (или `npm run telegram:setup-webhook` / `npx tsx scripts/setup-telegram-webhook.ts` на VPS).
+
+**Вручную** с машины, где открывается `api.telegram.org`:
 
 **Без секрета webhook:**
 

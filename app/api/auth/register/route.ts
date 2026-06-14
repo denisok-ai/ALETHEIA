@@ -10,6 +10,7 @@ import { buildEmailVerificationEmail } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
 import { registerSchema } from '@/lib/validations/auth';
 import { logPersonalDataConsent } from '@/lib/consent-log';
+import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 async function isEmailVerificationEnabled(): Promise<boolean> {
   const row = await prisma.systemSetting.findUnique({
@@ -108,6 +109,13 @@ export async function POST(req: Request) {
         console.error('Register: welcome notification', welcomeErr);
       }
     }
+
+    notifyAdminsTelegramAsync('user_registered', [
+      `Email: ${emailNorm}`,
+      ...(displayName ? [`Имя: ${displayName}`] : []),
+      verificationRequired ? 'Подтверждение email: да' : 'Подтверждение email: нет',
+    ]);
+
     return NextResponse.json({ ok: true, userId: user.id, emailVerificationRequired: verificationRequired });
   } catch (e) {
     console.error(e);

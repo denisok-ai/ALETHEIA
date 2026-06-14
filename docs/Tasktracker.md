@@ -2,7 +2,7 @@
 
 Отслеживание прогресса разработки. Основа — этапы и требования из `docs/Project.md`.
 
-**Версия продукта (package.json):** 3.5.3 — см. CHANGELOG [3.5.3] (2026-06-14): CRM backfill из заказов; прод-аудит VPS (fail2ban, Mailcow limits, Docker log rotation).  
+**Версия продукта (package.json):** 3.5.3 — см. CHANGELOG [3.5.3] (2026-06-14): CRM backfill из заказов; прод-аудит VPS (fail2ban, Mailcow limits, Docker log rotation); почта — Mailcow API, IMAP verify, E2E selfcheck PASS.  
 **База трекера:** 3.0 (портал, роли, SCORM, сертификаты, коммуникации).  
 **Легенда статусов:** Не начата | В процессе | Завершена  
 **Приоритеты:** Критический | Высокий | Средний | Низкий
@@ -25,7 +25,7 @@
 | Сертификаты (PDF, выдача, скачивание) | Высокий | Завершена | lib/certificates.tsx, API download |
 | Admin: пользователи (таблица, фильтр) | Высокий | Завершена | UsersTable, TanStack Table |
 | Admin: загрузка SCORM (ZIP) | Высокий | Завершена | POST /api/portal/admin/courses/upload, jszip |
-| Telegram webhook, lib/telegram, lib/email, lib/audit | Средний | Завершена | Команды /start, /progress, /cert, /help |
+| Telegram webhook, lib/telegram, оповещения админов | Средний | Завершена | Webhook `/api/portal/telegram/webhook`; команды /start, /progress, /cert, /help, /myid, /admin_on; `lib/telegram-admin-notify.ts` (заявки, регистрации, оплаты, тикеты, ошибки PayKeeper); регистрация webhook из админки и `npm run telegram:setup-webhook`; см. Support.md § Telegram |
 | Страницы-заглушки Admin/Manager (CRM, финансы, AI, аудит, тикеты, верификация) | Средний | Завершена | Наполнение — следующие итерации |
 | Автосертификат при 100% SCORM | Высокий | Завершена | POST progress → certificates + notification |
 | Чат-бот: llm_settings из БД | Средний | Завершена | /api/chat читает system_prompt, model, temperature |
@@ -268,6 +268,7 @@
 | Прод-аудит VPS (фазы 0–6) | Высокий | Завершена | Deploy **239dd29**, systemd-only aletheia, fail2ban (3 jail), Mailcow mem limits, Docker log rotation, journald 500M (~2.9 GB freed), бэкап `/root/backups/20260614/`; скрипты `run-prod-audit.sh`, `prod-audit-remote.sh`; см. Production-Server.md §12, Diary 2026-06-14 |
 | CRM: backfill лидов из заказов на проде | Высокий | Завершена | Root cause: `Lead` 0 rows; `scripts/backfill-leads-from-orders.ts`, `npm run db:backfill-leads-from-orders`; на проде восстановлено **7** лидов; commit **c4f5ed4**, Diary **f84ccfe** |
 | Релиз 3.5.3 (SemVer PATCH) | Средний | Завершена | После аудита и CRM fix; CHANGELOG [3.5.3], Project.md, Tasktracker |
+| Прод-почта: AUTHENTICATIONFAILED, Mailcow API | Высокий | Завершена | Root cause: `MAIL_PROVISIONING_MODE`/`MAILCOW_API_KEY` не заданы, таблица `api` в Mailcow пуста; fix: `setup-mailcow-api-prod.sh`, выравнивание info@/yarik@, `prod-inmail-sync-all-remote.sh` (4/4 OK); код ~**49a9ab6** (`verify-imap.ts`, retry в `domain-mailbox-service.ts`); E2E **`npm run mail:e2e-selfcheck`** PASS; Diary 2026-06-14, Mail-Server.md |
 
 ---
 

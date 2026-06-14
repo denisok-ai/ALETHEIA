@@ -85,6 +85,7 @@
 | **deploy-pull.sh** | Шаг **5b:** очистка **`/var/cache/nginx`** (или встроенная очистка, если нет `nginx-clear-proxy-cache.sh`) + `nginx reload` при наличии прав; шаги **6–7:** проверка `127.0.0.1:$PORT/api/health` и внешнего URL. |
 | **Деплой без git** | С ПК (WSL): **`npm run deploy:rsync`** → [`scripts/deploy-rsync-from-local.sh`](../scripts/deploy-rsync-from-local.sh) (по умолчанию `root@95.181.224.70:/opt/ALETHEIA`). **Не запускать** `deploy:rsync` на самом VPS. |
 | **Mailcow (черновик)** | [`scripts/setup-mailcow-docker-vps.sh`](../scripts/setup-mailcow-docker-vps.sh) — на VPS от root: Docker + clone Mailcow в `/opt/mailcow-dockerized`; дальше `generate_config.sh`, TLS/DNS — [Mail-Server.md](Mail-Server.md). |
+| **Telegram-бот** | Webhook `POST /api/portal/telegram/webhook`; токен и Chat ID админов — БД (Портал → Настройки → Интеграции). После деплоя: `npx tsx scripts/setup-telegram-webhook.ts` или кнопка в админке. При блокировке API — `HTTPS_PROXY` в `.env` unit `aletheia`. См. [Support.md — Telegram](Support.md#telegram-бот-webhook-токен-блокировки). |
 
 ## 6.1 Развёртывание приложения без git на сервере + почта
 

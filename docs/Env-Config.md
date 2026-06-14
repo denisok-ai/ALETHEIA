@@ -87,9 +87,20 @@
 |------------|------------|
 | `MAIL_PROVISIONING_MODE` | `mailcow` или `none` |
 | `MAIL_DOMAIN`, `MAIL_IMAP_HOST`, `MAIL_SMTP_HOST`, `MAIL_SMTP_PORT` | Домен и подключение к вашему MX |
-| `MAILCOW_API_URL`, `MAILCOW_API_KEY` | REST API Mailcow для создания ящиков из админки |
+| `MAILCOW_API_URL`, `MAILCOW_API_KEY` | REST API Mailcow для создания ящиков из админки. Ключ создаётся **один раз** на VPS: `sudo bash scripts/setup-mailcow-api-prod.sh` (записывает переменные в `/opt/ALETHEIA/.env`, рестарт aletheia). Без них режим `none` — только записи в БД, IMAP на Dovecot не совпадёт. |
 
-Админка: **Портал → Ящики домена**. Полная инструкция — [Mail-Server.md](Mail-Server.md).
+**Скрипты bootstrap и диагностики (VPS / WSL):**
+
+| Скрипт / npm | Назначение |
+|--------------|------------|
+| `scripts/append-mail-stack-hosts-prod.sh` | На VPS: дописать `MAIL_IMAP_*`, `MAIL_SMTP_*`, `MAIL_DOMAIN`, `MAIL_PROVISIONING_MODE=mailcow`, `MAILCOW_API_URL` |
+| `scripts/setup-mailcow-api-prod.sh` | На VPS: создать ключ Mailcow API + `MAILCOW_API_KEY` в `.env` |
+| `scripts/prod-mailcow-create-domain-mailbox-remote.sh` | С WSL: выровнять пароль ящика в MySQL Mailcow (`MAILBOX_EMAIL=…`) |
+| `scripts/prod-mailcow-align-password-remote.sh` | С WSL: выровнять пароль через Mailcow API |
+| `scripts/prod-inmail-sync-all-remote.sh` | С WSL: синхронизировать все `InboundMailbox`, обновить `lastSyncStatus` |
+| `npm run mail:e2e-selfcheck` | С WSL: полный E2E (тестовый ящик, IMAP, SMTP на admin@, sync, cleanup) |
+
+Админка: **Портал → Ящики домена**. Полная инструкция — [Mail-Server.md](Mail-Server.md). Troubleshooting IMAP — [Support.md](Support.md).
 
 ## Планировщик (cron)
 
@@ -121,6 +132,7 @@ curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/
 
 | Ключ в БД / переменная | Назначение |
 |------------------------|------------|
+| `telegram_admin_chat_ids` / `TELEGRAM_ADMIN_CHAT_IDS` | Chat ID администраторов для оповещений о событиях (заявки, регистрации, оплаты, тикеты). Через запятую. Команда бота `/myid` или `/admin_on`. |
 | `telegram_bot_token` / `TELEGRAM_BOT_TOKEN` | Токен от [@BotFather](https://t.me/BotFather). В репозитории и в документации **не хранится** — только в БД (Портал → Настройки → Переменные окружения) или в `.env`. |
 | `telegram_webhook_secret` / `TELEGRAM_WEBHOOK_SECRET` | Опционально: значение для заголовка `X-Telegram-Bot-Api-Secret-Token` при вызове webhook ([Bot API: setWebhook](https://core.telegram.org/bots/api#setwebhook), параметр `secret_token`). |
 | `HTTPS_PROXY` / `https_proxy` / `HTTP_PROXY` / `http_proxy` | Опционально: исходящий HTTP(S)-прокси для запросов к `api.telegram.org` (отправка сообщений, тест «Проверить Telegram»). Задаётся **только** в окружении процесса Node (`.env` или unit systemd), не в таблице настроек. См. `lib/telegram-fetch.ts`. |

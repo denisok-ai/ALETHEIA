@@ -2,7 +2,7 @@
 
 **Проект:** Веб-сайт школы AVATERRA (Phygital школа мышечного тестирования, курс «Тело не врет»)  
 **Домен:** https://avaterra.pro  
-**Версия документа:** 3.5.3 (совпадает с `package.json`)  
+**Версия документа:** 3.5.4 (совпадает с `package.json`)  
 **Дата:** 2026-06-14
 
 ---
@@ -124,6 +124,7 @@ AVATERRA/
 │   ├── ui/, 3d/, PaymentModal.tsx, ChatBot.tsx
 ├── lib/
 │   ├── utils.ts, paykeeper.ts, auth.ts, audit.ts, db.ts
+│   ├── telegram.ts, telegram-fetch.ts, telegram-admin-notify.ts, telegram-webhook-setup.ts
 │   ├── certificates.tsx           # PDF сертификаты (@react-pdf/renderer)
 ├── prisma/
 │   ├── schema.prisma              # Схема БД
@@ -159,7 +160,7 @@ AVATERRA/
 - **Платежи:** PayKeeper API (lib/paykeeper.ts)
 - **Данные:** Prisma + SQLite (локально). Модели: User, Profile, Course, Enrollment, ScormProgress, Certificate, Media, Notification, Ticket, AuditLog, CommsTemplate, LlmSetting, Service, UserEnergy, Lead, Order.
 - **Аутентификация:** NextAuth (Credentials provider), bcryptjs.
-- **Портал:** Роли user/manager/admin, middleware RBAC, SCORM-плеер (iframe + API progress), сертификаты (PDF через @react-pdf/renderer), Resend для email, Telegram webhook для бота.
+- **Портал:** Роли user/manager/admin, middleware RBAC, SCORM-плеер (iframe + API progress), сертификаты (PDF через @react-pdf/renderer), Resend для email, **Telegram Bot API** — webhook (`/api/portal/telegram/webhook`, команды `/start`, `/myid`, `/admin_on`, …), исходящие сообщения через `lib/telegram.ts` (опционально `HTTPS_PROXY` при блокировке `api.telegram.org`), **оповещения админов** (`lib/telegram-admin-notify.ts`: заявки, регистрации, оплаты, тикеты, ошибки PayKeeper; Chat ID — `telegram_admin_chat_ids` в Портал → Настройки → Интеграции).
 - **AI и чаты:** публичный чат на лендинге (`/api/chat`, база знаний и шаблоны промптов `scope=chatbot`); AI-тьютор в плеере (`/api/portal/scorm/ai-assist`, `LlmSetting` / шаблон `course-tutor`); рендер ответов через `ChatMarkdown` + linkify для кликабельных URL; справка в портале (`HelpContent`, якоря `#ai-tutor`, `#ai-tutor-admin`, прокрутка по hash); палитра команд ⌘K (`lib/portal-nav-commands.ts`).
 - **Хранилище:** локальные файлы в `public/uploads/` (SCORM, медиа).
 - **Деплой:** Vercel или VPS — общий чек-лист [Deploy.md](Deploy.md), продуктивный сервер и порядок обновления [Production-Server.md](Production-Server.md)
