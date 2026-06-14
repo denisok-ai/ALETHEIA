@@ -217,17 +217,15 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 | Хост VPS | p941004.kvmvps, Ubuntu 24.04 LTS, IP 95.181.224.70 |
 | Активный корень приложения | /opt/ALETHEIA |
 | Git на проде (после аудита) | 239dd29 (/api/health совпадает) |
-| Unit systemd | letheia.service: EnvironmentFile=-/opt/ALETHEIA/.env, NODE_OPTIONS=--max-old-space-size=512, Restart=always, WorkingDirectory=/opt/ALETHEIA |
+| Unit systemd | aletheia.service: EnvironmentFile=-/opt/ALETHEIA/.env, NODE_OPTIONS=--max-old-space-size=512, Restart=always, WorkingDirectory=/opt/ALETHEIA |
 | Порт Node | 3000 (nginx → 127.0.0.1:3000) |
 | Тип БД | SQLite, /opt/ALETHEIA/prisma/dev.db; миграции Prisma — без pending |
-| Файл nginx vhost | /etc/nginx/sites-enabled/aletheia (в location / по-прежнему есть proxy_cache — см. §11) |
-| fail2ban | Установлен; jails: sshd, 
-ginx-http-auth, 
-ginx-limit-req (/etc/fail2ban/jail.local) |
+| Файл nginx vhost | /etc/nginx/sites-enabled/aletheia — `location /` без proxy_cache (только `/_next/static/` и `/_next/image`) |
+| fail2ban | Установлен; jails: sshd, nginx-http-auth, nginx-limit-req (/etc/fail2ban/jail.local) |
 | Mailcow | /opt/mailcow-dockerized; docker-compose.override.yml — лимиты RAM mysql/sogo/rspamd/clamd; **SOGo включён** |
 | Docker | /etc/docker/daemon.json — json-file, max-size=10m, max-file=3 |
 | Бэкап перед работами | /root/backups/20260614/ — dev.db.bak (~5.1 MB), public-uploads.tar.gz (~1.4 GB), .env.bak |
-| PM2 | Запись letheia stopped; рабочий процесс — только systemd |
+| PM2 | Запись aletheia stopped; рабочий процесс — только systemd |
 | Скрипт аудита | scripts/run-prod-audit.sh + scripts/prod-audit-remote.sh (фазы 0–6) |
 
 ---
