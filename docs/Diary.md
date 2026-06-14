@@ -2,6 +2,13 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+
+## 2026-06-14 - deploy-pull: Restart= during build
+
+**Problem:** ~20 aletheia restart failures 14:16-14:18 MSK while deploy removed .next and next build ran; script already restarts only after build (step 5), but systemd Restart=always retried next start on incomplete .next.
+
+**Fix:** systemctl stop aletheia (or pm2 stop) before rm -rf .next; restart unchanged after successful build.
+
 ## 2026-06-14 — Релиз 3.5.3
 
 **Задача:** bump PATCH после прод-аудита и CRM backfill.

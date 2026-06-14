@@ -51,6 +51,15 @@ echo "4. Build..."
 export BUILD_COMMIT
 BUILD_COMMIT="$(git rev-parse --short HEAD 2>/dev/null || true)"
 echo "   BUILD_COMMIT=$BUILD_COMMIT (вшивается в NEXT_PUBLIC_BUILD_COMMIT при next build)"
+echo "   Stopping app during build (avoid systemd Restart= with incomplete .next)..."
+if systemctl is-active --quiet aletheia.service 2>/dev/null; then
+  sudo systemctl stop aletheia.service
+  echo "   systemd: aletheia.service stopped"
+elif pm2 describe "$PM2_NAME" &>/dev/null; then
+  pm2 stop "$PM2_NAME" 2>/dev/null || true
+  echo "   PM2: $PM2_NAME stopped"
+fi
+
 rm -rf .next
 npm run build:server 2>/dev/null || npm run build
 echo "   OK"
