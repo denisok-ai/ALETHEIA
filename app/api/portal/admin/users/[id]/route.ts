@@ -1,14 +1,10 @@
 /**
- * Admin: update user (role, status).
+ * Admin: update user (role, status, profile fields including telegramId).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
-
-const ALLOWED_ROLES = ['user', 'manager', 'admin'];
-const ALLOWED_STATUSES = ['active', 'archived'];
-const MAX_DISPLAY_NAME = 200;
-const MAX_EMAIL = 255;
+import { profileUpdateSchema } from '@/lib/validations/profile';
 
 export async function PATCH(
   request: NextRequest,
@@ -20,22 +16,52 @@ export async function PATCH(
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 });
 
-  let body: { role?: string; status?: string; displayName?: string | null; email?: string | null };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const profileUpdates: { role?: string; status?: string; displayName?: string | null; email?: string | null } = {};
-  if (body.role && ALLOWED_ROLES.includes(body.role)) profileUpdates.role = body.role;
-  if (body.status && ALLOWED_STATUSES.includes(body.status)) profileUpdates.status = body.status;
-  if (body.displayName !== undefined) {
-    const v = body.displayName === '' ? null : (body.displayName ?? '').trim().slice(0, MAX_DISPLAY_NAME) || null;
-    profileUpdates.displayName = v;
+  const parsed = profileUpdateSchema.safeParse(body);
+  if (!parsed.success) {
+    const msg = parsed.error.issues[0]?.message ?? 'Неверные данные';
+    return NextResponse.json({ error: msg }, { status: 400 });
   }
-  if (body.email !== undefined) {
-    profileUpdates.email = body.email === '' ? null : (body.email ?? '').trim().slice(0, MAX_EMAIL) || null;
+
+  const profileUpdates: {
+    role?: string;
+    status?: string;
+    displayName?: string | null;
+    email?: string | null;
+    telegramId?: number | null;
+  } = {};
+
+  if (parsed.data.role) profileUpdates.role = parsed.data.role;
+  if (parsed.data.status) profileUpdates.status = parsed.data.status;
+  if (parsed.data.displayName !== undefined) {
+    profileUpdates.displayName =
+      parsed.data.displayName === '' || parsed.data.displayName === null
+        ? null
+        : parsed.data.displayName.trim() || null;
+  }
+  if (parsed.data.email !== undefined) {
+    profileUpdates.email =
+      parsed.data.email === '' || parsed.data.email === null ? null : parsed.data.email.trim() || null;
+  }
+  if (parsed.data.telegramId !== undefined) {
+    if (parsed.data.telegramId === '' || parsed.data.telegramId === null) {
+      profileUpdates.telegramId = null;
+    } else {
+      const taken = await prisma.profile.findFirst({
+        where: { telegramId: parsed.data.telegramId, userId: { not: id } },
+        select: { id: true },
+      });
+      if (taken) {
+        return NextResponse.json({ error: 'Этот Telegram ID уже привязан к другому аккаунту.' }, { status: 409 });
+      }
+      profileUpdates.telegramId = parsed.data.telegramId;
+    }
   }
 
   if (Object.keys(profileUpdates).length === 0) {
@@ -47,7 +73,7 @@ export async function PATCH(
       where: { userId: id },
       data: profileUpdates,
     });
-    if (body.displayName !== undefined) {
+    if (parsed.data.displayName !== undefined) {
       await tx.user.update({
         where: { id },
         data: { displayName: profileUpdates.displayName ?? null },

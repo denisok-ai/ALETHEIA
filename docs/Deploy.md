@@ -33,7 +33,7 @@ git push origin v3.0.0
 - [ ] `npm run predeploy` (или `npm run build`) проходит без ошибок
 - [ ] Git тег создан и запушен (см. раздел «Релиз v3.0.0»)
 - [ ] БД: Prisma миграции применены; на VPS фактический режим — по `DATABASE_URL` (SQLite или PostgreSQL, см. [Production-Server.md](Production-Server.md))
-- [ ] Переменные окружения: DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, NEXT_PUBLIC_URL; PayKeeper (PAYKEEPER_*); Resend (RESEND_*); DEEPSEEK_API_KEY; TELEGRAM_BOT_TOKEN (опционально, для бота). См. .env.example.
+- [ ] Переменные окружения: DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL, NEXT_PUBLIC_URL; PayKeeper (PAYKEEPER_*); Resend (RESEND_*); DEEPSEEK_API_KEY; **Telegram** (`TELEGRAM_BOT_TOKEN`, опционально `TELEGRAM_ADMIN_CHAT_IDS`, `TELEGRAM_WEBHOOK_SECRET`) — или те же ключи в Портал → Настройки → Интеграции. После выката: «Проверить Telegram» → «Зарегистрировать webhook». См. `.env.example`, [Support.md — Telegram](Support.md#telegram-бот-webhook-токен-блокировки).
 - [ ] PayKeeper: webhook URL указан в ЛК PayKeeper
 - [ ] Первый админ: через seed (`admin@avaterra.local` / `SEED_ADMIN_EMAIL` и `SEED_ADMIN_PASSWORD`) или создать вручную в БД
 - [ ] Sitemap и robots: генерируются автоматически (/sitemap.xml, /robots.txt); базовый URL из NEXT_PUBLIC_URL
@@ -50,6 +50,7 @@ git push origin v3.0.0
 3. **Индексация:** открыть `/sitemap.xml`, `/robots.txt` — корректный базовый URL из настроек сайта.
 4. **Портал:** вход студента/админа (если есть учётные данные), открытие раздела «Медиатека» (превью видео при необходимости).
 5. **Платежи/уведомления:** по согласованию — тестовый сценарий PayKeeper на тестовом контуре или проверка webhook в логах после первой реальной оплаты.
+6. **Telegram:** Портал → Настройки → Интеграции — токен бота, Chat ID админов; «Проверить Telegram», «Зарегистрировать webhook», «Тест оповещения админов». CLI на VPS: `npx tsx scripts/setup-telegram-webhook.ts`.
 
 Строка **«Деплой на прод»** в [Tasktracker.md](Tasktracker.md) переводится в **«Завершена»** после прохождения этого чеклиста ответственным за прод.
 

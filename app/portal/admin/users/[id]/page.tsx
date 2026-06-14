@@ -115,6 +115,7 @@ export default async function AdminUserDetailPage({ params }: PageProps) {
         initialStatus={profile?.status ?? 'active'}
         initialDisplayName={profile?.displayName ?? null}
         initialEmail={profile?.email ?? null}
+        initialTelegramId={profile?.telegramId ?? null}
         courses={courses.map((c) => ({ id: c.id, title: c.title }))}
         enrollments={user.enrollments.map((e) => ({
           id: e.id,

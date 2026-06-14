@@ -20,7 +20,7 @@ export async function POST() {
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
-  const result = await registerTelegramWebhook();
+  const result = await registerTelegramWebhook({ dropPendingUpdates: true });
   if (!result.ok) {
     return NextResponse.json({ error: result.error ?? 'setWebhook failed' }, { status: 502 });
   }

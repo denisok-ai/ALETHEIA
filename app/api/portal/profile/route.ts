@@ -1,11 +1,19 @@
 /**
- * Student (own) profile: GET and PATCH displayName.
+ * Student (own) profile: GET and PATCH displayName, telegramId.
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { profilePatchSchema } from '@/lib/validations/profile';
+
+async function assertTelegramIdAvailable(telegramId: number, userId: string): Promise<string | null> {
+  const taken = await prisma.profile.findFirst({
+    where: { telegramId, userId: { not: userId } },
+    select: { id: true },
+  });
+  return taken ? 'Этот Telegram ID уже привязан к другому аккаунту.' : null;
+}
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -14,7 +22,7 @@ export async function GET() {
 
   const profile = await prisma.profile.findUnique({
     where: { userId },
-    select: { displayName: true, email: true },
+    select: { displayName: true, email: true, telegramId: true },
   });
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -23,6 +31,7 @@ export async function GET() {
   return NextResponse.json({
     displayName: profile?.displayName ?? null,
     email: profile?.email ?? user?.email ?? null,
+    telegramId: profile?.telegramId ?? null,
   });
 }
 
@@ -51,15 +60,33 @@ export async function PATCH(request: NextRequest) {
         ? null
         : String(parsed.data.displayName).trim();
 
+  let telegramId: number | null | undefined;
+  if (parsed.data.telegramId !== undefined) {
+    if (parsed.data.telegramId === '' || parsed.data.telegramId === null) {
+      telegramId = null;
+    } else {
+      telegramId = parsed.data.telegramId;
+      const conflict = await assertTelegramIdAvailable(telegramId, userId);
+      if (conflict) return NextResponse.json({ error: conflict }, { status: 409 });
+    }
+  }
+
+  const updateData: { displayName?: string | null; telegramId?: number | null } = {};
+  if (displayName !== undefined) updateData.displayName = displayName;
+  if (telegramId !== undefined) updateData.telegramId = telegramId;
+
   await prisma.profile.upsert({
     where: { userId },
-    create: { id: `p-${userId}`, userId, displayName: displayName ?? undefined },
-    update: displayName !== undefined ? { displayName } : {},
+    create: { id: `p-${userId}`, userId, ...updateData },
+    update: updateData,
   });
 
   const profile = await prisma.profile.findUnique({
     where: { userId },
-    select: { displayName: true },
+    select: { displayName: true, telegramId: true },
   });
-  return NextResponse.json({ displayName: profile?.displayName ?? null });
+  return NextResponse.json({
+    displayName: profile?.displayName ?? null,
+    telegramId: profile?.telegramId ?? null,
+  });
 }

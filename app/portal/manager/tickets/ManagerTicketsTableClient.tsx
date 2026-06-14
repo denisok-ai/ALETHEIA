@@ -22,6 +22,7 @@ import { MessageSquare, ArrowRight } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { isTelegramTicketSubject } from '@/lib/telegram-ticket-source';
 
 const TICKETS_TABLE_COLUMNS: ColumnConfigItem[] = [
   { id: 'date', label: 'Дата' },
@@ -52,6 +53,7 @@ export interface TicketRow {
 export function ManagerTicketsTableClient() {
   const searchParams = useSearchParams();
   const filterUserId = searchParams.get('userId')?.trim() ?? '';
+  const sourceFilter = searchParams.get('source')?.trim() ?? '';
   const [tickets, setTickets] = useState<TicketRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -72,6 +74,7 @@ export function ManagerTicketsTableClient() {
       sortDir,
     });
     if (filterUserId) params.set('userId', filterUserId);
+    if (sourceFilter === 'telegram') params.set('source', 'telegram');
     if (exportMode) params.set('export', '1');
     setLoading(true);
     try {
@@ -89,11 +92,11 @@ export function ManagerTicketsTableClient() {
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, sortKey, sortDir, filterUserId]);
+  }, [page, pageSize, sortKey, sortDir, filterUserId, sourceFilter]);
 
   useEffect(() => {
     setPage(0);
-  }, [filterUserId]);
+  }, [filterUserId, sourceFilter]);
 
   useEffect(() => {
     fetchTickets();
@@ -101,7 +104,7 @@ export function ManagerTicketsTableClient() {
 
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [filterUserId, page, pageSize, sortKey, sortDir]);
+  }, [filterUserId, sourceFilter, page, pageSize, sortKey, sortDir]);
 
   function toggleSelect(id: string) {
     setSelectedIds((prev) => {
@@ -147,8 +150,9 @@ export function ManagerTicketsTableClient() {
 
   const handleExportExcel = async () => {
     const uid = filterUserId ? `&userId=${encodeURIComponent(filterUserId)}` : '';
+    const src = sourceFilter === 'telegram' ? '&source=telegram' : '';
     const all = await fetch(
-      `/api/portal/manager/tickets?export=1&sortKey=${sortKey}&sortDir=${sortDir}${uid}`,
+      `/api/portal/manager/tickets?export=1&sortKey=${sortKey}&sortDir=${sortDir}${uid}${src}`,
     ).then((r) => (r.ok ? r.json() : { tickets: [] }));
     const list = (all.tickets ?? []) as TicketRow[];
     const headers = ['Дата', 'Тема', 'Пользователь', 'Статус'];
@@ -204,6 +208,29 @@ export function ManagerTicketsTableClient() {
 
   return (
     <div className="portal-card overflow-hidden p-0">
+      <div className="flex flex-wrap items-center gap-2 border-b border-[#E2E8F0] bg-[#F8FAFC] px-4 py-2">
+        <span className="text-xs text-[var(--portal-text-muted)]">Источник:</span>
+        <Link
+          href="/portal/manager/tickets"
+          className={`rounded-full px-3 py-1 text-xs font-medium ${
+            sourceFilter !== 'telegram'
+              ? 'bg-[var(--portal-accent)] text-white'
+              : 'bg-white text-[var(--portal-text-muted)] border border-[#E2E8F0] hover:border-[var(--portal-accent)]'
+          }`}
+        >
+          Все
+        </Link>
+        <Link
+          href="/portal/manager/tickets?source=telegram"
+          className={`rounded-full px-3 py-1 text-xs font-medium ${
+            sourceFilter === 'telegram'
+              ? 'bg-[var(--portal-accent)] text-white'
+              : 'bg-white text-[var(--portal-text-muted)] border border-[#E2E8F0] hover:border-[var(--portal-accent)]'
+          }`}
+        >
+          Telegram
+        </Link>
+      </div>
       {filterUserId && (
         <div className="border-b border-[#E2E8F0] bg-[var(--portal-accent-soft)] px-4 py-2 text-sm text-[var(--portal-text)]">
           Фильтр по пользователю: только тикеты этого userId.{' '}
@@ -281,6 +308,11 @@ export function ManagerTicketsTableClient() {
                   </TableCell>
                   <TableCell className="font-medium text-[var(--portal-text)]">
                     <Link href={`/portal/manager/tickets/${t.id}`} className="hover:text-[var(--portal-accent)] transition-colors">
+                      {isTelegramTicketSubject(t.subject) && (
+                        <span className="mr-2 inline-flex rounded bg-[#E0F2FE] px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#0369A1]">
+                          Telegram
+                        </span>
+                      )}
                       {t.subject}
                     </Link>
                   </TableCell>

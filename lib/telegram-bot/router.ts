@@ -1,0 +1,378 @@
+/**
+ * Маршрутизация команд, callback-кнопок и текста Telegram-бота AVATERRA.
+ */
+import { answerCallbackQuery, sendChatAction } from '@/lib/telegram';
+import { claimTelegramUpdate } from '@/lib/telegram-update-dedup';
+import type { BotContext, TelegramUpdate } from './types';
+import { appendAdminChatId, isTelegramAdmin } from './auth';
+import { botReply } from './messaging';
+import {
+  handleAdminCallback,
+  handleAdminMenu,
+  handleAdminStats,
+  handleAdminOrders,
+  handleAdminTickets,
+  handleAdminUsersPrompt,
+  handleAdminUserCard,
+  handleAdminDigest,
+  handleAdminTicketReplyPrompt,
+  handleNotifyTest,
+} from './admin-handlers';
+import {
+  handleCertificates,
+  handleHelp,
+  handleLinkCommand,
+  handleMyId,
+  handleProgress,
+  handleSupportCallback,
+  handleSupportWritePrompt,
+  handleTextInSession,
+  handleTicketStatus,
+  handleUserMainMenu,
+  handleFaqCategory,
+} from './support-handlers';
+
+const RATE_LIMIT_MS = 400;
+const RATE_BURST_PER_MINUTE = 25;
+const lastMessageAt = new Map<number, number>();
+const messageCounts = new Map<number, { count: number; windowStart: number }>();
+
+function isRateLimited(chatId: number): boolean {
+  const now = Date.now();
+  const prev = lastMessageAt.get(chatId) ?? 0;
+  if (now - prev < RATE_LIMIT_MS) return true;
+  lastMessageAt.set(chatId, now);
+
+  const burst = messageCounts.get(chatId) ?? { count: 0, windowStart: now };
+  if (now - burst.windowStart > 60_000) {
+    burst.count = 0;
+    burst.windowStart = now;
+  }
+  burst.count += 1;
+  messageCounts.set(chatId, burst);
+  if (burst.count > RATE_BURST_PER_MINUTE) return true;
+
+  if (lastMessageAt.size > 5000) {
+    const cutoff = now - 60_000;
+    lastMessageAt.forEach((t, id) => {
+      if (t < cutoff) lastMessageAt.delete(id);
+    });
+    messageCounts.forEach((v, id) => {
+      if (now - v.windowStart > 120_000) messageCounts.delete(id);
+    });
+  }
+  return false;
+}
+
+async function safeReply(chatId: number, text: string): Promise<void> {
+  const r = await botReply({ chatId, displayName: '', isAdmin: false }, text, { forceNew: true });
+  if (!r.ok) {
+    console.error(`[telegram-webhook] send failed chat=${chatId}: ${r.error}`);
+  }
+}
+
+/** Нормализует /start@BotName → /start (Telegram добавляет @username в группах и из меню команд). */
+function normalizeBotCommand(raw: string): string {
+  const lower = raw.toLowerCase();
+  if (!lower.startsWith('/')) return lower;
+  const body = lower.slice(1).split('@')[0] ?? '';
+  return body ? `/${body}` : lower;
+}
+
+function buildContextFromMessage(
+  message: NonNullable<TelegramUpdate['message']>,
+  isAdmin: boolean
+): BotContext {
+  const from = message.from;
+  const displayName = [from?.first_name, from?.last_name].filter(Boolean).join(' ') || from?.username || 'Пользователь';
+  const text = message.text?.trim() ?? '';
+  const cmd = text.startsWith('/') ? normalizeBotCommand(text.split(/\s+/)[0] ?? '') : undefined;
+  return {
+    chatId: message.chat.id,
+    telegramUserId: from?.id,
+    telegramUsername: from?.username,
+    displayName,
+    text,
+    command: cmd,
+    isAdmin,
+  };
+}
+
+function buildContextFromCallback(
+  cq: NonNullable<TelegramUpdate['callback_query']>,
+  isAdmin: boolean
+): BotContext {
+  const from = cq.from;
+  const displayName = [from.first_name, from.last_name].filter(Boolean).join(' ') || from.username || 'Пользователь';
+  const chatId = cq.message?.chat?.id ?? from.id;
+  return {
+    chatId,
+    telegramUserId: from.id,
+    telegramUsername: from.username,
+    displayName,
+    callbackData: cq.data,
+    callbackQueryId: cq.id,
+    messageId: cq.message?.message_id,
+    isAdmin,
+  };
+}
+
+function parseTicketCommand(cmd: string): string | null {
+  const m = cmd.match(/^\/ticket_(.+)$/i);
+  return m?.[1] ?? null;
+}
+
+async function handleCommand(ctx: BotContext): Promise<void> {
+  const cmd = ctx.command ?? '';
+  const args = (ctx.text ?? '').split(/\s+/).slice(1);
+  const arg0 = args[0];
+
+  const ticketIdFromCmd = parseTicketCommand(cmd);
+  if (ticketIdFromCmd) {
+    if (!ctx.isAdmin) {
+      await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+      return;
+    }
+    await handleAdminTicketReplyPrompt(ctx, ticketIdFromCmd);
+    return;
+  }
+
+  switch (cmd) {
+    case '/start':
+    case '/menu': {
+      if (cmd === '/start' && arg0 === 'write') {
+        await handleSupportWritePrompt(ctx);
+        break;
+      }
+      if (cmd === '/start' && arg0 === 'support') {
+        const { handleSupportInfo } = await import('./support-handlers');
+        await handleSupportInfo(ctx);
+        break;
+      }
+      await handleUserMainMenu(ctx);
+      if (ctx.isAdmin) {
+        await botReply(
+          ctx,
+          '🔧 У вас есть права администратора. Команда /admin — меню управления.',
+          {
+            forceNew: true,
+            replyMarkup: { inline_keyboard: [[{ text: '⚙️ Админ-меню', callback_data: 'admin:menu' }]] },
+          }
+        );
+      }
+      break;
+    }
+    case '/help':
+    case '/faq':
+      await handleHelp(ctx);
+      break;
+    case '/progress':
+      await handleProgress(ctx);
+      break;
+    case '/cert':
+      await handleCertificates(ctx);
+      break;
+    case '/ticket_status':
+      await handleTicketStatus(ctx);
+      break;
+    case '/myid':
+      await handleMyId(ctx);
+      break;
+    case '/admin_on':
+    case '/admin_subscribe': {
+      const added = await appendAdminChatId(ctx.chatId);
+      await safeReply(
+        ctx.chatId,
+        added
+          ? `Вы подписаны на оповещения администратора (Chat ID: <code>${ctx.chatId}</code>).`
+          : `Chat ID <code>${ctx.chatId}</code> уже в списке оповещений.`
+      );
+      break;
+    }
+    case '/link':
+      await handleLinkCommand(ctx, arg0);
+      break;
+    case '/admin':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Нет доступа к админ-меню.');
+        return;
+      }
+      await handleAdminMenu(ctx);
+      break;
+    case '/stats':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      await handleAdminStats(ctx);
+      break;
+    case '/digest':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      await handleAdminDigest(ctx);
+      break;
+    case '/tickets':
+      if (!ctx.isAdmin) {
+        await handleTicketStatus(ctx);
+        return;
+      }
+      await handleAdminTickets(ctx);
+      break;
+    case '/ticket':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      if (!arg0) {
+        await handleAdminTickets(ctx);
+        return;
+      }
+      await handleAdminTicketReplyPrompt(ctx, arg0);
+      break;
+    case '/orders':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      await handleAdminOrders(ctx);
+      break;
+    case '/users':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      await handleAdminUsersPrompt(ctx);
+      break;
+    case '/user':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      if (!arg0?.includes('@')) {
+        await safeReply(ctx.chatId, 'Использование: /user email@example.com');
+        return;
+      }
+      await handleAdminUserCard(ctx, arg0);
+      break;
+    case '/notify_test':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      await handleNotifyTest(ctx);
+      break;
+    default:
+      break;
+  }
+}
+
+async function handleCallback(ctx: BotContext): Promise<void> {
+  const data = ctx.callbackData ?? '';
+  if (ctx.callbackQueryId) {
+    const ack = await answerCallbackQuery(ctx.callbackQueryId);
+    if (!ack.ok) {
+      console.error(`[telegram-webhook] answerCallbackQuery failed: ${ack.error}`);
+    }
+  }
+
+  const parts = data.split(':');
+  const prefix = parts[0];
+
+  if (prefix === 'nav' && parts[1] === 'main') {
+    await handleUserMainMenu(ctx);
+    return;
+  }
+  if (prefix === 'faq' && parts[1] === 'cat' && parts[2]) {
+    await handleFaqCategory(ctx, parts[2]);
+    return;
+  }
+  if (prefix === 'admin') {
+    if (!ctx.isAdmin) {
+      await safeReply(ctx.chatId, '⛔ Нет доступа.');
+      return;
+    }
+    await handleAdminCallback(ctx, parts[1] ?? 'menu', parts.slice(2).join(':'));
+    return;
+  }
+  if (prefix === 'support') {
+    await handleSupportCallback(ctx, parts[1] ?? 'menu');
+    return;
+  }
+  await handleUserMainMenu(ctx);
+}
+
+async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
+  if (update.callback_query) {
+    const cq = update.callback_query;
+    const chatId = cq.message?.chat?.id ?? cq.from.id;
+    if (isRateLimited(chatId)) return;
+    const isAdmin = await isTelegramAdmin(chatId, cq.from.id);
+    const ctx = buildContextFromCallback(cq, isAdmin);
+    await handleCallback(ctx);
+    return;
+  }
+
+  const message = update.message;
+  if (!message?.chat?.id) return;
+
+  const chatId = message.chat.id;
+  const text = message.text?.trim();
+  if (!text) return;
+
+  if (isRateLimited(chatId) && !text.startsWith('/')) return;
+
+  const isAdmin = await isTelegramAdmin(chatId, message.from?.id);
+  const ctx = buildContextFromMessage(message, isAdmin);
+
+  if (text.startsWith('/')) {
+    await handleCommand(ctx);
+    return;
+  }
+
+  const handled = await handleTextInSession(ctx, text);
+  if (!handled) {
+    await safeReply(
+      ctx.chatId,
+      'Используйте /menu для главного меню или /help для справки.'
+    );
+  }
+}
+
+/** Обработать одно входящее обновление Telegram (с логом и ответом при сбое). */
+export async function routeTelegramUpdate(update: TelegramUpdate): Promise<void> {
+  const updateId = update.update_id ?? 0;
+  if (!claimTelegramUpdate(updateId)) {
+    console.log(`[telegram-webhook] skip duplicate update=${updateId}`);
+    return;
+  }
+
+  const chatId =
+    update.message?.chat?.id ??
+    update.callback_query?.message?.chat?.id ??
+    update.callback_query?.from?.id;
+
+  if (chatId) {
+    void sendChatAction(chatId, 'typing');
+  }
+
+  const started = Date.now();
+  try {
+    await routeTelegramUpdateImpl(update);
+    console.log(
+      `[telegram-webhook] done update=${updateId} chat=${chatId ?? '?'} ms=${Date.now() - started}`
+    );
+  } catch (err) {
+    console.error(
+      `[telegram-webhook] FAILED update=${updateId} chat=${chatId ?? '?'} ms=${Date.now() - started}`,
+      err
+    );
+    if (chatId) {
+      await safeReply(
+        chatId,
+        '❌ Ошибка обработки команды. Попробуйте /menu через минуту.'
+      ).catch((e) => console.error('[telegram-webhook] error reply failed', e));
+    }
+  }
+}

@@ -1,6 +1,6 @@
 /**
  * POST: add a message to the ticket thread. Role = user if ticket owner, else manager.
- * When manager posts, student receives an email about the new reply.
+ * When manager posts, student receives an email and Telegram notification (if linked).
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
@@ -9,6 +9,7 @@ import { prisma } from '@/lib/db';
 import { sendTransactionalEmail } from '@/lib/email-service';
 import { buildTicketAutoReplyEmail } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
+import { notifyTicketOwnerTelegramReply } from '@/lib/telegram-ticket-notify';
 
 interface MessageItem {
   role: 'user' | 'manager';
@@ -94,6 +95,18 @@ export async function POST(
       } catch (e) {
         console.error('Ticket: notify student of manager reply', e);
       }
+    }
+
+    try {
+      await notifyTicketOwnerTelegramReply({
+        ticketId: id,
+        subject: ticket.subject,
+        replyContent: content,
+        ticketUserId: ticket.userId,
+        messagesRaw: JSON.stringify(messages),
+      });
+    } catch (e) {
+      console.error('Ticket: notify student Telegram of manager reply', e);
     }
   }
 

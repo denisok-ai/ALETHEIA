@@ -19,7 +19,12 @@ function getProxyAgent(): ProxyAgent | undefined {
   const url = proxyUrlFromEnv();
   if (!url) return undefined;
   if (!cachedAgent) {
-    cachedAgent = new ProxyAgent(url);
+    cachedAgent = new ProxyAgent({
+      uri: url,
+      keepAliveTimeout: 30_000,
+      keepAliveMaxTimeout: 300_000,
+      pipelining: 1,
+    });
   }
   return cachedAgent;
 }

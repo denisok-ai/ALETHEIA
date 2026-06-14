@@ -19,6 +19,7 @@ export function UserDetailClient({
   initialStatus,
   initialDisplayName,
   initialEmail,
+  initialTelegramId,
 }: {
   userId: string;
   /** Email для входа в систему (User.email), только чтение */
@@ -28,11 +29,13 @@ export function UserDetailClient({
   initialStatus: string;
   initialDisplayName: string | null;
   initialEmail: string | null;
+  initialTelegramId: number | null;
 }) {
   const [role, setRole] = useState(initialRole);
   const [status, setStatus] = useState(initialStatus);
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '');
   const [email, setEmail] = useState(initialEmail ?? '');
+  const [telegramId, setTelegramId] = useState(initialTelegramId != null ? String(initialTelegramId) : '');
   const [updating, setUpdating] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
@@ -105,9 +108,13 @@ export function UserDetailClient({
         body: JSON.stringify({
           displayName: displayName.trim() || null,
           email: email.trim() || null,
+          telegramId: telegramId.trim() === '' ? null : telegramId.trim(),
         }),
       });
-      if (!res.ok) throw new Error(await res.text());
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(typeof data.error === 'string' ? data.error : await res.text());
+      }
       toast.success('Профиль обновлён');
     } catch (e) {
       console.error(e);
@@ -197,6 +204,19 @@ export function UserDetailClient({
               className="mt-1 max-w-xs"
               placeholder="email@example.com"
             />
+          </div>
+          <div>
+            <Label className="text-[var(--portal-text-muted)]">Telegram ID</Label>
+            <Input
+              inputMode="numeric"
+              value={telegramId}
+              onChange={(e) => setTelegramId(e.target.value.replace(/\D/g, ''))}
+              className="mt-1 max-w-xs"
+              placeholder="Числовой ID из /myid"
+            />
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+              Привязка бота к аккаунту. Альтернатива: /link email в Telegram.
+            </p>
           </div>
           <Button size="sm" onClick={handleSaveProfile} disabled={savingProfile}>
             {savingProfile ? 'Сохранение…' : 'Сохранить профиль'}

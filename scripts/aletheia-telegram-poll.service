@@ -1,0 +1,18 @@
+[Unit]
+Description=AVATERRA Telegram poll fallback (getUpdates when webhook unhealthy)
+After=network-online.target aletheia.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/ALETHEIA
+EnvironmentFile=/opt/ALETHEIA/.env
+Environment=TELEGRAM_POLL_STATE_DIR=/var/lib/aletheia
+ExecStart=/usr/bin/npx tsx scripts/telegram-poll-daemon.ts
+Restart=always
+RestartSec=5
+StandardOutput=append:/var/log/telegram-poll-daemon.log
+StandardError=append:/var/log/telegram-poll-daemon.log
+
+[Install]
+WantedBy=multi-user.target

@@ -10,17 +10,23 @@ import { profilePatchSchema } from '@/lib/validations/profile';
 
 export function ProfileEditForm({
   initialDisplayName,
+  initialTelegramId,
   email,
 }: {
   initialDisplayName: string | null;
+  initialTelegramId: number | null;
   email: string | null;
 }) {
   const [displayName, setDisplayName] = useState(initialDisplayName ?? '');
+  const [telegramId, setTelegramId] = useState(initialTelegramId != null ? String(initialTelegramId) : '');
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    const parsed = profilePatchSchema.safeParse({ displayName: displayName.trim() || null });
+    const parsed = profilePatchSchema.safeParse({
+      displayName: displayName.trim() || null,
+      telegramId: telegramId.trim() === '' ? null : telegramId.trim(),
+    });
     if (!parsed.success) {
       toast.error(parsed.error.issues[0]?.message ?? 'Проверьте данные');
       return;
@@ -31,12 +37,16 @@ export function ProfileEditForm({
       const r = await fetch('/api/portal/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ displayName: trimmed === '' ? null : trimmed }),
+        body: JSON.stringify({
+          displayName: trimmed === '' ? null : trimmed,
+          telegramId: parsed.data.telegramId ?? null,
+        }),
       });
-      if (!r.ok) throw new Error('Ошибка');
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(typeof data.error === 'string' ? data.error : 'Ошибка');
       toast.success('Профиль обновлён');
-    } catch {
-      toast.error('Не удалось сохранить');
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Не удалось сохранить');
     }
     setSaving(false);
   }
@@ -72,6 +82,23 @@ export function ProfileEditForm({
             className="mt-2 border-[#E2E8F0] focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)] min-h-10 touch-manipulation"
           />
           <p className="mt-1 text-xs text-[var(--portal-text-muted)]">До 200 символов</p>
+        </div>
+        <div>
+          <Label htmlFor="telegramId" className="text-sm font-medium text-[var(--portal-text)]">
+            Telegram ID
+          </Label>
+          <Input
+            id="telegramId"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            value={telegramId}
+            onChange={(e) => setTelegramId(e.target.value.replace(/\D/g, ''))}
+            placeholder="Числовой ID из бота (/myid)"
+            className="mt-2 border-[#E2E8F0] focus:ring-[var(--portal-accent)] focus:border-[var(--portal-accent)] min-h-10 touch-manipulation max-w-xs"
+          />
+          <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+            Узнайте ID в Telegram-боте школы командой /myid или привяжите аккаунт через /link email@…
+          </p>
         </div>
         <Button type="submit" variant="primary" disabled={saving} className="min-h-10 touch-manipulation">
           {saving ? 'Сохранение…' : 'Сохранить'}

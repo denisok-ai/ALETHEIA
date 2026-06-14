@@ -11,6 +11,8 @@
 
 **Активация на проде:** сохранить токен → «Проверить Telegram» → указать Chat ID (или `/admin_on` боту) → «Зарегистрировать webhook» → «Тест оповещения». При блокировке `api.telegram.org` — `HTTPS_PROXY` в `.env` unit aletheia.
 
+**Деплой 2026-06-14:** коммит `bef9e6d`, версия **3.5.4** на https://avaterra.pro (`/api/health` → 200). CLI `setup-telegram-webhook.ts` на VPS вернул «токен не настроен» — токен нужно задать в админке или `.env`, затем зарегистрировать webhook.
+
 ---
 
 ## 2026-06-14 — SOGo Unauthorized, quota2 и красные протоколы в Mailcow UI

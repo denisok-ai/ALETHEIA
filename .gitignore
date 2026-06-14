@@ -18,6 +18,7 @@ uploads/
 # Env (секреты не коммитить)
 .env
 scripts/.deploy.env
+.telegram-proxy/
 .env.local
 .env.development.local
 .env.test.local

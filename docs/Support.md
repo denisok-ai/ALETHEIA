@@ -316,10 +316,11 @@ npm run db:seed
 ### Где задать в продуктиве
 
 1. **Портал → Настройки → Интеграции:** `Telegram Bot Token`, `Chat ID админов`, при необходимости `Telegram Webhook Secret` → **Сохранить интеграции**.
-2. **Проверить Telegram** → **Зарегистрировать webhook** (кнопки на той же странице; URL берётся из `site_url`).
-3. **Тест оповещения админов** — проверка доставки в указанные Chat ID.
-4. Либо переменные в `/opt/ALETHEIA/.env`; при изменении **только** `.env` перезапустите сервис: `sudo systemctl restart aletheia`.
-5. CLI на VPS: `cd /opt/ALETHEIA && npx tsx scripts/setup-telegram-webhook.ts` (после деплоя с этим скриптом).
+2. **Проверить Telegram** → **Зарегистрировать webhook** (кнопки на той же странице; URL берётся из `site_url`). При успешной регистрации webhook автоматически вызывается `setMyCommands` (полный список команд бота).
+3. **Обновить команды бота** — отдельная кнопка на той же вкладке (или повторная регистрация webhook / `npx tsx scripts/setup-telegram-webhook.ts`).
+4. **Тест оповещения админов** — проверка доставки в указанные Chat ID.
+5. Либо переменные в `/opt/ALETHEIA/.env`; при изменении **только** `.env` перезапустите сервис: `sudo systemctl restart aletheia`.
+6. CLI на VPS: `cd /opt/ALETHEIA && npx tsx scripts/setup-telegram-webhook.ts` (webhook + setMyCommands).
 
 Значения из БД имеют приоритет над `process.env` — см. `docs/Env-Config.md` (`getEnvOverrides`).
 
@@ -337,9 +338,25 @@ npm run db:seed
 
 Подписка админа: в Telegram боту `/admin_on` или вручную Chat ID из `/myid` в настройках.
 
+### Команды и меню бота
+
+Модуль: `lib/telegram-bot/` (router, admin-handlers, support-handlers, keyboards).
+
+**Для всех пользователей:** `/start`, `/menu` — главное меню (inline-кнопки, deep link `?start=write` — сразу в поддержку); `/progress` — прогресс по курсам с % и полоской; `/cert` — сертификаты со ссылками на скачивание; `/ticket_status` — открытые обращения; `/help`, `/faq` — FAQ по категориям (портал, практики, методика); `/myid` — Chat ID и Telegram user ID; «💬 Написать в поддержку» / кнопка «Связаться с менеджером» (deep link) — создаёт тикет в БД.
+
+**Привязка аккаунта:** основной способ — поле **Telegram ID** в профиле портала (студент: Профиль; админ: карточка пользователя → вкладка Профиль). Числовой ID — из `/myid` в боте. Альтернатива: `/link email@…` в Telegram.
+
+**Тикеты из бота:** тема с префиксом `[Telegram]`; для гостей — `[Telegram] Обращение (chat …)`. В списке тикетов менеджера — фильтр **Telegram** и бейдж на строке. После создания: email студенту (если привязан аккаунт), email на `resend_notify_email`, push админам в Telegram, подтверждение пользователю в чате бота. **Ответ менеджера** из портала или бота дублируется в Telegram (если у пользователя указан `telegramId` или тикет создан из бота).
+
+**Для администраторов** (Chat ID в `telegram_admin_chat_ids` или роль admin/manager с `Profile.telegramId`): `/admin` — меню; `/stats` — краткая сводка; `/digest` — дайджест за сегодня; `/orders`, `/tickets` — списки с пагинацией (кнопки ◀️/▶️); `/ticket <id>` или `/ticket_<id>` или кнопка на тикете — ответ менеджера из бота; `/user email@…` — карточка пользователя; `/users` — поиск по email; `/notify_test` — тест оповещений; `/admin_on` — подписка на push.
+
+**UX:** навигация по inline-кнопкам редактирует текущее сообщение (без спама); антиспам — не чаще 1 сообщения / 400 мс и до 25 действий в минуту на чат; ошибки Telegram API — на русском.
+
+Callback-префиксы кнопок: `admin:`, `support:`, `nav:`, `faq:`.
+
 ### Регистрация webhook у Telegram
 
-**Рекомендуется:** кнопка **«Зарегистрировать webhook»** в Портал → Настройки → Интеграции (или `npm run telegram:setup-webhook` / `npx tsx scripts/setup-telegram-webhook.ts` на VPS).
+**Рекомендуется:** кнопка **«Зарегистрировать webhook»** в Портал → Настройки → Интеграции (или `npm run telegram:setup-webhook` / `npx tsx scripts/setup-telegram-webhook.ts` на VPS). Команды меню бота — **«Обновить команды бота»** или автоматически при регистрации webhook.
 
 **Вручную** с машины, где открывается `api.telegram.org`:
 

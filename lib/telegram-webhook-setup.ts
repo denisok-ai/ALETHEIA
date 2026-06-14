@@ -1,6 +1,7 @@
 /**
  * Регистрация и диагностика webhook Telegram Bot API.
  */
+import { registerTelegramBotCommands } from './telegram-bot/commands';
 import { getEnvOverrides, getSystemSettings } from './settings';
 import { telegramApiFetch } from './telegram-fetch';
 
@@ -47,8 +48,16 @@ export async function getTelegramWebhookInfo(): Promise<TelegramWebhookInfo> {
   }
 }
 
+export type RegisterTelegramWebhookOptions = {
+  /** true только при явном ручном сбросе; health/poll worker — false (не терять сообщения). */
+  dropPendingUpdates?: boolean;
+};
+
 /** Зарегистрировать webhook на URL приложения. */
-export async function registerTelegramWebhook(): Promise<TelegramWebhookInfo & { webhookUrl?: string }> {
+export async function registerTelegramWebhook(
+  options: RegisterTelegramWebhookOptions = {}
+): Promise<TelegramWebhookInfo & { webhookUrl?: string }> {
+  const dropPendingUpdates = options.dropPendingUpdates === true;
   const overrides = await getEnvOverrides();
   const token = overrides.telegram_bot_token;
   if (!token) return { ok: false, error: 'Не настроен токен Telegram-бота' };
@@ -62,7 +71,11 @@ export async function registerTelegramWebhook(): Promise<TelegramWebhookInfo & {
   const webhookUrl = `${siteUrl}/api/portal/telegram/webhook`;
   const secret = overrides.telegram_webhook_secret?.trim();
 
-  const body: Record<string, string> = { url: webhookUrl };
+  const body: Record<string, string | boolean | number> = {
+    url: webhookUrl,
+    drop_pending_updates: dropPendingUpdates,
+    max_connections: 5,
+  };
   if (secret) body.secret_token = secret;
 
   try {
@@ -74,6 +87,10 @@ export async function registerTelegramWebhook(): Promise<TelegramWebhookInfo & {
     const data = (await res.json()) as { ok?: boolean; description?: string };
     if (!data.ok) {
       return { ok: false, error: String(data.description ?? res.statusText ?? 'setWebhook failed') };
+    }
+    const commandsResult = await registerTelegramBotCommands();
+    if (!commandsResult.ok) {
+      console.warn('[telegram-webhook] setMyCommands failed:', commandsResult.error);
     }
     const info = await getTelegramWebhookInfo();
     return { ...info, webhookUrl };

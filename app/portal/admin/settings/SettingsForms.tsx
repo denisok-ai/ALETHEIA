@@ -147,6 +147,7 @@ export function SettingsForms() {
   const [mailTransportReady, setMailTransportReady] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
   const [registeringTelegramWebhook, setRegisteringTelegramWebhook] = useState(false);
+  const [registeringTelegramCommands, setRegisteringTelegramCommands] = useState(false);
   const [testingTelegramNotify, setTestingTelegramNotify] = useState(false);
   const [confirmUrlOpen, setConfirmUrlOpen] = useState(false);
   const [paymentPreviewLoading, setPaymentPreviewLoading] = useState(false);
@@ -1050,6 +1051,32 @@ export function SettingsForms() {
               }}
             >
               {registeringTelegramWebhook ? 'Регистрация…' : 'Зарегистрировать webhook'}
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={
+                registeringTelegramCommands ||
+                !(keys?.telegram_bot_token || envVars.telegram_bot_token.trim())
+              }
+              onClick={async () => {
+                setRegisteringTelegramCommands(true);
+                try {
+                  const res = await fetch('/api/portal/admin/settings/telegram-commands', { method: 'POST' });
+                  const data = await res.json();
+                  if (res.ok) {
+                    toast.success(data.count ? `Команды бота обновлены (${data.count})` : 'Команды бота обновлены');
+                  } else {
+                    toast.error(data.error || 'Ошибка обновления команд');
+                  }
+                } catch {
+                  toast.error('Ошибка запроса');
+                } finally {
+                  setRegisteringTelegramCommands(false);
+                }
+              }}
+            >
+              {registeringTelegramCommands ? 'Обновление…' : 'Обновить команды бота'}
             </Button>
             <Button
               type="button"

@@ -75,6 +75,7 @@ export function UserDetailTabs({
   initialStatus,
   initialDisplayName,
   initialEmail,
+  initialTelegramId,
   courses,
   enrollments,
   certificates,
@@ -93,6 +94,7 @@ export function UserDetailTabs({
   initialStatus: string;
   initialDisplayName: string | null;
   initialEmail: string | null;
+  initialTelegramId: number | null;
   courses: CourseOption[];
   enrollments: EnrollmentItem[];
   certificates: CertificateItem[];
@@ -168,6 +170,7 @@ export function UserDetailTabs({
             initialStatus={initialStatus}
             initialDisplayName={initialDisplayName}
             initialEmail={initialEmail}
+            initialTelegramId={initialTelegramId}
           />
           <Card title="Последние действия">
             <UserRecentActions userId={userId} />

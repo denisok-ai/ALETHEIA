@@ -10,14 +10,12 @@ import { prisma } from '@/lib/db';
 import { sendTransactionalEmail } from '@/lib/email-service';
 import {
   buildTicketAutoReplyEmail,
-  buildTicketCreatedEmail,
-  buildTicketManagerNotificationEmail,
 } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
 import { claimPaidOrdersForUser } from '@/lib/claim-orders';
 import { generateAutoReply, isConfidentReply } from '@/lib/ticket-auto-reply';
+import { sendTicketCreatedNotifications } from '@/lib/ticket-create-notify';
 import { ticketCreateSchema } from '@/lib/validations/ticket';
-import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 /** Найти первый оплаченный заказ по email, по которому у пользователя нет доступа к курсу. */
 async function findPaidOrderWithoutAccess(userId: string, emailNorm: string): Promise<string | null> {
@@ -88,54 +86,15 @@ export async function POST(request: NextRequest) {
   const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
   const displayName = user?.profile?.displayName ?? user?.email ?? 'Клиент';
 
-  if (user?.email) {
-    try {
-      const email = buildTicketCreatedEmail({
-        displayName,
-        subject,
-        ticketId: ticket.id,
-        systemTitle: settings.portal_title || 'AVATERRA',
-      });
-      await sendTransactionalEmail({
-        to: user.email,
-        subject: email.subject,
-        html: email.html,
-        context: { module: 'tickets', entityId: ticket.id, userId },
-      });
-    } catch (e) {
-      console.error('Ticket: confirm email to student', e);
-    }
-  }
-
-  const notifyEmail = settings.resend_notify_email?.trim();
-  if (notifyEmail) {
-    try {
-      const email = buildTicketManagerNotificationEmail({
-        displayName,
-        email: user?.email ?? '',
-        subject,
-        message,
-        ticketId: ticket.id,
-        ticketUrl: siteUrl ? `${siteUrl}/portal/manager/tickets` : undefined,
-        orderNumber: ticket.orderNumber,
-      });
-      await sendTransactionalEmail({
-        to: notifyEmail,
-        subject: email.subject,
-        html: email.html,
-        context: { module: 'tickets', entityId: ticket.id, userId },
-      });
-    } catch (e) {
-      console.error('Ticket: notify manager', e);
-    }
-  }
-
-  notifyAdminsTelegramAsync('support_ticket', [
-    `Тема: ${subject}`,
-    `От: ${displayName}${user?.email ? ` (${user.email})` : ''}`,
-    ...(message ? [`Сообщение: ${message.slice(0, 400)}`] : []),
-    ...(ticket.orderNumber ? [`Заказ: ${ticket.orderNumber}`] : []),
-  ]);
+  await sendTicketCreatedNotifications({
+    ticketId: ticket.id,
+    userId,
+    subject,
+    message,
+    displayName,
+    userEmail: user?.email,
+    orderNumber: ticket.orderNumber,
+  });
 
   // Опциональный автоответ от AI при включённой настройке
   if (message) {

@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireManagerSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { TELEGRAM_TICKET_SUBJECT_PREFIX } from '@/lib/telegram-ticket-source';
 
 const MAX_EXPORT = 5000;
 
@@ -20,7 +21,19 @@ export async function GET(request: NextRequest) {
   const sortKey = searchParams.get('sortKey') ?? 'date';
   const sortDir = searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc';
   const userIdFilter = searchParams.get('userId')?.trim();
-  const where = userIdFilter ? { userId: userIdFilter } : {};
+  const sourceFilter = searchParams.get('source')?.trim();
+  const where: {
+    userId?: string;
+    OR?: Array<{ subject: { startsWith: string } } | { subject: string } | { messages: { contains: string } }>;
+  } = {};
+  if (userIdFilter) where.userId = userIdFilter;
+  if (sourceFilter === 'telegram') {
+    where.OR = [
+      { subject: { startsWith: TELEGRAM_TICKET_SUBJECT_PREFIX } },
+      { subject: 'Обращение из Telegram' },
+      { messages: { contains: '"telegramChatId"' } },
+    ];
+  }
 
   type OrderBy = { createdAt?: 'asc' | 'desc'; subject?: 'asc' | 'desc'; status?: 'asc' | 'desc'; user?: { email: 'asc' | 'desc' } };
   let orderBy: OrderBy = { createdAt: 'desc' };

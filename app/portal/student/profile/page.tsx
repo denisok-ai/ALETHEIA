@@ -26,7 +26,7 @@ export default async function StudentProfilePage() {
   const [profile, user] = await Promise.all([
     prisma.profile.findUnique({
       where: { userId },
-      select: { displayName: true, email: true },
+      select: { displayName: true, email: true, telegramId: true },
     }),
     prisma.user.findUnique({
       where: { id: userId },
@@ -35,6 +35,7 @@ export default async function StudentProfilePage() {
   ]);
   const email = profile?.email ?? user?.email ?? null;
   const displayName = profile?.displayName ?? null;
+  const telegramId = profile?.telegramId ?? null;
 
   return (
     <div className="w-full space-y-6">
@@ -43,7 +44,7 @@ export default async function StudentProfilePage() {
         title="Профиль"
         description="Ваши данные и настройки отображения"
       />
-      <ProfileEditForm initialDisplayName={displayName} email={email} />
+      <ProfileEditForm initialDisplayName={displayName} initialTelegramId={telegramId} email={email} />
     </div>
   );
 }
