@@ -217,7 +217,7 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 | Версия приложения | **3.5.3** (`/api/health` → `version`) |
 | Хост VPS | p941004.kvmvps, Ubuntu 24.04 LTS, IP 95.181.224.70 |
 | Активный корень приложения | /opt/ALETHEIA |
-| Git на проде (после аудита) | **239dd29** — deploy; `/api/health` → `commit` совпадает |
+| Git на проде (после аудита) | **e07287c** — deploy; `/api/health` → `commit` совпадает |
 | Документация (репо) | **8348dfe**, **b73e914**, **81f551b** (audit §12); **f84ccfe** (Diary CRM); код backfill — **c4f5ed4** |
 | Unit systemd | aletheia.service: `EnvironmentFile=-/opt/ALETHEIA/.env`, `DATABASE_URL=file:/opt/ALETHEIA/prisma/dev.db` (абсолютный путь в `.env`), `NODE_OPTIONS=--max-old-space-size=512`, `Restart=always`, `WorkingDirectory=/opt/ALETHEIA` |
 | Порт Node | 3000 (nginx → 127.0.0.1:3000) |
