@@ -2,6 +2,14 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-06-14 — Прод-аудит VPS (фазы 0–6)
+
+**Задача:** безопасно обновить прод (95.181.224.70), укрепить хост (fail2ban, лимиты Mailcow, ротация логов Docker), зафиксировать состояние в документации. RAM/CPU не менялись; SOGo не отключали.
+
+**Сделано:** бэкап в /root/backups/20260614/; git reset --hard origin/main + scripts/deploy-pull.sh → commit **239dd29** (до аудита health показывал **2c7c54b** при локальном HEAD **2c077b7**); установлен и настроен **fail2ban** (3 jail); **sharp** в зависимостях (уже был, рестарт aletheia); Mailcow **override** с mem_limit для mysql/sogo/rspamd/clamd; **daemon.json** log rotation + рестарт docker и docker compose up -d; проверки: migrations OK, logo.png HTTP 200, systemd с EnvironmentFile и NODE_OPTIONS=512. Обновлены Production-Server.md §12, scripts/systemd/aletheia.service.example.
+
+**Проблемы:** phase 6 зафиксировала proxy_cache в nginx location / (известный риск устаревшего UI — см. §11); устранение не входило в этот прогон.
+
 ## 2026-04-29 — Let's Encrypt для mail.avaterra.pro и nginx → Mailcow
 
 **Задача:** выпустить бесплатный LE для поддомена почты и настроить на VPS.

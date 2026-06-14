@@ -211,18 +211,24 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 
 *Обновляйте таблицу после смены хоста, домена или способа запуска. После `git pull` на VPS полезно прогнать **раздел 9** и при необходимости **раздел 10**.*
 
-| Поле | Значение (актуально на 2026-04-01) |
+| Поле | Значение (актуально на 2026-06-14) |
 |------|-------------------------------------|
-| Дата аудита | 2026-04-01 |
-| Хост VPS | `p941004.kvmvps`, Ubuntu 24.04 LTS, IP `95.181.224.70` |
-| Активный корень приложения | `/opt/ALETHEIA` |
-| Unit systemd | `aletheia.service`, `WorkingDirectory=/opt/ALETHEIA` |
-| Порт Node | `3000` (nginx → `127.0.0.1:3000`) |
-| Тип БД | SQLite, файл `/opt/ALETHEIA/prisma/dev.db`; в `.env`: `DATABASE_URL="file:/opt/ALETHEIA/prisma/dev.db"` |
-| Файл nginx vhost | `/etc/nginx/sites-enabled/aletheia` |
-| Второй клон приложения | Нет: под `/var/www` только `html`, отдельного клона ALETHEIA нет |
-| PM2 | Запись `aletheia` в состоянии stopped; рабочий процесс — только systemd |
-| Примечание | Витрина `/api/shop/products` приведена к трём тарифам (`kod-tela-start`, `avaterra-praktik`, `avaterra-master-vip`); после правок БД и смены `DATABASE_URL` выполнялись `next build` + `systemctl restart aletheia`; `commit` в `/api/health` совпадает с деплоем (например `9cfcfe0`). |
+| Дата аудита | 2026-06-14 |
+| Хост VPS | p941004.kvmvps, Ubuntu 24.04 LTS, IP 95.181.224.70 |
+| Активный корень приложения | /opt/ALETHEIA |
+| Git на проде (после аудита) | 239dd29 (/api/health совпадает) |
+| Unit systemd | letheia.service: EnvironmentFile=-/opt/ALETHEIA/.env, NODE_OPTIONS=--max-old-space-size=512, Restart=always, WorkingDirectory=/opt/ALETHEIA |
+| Порт Node | 3000 (nginx → 127.0.0.1:3000) |
+| Тип БД | SQLite, /opt/ALETHEIA/prisma/dev.db; миграции Prisma — без pending |
+| Файл nginx vhost | /etc/nginx/sites-enabled/aletheia (в location / по-прежнему есть proxy_cache — см. §11) |
+| fail2ban | Установлен; jails: sshd, 
+ginx-http-auth, 
+ginx-limit-req (/etc/fail2ban/jail.local) |
+| Mailcow | /opt/mailcow-dockerized; docker-compose.override.yml — лимиты RAM mysql/sogo/rspamd/clamd; **SOGo включён** |
+| Docker | /etc/docker/daemon.json — json-file, max-size=10m, max-file=3 |
+| Бэкап перед работами | /root/backups/20260614/ — dev.db.bak (~5.1 MB), public-uploads.tar.gz (~1.4 GB), .env.bak |
+| PM2 | Запись letheia stopped; рабочий процесс — только systemd |
+| Скрипт аудита | scripts/run-prod-audit.sh + scripts/prod-audit-remote.sh (фазы 0–6) |
 
 ---
 
