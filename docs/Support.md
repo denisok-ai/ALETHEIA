@@ -23,7 +23,7 @@
 | `docs/` | Документация |
 | `docs/Personal-Data-RKN-Checklist.md` | **Персональные данные и РКН:** чеклист для уведомления оператора, сверки с текстами `/privacy` и `/pd-consent` |
 | `docs/Local-Prisma.md` | **Локальный запуск** (Prisma + SQLite) |
-| `docs/Production-Server.md` | **Продуктивный VPS:** обновление, единый каталог `/opt/ALETHEIA`, диагностика `bash scripts/prod-diagnostics.sh` |
+| `docs/Production-Server.md` | **Продуктивный VPS:** обновление, единый каталог `/opt/ALETHEIA`, диагностика `npm run prod:diagnostics`, аудит `scripts/run-prod-audit.sh`, §12 — снимок от 2026-06-14 |
 | `docs/Server-Setup.md` | **Legacy** (старый сценарий `/var/www` + PM2) — не путать с текущим продом |
 | `docs/Portal-Redesign-Plan.md` | **План доработки портала** — эталон «Мои курсы», список страниц по ролям |
 | `docs/User-Journey-Audit.md` | **Аудит пользовательского пути** — от заявки/покупки до ЛК и поддержки, сценарии и план доработок |
@@ -60,6 +60,35 @@
 3. Неверный флаг npm: таймаут задаётся как **`--fetch-timeout=120000`**, а не `--network-timeout 100000` (иначе npm воспринимает число как имя пакета и даёт **404**).
 4. **Prisma:** проект на **Prisma 5** (`schema.prisma` с `url = env("DATABASE_URL")`). После установки пакетов используйте **`npm run db:generate`** или **`npx prisma@5.22.0 generate`**. Голый **`npx prisma`** без установленных зависимостей может подтянуть **Prisma 7** и выдать **P1012** — это не схема проекта, а чужая версия CLI.
 5. Освободить порт без лишнего шума: **`fuser -k 3000/tcp`** (Linux) или `kill $(lsof -t -i:3000)` только если `lsof` что-то вернул.
+
+### Прод-сервер: аудит, fail2ban, пустой CRM
+
+**Полный аудит VPS (фазы 0–6):** с WSL в корне репозитория — `bash scripts/run-prod-audit.sh` (все фазы) или `bash scripts/run-prod-audit.sh 3` (одна фаза). Скрипт по SSH копирует и запускает `scripts/prod-audit-remote.sh` на `95.181.224.70`; лог сохраняется в `/tmp/prod-audit-*.log`. Требуется SSH-ключ (по умолчанию `~/.ssh/avaterra_deploy_nopass`, см. комментарии в скрипте). Итоговое состояние — `docs/Production-Server.md` §12.
+
+**Read-only диагностика** (без изменений на сервере): на VPS `cd /opt/ALETHEIA && bash scripts/prod-diagnostics.sh` или `npm run prod:diagnostics`.
+
+**fail2ban:** проверка jails и банов:
+
+```bash
+sudo fail2ban-client status
+sudo fail2ban-client status sshd
+sudo fail2ban-client status nginx-http-auth
+sudo fail2ban-client status nginx-limit-req
+```
+
+Активные jail: **sshd**, **nginx-http-auth**, **nginx-limit-req** (`/etc/fail2ban/jail.local`).
+
+**CRM пустой (0 лидов):** чаще всего пустая таблица `Lead` в SQLite, а не ошибка интерфейса. Проверка на проде: `sqlite3 /opt/ALETHEIA/prisma/dev.db 'SELECT COUNT(*) FROM Lead;'`. Восстановление контактов из оплаченных заказов (идемпотентно):
+
+```bash
+cd /opt/ALETHEIA
+npx tsx scripts/backfill-leads-from-orders.ts --dry-run
+BACKFILL_CONFIRM=YES npx tsx scripts/backfill-leads-from-orders.ts
+# или: npm run db:backfill-leads-from-orders -- --dry-run
+# затем: BACKFILL_CONFIRM=YES npm run db:backfill-leads-from-orders
+```
+
+На проде (2026-06-14) восстановлено **7** лидов. Не запускать `npm run db:clear-crm-users` на проде без бэкапа; не использовать `DEPLOY_COPY_LOCAL_DB=1`, если локальный CRM пуст. Подробнее — Diary 2026-06-14.
 
 ### Локальная очистка тестовых данных (курсы и товары сохраняются)
 
@@ -328,6 +357,6 @@ curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 10 https://api.teleg
 - `docs/Local-Prisma.md` — локальный запуск
 - `docs/Deploy.md` — деплой (Vercel, VPS); продуктив и порядок обновления — `docs/Production-Server.md`
 - `docs/Server-Debug.md` — подготовка сборки для Git и запуск на сервере в режиме отладки
-- `docs/Production-Server.md` — текущая инфраструктура прод-сервера (PM2, Nginx)
+- `docs/Production-Server.md` — текущая инфраструктура прод-сервера (systemd aletheia, Nginx, fail2ban, Mailcow)
 - `docs/Diary.md` — дневник решений
 - `CHANGELOG.md` — история изменений

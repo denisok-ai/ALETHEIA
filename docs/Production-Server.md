@@ -214,19 +214,23 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 | Поле | Значение (актуально на 2026-06-14) |
 |------|-------------------------------------|
 | Дата аудита | 2026-06-14 |
+| Версия приложения | **3.5.3** (`/api/health` → `version`) |
 | Хост VPS | p941004.kvmvps, Ubuntu 24.04 LTS, IP 95.181.224.70 |
 | Активный корень приложения | /opt/ALETHEIA |
-| Git на проде (после аудита) | 239dd29 (/api/health совпадает) |
-| Unit systemd | aletheia.service: EnvironmentFile=-/opt/ALETHEIA/.env, NODE_OPTIONS=--max-old-space-size=512, Restart=always, WorkingDirectory=/opt/ALETHEIA |
+| Git на проде (после аудита) | **239dd29** — deploy; `/api/health` → `commit` совпадает |
+| Документация (репо) | **8348dfe**, **b73e914**, **81f551b** (audit §12); **f84ccfe** (Diary CRM); код backfill — **c4f5ed4** |
+| Unit systemd | aletheia.service: `EnvironmentFile=-/opt/ALETHEIA/.env`, `DATABASE_URL=file:/opt/ALETHEIA/prisma/dev.db` (абсолютный путь в `.env`), `NODE_OPTIONS=--max-old-space-size=512`, `Restart=always`, `WorkingDirectory=/opt/ALETHEIA` |
 | Порт Node | 3000 (nginx → 127.0.0.1:3000) |
 | Тип БД | SQLite, /opt/ALETHEIA/prisma/dev.db; миграции Prisma — без pending |
+| CRM (после аудита) | Таблица `Lead` была **0 строк** (не баг UI); backfill из заказов — **7 лидов** (`npm run db:backfill-leads-from-orders`, см. Support.md) |
 | Файл nginx vhost | /etc/nginx/sites-enabled/aletheia — `location /` без proxy_cache (только `/_next/static/` и `/_next/image`) |
-| fail2ban | Установлен; jails: sshd, nginx-http-auth, nginx-limit-req (/etc/fail2ban/jail.local) |
-| Mailcow | /opt/mailcow-dockerized; docker-compose.override.yml — лимиты RAM mysql/sogo/rspamd/clamd; **SOGo включён** |
-| Docker | /etc/docker/daemon.json — json-file, max-size=10m, max-file=3 |
-| Бэкап перед работами | /root/backups/20260614/ — dev.db.bak (~5.1 MB), public-uploads.tar.gz (~1.4 GB), .env.bak |
-| PM2 | Запись aletheia stopped; рабочий процесс — только systemd |
-| Скрипт аудита | scripts/run-prod-audit.sh + scripts/prod-audit-remote.sh (фазы 0–6) |
+| fail2ban | Установлен; jails: **sshd**, **nginx-http-auth**, **nginx-limit-req** (`/etc/fail2ban/jail.local`) |
+| Mailcow | /opt/mailcow-dockerized; `docker-compose.override.yml` — лимиты RAM mysql/sogo/rspamd/clamd; **SOGo включён** |
+| Docker | `/etc/docker/daemon.json` — json-file, max-size=10m, max-file=3 |
+| journald | `SystemMaxUse=500M` в `/etc/systemd/journald.conf`; освобождено **~2.9 GB** на диске |
+| Бэкап перед работами | `/root/backups/20260614/` — dev.db.bak (~5.1 MB), public-uploads.tar.gz (~1.4 GB), .env.bak |
+| PM2 | Дубликат **aletheia** удалён (~657k restarts); рабочий процесс — **только systemd** |
+| Скрипт аудита | [`scripts/run-prod-audit.sh`](../scripts/run-prod-audit.sh) (WSL → SSH) + [`scripts/prod-audit-remote.sh`](../scripts/prod-audit-remote.sh) на VPS (фазы 0–6) |
 
 ---
 
@@ -235,6 +239,9 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 | Файл | Назначение |
 |------|------------|
 | [`scripts/prod-diagnostics.sh`](../scripts/prod-diagnostics.sh) | Расширенная диагностика VPS (read-only), §9. |
+| [`scripts/run-prod-audit.sh`](../scripts/run-prod-audit.sh) | С ПК (WSL): копирует и запускает `prod-audit-remote.sh` на VPS; лог в `/tmp/prod-audit-*.log`. Аргумент — номер фазы или `all`. |
+| [`scripts/prod-audit-remote.sh`](../scripts/prod-audit-remote.sh) | На сервере: бэкап, deploy, fail2ban, Mailcow limits, Docker log rotation, проверки (фазы 0–6). |
+| [`scripts/backfill-leads-from-orders.ts`](../scripts/backfill-leads-from-orders.ts) | Восстановление CRM из заказов: `npm run db:backfill-leads-from-orders` (`--dry-run`, затем `BACKFILL_CONFIRM=YES`). |
 | [`scripts/check-database-url.sh`](../scripts/check-database-url.sh) | Кратко: тип `DATABASE_URL` и путь к SQLite. |
 | [`scripts/deploy-pull.sh`](../scripts/deploy-pull.sh) | Полный цикл на **сервере** после `git push`. |
 | [`scripts/deploy-rsync-from-local.sh`](../scripts/deploy-rsync-from-local.sh) | Деплой с **WSL** без обновления git на VPS. |

@@ -2,6 +2,12 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-06-14 — Релиз 3.5.3
+
+**Задача:** bump PATCH после прод-аудита и CRM backfill.
+
+**Сделано:** версия **3.5.2 → 3.5.3** в `package.json` (единый источник для `lib/app-version.ts`, `next.config.mjs` → `NEXT_PUBLIC_APP_VERSION`, `/api/health`, подвал портала). Обновлены CHANGELOG, Project.md, Tasktracker.md, README.md. Деплой на `/opt/ALETHEIA`.
+
 ## 2026-06-14 — Пустой CRM на проде: диагностика и backfill из заказов
 
 **Симптом:** `/portal/admin/crm` пустой (0 лидов во всех статусах воронки).
@@ -16,7 +22,7 @@
 
 **Задача:** безопасно обновить прод (95.181.224.70), укрепить хост (fail2ban, лимиты Mailcow, ротация логов Docker), зафиксировать состояние в документации. RAM/CPU не менялись; SOGo не отключали.
 
-**Сделано:** бэкап в /root/backups/20260614/; git reset --hard origin/main + scripts/deploy-pull.sh → commit **239dd29** (до аудита health показывал **2c7c54b** при локальном HEAD **2c077b7**); установлен и настроен **fail2ban** (3 jail); **sharp** в зависимостях (уже был, рестарт aletheia); Mailcow **override** с mem_limit для mysql/sogo/rspamd/clamd; **daemon.json** log rotation + рестарт docker и docker compose up -d; проверки: migrations OK, logo.png HTTP 200, systemd с EnvironmentFile и NODE_OPTIONS=512. Обновлены Production-Server.md §12, scripts/systemd/aletheia.service.example.
+**Сделано:** бэкап в `/root/backups/20260614/`; git reset --hard origin/main + `scripts/deploy-pull.sh` → commit **239dd29** (до аудита health показывал **2c7c54b** при локальном HEAD **2c077b7**); удалён дубликат **PM2 aletheia** (~657k restarts) — оставлен только **systemd**; в unit и `.env` — абсолютный `DATABASE_URL=file:/opt/ALETHEIA/prisma/dev.db`, `EnvironmentFile`, `NODE_OPTIONS=512`, `Restart=always`; **journald** `SystemMaxUse=500M` — освобождено ~**2.9 GB**; установлен и настроен **fail2ban** (jails: sshd, nginx-http-auth, nginx-limit-req); **sharp** в зависимостях (рестарт aletheia); Mailcow `docker-compose.override.yml` с mem_limit для mysql/sogo/rspamd/clamd (**SOGo не отключали**); `/etc/docker/daemon.json` — ротация логов + рестарт docker и `docker compose up -d`; скрипты `scripts/run-prod-audit.sh`, `scripts/prod-audit-remote.sh`; проверки: migrations OK, logo.png HTTP 200. Документация: Production-Server.md §12 (**8348dfe**, **b73e914**, **81f551b**), `scripts/systemd/aletheia.service.example`.
 
 **Проблемы:** phase 6 ложно сработала grep на `proxy_cache_bypass` в `location /` — фактически nginx уже без кеша HTML (совпадает с `scripts/nginx-aletheia.conf`); перепроверено после деплоя.
 
