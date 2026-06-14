@@ -13,7 +13,7 @@
 - **Resend**, **Telegram** — уведомления
 - Деплой: **Vercel** или VPS — [docs/Deploy.md](docs/Deploy.md). Продуктив avaterra.pro: [docs/Production-Server.md](docs/Production-Server.md), диагностика `bash scripts/prod-diagnostics.sh`. [docs/Server-Setup.md](docs/Server-Setup.md) — устаревший сценарий `/var/www` + PM2.
 
-## Портал (версия продукта — поле `version` в `package.json`, сейчас 3.3.0)
+## Портал (версия продукта — поле `version` в `package.json`, сейчас 3.5.3)
 
 - **Роли:** user (студент), manager, admin
 - **ЛК студента:** дашборд, курсы (SCORM), сертификаты, медиатека, уведомления, поддержка
