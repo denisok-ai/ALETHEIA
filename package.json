@@ -44,6 +44,7 @@
     "db:clean-local-test": "tsx scripts/clear-local-test-data-keep-courses-services.ts",
     "db:check-notifications-enrollment": "tsx scripts/check-notification-enrollment-config.ts",
     "db:clear-crm-users": "tsx scripts/clear-crm-and-users.ts",
+    "db:backfill-leads-from-orders": "tsx scripts/backfill-leads-from-orders.ts",
     "db:only-demo-course": "tsx scripts/delete-courses-except.ts",
     "db:delete-courses-not-in-services": "tsx scripts/delete-courses-not-in-services.ts",
     "db:clear-mediateka": "tsx scripts/clear-mediateka.ts",
