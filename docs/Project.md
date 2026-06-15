@@ -2,7 +2,7 @@
 
 **Проект:** Веб-сайт школы AVATERRA (Phygital школа мышечного тестирования, курс «Тело не врет»)  
 **Домен:** https://avaterra.pro  
-**Версия документа:** 3.5.4 (совпадает с `package.json`)  
+**Версия документа:** 3.5.5 (совпадает с `package.json`)  
 **Дата:** 2026-06-15
 
 ---
@@ -89,7 +89,7 @@ graph TB
 
 *Конкретный выбор зафиксировать после ответов на вопросы в `qa.md`.*
 
-### 3.3 Структура проекта (текущая, v3.5.4)
+### 3.3 Структура проекта (текущая, v3.5.5)
 
 **Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, **Prisma + SQLite** (локально), NextAuth, Resend, Telegram Bot API (long-polling). Версионирование: SemVer, CHANGELOG.md.
 
