@@ -2,6 +2,30 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-06-15 (деплой 3.5.5 на прод)
+
+### Наблюдения
+- Между dev и prod накопились расхождения: прод на commit `bef9e6d`, локально — `dd79b25` + 48 незакоммиченных файлов.
+- Content domain (BrandProfile, ContentPlan, ThemePool, ContentItem, SitePage, SiteSignal, PostStat) уже был развёрнут на проде: 7 ContentItem, 1 ContentPlan.
+- `aletheia-jobs.service` crash-loop'ил до рестарта (status=1/FAILURE, ~87 рестартов).
+- 49 миграций Prisma applied, pending нет.
+
+### Решения
+- Закоммичены 48 файлов (telegram refactor, mail, deploy scripts, docs, schema — content domain models): **86675de**.
+- Bump версии до **3.5.5**: **70d6205**. Push в `origin/main`.
+- Бэкап prod БД: `prisma/dev.db.bak-pre355-20260615` (5.1 MB).
+- Деплой через `npm run deploy:rsync`: build OK, rsync, npm ci, migrate (no pending), restart `aletheia` + `aletheia-telegram-poll`.
+- Ручной рестарт `aletheia-jobs` — scheduler стартовал чисто: `[jobs] scheduler started (Europe/Moscow)`.
+- Исправлен `deploy-rsync-from-local.sh`: теперь рестартует `aletheia-jobs.service` при каждом деплое (раньше пропускался).
+- Production-Server.md §12 обновлён до 3.5.5.
+- Коммит с фиксом: **6d7c8c8**, push.
+
+### Проблемы
+- WSL shell в Cursor нестабилен — команды часто не возвращают результат (таймауты). Обходится через subagent workers.
+- Git на VPS по-прежнему отстаёт от rsync-деплоя (git HEAD = `bef9e6d`, build commit = `70d6205`). Выравнивание при следующем `deploy-pull.sh`.
+
+---
+
 ## 2026-06-15 — Объединение DenisBot1 → единый Telegram-бот (SMM + Site Radar)
 
 **Цель:** один токен @AvaterraProBot, один long-poll, контент и Site Radar в TypeScript.

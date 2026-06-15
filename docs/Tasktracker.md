@@ -281,6 +281,7 @@
 | Telegram Phase 1 UX (/about, FAQ, latency) | Высокий | Завершена | FAQ из DenisBot1 knowledge base; `/about` + кнопка «О школе»; кэш admin-check 30 с; `TELEGRAM_API_TIMEOUT_MS`; Diary 2026-06-15 |
 | Деплой: systemd-only, rsync lib/app, poll worker | Высокий | Завершена | `deploy-rsync-from-local.sh`: build до stop, rsync `lib/`/`app/`, `pm2 delete aletheia`, restart poll worker; Production-Server.md §7 |
 | SSL Let's Encrypt (сайт + mail) | Средний | Завершена | `avaterra.pro`/`www` и `mail.avaterra.pro` продлены **2026-06-15**, истекают **2026-09-13**; nginx reload; `/api/health` 200; Diary 2026-06-15 |
+| Деплой 3.5.5 + рестарт aletheia-jobs | Высокий | Завершена | Коммит 48 файлов, rsync deploy, бэкап БД, fix deploy script (jobs restart), content integrity OK (7 ContentItem сохранены) |
 
 ---
 
