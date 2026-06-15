@@ -211,6 +211,13 @@ systemctl restart aletheia-telegram-poll.service
 systemctl is-active aletheia-telegram-poll.service
 # Убрать cron fallback poll и webhook reset loop
 rm -f /etc/cron.d/aletheia-telegram-poll 2>/dev/null || true
+
+echo "=== Content jobs worker ==="
+cp scripts/aletheia-jobs.service /etc/systemd/system/aletheia-jobs.service
+systemctl daemon-reload
+systemctl enable aletheia-jobs.service
+systemctl restart aletheia-jobs.service
+systemctl is-active aletheia-jobs.service
 REMOTE
 
 echo ""
