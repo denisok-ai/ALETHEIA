@@ -1,0 +1,17 @@
+[Unit]
+Description=AVATERRA content jobs scheduler (Site Radar, weekly plan, daily publish)
+After=network-online.target aletheia.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/ALETHEIA
+EnvironmentFile=/opt/ALETHEIA/.env
+ExecStart=/usr/bin/npx tsx scripts/jobs-daemon.ts
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/aletheia-jobs.log
+StandardError=append:/var/log/aletheia-jobs.log
+
+[Install]
+WantedBy=multi-user.target

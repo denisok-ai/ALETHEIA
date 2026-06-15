@@ -15,6 +15,7 @@ export const TELEGRAM_USER_COMMANDS: TelegramBotCommand[] = [
   { command: 'start', description: 'Главное меню' },
   { command: 'menu', description: 'Главное меню' },
   { command: 'help', description: 'Справка и FAQ' },
+  { command: 'about', description: 'О школе AVATERRA' },
   { command: 'faq', description: 'Частые вопросы по категориям' },
   { command: 'progress', description: 'Прогресс по курсам' },
   { command: 'cert', description: 'Мои сертификаты' },
@@ -44,23 +45,47 @@ export const TELEGRAM_BOT_COMMANDS: TelegramBotCommand[] = [
 
 export type RegisterTelegramCommandsResult = { ok: true; count: number } | { ok: false; error: string };
 
-/** Зарегистрировать полный список команд через Bot API setMyCommands. */
+async function setCommandsForScope(
+  token: string,
+  commands: TelegramBotCommand[],
+  scope?: { type: string; chat_id?: number }
+): Promise<{ ok: boolean; error?: string }> {
+  const body: { commands: TelegramBotCommand[]; scope?: { type: string; chat_id?: number } } = {
+    commands,
+  };
+  if (scope) body.scope = scope;
+
+  const res = await telegramApiFetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = (await res.json()) as { ok?: boolean; description?: string };
+  if (!res.ok || data.ok === false) {
+    return { ok: false, error: String(data.description ?? res.statusText ?? 'setMyCommands failed') };
+  }
+  return { ok: true };
+}
+
+/** Зарегистрировать команды: пользовательские (default) + админские (scope). Вызывать один раз при старте worker. */
 export async function registerTelegramBotCommands(): Promise<RegisterTelegramCommandsResult> {
   const overrides = await getEnvOverrides();
   const token = overrides.telegram_bot_token;
   if (!token) return { ok: false, error: 'Не настроен токен Telegram-бота' };
 
   try {
-    const res = await telegramApiFetch(`https://api.telegram.org/bot${token}/setMyCommands`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ commands: TELEGRAM_BOT_COMMANDS }),
-    });
-    const data = (await res.json()) as { ok?: boolean; description?: string };
-    if (!res.ok || data.ok === false) {
-      return { ok: false, error: String(data.description ?? res.statusText ?? 'setMyCommands failed') };
+    const userResult = await setCommandsForScope(token, TELEGRAM_USER_COMMANDS);
+    if (!userResult.ok) {
+      return { ok: false, error: userResult.error ?? 'setMyCommands (user) failed' };
     }
-    return { ok: true, count: TELEGRAM_BOT_COMMANDS.length };
+
+    const adminScope = { type: 'all_chat_administrators' };
+    const adminResult = await setCommandsForScope(token, TELEGRAM_ADMIN_COMMANDS, adminScope);
+    if (!adminResult.ok) {
+      console.warn('[telegram-commands] admin scope failed, fallback to user-only menu:', adminResult.error);
+    }
+
+    return { ok: true, count: TELEGRAM_USER_COMMANDS.length };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : 'Ошибка setMyCommands' };
   }

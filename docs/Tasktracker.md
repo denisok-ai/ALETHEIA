@@ -2,7 +2,7 @@
 
 Отслеживание прогресса разработки. Основа — этапы и требования из `docs/Project.md`.
 
-**Версия продукта (package.json):** 3.5.3 — см. CHANGELOG [3.5.3] (2026-06-14): CRM backfill из заказов; прод-аудит VPS (fail2ban, Mailcow limits, Docker log rotation); почта — Mailcow API, IMAP verify, E2E selfcheck PASS.  
+**Версия продукта (package.json):** 3.5.4 — см. CHANGELOG [3.5.4] (2026-06-15): Telegram long-polling; Phase 1 bot UX (/about, FAQ); deploy hardening; SSL renewal до 2026-09-13. Предыдущий релиз [3.5.3] (2026-06-14): CRM backfill; прод-аудит VPS.  
 **База трекера:** 3.0 (портал, роли, SCORM, сертификаты, коммуникации).  
 **Легенда статусов:** Не начата | В процессе | Завершена  
 **Приоритеты:** Критический | Высокий | Средний | Низкий
@@ -25,7 +25,8 @@
 | Сертификаты (PDF, выдача, скачивание) | Высокий | Завершена | lib/certificates.tsx, API download |
 | Admin: пользователи (таблица, фильтр) | Высокий | Завершена | UsersTable, TanStack Table |
 | Admin: загрузка SCORM (ZIP) | Высокий | Завершена | POST /api/portal/admin/courses/upload, jszip |
-| Telegram webhook, lib/telegram, оповещения админов | Средний | Завершена | Webhook `/api/portal/telegram/webhook`; команды /start, /progress, /cert, /help, /myid, /admin_on; `lib/telegram-admin-notify.ts` (заявки, регистрации, оплаты, тикеты, ошибки PayKeeper); регистрация webhook из админки и `npm run telegram:setup-webhook`; см. Support.md § Telegram |
+| Telegram long-polling, lib/telegram-bot, оповещения админов | Средний | Завершена | **Long-polling** на проде: `aletheia-telegram-poll.service` → `lib/telegram-long-poll.ts` → `routeTelegramUpdate`; webhook stub `/api/portal/telegram/webhook`; команды `/start`, `/about`, `/progress`, `/cert`, `/help`, `/faq`, `/myid`, `/admin_on`; `lib/telegram-admin-notify.ts`; регистрация команд из админки и `scripts/setup-telegram-webhook.ts` (deleteWebhook + setMyCommands); см. Support.md § Telegram |
+| SMM + Site Radar в едином боте (DenisBot1 → TS) | Высокий | Завершена | Prisma content-модели; `lib/content/*`, `content/avaterra.yaml`; `aletheia-jobs.service`; админ-меню «Контент (SMM)»; dry_run по умолчанию; `lib/image-gen` стаб; деплой rsync 2026-06-15 |
 | Страницы-заглушки Admin/Manager (CRM, финансы, AI, аудит, тикеты, верификация) | Средний | Завершена | Наполнение — следующие итерации |
 | Автосертификат при 100% SCORM | Высокий | Завершена | POST progress → certificates + notification |
 | Чат-бот: llm_settings из БД | Средний | Завершена | /api/chat читает system_prompt, model, temperature |
@@ -91,7 +92,7 @@
 | Задача | Приоритет | Статус | Описание |
 |--------|-----------|--------|----------|
 | Подключение приёма платежей | Высокий | Завершена | PayKeeper (lib/paykeeper), /api/payment/create, webhook с enrollment |
-| Уведомления (email/мессенджеры) | Средний | Завершена | Resend в /api/contact; Telegram webhook; notifications в БД |
+| Уведомления (email/мессенджеры) | Средний | Завершена | Resend в /api/contact; Telegram long-polling + admin notify; notifications в БД |
 
 ---
 
@@ -269,6 +270,17 @@
 | CRM: backfill лидов из заказов на проде | Высокий | Завершена | Root cause: `Lead` 0 rows; `scripts/backfill-leads-from-orders.ts`, `npm run db:backfill-leads-from-orders`; на проде восстановлено **7** лидов; commit **c4f5ed4**, Diary **f84ccfe** |
 | Релиз 3.5.3 (SemVer PATCH) | Средний | Завершена | После аудита и CRM fix; CHANGELOG [3.5.3], Project.md, Tasktracker |
 | Прод-почта: AUTHENTICATIONFAILED, Mailcow API | Высокий | Завершена | Root cause: `MAIL_PROVISIONING_MODE`/`MAILCOW_API_KEY` не заданы, таблица `api` в Mailcow пуста; fix: `setup-mailcow-api-prod.sh`, выравнивание info@/yarik@, `prod-inmail-sync-all-remote.sh` (4/4 OK); код ~**49a9ab6** (`verify-imap.ts`, retry в `domain-mailbox-service.ts`); E2E **`npm run mail:e2e-selfcheck`** PASS; Diary 2026-06-14, Mail-Server.md |
+
+---
+
+## Инфраструктура VPS (prod, 2026-06-15)
+
+| Задача | Приоритет | Статус | Описание |
+|--------|-----------|--------|----------|
+| Telegram: миграция webhook → long-polling | Критический | Завершена | `lib/telegram-long-poll.ts`, `aletheia-telegram-poll.service`, deleteWebhook; причина — `Connection timed out` inbound webhook из РФ; offset `TELEGRAM_POLL_STATE_DIR`; Diary 2026-06-15 |
+| Telegram Phase 1 UX (/about, FAQ, latency) | Высокий | Завершена | FAQ из DenisBot1 knowledge base; `/about` + кнопка «О школе»; кэш admin-check 30 с; `TELEGRAM_API_TIMEOUT_MS`; Diary 2026-06-15 |
+| Деплой: systemd-only, rsync lib/app, poll worker | Высокий | Завершена | `deploy-rsync-from-local.sh`: build до stop, rsync `lib/`/`app/`, `pm2 delete aletheia`, restart poll worker; Production-Server.md §7 |
+| SSL Let's Encrypt (сайт + mail) | Средний | Завершена | `avaterra.pro`/`www` и `mail.avaterra.pro` продлены **2026-06-15**, истекают **2026-09-13**; nginx reload; `/api/health` 200; Diary 2026-06-15 |
 
 ---
 

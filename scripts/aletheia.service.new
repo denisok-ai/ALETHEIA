@@ -1,0 +1,21 @@
+[Unit]
+Description=ALETHEIA Next.js App
+After=network.target
+
+[Service]
+Environment=TZ=Europe/Moscow
+Type=simple
+User=root
+WorkingDirectory=/opt/ALETHEIA
+EnvironmentFile=-/opt/ALETHEIA/.env
+Environment=PATH=/usr/bin:/root/.nvm/versions/node/v22.22.0/bin
+Environment=NODE_ENV=production
+Environment=NODE_OPTIONS=--max-old-space-size=512
+
+ExecStart=/root/.nvm/versions/node/v22.22.0/bin/npm run start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+

@@ -2,6 +2,59 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-06-15 — Объединение DenisBot1 → единый Telegram-бот (SMM + Site Radar)
+
+**Цель:** один токен @AvaterraProBot, один long-poll, контент и Site Radar в TypeScript.
+
+**Сделано (фазы 0–4):** Prisma-модели контент-домена; `content/avaterra.yaml`; `lib/content/*` (quality-gates, dedup, radar, planner, publisher dry_run); `lib/image-gen/` (стаб KIE); `scripts/jobs-daemon.ts` + **`aletheia-jobs.service`**; админ-меню «Портал» / «Контент (SMM)».
+
+**VPS:** Python DenisBot1 **не найден** (нет `avaterra-bot.service`). Деплой — `deploy:rsync`; `aletheia-jobs` и poll **active**, 409 нет.
+
+**Действия пользователя:** `CONTENT_CHANNEL_ID`, DeepSeek API key, `/kb_load` на проде.
+
+---
+
+## 2026-06-15 — SSL, деплой (systemd-only), health
+
+**SSL:** продлены сертификаты Let's Encrypt для **`avaterra.pro` + `www`** и отдельно **`mail.avaterra.pro`**; действуют до **13 сентября 2026**. После продления — `nginx reload`; проверка `https://avaterra.pro/api/health` → **200**.
+
+**Деплой:** `deploy-rsync-from-local.sh` — локальный **`next build` до** остановки сервиса на VPS (при падении сборки rsync не выполняется); rsync **`lib/`**, **`app/`**, `scripts/`; на проде **только systemd** (PM2 `aletheia` удаляется, без fallback на :3000); рестарт **`aletheia`** и **`aletheia-telegram-poll.service`**. См. также запись ниже про миграцию webhook → polling.
+
+**Сборка:** параллельно устраняется ошибка full-build с `PasswordInput` (отдельная сессия агента).
+
+---
+
+## 2026-06-15 — Telegram-бот: миграция webhook → long-polling
+
+**Симптом:** после деплоев бот переставал отвечать: сообщения доставлялись в Telegram (двойная галочка), но ответа не было. `getWebhookInfo` стабильно показывал `last_error: Connection timed out` — Telegram не может достучаться до inbound webhook на VPS из РФ. Дополнительно: PM2 `aletheia` конфликтовал с systemd на :3000; poll-fallback daemon в цикле вызывал `setWebhook` + `setMyCommands` (409 и гонки).
+
+**Решение:** основной транспорт — **один** long-polling worker (`lib/telegram-long-poll.ts`, `aletheia-telegram-poll.service`). При старте: `deleteWebhook`, `setMyCommands` один раз. Webhook route оставлен, но не обрабатывает update. Деплой: только systemd (удаление PM2), rsync `lib/` и `app/`. Документация: `Support.md`, `Project.md`.
+
+---
+
+## 2026-06-15 — Telegram-бот Phase 1: FAQ, латency, воронка, /about
+
+**Задача:** быстрые улучшения UX бота без смены архитектуры (план Phase 1).
+
+**Сделано:**
+- **FAQ** (`lib/telegram-bot/faq.ts`): обогащение из `DenisBot1/knowledge/avaterra.yaml` — категории «Продукты и тарифы», «Кому подойдёт» (5 аудиторий), «Полезные ссылки» (CTA); расширены ответы о школе, курсах «Тело не врёт» и «Пробуждение».
+- **Латency:** кэш `isTelegramAdmin` / admin chat IDs (TTL 30 с) в `auth.ts`; `Promise.all` в `handleUserMainMenu`; `getBotSiteSettings` вместо повторных `getSystemSettings` в admin-handlers; `botReply` сразу шлёт сообщение без `messageId` (без лишнего edit).
+- **Воронка** (`funnel.ts`): тексты welcome/ответов с ссылками avaterra.pro на курсы и FAQ.
+- **Команда `/about`:** `formatAboutText()`, обработчик, кнопка «🏫 О школе», регистрация в `commands.ts`.
+
+**Деплой:** rsync/deploy на `/opt/ALETHEIA`, пересборка, restart `aletheia`.
+
+---
+
+## 2026-06-15 — Telegram-бот: снижение задержек webhook/fallback
+
+**Симптом:** бот отвечал с заметными задержками, особенно при деградации webhook/прокси и накоплении `pending_update_count`.
+
+**Сделано:** ленивый прогрев `telegram-webhook-env` добавлен в Telegram webhook route, чтобы горячий путь не ждал БД; общий timeout исходящих вызовов Telegram API (`TELEGRAM_API_TIMEOUT_MS`, по умолчанию 8000 мс); webhook регистрируется с `max_connections=20`; poll-fallback теперь подхватывает очередь при `pending > 3`; daemon проверяет состояние каждые 3 сек в здоровом режиме и 2 сек при проблемах. Документация: `Support.md`, `.env.example`.
+
+**Примечание (2026-06-15, позже):** основной транспорт переведён на **long-polling** (см. запись «миграция webhook → long-polling»); webhook route и гибридный fallback больше не используются на проде, но `TELEGRAM_API_TIMEOUT_MS` остаётся актуальным для исходящих вызовов через прокси.
+
+---
 
 ## 2026-06-14 — Telegram-бот: webhook, оповещения админов
 

@@ -23,7 +23,7 @@
 | `docs/` | Документация |
 | `docs/Personal-Data-RKN-Checklist.md` | **Персональные данные и РКН:** чеклист для уведомления оператора, сверки с текстами `/privacy` и `/pd-consent` |
 | `docs/Local-Prisma.md` | **Локальный запуск** (Prisma + SQLite) |
-| `docs/Production-Server.md` | **Продуктивный VPS:** обновление, единый каталог `/opt/ALETHEIA`, диагностика `npm run prod:diagnostics`, аудит `scripts/run-prod-audit.sh`, §12 — снимок от 2026-06-14 |
+| `docs/Production-Server.md` | **Продуктивный VPS:** обновление, единый каталог `/opt/ALETHEIA`, диагностика `npm run prod:diagnostics`, аудит `scripts/run-prod-audit.sh`, §12 — снимок от 2026-06-15 |
 | `docs/Server-Setup.md` | **Legacy** (старый сценарий `/var/www` + PM2) — не путать с текущим продом |
 | `docs/Portal-Redesign-Plan.md` | **План доработки портала** — эталон «Мои курсы», список страниц по ролям |
 | `docs/User-Journey-Audit.md` | **Аудит пользовательского пути** — от заявки/покупки до ЛК и поддержки, сценарии и план доработок |
@@ -303,9 +303,11 @@ npm run db:seed
 
 ---
 
-## Telegram-бот (webhook, токен, блокировки)
+## Telegram-бот (long-polling, токен, блокировки)
 
 Имя бота (`@…`) в коде и git **не зафиксировано** — оно привязано к токену в Telegram. После сохранения токена в настройках нажмите **«Проверить Telegram»** — в ответ придёт `username` из `getMe`.
+
+**Транспорт на проде:** входящие сообщения обрабатывает **один** systemd-worker `aletheia-telegram-poll.service` (`getUpdates` long-poll 30 с, `lib/telegram-long-poll.ts` → `routeTelegramUpdate`). Webhook **не используется** (Telegram не может стабильно достучаться до VPS из РФ — `Connection timed out` в `getWebhookInfo`). Маршрут `/api/portal/telegram/webhook` оставлен для совместимости и возвращает `{ ok: true, mode: 'polling' }` без обработки update.
 
 ### Восстановить токен
 
@@ -315,12 +317,12 @@ npm run db:seed
 
 ### Где задать в продуктиве
 
-1. **Портал → Настройки → Интеграции:** `Telegram Bot Token`, `Chat ID админов`, при необходимости `Telegram Webhook Secret` → **Сохранить интеграции**.
-2. **Проверить Telegram** → **Зарегистрировать webhook** (кнопки на той же странице; URL берётся из `site_url`). При успешной регистрации webhook автоматически вызывается `setMyCommands` (полный список команд бота).
-3. **Обновить команды бота** — отдельная кнопка на той же вкладке (или повторная регистрация webhook / `npx tsx scripts/setup-telegram-webhook.ts`).
+1. **Портал → Настройки → Интеграции:** `Telegram Bot Token`, `Chat ID админов` → **Сохранить интеграции**.
+2. **Проверить Telegram** → **Обновить команды бота** (`deleteWebhook` при необходимости, `setMyCommands` один раз — user scope + admin scope `all_chat_administrators`; в user-меню `/about` сразу после `/help`).
+3. На VPS poll-worker регистрирует команды при старте; перезапуск: `sudo systemctl restart aletheia-telegram-poll.service`.
 4. **Тест оповещения админов** — проверка доставки в указанные Chat ID.
-5. Либо переменные в `/opt/ALETHEIA/.env`; при изменении **только** `.env` перезапустите сервис: `sudo systemctl restart aletheia`.
-6. CLI на VPS: `cd /opt/ALETHEIA && npx tsx scripts/setup-telegram-webhook.ts` (webhook + setMyCommands).
+5. Переменные в `/opt/ALETHEIA/.env`; при изменении **только** `.env` перезапустите оба сервиса: `sudo systemctl restart aletheia aletheia-telegram-poll.service`.
+6. CLI на VPS: `cd /opt/ALETHEIA && npx tsx scripts/setup-telegram-webhook.ts` (удаление webhook + setMyCommands).
 
 Значения из БД имеют приоритет над `process.env` — см. `docs/Env-Config.md` (`getEnvOverrides`).
 
@@ -340,9 +342,9 @@ npm run db:seed
 
 ### Команды и меню бота
 
-Модуль: `lib/telegram-bot/` (router, admin-handlers, support-handlers, keyboards).
+Модуль: `lib/telegram-bot/` (router, admin-handlers, support-handlers, funnel, faq, keyboards).
 
-**Для всех пользователей:** `/start`, `/menu` — главное меню (inline-кнопки, deep link `?start=write` — сразу в поддержку); `/progress` — прогресс по курсам с % и полоской; `/cert` — сертификаты со ссылками на скачивание; `/ticket_status` — открытые обращения; `/help`, `/faq` — FAQ по категориям (портал, практики, методика); `/myid` — Chat ID и Telegram user ID; «💬 Написать в поддержку» / кнопка «Связаться с менеджером» (deep link) — создаёт тикет в БД.
+**Для всех пользователей:** `/start`, `/menu` — главное меню (inline-кнопки, deep link `?start=write` — сразу в поддержку); для **гостей без привязки к порталу** `/start` показывает лид-воронку (адаптация DenisBot1: выбор «узнать о методике» / «думаю про курс» / «готов обсудить»; warm/hot сегменты уведомляют админов через `contact_lead`); `/about` — о школе AVATERRA (кнопка «🏫 О школе» в меню); `/progress` — прогресс по курсам с % и полоской; `/cert` — сертификаты со ссылками на скачивание; `/ticket_status` — открытые обращения; `/help`, `/faq` — FAQ по категориям (школа и курсы, портал, практики, методика, продукты/тарифы); `/myid` — Chat ID и Telegram user ID; «💬 Написать в поддержку» / кнопка «Связаться с менеджером» (deep link) — создаёт тикет в БД.
 
 **Привязка аккаунта:** основной способ — поле **Telegram ID** в профиле портала (студент: Профиль; админ: карточка пользователя → вкладка Профиль). Числовой ID — из `/myid` в боте. Альтернатива: `/link email@…` в Telegram.
 
@@ -352,35 +354,50 @@ npm run db:seed
 
 **UX:** навигация по inline-кнопкам редактирует текущее сообщение (без спама); антиспам — не чаще 1 сообщения / 400 мс и до 25 действий в минуту на чат; ошибки Telegram API — на русском.
 
-Callback-префиксы кнопок: `admin:`, `support:`, `nav:`, `faq:`.
+Callback-префиксы кнопок: `admin:`, `content:`, `support:`, `nav:`, `faq:`.
 
-### Регистрация webhook у Telegram
+### Контент (SMM) и Site Radar
 
-**Рекомендуется:** кнопка **«Зарегистрировать webhook»** в Портал → Настройки → Интеграции (или `npm run telegram:setup-webhook` / `npx tsx scripts/setup-telegram-webhook.ts` на VPS). Команды меню бота — **«Обновить команды бота»** или автоматически при регистрации webhook.
+- **Модули:** `lib/content/` (planner, generator, quality-gates, dedup, site-radar, publisher), KB — `content/avaterra.yaml`.
+- **Планировщик:** **`aletheia-jobs.service`** → `scripts/jobs-daemon.ts` (Site Radar каждые 6 ч, план вс 19:00 MSK, публикация 11:00 MSK).
+- **Режим по умолчанию:** `CONTENT_DRY_RUN=true` — посты как превью админам; `/auto` включает автопубликацию в `CONTENT_CHANNEL_ID`.
+- **DenisBot1 (Python):** на VPS **не установлен** (2026-06-15: нет `avaterra-bot.service`, `/opt/avaterra-bot`).
 
-**Вручную** с машины, где открывается `api.telegram.org`:
-
-**Без секрета webhook:**
-
-```bash
-curl -sS "https://api.telegram.org/bot<TOKEN>/setWebhook?url=https://avaterra.pro/api/portal/telegram/webhook"
-```
-
-**С секретом** (тот же текст, что в настройках *Telegram Webhook Secret* — Telegram будет слать его в заголовке `X-Telegram-Bot-Api-Secret-Token`):
+**Команды (только админ):** `/plan`, `/plan_now`, `/preview`, `/approve`, `/publish_now`, `/regenerate`, `/quality_queue`, `/dry_run`, `/auto`, `/pause`, `/resume`, `/radar`, `/radar_now`, `/radar_signals`, `/kb_load`, `/kb_show`, `/post_stats`, `/stat`.
 
 ```bash
-curl -sS -X POST "https://api.telegram.org/bot<TOKEN>/setWebhook" \
-  -d "url=https://avaterra.pro/api/portal/telegram/webhook" \
-  -d "secret_token=<ТОТ_ЖЕ_СЕКРЕТ_ЧТО_В_НАСТРОЙКАХ>"
+systemctl is-active aletheia-jobs aletheia-telegram-poll.service
+journalctl -u aletheia-jobs -n 30 --no-pager
+tail -20 /var/log/aletheia-jobs.log
 ```
 
-Проверка текущего webhook:
+### Long-polling worker (основной канал)
+
+- **Unit:** `aletheia-telegram-poll.service` — `npx tsx scripts/telegram-poll-daemon.ts`, `EnvironmentFile=/opt/ALETHEIA/.env`, offset в `/var/lib/aletheia/telegram-poll-offset.json`.
+- При старте: `deleteWebhook` (без `drop_pending_updates`), `setMyCommands` (пользовательские команды в default scope, админские — `all_chat_administrators`).
+- Деплой: `scripts/deploy-rsync-from-local.sh` синкает `lib/` и `app/`, перезапускает `aletheia` и `aletheia-telegram-poll.service`, удаляет PM2 `aletheia`.
+- Диагностика:
+
+```bash
+cd /opt/ALETHEIA
+npx tsx scripts/telegram-webhook-info.ts   # url должен быть пустым
+npx tsx scripts/verify-telegram-commands.ts
+systemctl is-active aletheia aletheia-telegram-poll.service
+tail -40 /var/log/telegram-poll-daemon.log
+journalctl -u aletheia-telegram-poll -n 40 --no-pager
+```
+
+### Webhook (legacy, не использовать на проде)
+
+Маршрут `/api/portal/telegram/webhook` отключён. **Не вызывайте** `setWebhook` на проде — это конфликтует с poll-worker (409) и не доставляет update из РФ.
+
+Проверка, что webhook пуст:
 
 ```bash
 curl -sS "https://api.telegram.org/bot<TOKEN>/getWebhookInfo"
 ```
 
-Если прод-домен не `avaterra.pro`, замените URL в параметре `url` на свой публичный HTTPS.
+Если прод-домен не `avaterra.pro`, URL webhook не нужен — бот работает через polling.
 
 ### Блокировка api.telegram.org (РФ и др.)
 
@@ -396,7 +413,22 @@ curl -sS -o /dev/null -w "%{http_code}\n" --connect-timeout 10 https://api.teleg
 
 1. Поднять **исходящий VPN/WireGuard** на сервере (маршрут до сетей Telegram или весь трафик — по политике хостинга).
 2. Задать в окружении процесса Next.js **`HTTPS_PROXY`** (или `HTTP_PROXY`) на ваш HTTP(S)-прокси — приложение использует его для вызовов Telegram API (`lib/telegram-fetch.ts`, зависимость `undici`). Пример в `.env`: см. `.env.example`.
-3. После правок unit или `.env`: `sudo systemctl daemon-reload && sudo systemctl restart aletheia`.
+3. Если прокси иногда подвисает, задайте `TELEGRAM_API_TIMEOUT_MS` (по умолчанию 8000 мс), чтобы бот быстрее отдавал ошибку и не копил фоновые обработки.
+4. После правок unit или `.env`: `sudo systemctl daemon-reload && sudo systemctl restart aletheia`.
+
+### Диагностика задержек Telegram
+
+- Входящие update обрабатывает poll-worker; исходящие ответы — через `HTTPS_PROXY` (`lib/telegram-fetch.ts`). Timeout обычных вызовов: `TELEGRAM_API_TIMEOUT_MS` (8 с); long-poll `getUpdates` — 45 с (отдельный signal).
+- Cron `telegram-webhook-health.sh` (каждые 5 мин): проверяет прокси, что webhook пуст, poll-worker активен.
+- Быстрые проверки на VPS:
+
+```bash
+cd /opt/ALETHEIA
+npx tsx scripts/telegram-webhook-info.ts
+systemctl is-active aletheia aletheia-telegram-poll.service
+tail -40 /var/log/telegram-poll-daemon.log
+journalctl -u aletheia-telegram-poll -n 80 --no-pager
+```
 
 ---
 

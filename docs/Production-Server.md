@@ -32,7 +32,7 @@
 - **SQLite на этом VPS:** в `.env` задать `DATABASE_URL="file:/opt/ALETHEIA/prisma/dev.db"` (см. §5).
 - **Опционально:** `npm install sharp` в каталоге приложения — ускорение оптимизации изображений Next.js.
 
-**PM2:** если ранее использовался, на проде должен остаться **либо** PM2, **либо** systemd, но не оба на порту 3000. При переходе на systemd: `pm2 delete aletheia`, `pm2 save`.
+**PM2:** на проде avaterra.pro — **только systemd** (`aletheia.service`). PM2 `aletheia`/`avaterra` не должен слушать порт 3000 (конфликт EADDRINUSE и «старый» build). Скрипт `deploy-rsync-from-local.sh` при деплое выполняет `pm2 delete aletheia` и не поднимает PM2 как fallback. Отдельный unit **`aletheia-telegram-poll.service`** — long-polling worker бота (не Next.js, порт 3000 не занимает).
 
 ---
 
@@ -50,7 +50,11 @@
 
 ## 4. SSL и доверие к CA
 
-- **Let's Encrypt** для `avaterra.pro` / `www` (certbot + nginx).
+- **Let's Encrypt** (certbot + nginx):
+  - **`avaterra.pro`** и **`www.avaterra.pro`** — прод-сайт; после продления **2026-06-15** действует до **13 сентября 2026**.
+  - **`mail.avaterra.pro`** — отдельный сертификат для веб-почты/Mailcow; после продления **2026-06-15** действует до **13 сентября 2026**.
+- Проверка: `sudo certbot certificates` или `curl -sS https://avaterra.pro/api/health` (ожидается **200**).
+- После продления: `sudo nginx -t && sudo systemctl reload nginx`.
 - Дополнительно на сервер установлен корневой сертификат **GlobalSign** (системное хранилище `ca-certificates`), чтобы исходящие HTTPS-запросы Node/утилит доверяли нужным цепочкам.
 
 ---
@@ -83,9 +87,9 @@
 | **instrumentation** | `instrumentation.ts` вызывает только **`lib/settings-startup.ts`** (чтение `site_url` из БД для `NEXTAUTH_URL`), без импорта всего `lib/settings.ts` с `encrypt` — иначе при `next build` webpack ломался на модуле `crypto`. |
 | **encrypt** | Импорт из **`node:crypto`**; в **`next.config.mjs`** для server-бандла в `externals` добавлены `crypto` и `node:crypto` (страховка). |
 | **deploy-pull.sh** | Шаг **5b:** очистка **`/var/cache/nginx`** (или встроенная очистка, если нет `nginx-clear-proxy-cache.sh`) + `nginx reload` при наличии прав; шаги **6–7:** проверка `127.0.0.1:$PORT/api/health` и внешнего URL. |
-| **Деплой без git** | С ПК (WSL): **`npm run deploy:rsync`** → [`scripts/deploy-rsync-from-local.sh`](../scripts/deploy-rsync-from-local.sh) (по умолчанию `root@95.181.224.70:/opt/ALETHEIA`). **Не запускать** `deploy:rsync` на самом VPS. |
+| **Деплой без git** | С ПК (WSL): **`npm run deploy:rsync`** → [`scripts/deploy-rsync-from-local.sh`](../scripts/deploy-rsync-from-local.sh) (по умолчанию `root@95.181.224.70:/opt/ALETHEIA`). Локальный **`next build` до** остановки сервиса на VPS; rsync **`lib/`**, **`app/`**, `.next/`, `scripts/`; на сервере — только **systemd** (PM2 удаляется), рестарт `aletheia` + **`aletheia-telegram-poll.service`**. **Не запускать** `deploy:rsync` на самом VPS. |
 | **Mailcow (черновик)** | [`scripts/setup-mailcow-docker-vps.sh`](../scripts/setup-mailcow-docker-vps.sh) — на VPS от root: Docker + clone Mailcow в `/opt/mailcow-dockerized`; дальше `generate_config.sh`, TLS/DNS — [Mail-Server.md](Mail-Server.md). |
-| **Telegram-бот** | Webhook `POST /api/portal/telegram/webhook`; токен и Chat ID админов — БД (Портал → Настройки → Интеграции). После деплоя: `npx tsx scripts/setup-telegram-webhook.ts` или кнопка в админке. При блокировке API — `HTTPS_PROXY` в `.env` unit `aletheia`. См. [Support.md — Telegram](Support.md#telegram-бот-webhook-токен-блокировки). |
+| **Telegram-бот** | **Long-polling:** `aletheia-telegram-poll.service` → `scripts/telegram-poll-daemon.ts` → `lib/telegram-long-poll.ts`; webhook **не** регистрируется (`getWebhookInfo.url` пуст). Токен и Chat ID — БД (Портал → Настройки → Интеграции); «Обновить команды бота» — `deleteWebhook` + `setMyCommands`. Исходящие вызовы — `HTTPS_PROXY` / `TELEGRAM_API_TIMEOUT_MS` в `.env`. См. [Support.md — Telegram](Support.md#telegram-бот-long-polling-токен-блокировки). |
 
 ## 6.1 Развёртывание приложения без git на сервере + почта
 
@@ -105,7 +109,7 @@
 3. Выполнить:  
    `cd /opt/ALETHEIA && sudo bash scripts/deploy-pull.sh`
 
-Скрипт: `git pull` → зависимости → `prisma generate` → `prisma migrate deploy` → удаление `.next` → `npm run build` → рестарт `aletheia.service` (или PM2) → при возможности сброс proxy-кеша nginx.
+Скрипт: `git pull` → зависимости → `prisma generate` → `prisma migrate deploy` → **остановка** `aletheia.service` → удаление `.next` → `npm run build` → рестарт **`aletheia.service`** (systemd-only на проде) → при возможности сброс proxy-kеша nginx. Poll-worker: `sudo systemctl restart aletheia-telegram-poll.service`.
 
 **Переменные (опционально):** `DEPLOY_ROOT`, `GIT_BRANCH`, `SKIP_NGINX_CACHE=1`, `APP_PORT` — см. комментарии в [`scripts/deploy-pull.sh`](../scripts/deploy-pull.sh).  
 **С ПК:** [`scripts/deploy-remote.sh`](../scripts/deploy-remote.sh) (`npm run deploy:remote`) передаёт на сервер `SKIP_NGINX_CACHE`; шаг **5b** в `deploy-pull.sh` очищает `proxy_cache` (см. [`scripts/nginx-clear-proxy-cache.sh`](../scripts/nginx-clear-proxy-cache.sh)) и делает `nginx reload`. Если каталога кеша нет — скрипт не падает, при необходимости всё равно выполняется reload.  
@@ -120,7 +124,7 @@
 3. Запуск:  
    `npm run deploy:rsync`
 
-Локально выполняется `next build`, на сервер синхронизируются `.next/`, `public/`, `prisma/` (без локальных `.db`), `package.json`, lockfile, `next.config.mjs`, `middleware.ts`; на сервере — `npm ci`, `prisma generate`, очистка кеша nginx (если есть), старт сервиса. Файл **`.env` на сервере не перезаписывается**.
+Локально выполняется **`next build`** (при неудаче деплой прерывается — `.next` на сервере не затирается), затем на сервере останавливается `aletheia`, rsync: `.next/`, `public/`, **`lib/`**, **`app/`**, `scripts/`, `prisma/` (без локальных `.db`), `package.json`, lockfile, `next.config.mjs`, `middleware.ts`; на сервере — `npm ci`, `prisma migrate deploy`, `prisma generate`, очистка кеша nginx (если есть), **`systemctl restart aletheia`** и **`aletheia-telegram-poll.service`**, удаление PM2 `aletheia`. Файл **`.env` на сервере не перезаписывается**.
 
 **Замена продовой SQLite локальной базой** (осознанно, прод-данные перезаписываются содержимым `prisma/dev.db` с вашего ПК):  
 `npm run deploy:rsync:with-db` или `DEPLOY_COPY_LOCAL_DB=1 npm run deploy:rsync`. Перед этим локально должна быть актуальная сборка и файл `prisma/dev.db`; после копирования на сервере по-прежнему выполняются `migrate deploy` и `generate`.
@@ -212,10 +216,11 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 
 *Обновляйте таблицу после смены хоста, домена или способа запуска. После `git pull` на VPS полезно прогнать **раздел 9** и при необходимости **раздел 10**.*
 
-| Поле | Значение (актуально на 2026-06-14) |
+| Поле | Значение (актуально на 2026-06-15) |
 |------|-------------------------------------|
-| Дата аудита | 2026-06-14 |
-| Версия приложения | **3.5.3** (`/api/health` → `version`) |
+| Дата аудита | 2026-06-14 (инфра); обновления **2026-06-15** — Telegram polling, SSL, деплой |
+| Версия приложения | **3.5.4** (`/api/health` → `version`, **200**) |
+| SSL Let's Encrypt | `avaterra.pro` + `www`, `mail.avaterra.pro` — продлены **2026-06-15**, истекают **2026-09-13** |
 | Хост VPS | p941004.kvmvps, Ubuntu 24.04 LTS, IP 95.181.224.70 |
 | Активный корень приложения | /opt/ALETHEIA |
 | Git на проде (после аудита) | **e07287c** — deploy; `/api/health` → `commit` совпадает |
@@ -230,7 +235,10 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 | Docker | `/etc/docker/daemon.json` — json-file, max-size=10m, max-file=3 |
 | journald | `SystemMaxUse=500M` в `/etc/systemd/journald.conf`; освобождено **~2.9 GB** на диске |
 | Бэкап перед работами | `/root/backups/20260614/` — dev.db.bak (~5.1 MB), public-uploads.tar.gz (~1.4 GB), .env.bak |
-| PM2 | Дубликат **aletheia** удалён (~657k restarts); рабочий процесс — **только systemd** |
+| PM2 | Дубликат **aletheia** удалён (~657k restarts); рабочий процесс Next.js — **только systemd**; PM2 не используется как fallback при деплое |
+| Telegram poll worker | **`aletheia-telegram-poll.service`** — `scripts/telegram-poll-daemon.ts`, offset `/var/lib/aletheia/telegram-poll-offset.json`; webhook **не** зарегистрирован |
+| Content jobs worker | **`aletheia-jobs.service`** — `scripts/jobs-daemon.ts` (Site Radar, weekly plan, daily publish); лог `/var/log/aletheia-jobs.log` |
+| DenisBot1 (Python) | **Не развёрнут** на VPS (2026-06-15); единый бот — TypeScript long-poll |
 | Скрипт аудита | [`scripts/run-prod-audit.sh`](../scripts/run-prod-audit.sh) (WSL → SSH) + [`scripts/prod-audit-remote.sh`](../scripts/prod-audit-remote.sh) на VPS (фазы 0–6) |
 
 ---
@@ -258,8 +266,16 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 
 ```
 Пользователь
-  → https://avaterra.pro:443 (nginx + TLS)
+  → https://avaterra.pro:443 (nginx + TLS, LE до 2026-09-13)
   → http://127.0.0.1:3000 (Next.js, systemd aletheia.service)
+
+Telegram Bot API (исходящий getUpdates + sendMessage)
+  → aletheia-telegram-poll.service (long-poll worker, не порт 3000)
+  → lib/telegram-long-poll.ts → routeTelegramUpdate
+  → опционально HTTPS_PROXY в .env (блокировка api.telegram.org из РФ)
+
+Фоновые задачи SMM / Site Radar
+  → aletheia-jobs.service → scripts/jobs-daemon.ts → lib/content/jobs/scheduler.ts
 ```
 
 ---

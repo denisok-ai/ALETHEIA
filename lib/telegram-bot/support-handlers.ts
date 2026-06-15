@@ -19,15 +19,17 @@ import {
 import { clearBotSession, getBotSession, setSessionState } from './session';
 import { createTelegramSupportTicket } from './ticket-service';
 import { botReply } from './messaging';
-import { formatFaqCategoryText, formatFaqOverviewText, getFaqCategory } from './faq';
+import { formatAboutText, formatFaqCategoryText, formatFaqOverviewText, getFaqCategory } from './faq';
 
 function escapeHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
 export async function handleUserMainMenu(ctx: BotContext): Promise<void> {
-  const { portalTitle } = await getBotSiteSettings();
-  const linked = ctx.telegramUserId ? await findUserByTelegramId(ctx.telegramUserId) : null;
+  const [{ portalTitle }, linked] = await Promise.all([
+    getBotSiteSettings(),
+    ctx.telegramUserId ? findUserByTelegramId(ctx.telegramUserId) : Promise.resolve(null),
+  ]);
   const linkHint = linked
     ? `\n\n✅ Аккаунт привязан: <code>${escapeHtml(linked.email)}</code>`
     : '\n\n💡 Привяжите Telegram в профиле портала (поле Telegram ID) или укажите /link email@example.com';
@@ -244,6 +246,10 @@ export async function handleHelp(ctx: BotContext): Promise<void> {
   await handleFaqMenu(ctx);
 }
 
+export async function handleAbout(ctx: BotContext): Promise<void> {
+  await botReply(ctx, formatAboutText(), { replyMarkup: backToMainKeyboard() });
+}
+
 export async function handlePortalLink(ctx: BotContext): Promise<void> {
   const { siteUrl: cachedUrl } = await getBotSiteSettings();
   const siteUrl = cachedUrl || 'https://avaterra.pro';
@@ -293,6 +299,9 @@ export async function handleSupportCallback(ctx: BotContext, action: string): Pr
     case 'faq':
       await handleFaqMenu(ctx);
       break;
+    case 'about':
+      await handleAbout(ctx);
+      break;
     case 'portal':
       await handlePortalLink(ctx);
       break;
@@ -309,6 +318,11 @@ export async function handleSupportCallback(ctx: BotContext, action: string): Pr
 
 export async function handleTextInSession(ctx: BotContext, text: string): Promise<boolean> {
   const session = await getBotSession(ctx.chatId);
+  if (session.state === 'funnel_freeform') {
+    const { handleFunnelFreeform } = await import('./funnel');
+    await handleFunnelFreeform(ctx, text);
+    return true;
+  }
   if (session.state === 'support_compose') {
     await handleSupportMessage(ctx, text);
     return true;

@@ -889,3 +889,146 @@ model ConsentLog {
   @@index([createdAt])
   @@index([emailNorm])
 }
+
+// --- SMM / Site Radar (единый Telegram-бот @AvaterraProBot) ---
+
+model BrandProfile {
+  id          String   @id @default(cuid())
+  slug        String   @unique @default("avaterra")
+  kbVersion   String?
+  dataJson    String   // YAML KB → JSON
+  toneOfVoice String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ContentPlan {
+  id        String   @id @default(cuid())
+  weekStart DateTime
+  weekEnd   DateTime
+  status    String   @default("draft") // draft | active | completed
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items ContentItem[]
+
+  @@index([weekStart])
+}
+
+model ContentItem {
+  id             String    @id @default(cuid())
+  planId         String?
+  plan           ContentPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  publishDate    DateTime
+  postType       String
+  topic          String
+  objective      String?
+  outline        String?
+  cta            String?
+  themeId        String?
+  theme          ThemePool? @relation(fields: [themeId], references: [id], onDelete: SetNull)
+  audience       String?
+  rubric         String?
+  generatedText  String?
+  finalText      String?
+  imageUrl       String?
+  imageUrlBackup String?
+  /// planned | generating | quality_failed | dedup_blocked | ready | approved | published | rejected
+  status         String    @default("planned")
+  qualityIssues  String?   // JSON
+  dedupSignature String?   // base64 MinHash
+  dedupKeywords  String?   // JSON string[]
+  telegramMsgId  Int?
+  publishedAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  postStats PostStat[]
+
+  @@index([publishDate])
+  @@index([status])
+  @@index([planId])
+}
+
+model SitePage {
+  id         String    @id @default(cuid())
+  url        String    @unique
+  category   String    @default("other")
+  isActive   Boolean   @default(true)
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  versions SitePageVersion[]
+  signals  SiteSignal[]
+}
+
+model SitePageVersion {
+  id             String   @id @default(cuid())
+  pageId         String
+  page           SitePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  contentHash    String
+  normalizedJson String?  // JSON блоков
+  fetchedAt      DateTime @default(now())
+
+  @@index([pageId, fetchedAt])
+}
+
+model SiteSignal {
+  id         String    @id @default(cuid())
+  pageId     String?
+  page       SitePage? @relation(fields: [pageId], references: [id], onDelete: SetNull)
+  signalType String
+  changeType String
+  score      Int       @default(0)
+  severity   String    @default("low")
+  summary    String
+  payload    String?   // JSON
+  /// new | processed | ignored
+  status     String    @default("new")
+  createdAt  DateTime  @default(now())
+
+  @@index([createdAt])
+  @@index([severity])
+  @@index([status])
+}
+
+model ThemePool {
+  id        String   @id @default(cuid())
+  topic     String
+  postType  String   @default("educational")
+  audience  String?
+  rubric    String?
+  priority  Int      @default(50)
+  /// pending | scheduled | used | rejected
+  status    String   @default("pending")
+  /// kb | radar | manual
+  source    String   @default("kb")
+  payload   String?  // JSON
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items ContentItem[]
+
+  @@unique([source, topic])
+  @@index([status])
+  @@index([postType])
+}
+
+model PostStat {
+  id            String       @id @default(cuid())
+  contentItemId String?
+  contentItem   ContentItem? @relation(fields: [contentItemId], references: [id], onDelete: SetNull)
+  telegramMsgId Int?
+  channelId     String?
+  views         Int          @default(0)
+  forwards      Int          @default(0)
+  reactions     Int          @default(0)
+  rawPayload    String?      // JSON
+  fetchedAt     DateTime     @default(now())
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([contentItemId])
+  @@index([telegramMsgId])
+}

@@ -67,3 +67,37 @@ scripts/bulk-replace-log.txt
 # Личные заметки в корне репозитория
 /ЗАПУСК-ДЕМО-ДЛЯ-ДРУГА.cmd
 /КАК-ПОКАЗАТЬ-САЙТ-ДРУГУ.txt
+
+# Agent/debug artifacts
+.denisbot-*.py
+_agent_*.sh
+_commit_*.sh
+_deploy_*.txt
+_run_*.sh
+_git_push_*.sh
+_ssh_*.py
+_version_*.txt
+.commitmsg.txt
+.cursor-agent-git-step.txt
+.git_push_result.txt
+d1.txt
+git_report*.txt
+prod-*.txt
+ssh_diag_out.txt
+telegram-setup-report.txt
+run_prod_diag.sh
+console.error*
+console.log*
+pnpm-lock.yaml
+nul
+.denisbot-env.example
+.denisbot-files.txt
+74741201Nn
+scripts/.send-test-user.ts
+scripts/.temp-*.ts
+scripts/_fix_setup.py
+scripts/_remote_prod_fix.sh
+scripts/_run_remote_prod_fix.sh
+scripts/_ssh_test.sh
+scripts/test-write.txt
+scripts/lineedit.py

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Мониторинг webhook Telegram: pending updates и last_error → авто setWebhook.
-# Cron на VPS (каждые 5 мин):
+# Мониторинг Telegram на VPS: прокси для исходящих (бот — long-polling, webhook не используется).
+# Cron (опционально, каждые 5 мин):
 #   */5 * * * * root /opt/ALETHEIA/scripts/telegram-webhook-health.sh >> /var/log/telegram-webhook-health.log 2>&1
 set -euo pipefail
 cd /opt/ALETHEIA
@@ -20,22 +20,25 @@ fi
 
 WH=$(curl -sS --connect-timeout 15 "${PROXY_ARG[@]}" \
   "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getWebhookInfo" || echo '{"ok":false}')
-read -r PENDING LAST_ERR <<<"$(python3 -c "
+read -r PENDING URL <<<"$(python3 -c "
 import json,sys
 d=json.loads(sys.argv[1])
 r=d.get('result') or {}
-print(r.get('pending_update_count',0), (r.get('last_error_message') or '').replace(' ','_')[:80])
+print(r.get('pending_update_count',0), (r.get('url') or '')[:80])
 " "$WH")"
 
-echo "$(date -Is) pending=$PENDING last_error=${LAST_ERR:-none}"
+echo "$(date -Is) mode=polling pending=$PENDING webhook_url=${URL:-empty}"
 
-NEED_RESET=0
-if [[ "${PENDING:-0}" -gt 3 ]]; then NEED_RESET=1; fi
-if echo "${LAST_ERR:-}" | grep -qiE 'timeout|timed_out|connection'; then NEED_RESET=1; fi
+if [[ -n "${URL:-}" ]]; then
+  echo "$(date -Is) WARN: webhook still set — deleting (poll worker is primary)"
+  npx tsx scripts/telegram-delete-webhook.ts 2>&1 | tail -3
+fi
 
-if [[ "$NEED_RESET" -eq 1 ]]; then
-  echo "$(date -Is) RESET: setWebhook без drop_pending (сообщения подхватит poll-worker)"
-  npx tsx scripts/telegram-webhook-reset-soft.ts 2>&1 | tail -8
+if systemctl is-active --quiet aletheia-telegram-poll.service 2>/dev/null; then
+  echo "$(date -Is) poll_worker=active"
+else
+  echo "$(date -Is) WARN: aletheia-telegram-poll.service not active — restarting"
+  systemctl restart aletheia-telegram-poll.service 2>/dev/null || true
 fi
 
 # Прокси для исходящих
@@ -44,6 +47,6 @@ if [[ -n "$PROXY" ]]; then
   if [[ "$CODE" != "302" && "$CODE" != "200" ]]; then
     echo "$(date -Is) WARN: proxy $PROXY telegram http=$CODE — restart outline"
     systemctl restart outline-ss-local outline-telegram-proxy 2>/dev/null || true
-    systemctl restart aletheia 2>/dev/null || true
+    systemctl restart aletheia-telegram-poll.service 2>/dev/null || true
   fi
 fi

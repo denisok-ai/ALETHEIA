@@ -1,0 +1,9 @@
+echo === getWebhookInfo ===
+cd /opt/ALETHEIA
+npx tsx scripts/telegram-webhook-info.ts
+echo === journal 22:50 ===
+echo === nginx webhook ===
+echo === outline services ===
+systemctl is-active outline-ss-local outline-telegram-proxy aletheia
+npx tsx scripts/telegram-webhook-latency-prod.ts
+cat /etc/cron.d/aletheia-telegram

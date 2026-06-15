@@ -11,6 +11,11 @@ import {
   mailcowEditMailboxPassword,
 } from '@/lib/mail-provisioning/mailcow';
 import {
+  mailcowPasswordApplyDelayMs,
+  sleepMs,
+  verifyImapCredentials,
+} from '@/lib/mail-provisioning/verify-imap';
+import {
   getMailDomain,
   getMailImapHost,
   getMailImapPort,
@@ -45,8 +50,50 @@ export type CreateDomainMailboxResult =
       inboundMailboxId: string;
       plainPassword: string;
       mailcowSummary?: string;
+      /** false — пароль в приложении есть, но Dovecot не принял вход (см. warning). */
+      imapVerified?: boolean;
+      warning?: string;
     }
   | { ok: false; error: string };
+
+async function verifyDomainMailboxImap(email: string, password: string): Promise<{ ok: boolean; error?: string }> {
+  const check = await verifyImapCredentials({
+    host: getMailImapHost(),
+    port: getMailImapPort(),
+    username: email,
+    password,
+    tls: true,
+  });
+  return check.ok ? { ok: true } : { ok: false, error: check.error };
+}
+
+async function alignMailcowPasswordAndVerifyImap(
+  email: string,
+  password: string
+): Promise<{ ok: true; summary?: string } | { ok: false; error: string }> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const align = await mailcowEditMailboxPassword(email, password);
+    if (!align.ok) {
+      return {
+        ok: false,
+        error:
+          align.error + (align.raw ? ` — ${JSON.stringify(align.raw).slice(0, 400)}` : ''),
+      };
+    }
+    await sleepMs(mailcowPasswordApplyDelayMs());
+    const imap = await verifyDomainMailboxImap(email, password);
+    if (imap.ok) {
+      return { ok: true, summary: align.summary };
+    }
+    if (attempt === 1) {
+      return {
+        ok: false,
+        error: imap.error ?? '[NO] Authentication failed.',
+      };
+    }
+  }
+  return { ok: false, error: 'IMAP verify failed after password align' };
+}
 
 export async function createDomainMailbox(params: {
   localPart: string;
@@ -88,20 +135,17 @@ export async function createDomainMailbox(params: {
     if (!mc.ok) {
       return { ok: false, error: mc.error + (mc.raw ? ` — ${JSON.stringify(mc.raw).slice(0, 400)}` : '') };
     }
-    /** Повторная запись того же пароля через `edit/mailbox` синхронизирует хеш в Dovecot с БД приложения (как `scripts/prod-mailcow-align-password-remote.sh`). Без шага IMAP часто даёт `[NO] Authentication failed` сразу после `add/mailbox`. */
-    const pwdAlign = await mailcowEditMailboxPassword(email, password);
-    if (!pwdAlign.ok) {
+    /** Повторная запись пароля + проверка IMAP (см. docs/Mail-Server.md, scripts/prod-mailcow-align-password-remote.sh). */
+    const aligned = await alignMailcowPasswordAndVerifyImap(email, password);
+    if (!aligned.ok) {
       await mailcowDeleteMailbox(email).catch(() => {});
       return {
         ok: false,
-        error:
-          pwdAlign.error +
-          (pwdAlign.raw ? ` — ${JSON.stringify(pwdAlign.raw).slice(0, 400)}` : '') +
-          ' (ящик в Mailcow удалён, повторите создание)',
+        error: `${aligned.error} (ящик в Mailcow удалён, повторите создание)`,
       };
     }
     provisioningRef =
-      [mc.summary, pwdAlign.summary].filter(Boolean).join(' | ') || JSON.stringify(mc.raw).slice(0, 500);
+      [mc.summary, aligned.summary].filter(Boolean).join(' | ') || JSON.stringify(mc.raw).slice(0, 500);
     mailcowSummary = provisioningRef;
   }
 
@@ -140,6 +184,31 @@ export async function createDomainMailbox(params: {
         },
       });
 
+      if (mode === 'mailcow') {
+        return {
+          ok: true,
+          domainMailboxId: dm.id,
+          email,
+          inboundMailboxId: inbound.id,
+          plainPassword: password,
+          mailcowSummary,
+          imapVerified: true,
+        };
+      }
+
+      const imap = await verifyDomainMailboxImap(email, password);
+      if (imap.ok) {
+        return {
+          ok: true,
+          domainMailboxId: dm.id,
+          email,
+          inboundMailboxId: inbound.id,
+          plainPassword: password,
+          mailcowSummary,
+          imapVerified: true,
+        };
+      }
+
       return {
         ok: true,
         domainMailboxId: dm.id,
@@ -147,6 +216,13 @@ export async function createDomainMailbox(params: {
         inboundMailboxId: inbound.id,
         plainPassword: password,
         mailcowSummary,
+        imapVerified: false,
+        warning:
+          `IMAP-вход не подтверждён (${imap.error ?? 'Authentication failed'}). ` +
+          'На сервере выполните: MAILBOX_EMAIL=' +
+          email +
+          ' bash scripts/prod-mailcow-create-domain-mailbox-remote.sh — ' +
+          'или задайте MAIL_PROVISIONING_MODE=mailcow и MAILCOW_API_KEY (scripts/setup-mailcow-api-prod.sh).',
       };
     } catch (e) {
       await prisma.inboundMailbox.delete({ where: { id: inbound.id } }).catch(() => {});
@@ -252,8 +328,8 @@ export async function changeDomainMailboxPassword(params: {
   }
 
   if (mode === 'mailcow') {
-    const mc = await mailcowEditMailboxPassword(dm.email, newPassword);
-    if (!mc.ok) {
+    const aligned = await alignMailcowPasswordAndVerifyImap(dm.email, newPassword);
+    if (!aligned.ok) {
       try {
         await prisma.$transaction(async (tx) => {
           await tx.domainMailbox.update({
@@ -270,9 +346,32 @@ export async function changeDomainMailboxPassword(params: {
       } catch (revertErr) {
         console.error('[changeDomainMailboxPassword] DB revert after Mailcow failure failed', revertErr);
       }
+      return { ok: false, error: aligned.error };
+    }
+  } else {
+    const imap = await verifyDomainMailboxImap(dm.email, newPassword);
+    if (!imap.ok) {
+      try {
+        await prisma.$transaction(async (tx) => {
+          await tx.domainMailbox.update({
+            where: { id: dm.id },
+            data: { passwordEnc: oldEnc },
+          });
+          if (dm.inboundMailboxId) {
+            await tx.inboundMailbox.update({
+              where: { id: dm.inboundMailboxId },
+              data: { passwordEnc: oldEnc },
+            });
+          }
+        });
+      } catch (revertErr) {
+        console.error('[changeDomainMailboxPassword] DB revert after IMAP failure failed', revertErr);
+      }
       return {
         ok: false,
-        error: mc.error + (mc.raw ? ` — ${JSON.stringify(mc.raw).slice(0, 400)}` : ''),
+        error:
+          `IMAP не принял новый пароль (${imap.error ?? 'Authentication failed'}). ` +
+          'Сначала выставьте тот же пароль в Mailcow или включите MAIL_PROVISIONING_MODE=mailcow.',
       };
     }
   }

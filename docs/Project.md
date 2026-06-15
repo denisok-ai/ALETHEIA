@@ -3,7 +3,7 @@
 **Проект:** Веб-сайт школы AVATERRA (Phygital школа мышечного тестирования, курс «Тело не врет»)  
 **Домен:** https://avaterra.pro  
 **Версия документа:** 3.5.4 (совпадает с `package.json`)  
-**Дата:** 2026-06-14
+**Дата:** 2026-06-15
 
 ---
 
@@ -89,9 +89,9 @@ graph TB
 
 *Конкретный выбор зафиксировать после ответов на вопросы в `qa.md`.*
 
-### 3.3 Структура проекта (текущая, v3.5.3)
+### 3.3 Структура проекта (текущая, v3.5.4)
 
-**Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, **Prisma + SQLite** (локально), NextAuth, Resend, Telegram Bot API. Версионирование: SemVer, CHANGELOG.md.
+**Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, **Prisma + SQLite** (локально), NextAuth, Resend, Telegram Bot API (long-polling). Версионирование: SemVer, CHANGELOG.md.
 
 **Локальная разработка:** Prisma + SQLite, без Docker. См. `docs/Local-Prisma.md`.
 
@@ -116,16 +116,26 @@ AVATERRA/
 │   └── api/
 │       ├── payment/create, webhook/paykeeper, contact, chat
 │       └── portal/                # scorm/progress, scorm/url, certificates/[id]/download
-│           ├── admin/courses/upload
-│           └── telegram/webhook
+│           ├── admin/courses/upload, admin/settings/telegram-webhook
+│           └── telegram/webhook    # legacy stub (mode: polling)
 ├── components/
 │   ├── sections/   # Hero, About, Program, Author, Testimonials, Pricing, FAQ, Contact, Header, Footer
 │   ├── portal/     # PortalHeader, PortalSidebar, UsersTable
 │   ├── ui/, 3d/, PaymentModal.tsx, ChatBot.tsx
 ├── lib/
 │   ├── utils.ts, paykeeper.ts, auth.ts, audit.ts, db.ts
-│   ├── telegram.ts, telegram-fetch.ts, telegram-admin-notify.ts, telegram-webhook-setup.ts
+│   ├── telegram.ts, telegram-fetch.ts, telegram-long-poll.ts, telegram-admin-notify.ts
+│   ├── telegram-bot/              # router, faq, funnel, content-handlers, commands
+│   ├── content/                   # SMM: planner, radar, quality-gates, publisher, jobs
+│   ├── image-gen/                 # интерфейс генерации картинок (KIE стаб)
 │   ├── certificates.tsx           # PDF сертификаты (@react-pdf/renderer)
+├── content/
+│   └── avaterra.yaml              # Brand KB для SMM-бота
+├── scripts/
+│   ├── telegram-poll-daemon.ts    # primary worker (systemd aletheia-telegram-poll.service)
+│   ├── jobs-daemon.ts             # SMM scheduler (systemd aletheia-jobs.service)
+│   ├── aletheia-telegram-poll.service, aletheia-jobs.service
+│   ├── deploy-rsync-from-local.sh
 ├── prisma/
 │   ├── schema.prisma              # Схема БД
 │   ├── seed.ts                    # Тестовые данные
@@ -160,7 +170,7 @@ AVATERRA/
 - **Платежи:** PayKeeper API (lib/paykeeper.ts)
 - **Данные:** Prisma + SQLite (локально). Модели: User, Profile, Course, Enrollment, ScormProgress, Certificate, Media, Notification, Ticket, AuditLog, CommsTemplate, LlmSetting, Service, UserEnergy, Lead, Order.
 - **Аутентификация:** NextAuth (Credentials provider), bcryptjs.
-- **Портал:** Роли user/manager/admin, middleware RBAC, SCORM-плеер (iframe + API progress), сертификаты (PDF через @react-pdf/renderer), Resend для email, **Telegram Bot API** — webhook (`/api/portal/telegram/webhook`, команды `/start`, `/myid`, `/admin_on`, …), исходящие сообщения через `lib/telegram.ts` (опционально `HTTPS_PROXY` при блокировке `api.telegram.org`), **оповещения админов** (`lib/telegram-admin-notify.ts`: заявки, регистрации, оплаты, тикеты, ошибки PayKeeper; Chat ID — `telegram_admin_chat_ids` в Портал → Настройки → Интеграции).
+- **Портал:** Роли user/manager/admin, middleware RBAC, SCORM-плеер (iframe + API progress), сертификаты (PDF через @react-pdf/renderer), Resend для email, **Telegram Bot API** — на проде **long-polling** (один worker `aletheia-telegram-poll.service` → `scripts/telegram-poll-daemon.ts` → `lib/telegram-long-poll.ts` → `routeTelegramUpdate`; offset в `TELEGRAM_POLL_STATE_DIR`, по умолчанию `/var/lib/aletheia`; webhook не регистрируется, маршрут `/api/portal/telegram/webhook` — stub `{ mode: 'polling' }`), исходящие вызовы через `lib/telegram-fetch.ts` (`TELEGRAM_API_TIMEOUT_MS`, опционально `HTTPS_PROXY` при блокировке `api.telegram.org`), **оповещения админов** (`lib/telegram-admin-notify.ts`: заявки, регистрации, оплаты, тикеты, ошибки PayKeeper; Chat ID — `telegram_admin_chat_ids` в Портал → Настройки → Интеграции).
 - **AI и чаты:** публичный чат на лендинге (`/api/chat`, база знаний и шаблоны промптов `scope=chatbot`); AI-тьютор в плеере (`/api/portal/scorm/ai-assist`, `LlmSetting` / шаблон `course-tutor`); рендер ответов через `ChatMarkdown` + linkify для кликабельных URL; справка в портале (`HelpContent`, якоря `#ai-tutor`, `#ai-tutor-admin`, прокрутка по hash); палитра команд ⌘K (`lib/portal-nav-commands.ts`).
 - **Хранилище:** локальные файлы в `public/uploads/` (SCORM, медиа).
 - **Деплой:** Vercel или VPS — общий чек-лист [Deploy.md](Deploy.md), продуктивный сервер и порядок обновления [Production-Server.md](Production-Server.md)

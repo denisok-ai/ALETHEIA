@@ -8,20 +8,71 @@ import { getTelegramAdminChatIds, parseTelegramChatIds } from '@/lib/telegram-ad
 
 export const ADMIN_CHAT_IDS_KEY = 'telegram_admin_chat_ids';
 
-export async function isAdminChatId(chatId: number | string): Promise<boolean> {
+const ADMIN_CACHE_TTL_MS = 30_000;
+const ADMIN_CACHE_MAX = 2000;
+
+type AdminCacheEntry = { isAdmin: boolean; at: number };
+const adminResultCache = new Map<string, AdminCacheEntry>();
+let adminChatIdsCache: { ids: string[]; at: number } | null = null;
+
+function adminCacheKey(chatId: number, telegramUserId?: number): string {
+  return `${chatId}:${telegramUserId ?? 'none'}`;
+}
+
+function pruneAdminCache(now: number): void {
+  if (adminResultCache.size <= ADMIN_CACHE_MAX) return;
+  adminResultCache.forEach((entry, key) => {
+    if (now - entry.at > ADMIN_CACHE_TTL_MS) adminResultCache.delete(key);
+  });
+}
+
+export function invalidateTelegramAdminCache(): void {
+  adminResultCache.clear();
+  adminChatIdsCache = null;
+}
+
+async function getCachedAdminChatIds(): Promise<string[]> {
+  const now = Date.now();
+  if (adminChatIdsCache && now - adminChatIdsCache.at < ADMIN_CACHE_TTL_MS) {
+    return adminChatIdsCache.ids;
+  }
   const ids = await getTelegramAdminChatIds();
+  adminChatIdsCache = { ids, at: now };
+  return ids;
+}
+
+export async function isAdminChatId(chatId: number | string): Promise<boolean> {
+  const ids = await getCachedAdminChatIds();
   return ids.includes(String(chatId));
 }
 
 /** Админ: chat ID в списке оповещений или роль admin/manager в профиле по telegramId. */
 export async function isTelegramAdmin(chatId: number, telegramUserId?: number): Promise<boolean> {
-  if (await isAdminChatId(chatId)) return true;
-  if (!telegramUserId) return false;
-  const profile = await prisma.profile.findFirst({
-    where: { telegramId: telegramUserId, role: { in: ['admin', 'manager'] }, status: 'active' },
-    select: { id: true },
-  });
-  return Boolean(profile);
+  const key = adminCacheKey(chatId, telegramUserId);
+  const now = Date.now();
+  const cached = adminResultCache.get(key);
+  if (cached && now - cached.at < ADMIN_CACHE_TTL_MS) {
+    return cached.isAdmin;
+  }
+
+  const started = Date.now();
+  let isAdmin = false;
+  if (await isAdminChatId(chatId)) {
+    isAdmin = true;
+  } else if (telegramUserId) {
+    const profile = await prisma.profile.findFirst({
+      where: { telegramId: telegramUserId, role: { in: ['admin', 'manager'] }, status: 'active' },
+      select: { id: true },
+    });
+    isAdmin = Boolean(profile);
+  }
+
+  adminResultCache.set(key, { isAdmin, at: now });
+  pruneAdminCache(now);
+  if (Date.now() - started > 200) {
+    console.log(`[telegram-bot] isTelegramAdmin chat=${chatId} ms=${Date.now() - started} cached=false`);
+  }
+  return isAdmin;
 }
 
 export async function appendAdminChatId(chatId: number): Promise<boolean> {
@@ -35,6 +86,7 @@ export async function appendAdminChatId(chatId: number): Promise<boolean> {
     create: { key: ADMIN_CHAT_IDS_KEY, value: next, category: 'env' },
     update: { value: next },
   });
+  invalidateTelegramAdminCache();
   return true;
 }
 

@@ -18,10 +18,13 @@ export function userMainMenuKeyboard(): TelegramReplyMarkup {
         { text: '❓ FAQ', callback_data: 'support:faq' },
       ],
       [
+        { text: '🏫 О школе', callback_data: 'support:about' },
+        { text: '🌐 Открыть портал', callback_data: 'support:portal' },
+      ],
+      [
         { text: '💬 Написать в поддержку', callback_data: 'support:write' },
         { text: '📋 Мои обращения', callback_data: 'support:ticket_status' },
       ],
-      [{ text: '🌐 Открыть портал', callback_data: 'support:portal' }],
     ],
   };
 }
@@ -56,6 +59,18 @@ export function adminMainMenuKeyboard(): TelegramReplyMarkup {
   return {
     inline_keyboard: [
       [
+        { text: '🛠 Управление (портал)', callback_data: 'admin:menu' },
+        { text: '📝 Контент (SMM)', callback_data: 'content:menu' },
+      ],
+      [{ text: '◀️ Главное меню', callback_data: 'nav:main' }],
+    ],
+  };
+}
+
+export function adminPortalMenuKeyboard(): TelegramReplyMarkup {
+  return {
+    inline_keyboard: [
+      [
         { text: '📊 Сводка', callback_data: 'admin:stats' },
         { text: '📰 Дайджест', callback_data: 'admin:digest' },
       ],
@@ -71,7 +86,32 @@ export function adminMainMenuKeyboard(): TelegramReplyMarkup {
         { text: '📢 Рассылка', callback_data: 'admin:mailing' },
         { text: '⚙️ Система', callback_data: 'admin:system' },
       ],
-      [{ text: '◀️ Главное меню', callback_data: 'nav:main' }],
+      [
+        { text: '◀️ Разделы админа', callback_data: 'admin:sections' },
+        { text: '🏠 Главное меню', callback_data: 'nav:main' },
+      ],
+    ],
+  };
+}
+
+export function contentMainMenuKeyboard(): TelegramReplyMarkup {
+  return {
+    inline_keyboard: [
+      [
+        { text: '📅 План', callback_data: 'content:plan' },
+        { text: '📡 Radar', callback_data: 'content:radar' },
+      ],
+      [
+        { text: '⚙️ Режим', callback_data: 'content:mode' },
+        { text: '🧪 Quality', callback_data: 'content:quality' },
+      ],
+      [
+        { text: '📈 Статистика постов', callback_data: 'content:post_stats' },
+      ],
+      [
+        { text: '◀️ Разделы админа', callback_data: 'admin:sections' },
+        { text: '🏠 Главное меню', callback_data: 'nav:main' },
+      ],
     ],
   };
 }

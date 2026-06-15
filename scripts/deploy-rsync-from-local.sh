@@ -122,10 +122,15 @@ sleep 1
 REMOTE
 
 echo ""
-echo "=== rsync .next (полная замена), public, prisma, конфиги ==="
+echo "=== rsync .next (полная замена), public, prisma, lib, app, components, конфиги ==="
 rsync -avz --delete -e "$RSYNC_RSH" ./.next/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/.next/"
 # SCORM на проде живёт только на сервере (импорт ZIP); не затирать public/uploads/scorm при --delete.
 rsync -avz --delete --exclude 'uploads/scorm/' -e "$RSYNC_RSH" ./public/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/public/"
+# Исходники бота и API (раньше lib/ не синкался — на проде оставался старый код).
+rsync -avz --delete -e "$RSYNC_RSH" ./lib/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/lib/"
+rsync -avz --delete -e "$RSYNC_RSH" ./app/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/app/"
+# React-компоненты (раньше не синкались — на проде server build падал на @/components/ui/PasswordInput и др.).
+rsync -avz --delete -e "$RSYNC_RSH" ./components/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/components/"
 # Prisma: без --delete — иначе rsync с --exclude удалит dev.db на сервере.
 # Локальные *.db на прод по умолчанию не копируем (см. DEPLOY_COPY_LOCAL_DB).
 rsync -avz --exclude 'dev.db' --exclude '*.db' -e "$RSYNC_RSH" ./prisma/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/prisma/"
@@ -145,6 +150,11 @@ rsync -avz -e "$RSYNC_RSH" \
   ./package-lock.json \
   ./next.config.mjs \
   ./middleware.ts \
+  ./instrumentation.ts \
+  ./tsconfig.json \
+  ./tailwind.config.ts \
+  ./postcss.config.mjs \
+  ./next-env.d.ts \
   "${DEPLOY_SSH}:${DEPLOY_ROOT}/"
 
 echo ""
@@ -172,17 +182,35 @@ if command -v nginx >/dev/null 2>&1; then
 fi
 fuser -k 3000/tcp 2>/dev/null || true
 sleep 1
-if systemctl list-unit-files 2>/dev/null | grep -q '^aletheia.service'; then
-  # restart, не start: иначе при уже активном юните start — no-op, остаётся старый Node с
-  # buildManifest в памяти → 404 на новые /_next/static/chunks/*.js после rsync.
-  sudo systemctl restart aletheia.service
-  sudo systemctl is-active aletheia.service
-elif command -v pm2 >/dev/null 2>&1; then
-  echo "(!) aletheia.service не найден — fallback pm2 (на проде предпочтителен только systemd)"
+# Только systemd — PM2 aletheia конфликтует на :3000 (EADDRINUSE).
+if command -v pm2 >/dev/null 2>&1; then
   pm2 delete aletheia 2>/dev/null || true
-  pm2 start npm --name aletheia --cwd "$DEPLOY_ROOT" -- start
-  pm2 save || true
+  pm2 delete avaterra 2>/dev/null || true
+  pm2 save 2>/dev/null || true
 fi
+if ! systemctl list-unit-files 2>/dev/null | grep -q '^aletheia.service'; then
+  if [[ -f scripts/systemd/aletheia.service.example ]]; then
+    echo "(!) aletheia.service отсутствует — устанавливаем из scripts/systemd/aletheia.service.example"
+    cp scripts/systemd/aletheia.service.example /etc/systemd/system/aletheia.service
+    systemctl daemon-reload
+    systemctl enable aletheia.service
+  else
+    echo "Ошибка: нет aletheia.service и нет scripts/systemd/aletheia.service.example"
+    exit 1
+  fi
+fi
+sudo systemctl restart aletheia.service
+sudo systemctl is-active aletheia.service
+
+echo "=== Telegram long-poll worker ==="
+cp scripts/aletheia-telegram-poll.service /etc/systemd/system/aletheia-telegram-poll.service
+systemctl daemon-reload
+systemctl enable aletheia-telegram-poll.service
+npx tsx scripts/telegram-delete-webhook.ts 2>&1 | tail -5 || true
+systemctl restart aletheia-telegram-poll.service
+systemctl is-active aletheia-telegram-poll.service
+# Убрать cron fallback poll и webhook reset loop
+rm -f /etc/cron.d/aletheia-telegram-poll 2>/dev/null || true
 REMOTE
 
 echo ""

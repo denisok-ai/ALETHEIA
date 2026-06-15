@@ -21,23 +21,32 @@ function humanizeTelegramError(error: string): string {
   return 'Не удалось отправить сообщение. Попробуйте позже.';
 }
 
+function finalizeSendResult(
+  chatId: number,
+  sent: TelegramSendResult
+): Promise<TelegramSendResult> {
+  if (!sent.ok) {
+    const hint = humanizeTelegramError(sent.error);
+    if (hint && hint !== sent.error) {
+      return sendTelegramMessageWithResult(chatId, `❌ ${hint}`);
+    }
+  }
+  return Promise.resolve(sent);
+}
+
 export async function botReply(
   ctx: BotContext,
   text: string,
   options?: SendTelegramMessageOptions & { forceNew?: boolean }
 ): Promise<TelegramSendResult> {
-  if (!options?.forceNew && ctx.messageId) {
-    const edited = await editTelegramMessageWithResult(ctx.chatId, ctx.messageId, text, options);
-    if (edited.ok) return edited;
-    const hint = humanizeTelegramError(edited.error);
-    if (!hint) return edited;
+  if (!ctx.messageId || options?.forceNew) {
+    return finalizeSendResult(ctx.chatId, await sendTelegramMessageWithResult(ctx.chatId, text, options));
   }
-  const sent = await sendTelegramMessageWithResult(ctx.chatId, text, options);
-  if (!sent.ok) {
-    const hint = humanizeTelegramError(sent.error);
-    if (hint && hint !== sent.error) {
-      return sendTelegramMessageWithResult(ctx.chatId, `❌ ${hint}`);
-    }
-  }
-  return sent;
+
+  const edited = await editTelegramMessageWithResult(ctx.chatId, ctx.messageId, text, options);
+  if (edited.ok) return edited;
+  const hint = humanizeTelegramError(edited.error);
+  if (!hint) return edited;
+
+  return finalizeSendResult(ctx.chatId, await sendTelegramMessageWithResult(ctx.chatId, text, options));
 }

@@ -1,7 +1,6 @@
 /**
- * Регистрация и диагностика webhook Telegram Bot API.
+ * Диагностика webhook Telegram Bot API и legacy setWebhook (бот на проде — long-polling).
  */
-import { registerTelegramBotCommands } from './telegram-bot/commands';
 import { getEnvOverrides, getSystemSettings } from './settings';
 import { telegramApiFetch } from './telegram-fetch';
 
@@ -48,53 +47,50 @@ export async function getTelegramWebhookInfo(): Promise<TelegramWebhookInfo> {
   }
 }
 
-export type RegisterTelegramWebhookOptions = {
-  /** true только при явном ручном сбросе; health/poll worker — false (не терять сообщения). */
+export type DeleteTelegramWebhookOptions = {
   dropPendingUpdates?: boolean;
 };
 
-/** Зарегистрировать webhook на URL приложения. */
-export async function registerTelegramWebhook(
-  options: RegisterTelegramWebhookOptions = {}
-): Promise<TelegramWebhookInfo & { webhookUrl?: string }> {
+/** Удалить webhook (основной режим бота — long-polling). */
+export async function deleteTelegramWebhook(
+  options: DeleteTelegramWebhookOptions = {}
+): Promise<{ ok: boolean; error?: string }> {
   const dropPendingUpdates = options.dropPendingUpdates === true;
   const overrides = await getEnvOverrides();
   const token = overrides.telegram_bot_token;
   if (!token) return { ok: false, error: 'Не настроен токен Telegram-бота' };
 
-  const settings = await getSystemSettings();
-  const siteUrl = (settings.site_url || process.env.NEXT_PUBLIC_URL || '').replace(/\/$/, '');
-  if (!siteUrl.startsWith('https://')) {
-    return { ok: false, error: 'Для webhook нужен публичный HTTPS URL сайта (site_url в настройках)' };
-  }
-
-  const webhookUrl = `${siteUrl}/api/portal/telegram/webhook`;
-  const secret = overrides.telegram_webhook_secret?.trim();
-
-  const body: Record<string, string | boolean | number> = {
-    url: webhookUrl,
-    drop_pending_updates: dropPendingUpdates,
-    max_connections: 5,
-  };
-  if (secret) body.secret_token = secret;
-
   try {
-    const res = await telegramApiFetch(`https://api.telegram.org/bot${token}/setWebhook`, {
+    const res = await telegramApiFetch(`https://api.telegram.org/bot${token}/deleteWebhook`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ drop_pending_updates: dropPendingUpdates }),
     });
     const data = (await res.json()) as { ok?: boolean; description?: string };
     if (!data.ok) {
-      return { ok: false, error: String(data.description ?? res.statusText ?? 'setWebhook failed') };
+      return { ok: false, error: String(data.description ?? res.statusText ?? 'deleteWebhook failed') };
     }
-    const commandsResult = await registerTelegramBotCommands();
-    if (!commandsResult.ok) {
-      console.warn('[telegram-webhook] setMyCommands failed:', commandsResult.error);
-    }
-    const info = await getTelegramWebhookInfo();
-    return { ...info, webhookUrl };
+    return { ok: true };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'Ошибка setWebhook' };
+    return { ok: false, error: e instanceof Error ? e.message : 'Ошибка deleteWebhook' };
   }
+}
+
+export type RegisterTelegramWebhookOptions = {
+  /** @deprecated Бот на проде использует long-polling; вызывает deleteWebhook. */
+  dropPendingUpdates?: boolean;
+};
+
+/** @deprecated Используйте deleteTelegramWebhook + systemd poll worker. */
+export async function registerTelegramWebhook(
+  options: RegisterTelegramWebhookOptions = {}
+): Promise<TelegramWebhookInfo & { webhookUrl?: string; deprecated?: boolean }> {
+  const deleted = await deleteTelegramWebhook({
+    dropPendingUpdates: options.dropPendingUpdates === true,
+  });
+  if (!deleted.ok) {
+    return { ok: false, error: deleted.error ?? 'deleteWebhook failed' };
+  }
+  const info = await getTelegramWebhookInfo();
+  return { ...info, deprecated: true };
 }

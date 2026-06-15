@@ -21,6 +21,7 @@ import {
 import {
   handleCertificates,
   handleHelp,
+  handleAbout,
   handleLinkCommand,
   handleMyId,
   handleProgress,
@@ -31,6 +32,14 @@ import {
   handleUserMainMenu,
   handleFaqCategory,
 } from './support-handlers';
+import { handleFunnelChoice, handleFunnelWelcome, shouldShowFunnelOnStart } from './funnel';
+import { handleContentCallback, handleContentCommand } from './content-handlers';
+
+const CONTENT_COMMANDS = new Set([
+  '/plan', '/plan_now', '/preview', '/approve', '/publish_now', '/regenerate', '/quality_queue',
+  '/dry_run', '/auto', '/pause', '/resume', '/radar', '/radar_now', '/radar_signals',
+  '/kb_load', '/kb_show', '/post_stats', '/stat',
+]);
 
 const RATE_LIMIT_MS = 400;
 const RATE_BURST_PER_MINUTE = 25;
@@ -149,6 +158,10 @@ async function handleCommand(ctx: BotContext): Promise<void> {
         await handleSupportInfo(ctx);
         break;
       }
+      if (cmd === '/start' && !arg0 && (await shouldShowFunnelOnStart(ctx))) {
+        await handleFunnelWelcome(ctx);
+        break;
+      }
       await handleUserMainMenu(ctx);
       if (ctx.isAdmin) {
         await botReply(
@@ -165,6 +178,9 @@ async function handleCommand(ctx: BotContext): Promise<void> {
     case '/help':
     case '/faq':
       await handleHelp(ctx);
+      break;
+    case '/about':
+      await handleAbout(ctx);
       break;
     case '/progress':
       await handleProgress(ctx);
@@ -263,8 +279,17 @@ async function handleCommand(ctx: BotContext): Promise<void> {
       }
       await handleNotifyTest(ctx);
       break;
-    default:
+    default: {
+      if (CONTENT_COMMANDS.has(cmd)) {
+        if (!ctx.isAdmin) {
+          await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+          return;
+        }
+        const handled = await handleContentCommand(ctx, cmd, args);
+        if (handled) return;
+      }
       break;
+    }
   }
 }
 
@@ -288,12 +313,24 @@ async function handleCallback(ctx: BotContext): Promise<void> {
     await handleFaqCategory(ctx, parts[2]);
     return;
   }
+  if (prefix === 'funnel' && parts[1]) {
+    await handleFunnelChoice(ctx, parts[1]);
+    return;
+  }
   if (prefix === 'admin') {
     if (!ctx.isAdmin) {
       await safeReply(ctx.chatId, '⛔ Нет доступа.');
       return;
     }
     await handleAdminCallback(ctx, parts[1] ?? 'menu', parts.slice(2).join(':'));
+    return;
+  }
+  if (prefix === 'content') {
+    if (!ctx.isAdmin) {
+      await safeReply(ctx.chatId, '⛔ Нет доступа.');
+      return;
+    }
+    await handleContentCallback(ctx, parts[1] ?? 'menu');
     return;
   }
   if (prefix === 'support') {

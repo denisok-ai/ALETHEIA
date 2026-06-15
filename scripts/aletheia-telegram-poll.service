@@ -1,6 +1,6 @@
 [Unit]
-Description=AVATERRA Telegram poll fallback (getUpdates when webhook unhealthy)
-After=network-online.target aletheia.service
+Description=AVATERRA Telegram bot long-polling worker (primary transport)
+After=network-online.target aletheia.service outline-telegram-proxy.service
 Wants=network-online.target
 
 [Service]

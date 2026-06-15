@@ -186,8 +186,11 @@ NODE
 
 node /opt/ALETHEIA/.mailcow-align-password.cjs "$MAILBOX_EMAIL"
 
-if command -v pm2 >/dev/null 2>&1; then
+if command -v pm2 >/dev/null 2>&1 && pm2 describe aletheia >/dev/null 2>&1; then
   pm2 restart aletheia >/dev/null
   echo "PM2 aletheia restarted"
+elif systemctl is-active --quiet aletheia 2>/dev/null; then
+  systemctl restart aletheia
+  echo "aletheia.service restarted"
 fi
 REMOTE

@@ -1,7 +1,7 @@
 /**
  * Кэш токена/секрета webhook: горячий путь без БД на каждый POST от Telegram.
- * Прогрев в instrumentation.register(); обновление раз в минуту.
- * settings импортируется динамически (избегаем node:crypto в webpack-графе instrumentation).
+ * Прогрев лениво из webhook route; обновление раз в минуту.
+ * settings импортируется динамически, чтобы не попадать в webpack-граф instrumentation.
  */
 
 const REFRESH_MS = 60_000;

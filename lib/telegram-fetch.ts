@@ -14,6 +14,7 @@ function proxyUrlFromEnv(): string | undefined {
 }
 
 let cachedAgent: ProxyAgent | undefined;
+const DEFAULT_TELEGRAM_API_TIMEOUT_MS = 8_000;
 
 function getProxyAgent(): ProxyAgent | undefined {
   const url = proxyUrlFromEnv();
@@ -29,13 +30,27 @@ function getProxyAgent(): ProxyAgent | undefined {
   return cachedAgent;
 }
 
+function withTelegramTimeout(init?: RequestInit): RequestInit {
+  if (init?.signal) return init;
+  const configuredTimeout = Number(process.env.TELEGRAM_API_TIMEOUT_MS);
+  const timeoutMs =
+    Number.isFinite(configuredTimeout) && configuredTimeout > 0
+      ? configuredTimeout
+      : DEFAULT_TELEGRAM_API_TIMEOUT_MS;
+  return {
+    ...init,
+    signal: AbortSignal.timeout(timeoutMs),
+  };
+}
+
 export async function telegramApiFetch(input: string, init?: RequestInit): Promise<Response> {
   const agent = getProxyAgent();
+  const nextInit = withTelegramTimeout(init);
   if (!agent) {
-    return fetch(input, init);
+    return fetch(input, nextInit);
   }
   const res = await undiciFetch(input, {
-    ...init,
+    ...nextInit,
     dispatcher: agent,
   } as Parameters<typeof undiciFetch>[1]);
   return res as unknown as Response;

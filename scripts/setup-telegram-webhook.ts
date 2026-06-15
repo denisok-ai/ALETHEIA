@@ -1,36 +1,29 @@
 #!/usr/bin/env npx tsx
-/**
- * CLI: зарегистрировать webhook Telegram на проде или локально.
- * Запуск на VPS: cd /opt/ALETHEIA && npx tsx scripts/setup-telegram-webhook.ts
- */
-import { registerTelegramWebhook, getTelegramWebhookInfo } from '../lib/telegram-webhook-setup';
+/** CLI: удалить webhook и зарегистрировать команды (режим long-polling). */
 import { registerTelegramBotCommands } from '../lib/telegram-bot/commands';
+import { deleteTelegramWebhook, getTelegramWebhookInfo } from '../lib/telegram-webhook-setup';
 
 async function main() {
-  console.log('=== Telegram webhook setup ===');
-  const before = await getTelegramWebhookInfo();
-  if (before.ok) {
-    console.log('Текущий webhook:', before.url || '(не задан)');
-    if (before.last_error_message) console.log('Последняя ошибка:', before.last_error_message);
-  } else {
-    console.log('getWebhookInfo:', before.error);
-  }
+  const infoBefore = await getTelegramWebhookInfo();
+  console.log('webhook before:', infoBefore.url || '(empty)');
 
-  const dropPending = process.argv.includes('--drop-pending');
-  const result = await registerTelegramWebhook({ dropPendingUpdates: dropPending });
-  if (!result.ok) {
-    console.error('setWebhook FAILED:', result.error);
+  const deleted = await deleteTelegramWebhook({ dropPendingUpdates: false });
+  if (!deleted.ok) {
+    console.error('deleteWebhook FAILED:', deleted.error);
     process.exit(1);
   }
-  console.log('OK — webhook:', result.webhookUrl);
-  console.log('pending updates:', result.pending_update_count ?? 0);
 
   const commands = await registerTelegramBotCommands();
-  if (commands.ok) {
-    console.log('OK — setMyCommands:', commands.count, 'команд');
-  } else {
-    console.warn('setMyCommands FAILED:', commands.error);
+  if (!commands.ok) {
+    console.error('setMyCommands FAILED:', commands.error);
+    process.exit(1);
   }
+  console.log('setMyCommands ok, user commands:', commands.count);
+
+  const info = await getTelegramWebhookInfo();
+  console.log('webhook after:', info.url || '(empty)');
+  console.log('pending:', info.pending_update_count ?? 0);
+  console.log('Restart poll worker: sudo systemctl restart aletheia-telegram-poll.service');
 }
 
 main().catch((e) => {

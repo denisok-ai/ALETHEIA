@@ -80,6 +80,22 @@ export async function sendTelegramMessageWithResult(
   return r.ok ? { ok: true } : { ok: false, error: r.error };
 }
 
+/** Отправка фото в канал или чат (URL или file_id). */
+export async function sendTelegramPhotoWithResult(
+  chatId: string | number,
+  photo: string,
+  options?: { caption?: string; parseMode?: 'HTML' | 'Markdown' }
+): Promise<TelegramSendResult & { messageId?: number }> {
+  const body: Record<string, unknown> = { chat_id: chatId, photo };
+  if (options?.caption) {
+    body.caption = options.caption;
+    body.parse_mode = options.parseMode ?? 'HTML';
+  }
+  const r = await telegramBotApi<{ message_id?: number }>('sendPhoto', body);
+  if (!r.ok) return { ok: false, error: r.error };
+  return { ok: true, messageId: r.result?.message_id };
+}
+
 export async function answerCallbackQuery(
   callbackQueryId: string,
   text?: string

@@ -46,6 +46,7 @@ const buildCommit =
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  ...(process.env.NEXT_DIST_DIR ? { distDir: process.env.NEXT_DIST_DIR } : {}),
   env: {
     NEXT_PUBLIC_APP_VERSION: pkg.version ?? '0.0.0',
     NEXT_PUBLIC_BUILD_COMMIT: buildCommit,

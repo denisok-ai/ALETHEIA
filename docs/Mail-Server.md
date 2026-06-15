@@ -57,9 +57,16 @@
 
 ### Ошибка `[NO] Authentication failed` при IMAP
 
-Корневая причина — **пароль в зашифрованном поле `InboundMailbox` не совпадает с паролем того же ящика в Mailcow/Dovecot.** Обновите пароль через **Портал → Ящики домена → Пароль** (или вручную синхронизируйте пароль в Mailcow и в приложении). Без совпадения Dovecot отвечает `AUTHENTICATIONFAILED`.
+Корневая причина — **пароль в зашифрованном поле `InboundMailbox` не совпадает с паролем того же ящика в Mailcow/Dovecot.** Частые сценарии:
 
-При создании ящика через приложение код сразу вызывает **`edit/mailbox` с тем же паролём** после успешного `add/mailbox`, чтобы Dovecot получил корректный хеш (тот же эффект, что у скрипта `scripts/prod-mailcow-align-password-remote.sh`). Если уже созданный ящик «молчит» с ошибкой авторизации — для разового исправления на сервере: `MAILBOX_EMAIL=адрес bash scripts/prod-mailcow-create-domain-mailbox-remote.sh` (без ключа Mailcow API) или `MAILBOX_EMAIL=адрес bash scripts/prod-mailcow-align-password-remote.sh` (если в `.env` заданы `MAILCOW_API_*`).
+1. На VPS не заданы **`MAIL_PROVISIONING_MODE=mailcow`** и **`MAILCOW_API_KEY`** — ящик создаётся только в БД приложения, а в Dovecot пароль другой или ящика нет. Выполните на сервере: `bash scripts/setup-mailcow-api-prod.sh`.
+2. После `add/mailbox` в Mailcow API хеш пароля иногда не совпадает с тем, что ожидает Dovecot — код приложения повторно пишет пароль через `edit/mailbox` и проверяет IMAP.
+
+Обновите пароль через **Портал → Ящики домена → Пароль** (или вручную синхронизируйте пароль в Mailcow и в приложении). Без совпадения Dovecot отвечает `AUTHENTICATIONFAILED`.
+
+При создании ящика через приложение код сразу вызывает **`edit/mailbox` с тем же паролём** после успешного `add/mailbox`, затем **проверяет IMAP** через `lib/mail-provisioning/verify-imap.ts` (с повтором и задержкой ~2,5 с). Если уже созданный ящик «молчит» с ошибкой авторизации — для разового исправления на сервере: `MAILBOX_EMAIL=адрес bash scripts/prod-mailcow-create-domain-mailbox-remote.sh` (MySQL hash в Mailcow) или `MAILBOX_EMAIL=адрес bash scripts/prod-mailcow-align-password-remote.sh` (если в `.env` заданы `MAILCOW_API_*`). Обновить статус «Входящих» в UI: `bash scripts/prod-inmail-sync-all-remote.sh`.
+
+**Первичная настройка API на проде (один раз):** если таблица `api` в Mailcow пуста — `sudo bash scripts/setup-mailcow-api-prod.sh` на VPS. Полная E2E-проверка цепочки (создание тестового ящика → IMAP → SMTP → sync → cleanup): с WSL **`npm run mail:e2e-selfcheck`** (скрипт `scripts/mail-e2e-selfcheck-remote.sh`). На проде 2026-06-14 — **PASS**.
 
 ### Админка
 
@@ -103,6 +110,22 @@ npm run mailcow:apply-branding
 
 **SOGo** (веб-почта) оформляется отдельно — темы и логотип там в своих конфигурациях; этот CSS относится к UI Mailcow (вход и админ-панель стека).
 
+## Вход пользователя ящика (не администратора Mailcow)
+
+После входа на **https://mail.avaterra.pro** логином ящика (например `info@avaterra.pro`) открывается **пользовательская панель Mailcow** («Обзор»: квота, история входов, список протоколов) — это **нормальное поведение**, не ошибка. Это не веб-почта.
+
+**Как открыть веб-почту (SOGo):**
+
+1. На странице «Обзор» нажать синюю кнопку **«веб-почту →»**, или  
+2. Перейти напрямую: **https://mail.avaterra.pro/SOGo/** (тот же логин и пароль ящика).
+
+Если протоколы (IMAP, SMTP, SOGo и т.д.) отображаются с **красным крестиком** и квота **0 / ∞**, а IMAP с сервера при этом работает — проверьте не только `mailbox.attributes`, но и:
+
+1. **Таблица `quota2`** — без строки Mailcow API/UI не видят ящик (quota 0, красные крестики). Исправление: `bash scripts/prod-mailcow-sync-quota2-remote.sh`, затем `bash scripts/prod-mailcow-apply-mailbox-defaults-api-remote.sh`.
+2. **Таблица `_sogo_static_view`** — без записи SOGo отвечает **401 Unauthorized** на `/SOGo/`. Исправление: `bash scripts/prod-mailcow-fix-mailbox-attrs-remote.sh` (quota2 → API edit → rebuild SOGo) или `bash scripts/prod-mailcow-apply-sogo-sync-remote.sh`.
+
+Пустой `mailbox.attributes` (`{}`) после SQL-создания ящика — отдельная частая причина; пакетно: `bash scripts/prod-mailcow-fix-mailbox-attrs-remote.sh`. Не открывайте **`/SOGo/so/`** напрямую — это API без сессии; используйте **`/SOGo/`**. После правок — жёсткое обновление страницы (Ctrl+Shift+R).
+
 ## Инструменты в репозитории
 
 | Путь | Назначение |
@@ -111,5 +134,14 @@ npm run mailcow:apply-branding
 | [`infra/mail/mailcow-brand/`](../infra/mail/mailcow-brand/) | CSS и логотипы брендинга Mailcow (PNG + SVG) |
 | [`infra/mail/check-mail-ports.sh`](../infra/mail/check-mail-ports.sh) | Проверка портов почты |
 | [`scripts/mailcow-apply-branding-remote.sh`](../scripts/mailcow-apply-branding-remote.sh) | Копирование брендинга на VPS и рестарт `nginx-mailcow` |
-| [`scripts/append-mail-stack-hosts-prod.sh`](../scripts/append-mail-stack-hosts-prod.sh) | Дописать в `.env` хосты `MAIL_*` (на VPS от root) |
+| [`scripts/append-mail-stack-hosts-prod.sh`](../scripts/append-mail-stack-hosts-prod.sh) | Дописать в `.env` хосты `MAIL_*`, `MAIL_PROVISIONING_MODE=mailcow`, `MAILCOW_API_URL` (на VPS от root; ключ API — отдельно) |
+| [`scripts/setup-mailcow-api-prod.sh`](../scripts/setup-mailcow-api-prod.sh) | **Один раз на VPS:** создать ключ Mailcow REST API (rw), прописать `MAILCOW_API_KEY` и режим `mailcow` в `.env`, рестарт aletheia |
+| [`scripts/prod-mailcow-create-domain-mailbox-remote.sh`](../scripts/prod-mailcow-create-domain-mailbox-remote.sh) | С WSL: выровнять пароль существующего ящика в MySQL Mailcow (`MAILBOX_EMAIL=…`) |
+| [`scripts/prod-mailcow-align-password-remote.sh`](../scripts/prod-mailcow-align-password-remote.sh) | С WSL: выровнять пароль через Mailcow API (`MAILBOX_EMAIL=…`, нужны `MAILCOW_API_*` в `.env` на VPS) |
+| [`scripts/prod-mailcow-fix-mailbox-attrs-remote.sh`](../scripts/prod-mailcow-fix-mailbox-attrs-remote.sh) | С WSL: quota2 + API defaults + rebuild SOGo (красные крестики, SOGo 401) |
+| [`scripts/prod-mailcow-sync-quota2-remote.sh`](../scripts/prod-mailcow-sync-quota2-remote.sh) | С WSL: создать строки `quota2` для ящиков без квоты в Mailcow |
+| [`scripts/prod-mailcow-apply-mailbox-defaults-api-remote.sh`](../scripts/prod-mailcow-apply-mailbox-defaults-api-remote.sh) | С WSL: протоколы + quota через Mailcow API (`MAILBOX_EMAIL=…`) |
+| [`scripts/prod-mailcow-test-sogo-imap-remote.sh`](../scripts/prod-mailcow-test-sogo-imap-remote.sh) | С WSL: IMAP/SOGo smoke для ящика |
+| [`scripts/prod-inmail-sync-all-remote.sh`](../scripts/prod-inmail-sync-all-remote.sh) | С WSL: IMAP-sync всех включённых `InboundMailbox`, обновление `lastSyncStatus` в UI |
+| [`scripts/mail-e2e-selfcheck-remote.sh`](../scripts/mail-e2e-selfcheck-remote.sh) | С WSL: полный E2E (тестовый ящик → IMAP → SMTP на admin@ → sync → cleanup); **`npm run mail:e2e-selfcheck`** |
 | [`scripts/append-own-smtp-env-prod.sh`](../scripts/append-own-smtp-env-prod.sh) | Включить `MAIL_USE_OWN_SMTP` + `EMAIL_TRANSPORT=smtp` на проде |

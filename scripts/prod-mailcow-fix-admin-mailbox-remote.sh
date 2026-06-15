@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# На VPS Mailcow: починить ящик admin@avaterra.pro после ручного INSERT:
+# На VPS Mailcow: починить ящик после add/mailbox API или ручного INSERT:
 # - mailbox.attributes был `{}` → протоколы и SOGo в UI как «выключены», 401 в SOGo
 # - quota мог быть ошибочно ~3072 байт вместо defquota домена в MiB
 #
 # Запуск с машины с SSH-ключом (как другие prod-remote скрипты):
-#   bash scripts/prod-mailcow-fix-admin-mailbox-remote.sh
+#   MAILBOX_USER=info@avaterra.pro bash scripts/prod-mailcow-fix-admin-mailbox-remote.sh
+#   bash scripts/prod-mailcow-fix-mailbox-attrs-remote.sh   # info@, yarik@, support@
 #
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -58,6 +59,20 @@ WHERE username='${MAILBOX}';
 
 SELECT username, quota, attributes FROM mailbox WHERE username='${MAILBOX}'\\G
 "
+
+echo ""
+echo "quota2 row (required for Mailcow API/UI)..."
+EXISTS=\$(docker exec "\$M" mysql -u"\$DBUSER" -p"\$DBPASS" "\$DBNAME" -Nse \\
+  "SELECT COUNT(*) FROM quota2 WHERE username='${MAILBOX}'")
+if [[ "\$EXISTS" == "0" ]]; then
+  DV=\$(docker ps --format '{{.Names}}' | awk '/dovecot-mailcow/{print;exit}')
+  docker exec "\$DV" doveadm quota recalc -u '${MAILBOX}' 2>/dev/null || true
+  BYTES=\$(docker exec "\$DV" doveadm quota get -u '${MAILBOX}' 2>/dev/null | awk '/STORAGE/ {print \$3}' | head -1)
+  [[ -z "\$BYTES" || "\$BYTES" == "-" ]] && BYTES=0
+  docker exec "\$M" mysql -u"\$DBUSER" -p"\$DBPASS" "\$DBNAME" -e \\
+    "INSERT INTO quota2 (username, bytes, messages) VALUES ('${MAILBOX}', \$BYTES, 0);"
+  echo "inserted quota2 bytes=\$BYTES"
+fi
 
 echo ""
 echo "Перезапуск SOGo / php-fpm..."

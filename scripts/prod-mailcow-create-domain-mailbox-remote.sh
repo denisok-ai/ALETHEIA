@@ -165,14 +165,35 @@ async function main() {
   if (!hash.startsWith('{BLF-CRYPT}')) throw new Error(`Unexpected doveadm hash prefix: ${hash.slice(0, 20)}`);
 
   const conf = readMailcowConf('/opt/mailcow-dockerized/mailcow.conf');
+  const defquotaMib = 3072;
+  const quotaBytes = defquotaMib * 1048576;
+  const mailboxAttributes = JSON.stringify({
+    force_pw_update: '0',
+    force_tfa: '0',
+    tls_enforce_in: '0',
+    tls_enforce_out: '0',
+    sogo_access: '1',
+    imap_access: '1',
+    pop3_access: '1',
+    smtp_access: '1',
+    sieve_access: '1',
+    eas_access: '1',
+    dav_access: '1',
+    relayhost: '0',
+    passwd_update: Math.floor(Date.now() / 1000),
+    mailbox_format: 'maildir:',
+    quarantine_notification: 'hourly',
+    quarantine_category: 'reject',
+    attribute_hash: '',
+  });
   const sql = `
 INSERT INTO domain (domain, description, aliases, mailboxes, defquota, maxquota, quota, relayhost, backupmx, gal, relay_all_recipients, relay_unknown_only, active)
-VALUES (${JSON.stringify(domain)}, 'AVATERRA', 400, 50, 3072, 10240, 102400, 0, 0, 1, 0, 0, 1)
+VALUES (${JSON.stringify(domain)}, 'AVATERRA', 400, 50, ${defquotaMib}, 10240, 102400, 0, 0, 1, 0, 0, 1)
 ON DUPLICATE KEY UPDATE active=1, mailboxes=GREATEST(mailboxes, 50), aliases=GREATEST(aliases, 400);
 
 INSERT INTO mailbox (username, password, name, quota, local_part, domain, attributes, custom_attributes, kind, multiple_bookings, active)
-VALUES (${JSON.stringify(email)}, ${JSON.stringify(hash)}, ${JSON.stringify((dm && dm.label) || (inbound && inbound.label) || localPart)}, 3072, ${JSON.stringify(localPart)}, ${JSON.stringify(domain)}, '{}', '{}', '', -1, 1)
-ON DUPLICATE KEY UPDATE password=VALUES(password), active=1, authsource='mailcow', modified=NOW();
+VALUES (${JSON.stringify(email)}, ${JSON.stringify(hash)}, ${JSON.stringify((dm && dm.label) || (inbound && inbound.label) || localPart)}, ${quotaBytes}, ${JSON.stringify(localPart)}, ${JSON.stringify(domain)}, ${JSON.stringify(mailboxAttributes)}, '{}', '', -1, 1)
+ON DUPLICATE KEY UPDATE password=VALUES(password), active=1, authsource='mailcow', quota=VALUES(quota), attributes=VALUES(attributes), modified=NOW();
 
 SELECT username, active, domain, authsource FROM mailbox WHERE username=${JSON.stringify(email)};
 `;
@@ -182,6 +203,13 @@ SELECT username, active, domain, authsource FROM mailbox WHERE username=${JSON.s
   const dbName = conf.DBNAME;
   const out = sh('docker', ['exec', '-i', mysql, 'mysql', `-u${dbUser}`, `-p${dbPass}`, dbName], { input: sql });
   console.log(out.trim());
+
+  // Mailcow API/UI требует строку в quota2 — иначе ящик «невидим» (null в get/mailbox/all).
+  sh('docker', ['exec', dovecot, 'doveadm', 'quota', 'recalc', '-u', email], { stdio: 'pipe' });
+  const quotaSql = `INSERT INTO quota2 (username, bytes, messages) VALUES (${JSON.stringify(email)}, 0, 0)
+ON DUPLICATE KEY UPDATE username=username;`;
+  sh('docker', ['exec', '-i', mysql, 'mysql', `-u${dbUser}`, `-p${dbPass}`, dbName], { input: quotaSql });
+  console.log(`quota2 row ensured for ${email}`);
 
   await prisma.$disconnect();
 
@@ -219,8 +247,11 @@ NODE
 
 node /opt/ALETHEIA/.mailcow-create-domain-mailbox.cjs "$MAILBOX_EMAIL"
 
-if command -v pm2 >/dev/null 2>&1; then
+if command -v pm2 >/dev/null 2>&1 && pm2 describe aletheia >/dev/null 2>&1; then
   pm2 restart aletheia >/dev/null
   echo "PM2 aletheia restarted"
+elif systemctl is-active --quiet aletheia 2>/dev/null; then
+  systemctl restart aletheia
+  echo "aletheia.service restarted"
 fi
 REMOTE

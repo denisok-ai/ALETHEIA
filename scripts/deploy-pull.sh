@@ -184,3 +184,11 @@ fi
 
 echo ""
 echo "=== Готово. Код обновлён и приложение перезапущено. ==="
+
+echo ""
+echo "8. Перезапуск Telegram poll и jobs (если установлены)..."
+for svc in aletheia-telegram-poll.service aletheia-jobs.service; do
+  if systemctl list-unit-files "$svc" 2>/dev/null | grep -q enabled; then
+    sudo systemctl restart "$svc" && echo "   $svc restarted" || echo "   (!) $svc restart failed"
+  fi
+done

@@ -24,3 +24,6 @@ append_kv MAIL_IMAP_PORT 993
 append_kv MAIL_SMTP_HOST mail.avaterra.pro
 append_kv MAIL_SMTP_PORT 587
 append_kv MAIL_DOMAIN avaterra.pro
+append_kv MAIL_PROVISIONING_MODE mailcow
+append_kv MAILCOW_API_URL https://mail.avaterra.pro
+# MAILCOW_API_KEY — создайте через scripts/setup-mailcow-api-prod.sh на VPS

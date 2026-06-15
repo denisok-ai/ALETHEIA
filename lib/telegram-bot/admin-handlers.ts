@@ -1,7 +1,6 @@
 /**
  * Обработчики админ-меню Telegram-бота AVATERRA.
  */
-import { getSystemSettings } from '@/lib/settings';
 import { getTelegramWebhookInfo } from '@/lib/telegram-webhook-setup';
 import {
   formatAdminTelegramMessage,
@@ -10,9 +9,11 @@ import {
 } from '@/lib/telegram-admin-notify';
 import { notifyTicketOwnerTelegramReply } from '@/lib/telegram-ticket-notify';
 import type { BotContext } from './types';
+import { getBotSiteSettings } from './settings-cache';
 import {
   adminBackKeyboard,
   adminMainMenuKeyboard,
+  adminPortalMenuKeyboard,
   adminTicketsListKeyboard,
   LIST_PAGE_SIZE,
   paginationKeyboard,
@@ -45,16 +46,25 @@ async function reply(ctx: BotContext, text: string, keyboard = adminBackKeyboard
   return botReply(ctx, text, { replyMarkup: keyboard });
 }
 
+async function adminSiteUrl(): Promise<string> {
+  const { siteUrl } = await getBotSiteSettings();
+  return siteUrl || 'https://avaterra.pro';
+}
+
 export async function handleAdminMenu(ctx: BotContext): Promise<void> {
   await botReply(ctx, '<b>Меню администратора AVATERRA</b>\n\nВыберите раздел:', {
     replyMarkup: adminMainMenuKeyboard(),
   });
 }
 
+export async function handleAdminPortalMenu(ctx: BotContext): Promise<void> {
+  await botReply(ctx, '<b>🛠 Управление (портал)</b>\n\nCRM, тикеты, оплаты:', {
+    replyMarkup: adminPortalMenuKeyboard(),
+  });
+}
+
 export async function handleAdminStats(ctx: BotContext): Promise<void> {
-  const s = await fetchAdminStats();
-  const settings = await getSystemSettings();
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
+  const [s, siteUrl] = await Promise.all([fetchAdminStats(), adminSiteUrl()]);
   const portalLinks = siteUrl
     ? `\n\n<a href="${siteUrl}/portal/admin">Админ-портал</a> · <a href="${siteUrl}/portal/manager/tickets">Тикеты</a>`
     : '';
@@ -70,9 +80,7 @@ export async function handleAdminStats(ctx: BotContext): Promise<void> {
 }
 
 export async function handleAdminDigest(ctx: BotContext): Promise<void> {
-  const d = await fetchDigestStats();
-  const settings = await getSystemSettings();
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
+  const [d, siteUrl] = await Promise.all([fetchDigestStats(), adminSiteUrl()]);
   const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
   const text = [
     `<b>📰 Дайджест</b> <i>${now}</i>`,
@@ -98,15 +106,16 @@ export async function handleAdminOrders(ctx: BotContext, page = 0): Promise<void
   const total = await countPaidOrders();
   const totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
   const safePage = Math.min(Math.max(0, page), totalPages - 1);
-  const orders = await fetchRecentPaidOrders(LIST_PAGE_SIZE, safePage * LIST_PAGE_SIZE);
+  const [orders, siteUrl] = await Promise.all([
+    fetchRecentPaidOrders(LIST_PAGE_SIZE, safePage * LIST_PAGE_SIZE),
+    adminSiteUrl(),
+  ]);
 
   if (orders.length === 0) {
     await reply(ctx, '<b>💳 Оплаты</b>\n\nНет оплаченных заказов.');
     return;
   }
 
-  const settings = await getSystemSettings();
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
   const lines = orders.map(
     (o, i) =>
       `${safePage * LIST_PAGE_SIZE + i + 1}. <code>${escapeHtml(o.orderNumber)}</code> — ${o.amount} ₽\n   ${escapeHtml(o.clientEmail)}\n   ${fmtDate(o.paidAt)}`
@@ -119,12 +128,13 @@ export async function handleAdminOrders(ctx: BotContext, page = 0): Promise<void
 }
 
 export async function handleAdminTickets(ctx: BotContext, page = 0): Promise<void> {
-  const settings = await getSystemSettings();
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
   const total = await countOpenTickets();
   const totalPages = Math.max(1, Math.ceil(total / LIST_PAGE_SIZE));
   const safePage = Math.min(Math.max(0, page), totalPages - 1);
-  const tickets = await fetchOpenTickets(LIST_PAGE_SIZE, safePage * LIST_PAGE_SIZE);
+  const [siteUrl, tickets] = await Promise.all([
+    adminSiteUrl(),
+    fetchOpenTickets(LIST_PAGE_SIZE, safePage * LIST_PAGE_SIZE),
+  ]);
 
   if (tickets.length === 0) {
     await reply(ctx, '<b>🎫 Тикеты</b>\n\nОткрытых обращений нет.');
@@ -169,8 +179,7 @@ export async function handleAdminTicketReplyPrompt(ctx: BotContext, ticketId: st
   }
 
   await setSessionState(ctx.chatId, 'admin_ticket_reply', { ticketId });
-  const settings = await getSystemSettings();
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
+  const siteUrl = await adminSiteUrl();
   const portalLink = siteUrl ? `\n<a href="${siteUrl}/portal/manager/tickets/${ticketId}">Открыть в портале</a>` : '';
 
   await botReply(
@@ -233,8 +242,7 @@ export async function handleAdminTicketReplyMessage(ctx: BotContext, text: strin
     console.error('[telegram-bot] notify ticket reply', e);
   }
 
-  const settings = await getSystemSettings();
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
+  const siteUrl = await adminSiteUrl();
   const link = siteUrl ? `\n<a href="${siteUrl}/portal/manager/tickets/${ticketId}">Портал</a>` : '';
 
   await reply(
@@ -250,8 +258,7 @@ export async function handleAdminUserCard(ctx: BotContext, email: string): Promi
     return;
   }
 
-  const settings = await getSystemSettings();
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
+  const siteUrl = await adminSiteUrl();
   const courseLines =
     card.enrollments.length > 0
       ? card.enrollments.map((e) => `· ${escapeHtml(e.courseTitle)} — ${e.percent}%`).join('\n')
@@ -305,8 +312,7 @@ export async function handleAdminUserSearch(ctx: BotContext, query: string): Pro
 }
 
 export async function handleAdminMailing(ctx: BotContext): Promise<void> {
-  const settings = await getSystemSettings();
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || 'https://avaterra.pro';
+  const siteUrl = await adminSiteUrl();
   const text = [
     '<b>📢 Рассылки</b>',
     'Массовые email-рассылки настраиваются в портале:',
@@ -335,9 +341,7 @@ export async function handleAdminNotify(ctx: BotContext): Promise<void> {
 }
 
 export async function handleAdminSystem(ctx: BotContext): Promise<void> {
-  const settings = await getSystemSettings();
-  const siteUrl = settings.site_url?.replace(/\/$/, '') || '';
-  const webhook = await getTelegramWebhookInfo();
+  const [siteUrl, webhook] = await Promise.all([adminSiteUrl(), getTelegramWebhookInfo()]);
 
   let siteHealth = 'не проверено';
   if (siteUrl) {
@@ -402,8 +406,11 @@ export async function handleAdminCallback(ctx: BotContext, action: string, extra
   }
 
   switch (action) {
-    case 'menu':
+    case 'sections':
       await handleAdminMenu(ctx);
+      break;
+    case 'menu':
+      await handleAdminPortalMenu(ctx);
       break;
     case 'stats':
       await handleAdminStats(ctx);

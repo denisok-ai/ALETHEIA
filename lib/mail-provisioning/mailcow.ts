@@ -17,6 +17,34 @@ export type MailcowApiResult =
   | { ok: true; raw: unknown; summary?: string }
   | { ok: false; error: string; httpStatus?: number; raw?: unknown };
 
+/** Квота по умолчанию для ящиков @avaterra.pro (MiB, как в Mailcow UI / domain.defquota). */
+export const MAILBOX_DEFAULT_QUOTA_MIB = '3072';
+
+/**
+ * Атрибуты протоколов и SOGo для edit/mailbox.
+ * Без них Mailcow API add/mailbox оставляет attributes={} — в UI красные крестики,
+ * SOGo может отдавать 401, хотя Dovecot IMAP/SMTP уже работает.
+ */
+export function mailcowDefaultMailboxAttr(): Record<string, string> {
+  return {
+    quota: MAILBOX_DEFAULT_QUOTA_MIB,
+    force_pw_update: '0',
+    force_tfa: '0',
+    tls_enforce_in: '0',
+    tls_enforce_out: '0',
+    sogo_access: '1',
+    imap_access: '1',
+    pop3_access: '1',
+    smtp_access: '1',
+    sieve_access: '1',
+    eas_access: '1',
+    dav_access: '1',
+    relayhost: '0',
+    quarantine_notification: 'hourly',
+    quarantine_category: 'reject',
+  };
+}
+
 function stripTrailingSlash(url: string): string {
   return url.replace(/\/+$/, '');
 }
@@ -85,12 +113,10 @@ export async function mailcowAddMailbox(input: MailcowAddMailboxInput): Promise<
     local_part: input.localPart,
     domain: input.domain,
     name: input.name,
-    quota: '3072',
+    quota: MAILBOX_DEFAULT_QUOTA_MIB,
     password: input.password,
     password2: input.password,
     active: '1',
-    tls_enforce_in: '1',
-    tls_enforce_out: '1',
   };
 
   let res: Response;
@@ -180,12 +206,12 @@ export async function mailcowDeleteMailbox(fullEmail: string): Promise<MailcowAp
 }
 
 /**
- * Меняет пароль ящика в Mailcow (тот же формат, что и при создании).
- * Эндпоинт: POST /api/v1/edit/mailbox
+ * Выставляет квоту, протоколы и SOGo через POST /api/v1/edit/mailbox.
+ * Опционально обновляет пароль в том же запросе (как после add/mailbox).
  */
-export async function mailcowEditMailboxPassword(
+export async function mailcowApplyMailboxDefaults(
   fullEmail: string,
-  password: string
+  options?: { password?: string }
 ): Promise<MailcowApiResult> {
   const base = getMailcowApiUrl();
   const key = getMailcowApiKey();
@@ -197,13 +223,17 @@ export async function mailcowEditMailboxPassword(
     };
   }
 
+  const attr: Record<string, string> = { ...mailcowDefaultMailboxAttr() };
+  const password = options?.password?.trim();
+  if (password) {
+    attr.password = password;
+    attr.password2 = password;
+  }
+
   const url = `${stripTrailingSlash(base)}/api/v1/edit/mailbox`;
   const body = {
     items: [fullEmail.trim().toLowerCase()],
-    attr: {
-      password,
-      password2: password,
-    },
+    attr,
   };
 
   let res: Response;
@@ -245,4 +275,15 @@ export async function mailcowEditMailboxPassword(
   }
 
   return { ok: true, raw, summary: summarizeMailcowPayload(raw) };
+}
+
+/**
+ * Меняет пароль ящика в Mailcow (тот же формат, что и при создании).
+ * Эндпоинт: POST /api/v1/edit/mailbox
+ */
+export async function mailcowEditMailboxPassword(
+  fullEmail: string,
+  password: string
+): Promise<MailcowApiResult> {
+  return mailcowApplyMailboxDefaults(fullEmail, { password });
 }
