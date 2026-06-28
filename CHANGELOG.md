@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.1] - 2026-06-28
+
+### Fixed
+
+- **Server Action «x» noise:** подавление `Failed to find Server Action` в stdout (от старых вкладок/ботов) — фильтр в `instrumentation.ts` + `global-error.tsx` с авто-recovery.
+- **sharp на проде:** установлен `sharp` с нативными бинарниками на VPS — Next.js Image Optimization теперь работает в продакшене.
+- **recharts width/height -1:** хук `useContainerSize` — графики рендерятся только когда контейнер имеет ненулевые размеры (4 компонента: RevenueChart, DashboardCharts, CrmFunnelChart, ReportsClient).
+- **Google Fonts ECONNRESET на VPS:** шрифты Inter + Lora self-hosted через `@font-face` в CSS (latin + cyrillic woff2 subsets). Сборка больше не зависит от доступа к fonts.googleapis.com.
+- **Prisma schema sync:** закоммичены модели `InstallmentPlan`, `InstallmentPayment`, `PersonalProduct` и миграции — сервер собирается без ошибок типа.
+
+### Changed
+
+- **Версия пакета:** 3.6.0 → 3.6.1.
+
 ## [3.6.0] - 2026-06-27
 
 ### Added
