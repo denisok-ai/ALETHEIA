@@ -14,9 +14,9 @@ function proxyUrlFromEnv(): string | undefined {
 }
 
 let cachedAgent: ProxyAgent | undefined;
-const DEFAULT_TELEGRAM_API_TIMEOUT_MS = 20_000;
-const MAX_RETRIES = 3;
-const RETRY_DELAY_MS = 2_000;
+const DEFAULT_TELEGRAM_API_TIMEOUT_MS = 25_000;
+const MAX_RETRIES = 5;
+const RETRY_DELAY_MS = 3_000;
 
 function getProxyAgent(): ProxyAgent | undefined {
   const url = proxyUrlFromEnv();
@@ -63,7 +63,7 @@ export async function telegramApiFetch(input: string, init?: RequestInit): Promi
     } catch (e) {
       lastError = e;
       const msg = e instanceof Error ? e.message : String(e);
-      if (attempt < MAX_RETRIES && /timeout|ECONNRESET|ECONNREFUSED|UND_ERR|abort/i.test(msg)) {
+      if (attempt < MAX_RETRIES && /timeout|ECONNRESET|ECONNREFUSED|UND_ERR|abort|REALITY/i.test(msg)) {
         await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
         continue;
       }
