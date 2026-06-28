@@ -11,9 +11,9 @@ interface DayData {
 }
 
 export function RevenueChart({ data }: { data: DayData[] }) {
-  if (data.length === 0) return null;
-
   const { ref, ready } = useContainerSize<HTMLDivElement>();
+
+  if (data.length === 0) return null;
 
   return (
     <div ref={ref} className="h-64 w-full min-h-[256px] min-w-0">
