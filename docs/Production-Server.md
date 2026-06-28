@@ -272,11 +272,54 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 Telegram Bot API (исходящий getUpdates + sendMessage)
   → aletheia-telegram-poll.service (long-poll worker, не порт 3000)
   → lib/telegram-long-poll.ts → routeTelegramUpdate
-  → опционально HTTPS_PROXY в .env (блокировка api.telegram.org из РФ)
+  → xray-avaterra.service (VLESS Reality proxy, порт 10809)
+  → VPN сервер 103.110.64.230:443 (VLESS Reality)
+  → api.telegram.org
 
 Фоновые задачи SMM / Site Radar
   → aletheia-jobs.service → scripts/jobs-daemon.ts → lib/content/jobs/scheduler.ts
 ```
+
+## 14.1 Прокси для Telegram (xray VLESS Reality)
+
+**Проблема:** api.telegram.org заблокирован с VPS (РФ). Прямые запросы таймаутят.
+
+**Решение:** xray VLESS Reality через VPN сервер `103.110.64.230`.
+
+| Параметр | Значение |
+|----------|----------|
+| Unit | `xray-avaterra.service` (systemd) |
+| Конфиг | `/usr/local/etc/xray-avaterra.json` |
+| Прокси | HTTP на `127.0.0.1:10809` |
+| VPN сервер | `103.110.64.230:443` |
+| Протокол | VLESS Reality |
+| UUID | `f507c415-ad09-4c44-a012-75a3b2213bd3` |
+| PublicKey | `1zoeXM_RbhiAYX4nDGmbmpJ9AmJragay62ZR2XleHFY` |
+| ShortId | `d696d8ee721e815f` |
+| ServerName | `www.google.com` |
+| `.env` | `HTTPS_PROXY=http://127.0.0.1:10809` |
+
+**Стабильность:** ⚠️ Интермиттирующая — ~70% запросов проходят, ~30% падают с `REALITY: received real certificate`. Retry-логика в `lib/telegram-fetch.ts` (5 попыток, таймаут 25 сек) компенсирует часть сбоев. Для 100% стабильности нужен другой VPN-сервер или коммерческий прокси.
+
+**Команды:**
+```bash
+# Статус
+systemctl is-active xray-avaterra
+journalctl -u xray-avaterra --no-pager -n 20
+
+# Тест прокси
+source /opt/ALETHEIA/.env
+curl -s --proxy http://127.0.0.1:10809 --connect-timeout 10 --max-time 20 "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe"
+
+# Перезапуск
+systemctl restart xray-avaterra
+```
+
+**Обновление ключа Reality:**
+1. Через x-ui панель: `http://103.110.64.230:20224/DmTWE0fhhOmSm9wfrW/` (admin / XuiAdmin2026)
+2. Удалить inbound, создать новый с новым ключом
+3. Обновить `publicKey` в `/usr/local/etc/xray-avaterra.json`
+4. `systemctl restart xray-avaterra`
 
 ---
 

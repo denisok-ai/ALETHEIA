@@ -19,6 +19,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `/reply` — (админ) быстрый ответ на последний открытый тикет без указания ID.
   - `/health` — (админ) проверка здоровья сервера через /api/health (версия, коммит, БД).
 - **Тип `BotSessionState` расширен:** добавлено состояние `admin_broadcast` для сессии рассылки.
+- **xray VLESS Reality proxy:** `xray-avaterra.service` на VPS для обхода блокировки Telegram API из РФ. Прокси через VPN сервер `103.110.64.230:443`. HTTP proxy на `127.0.0.1:10809`.
+
+### Changed
+
+- **Telegram API timeout:** увеличен с 8 до 25 секунд (`lib/telegram-fetch.ts`).
+- **Telegram retry логика:** 5 попыток с exponential backoff для timeout/ECONNRESET/fetch failed/REALITY ошибок.
+- **Long-poll timeout:** уменьшен с 30 до 15 секунд для быстрого восстановления при сбоях прокси.
+- **Self-hosted шрифты:** Inter + Lora загружаются через `@font-face` в CSS (fontsource woff2, latin + cyrillic subsets). Сборка не зависит от Google Fonts.
 
 ## [3.6.1] - 2026-06-28
 
