@@ -14,7 +14,9 @@ function proxyUrlFromEnv(): string | undefined {
 }
 
 let cachedAgent: ProxyAgent | undefined;
-const DEFAULT_TELEGRAM_API_TIMEOUT_MS = 8_000;
+const DEFAULT_TELEGRAM_API_TIMEOUT_MS = 20_000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_MS = 2_000;
 
 function getProxyAgent(): ProxyAgent | undefined {
   const url = proxyUrlFromEnv();
@@ -46,12 +48,27 @@ function withTelegramTimeout(init?: RequestInit): RequestInit {
 export async function telegramApiFetch(input: string, init?: RequestInit): Promise<Response> {
   const agent = getProxyAgent();
   const nextInit = withTelegramTimeout(init);
-  if (!agent) {
-    return fetch(input, nextInit);
+
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      if (!agent) {
+        return await fetch(input, nextInit);
+      }
+      const res = await undiciFetch(input, {
+        ...nextInit,
+        dispatcher: agent,
+      } as Parameters<typeof undiciFetch>[1]);
+      return res as unknown as Response;
+    } catch (e) {
+      lastError = e;
+      const msg = e instanceof Error ? e.message : String(e);
+      if (attempt < MAX_RETRIES && /timeout|ECONNRESET|ECONNREFUSED|UND_ERR|abort/i.test(msg)) {
+        await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
+        continue;
+      }
+      throw e;
+    }
   }
-  const res = await undiciFetch(input, {
-    ...nextInit,
-    dispatcher: agent,
-  } as Parameters<typeof undiciFetch>[1]);
-  return res as unknown as Response;
+  throw lastError;
 }
