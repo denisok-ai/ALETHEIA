@@ -2,8 +2,8 @@
 
 **Проект:** Веб-сайт школы AVATERRA (Phygital школа мышечного тестирования, курс «Тело не врет»)  
 **Домен:** https://avaterra.pro  
-**Версия документа:** 3.5.5 (совпадает с `package.json`)  
-**Дата:** 2026-06-15
+**Версия документа:** 3.6.0 (совпадает с `package.json`)  
+**Дата:** 2026-06-27
 
 ---
 
@@ -89,7 +89,7 @@ graph TB
 
 *Конкретный выбор зафиксировать после ответов на вопросы в `qa.md`.*
 
-### 3.3 Структура проекта (текущая, v3.5.5)
+### 3.3 Структура проекта (текущая, v3.6.0)
 
 **Стек:** Next.js 14 (App Router), TypeScript, Tailwind CSS, Framer Motion, React Three Fiber, PayKeeper, **Prisma + SQLite** (локально), NextAuth, Resend, Telegram Bot API (long-polling). Версионирование: SemVer, CHANGELOG.md.
 
@@ -103,43 +103,54 @@ AVATERRA/
 │   ├── layout.tsx, page.tsx, globals.css
 │   ├── (auth)/login, register, reset-password
 │   ├── success/, oferta/, privacy/
-│   ├── portal/                    # Портал (требует авторизации)
-│   │   ├── layout.tsx             # Shell + PortalHeader
-│   │   ├── student/               # ЛК студента
+│   ├── pay/[token]/                # Публичный чекаут персональных товаров
+│   │   ├── page.tsx                # Форма оплаты с выбором рассрочки
+│   │   ├── success/page.tsx        # Успешная оплата
+│   │   └── fail/page.tsx           # Ошибка оплаты
+│   ├── portal/                     # Портал (требует авторизации)
+│   │   ├── layout.tsx              # Shell + PortalHeader
+│   │   ├── student/                # ЛК студента
 │   │   │   ├── dashboard, courses, certificates, media, notifications, profile
-│   │   │   └── courses/[id]/play  # SCORM-плеер
-│   │   ├── admin/                 # Консоль администратора
-│   │   │   └── dashboard, users, courses, certificates, media, payments, crm,
-│   │   │       communications, ai-settings, audit, settings
-│   │   └── manager/               # Кабинет менеджера
+│   │   │   └── courses/[id]/play   # SCORM-плеер
+│   │   ├── admin/                  # Консоль администратора
+│   │   │   ├── dashboard, users, courses, certificates, media, payments, crm,
+│   │   │   │   communications, ai-settings, audit, settings
+│   │   │   ├── personal-products/  # Персональные товары (v3.6.0)
+│   │   │   └── installments/       # Рассрочки (v3.6.0)
+│   │   └── manager/                # Кабинет менеджера
 │   │       └── dashboard, tickets, users, verifications
 │   └── api/
 │       ├── payment/create, webhook/paykeeper, contact, chat
-│       └── portal/                # scorm/progress, scorm/url, certificates/[id]/download
-│           ├── admin/courses/upload, admin/settings/telegram-webhook
-│           └── telegram/webhook    # legacy stub (mode: polling)
+│       ├── pay/[token]/            # API чекаута персональных товаров
+│       │   ├── route.ts            # GET — данные товара
+│       │   └── checkout/route.ts   # POST — создание заказа + PayKeeper
+│       ├── cron/
+│       │   └── installment-payments/ # Cron рассрочек (v3.6.0)
+│       └── portal/
+│           ├── admin/personal-products/ # CRUD персональных товаров
+│           ├── admin/payment-links/     # PATCH/DELETE платёжных ссылок
+│           ├── admin/installments/      # CRUD рассрочек
+│           └── admin/services/          # CRUD товаров витрины
 ├── components/
 │   ├── sections/   # Hero, About, Program, Author, Testimonials, Pricing, FAQ, Contact, Header, Footer
-│   ├── portal/     # PortalHeader, PortalSidebar, UsersTable
+│   ├── portal/     # PortalHeader, PortalSidebar, UsersTable, PersonalProductAiHelper, CreateInstallmentDialog
 │   ├── ui/, 3d/, PaymentModal.tsx, ChatBot.tsx
 ├── lib/
-│   ├── utils.ts, paykeeper.ts, auth.ts, audit.ts, db.ts
+│   ├── utils.ts, paykeeper/, auth.ts, audit.ts, db.ts (export prisma)
 │   ├── telegram.ts, telegram-fetch.ts, telegram-long-poll.ts, telegram-admin-notify.ts
 │   ├── telegram-bot/              # router, faq, funnel, content-handlers, commands
 │   ├── content/                   # SMM: planner, radar, quality-gates, publisher, jobs
-│   ├── image-gen/                 # интерфейс генерации картинок (KIE стаб)
+│   ├── installment-notify.ts      # Уведомления по рассрочкам (v3.6.0)
+│   ├── email-service.ts           # sendTransactionalEmail (context: module, entityId)
 │   ├── certificates.tsx           # PDF сертификаты (@react-pdf/renderer)
-├── content/
-│   └── avaterra.yaml              # Brand KB для SMM-бота
+├── prisma/
+│   ├── schema.prisma              # Схема БД (52 миграции)
+│   ├── seed.ts                    # Тестовые данные
 ├── scripts/
 │   ├── telegram-poll-daemon.ts    # primary worker (systemd aletheia-telegram-poll.service)
 │   ├── jobs-daemon.ts             # SMM scheduler (systemd aletheia-jobs.service)
 │   ├── aletheia-telegram-poll.service, aletheia-jobs.service
 │   ├── deploy-rsync-from-local.sh
-├── prisma/
-│   ├── schema.prisma              # Схема БД
-│   ├── seed.ts                    # Тестовые данные
-├── public/uploads/                # SCORM, медиа (локальное хранилище)
 ├── middleware.ts                  # RBAC для /portal/*
 ├── CHANGELOG.md
 ├── docs/, .cursorrules, .env.example

@@ -18,101 +18,102 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  profile      Profile?
-  enrollments  Enrollment[]
-  certificates Certificate[]
-  notifications Notification[]
-  tickets      Ticket[]         @relation("UserTickets")
-  managedTickets Ticket[]       @relation("ManagerTickets")
-  scormProgress ScormProgress[]
-  userEnergy   UserEnergy?
-  gamificationXpEvents GamificationXpEvent[]
-  phygitalVerifications PhygitalVerification[]
-  orders       Order[]
-  publicationComments PublicationComment[]
-  mailingsCreated Mailing[]
-  mailingLogs   MailingLog[]
-  notificationLogs NotificationLog[]
-  visitLogs       VisitLog[]
-  userGroups      UserGroup[]
-  passwordTokens         PasswordToken[]
-  emailVerificationTokens EmailVerificationToken[]
-  aiTutorConversations    AiTutorConversation[]
+  profile                    Profile?
+  enrollments                Enrollment[]
+  certificates               Certificate[]
+  notifications              Notification[]
+  tickets                    Ticket[]                            @relation("UserTickets")
+  managedTickets             Ticket[]                            @relation("ManagerTickets")
+  scormProgress              ScormProgress[]
+  userEnergy                 UserEnergy?
+  gamificationXpEvents       GamificationXpEvent[]
+  phygitalVerifications      PhygitalVerification[]
+  orders                     Order[]
+  publicationComments        PublicationComment[]
+  mailingsCreated            Mailing[]
+  mailingLogs                MailingLog[]
+  notificationLogs           NotificationLog[]
+  visitLogs                  VisitLog[]
+  userGroups                 UserGroup[]
+  passwordTokens             PasswordToken[]
+  emailVerificationTokens    EmailVerificationToken[]
+  aiTutorConversations       AiTutorConversation[]
   verificationThreadComments PhygitalVerificationThreadComment[]
-  inboundMessages          InboundMessage[]
-  emailDeliveryLogs        EmailDeliveryLog[]
+  inboundMessages            InboundMessage[]
+  emailDeliveryLogs          EmailDeliveryLog[]
+  paymentLinks               PaymentLink[]
 }
 
 // Иерархические группы для модулей Курсы, Медиатека, Пользователи
 model Group {
-  id               String   @id @default(cuid())
-  name             String
-  description      String?
-  parentId         String?
-  parent           Group?   @relation("GroupHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
-  children         Group[]  @relation("GroupHierarchy")
-  moduleType       String   // course | media | user
-  type             String   @default("static")  // static | dynamic
-  accessType       String   @default("common")  // common | personal
-  displayOrder     Int      @default(0)
+  id                String   @id @default(cuid())
+  name              String
+  description       String?
+  parentId          String?
+  parent            Group?   @relation("GroupHierarchy", fields: [parentId], references: [id], onDelete: SetNull)
+  children          Group[]  @relation("GroupHierarchy")
+  moduleType        String // course | media | user
+  type              String   @default("static") // static | dynamic
+  accessType        String   @default("common") // common | personal
+  displayOrder      Int      @default(0)
   // Специфичные для Медиатеки (используются при moduleType=media)
-  smallIcon        String?
-  largeIcon        String?
+  smallIcon         String?
+  largeIcon         String?
   showSubgroupsMode String? // list | icons
-  sourceCourseId   String?  // если группа медиа создана автоматически по курсу
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  sourceCourseId    String? // если группа медиа создана автоматически по курсу
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  courseGroups  CourseGroup[]
-  mediaGroups   MediaGroup[]
-  userGroups    UserGroup[]
+  courseGroups CourseGroup[]
+  mediaGroups  MediaGroup[]
+  userGroups   UserGroup[]
 
   @@index([parentId])
   @@index([moduleType])
 }
 
 model CourseGroup {
-  courseId   String
-  course     Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  groupId    String
-  group      Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  groupId  String
+  group    Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
 
   @@id([courseId, groupId])
   @@index([groupId])
 }
 
 model MediaGroup {
-  mediaId    String
-  media      Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
-  groupId    String
-  group      Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  sortOrder  Int    @default(0)
+  mediaId   String
+  media     Media  @relation(fields: [mediaId], references: [id], onDelete: Cascade)
+  groupId   String
+  group     Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sortOrder Int    @default(0)
 
   @@id([mediaId, groupId])
   @@index([groupId])
 }
 
 model UserGroup {
-  userId     String
-  user       User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  groupId    String
-  group      Group  @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  role       String @default("member") // member | moderator (для наследования прав на дочерние группы)
-  joinedAt   DateTime @default(now())
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groupId  String
+  group    Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  role     String   @default("member") // member | moderator (для наследования прав на дочерние группы)
+  joinedAt DateTime @default(now())
 
   @@id([userId, groupId])
   @@index([groupId])
 }
 
 model VisitLog {
-  id              String    @id @default(cuid())
-  userId          String
-  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  loginAt         DateTime  @default(now())
-  lastActivityAt  DateTime  @default(now())
-  logoutAt        DateTime?
-  ipAddress       String?
-  userAgent       String?
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  loginAt        DateTime  @default(now())
+  lastActivityAt DateTime  @default(now())
+  logoutAt       DateTime?
+  ipAddress      String?
+  userAgent      String?
 
   @@index([userId])
   @@index([loginAt])
@@ -139,43 +140,43 @@ model Profile {
 }
 
 model Course {
-  id              String    @id @default(cuid())
-  title           String
-  description     String?
-  startsAt        DateTime? // начало курса (мероприятия)
-  endsAt          DateTime? // окончание курса (мероприятия)
-  scormPath       String?
-  scormVersion    String?  // "1.2" | "2004"
-  scormManifest   String?  // JSON: organizations, items, resources (SCO list)
-  aiContext       String?  // JSON: extracted text per lesson for LLM
-  aiTutorEnabled  Boolean  @default(true) // включён ли AI-тьютор в плеере
-  thumbnailUrl    String?
+  id                            String    @id @default(cuid())
+  title                         String
+  description                   String?
+  startsAt                      DateTime? // начало курса (мероприятия)
+  endsAt                        DateTime? // окончание курса (мероприятия)
+  scormPath                     String?
+  scormVersion                  String? // "1.2" | "2004"
+  scormManifest                 String? // JSON: organizations, items, resources (SCO list)
+  aiContext                     String? // JSON: extracted text per lesson for LLM
+  aiTutorEnabled                Boolean   @default(true) // включён ли AI-тьютор в плеере
+  thumbnailUrl                  String?
   /// Формат: scorm — асинхронное обучение (SCORM); live_event — очное мероприятие и/или вебинар по расписанию
-  courseFormat   String   @default("scorm")
+  courseFormat                  String    @default("scorm")
   /// Очно: адрес / зал; можно указать «Онлайн» — детали в eventUrl
-  eventVenue     String?
+  eventVenue                    String?
   /// Ссылка на вебинар (Zoom, Teams, TrueConf и т.д.)
-  eventUrl       String?
-  status         String   @default("published") // draft=В разработке, published=Опубликован, cancelled=Отменено, archived=В архиве
+  eventUrl                      String?
+  status                        String    @default("published") // draft=В разработке, published=Опубликован, cancelled=Отменено, archived=В архиве
   /// Если true — любой вошедший пользователь портала (роль user) видит курс и может проходить без записи (пробный/демо).
-  openAccessForAllStudents Boolean @default(false)
-  price          Int?
-  sortOrder      Int      @default(0)
+  openAccessForAllStudents      Boolean   @default(false)
+  price                         Int?
+  sortOrder                     Int       @default(0)
   verificationRequiredLessonIds String? // JSON array of lesson identifiers that require phygital verification, e.g. ["lesson-1","lesson-2"]
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt                     DateTime  @default(now())
+  updatedAt                     DateTime  @updatedAt
 
-  enrollments  Enrollment[]
-  certificates Certificate[]
-  scormProgress ScormProgress[]
-  media        Media[]
-  phygitalVerifications PhygitalVerification[]
-  services     Service[]
+  enrollments            Enrollment[]
+  certificates           Certificate[]
+  scormProgress          ScormProgress[]
+  media                  Media[]
+  phygitalVerifications  PhygitalVerification[]
+  services               Service[]
   courseNotificationSets CourseNotificationSet[]
-  certificateTemplates CertificateTemplate[]
-  courseGroups         CourseGroup[]
-  scormVersions        ScormVersion[]
-  aiTutorConversations AiTutorConversation[]
+  certificateTemplates   CertificateTemplate[]
+  courseGroups           CourseGroup[]
+  scormVersions          ScormVersion[]
+  aiTutorConversations   AiTutorConversation[]
 }
 
 model ScormVersion {
@@ -214,12 +215,12 @@ model AiTutorConversation {
 }
 
 model AiTutorMessage {
-  id             String   @id @default(cuid())
+  id             String              @id @default(cuid())
   conversationId String
   conversation   AiTutorConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   role           String
   content        String
-  createdAt      DateTime @default(now())
+  createdAt      DateTime            @default(now())
 
   @@index([conversationId])
 }
@@ -232,7 +233,7 @@ model Enrollment {
   course       Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
   enrolledAt   DateTime  @default(now())
   expiresAt    DateTime?
-  accessClosed Boolean   @default(false)  // false = Открыт, true = Закрыт
+  accessClosed Boolean   @default(false) // false = Открыт, true = Закрыт
   completedAt  DateTime? // если задано — участие Завершено
 
   @@unique([userId, courseId])
@@ -257,34 +258,34 @@ model ScormProgress {
 }
 
 model CertificateTemplate {
-  id                  String   @id @default(cuid())
-  name                String
-  backgroundImageUrl  String?  // подложка PDF/PNG/JPG — загрузка в форме шаблона
-  textMapping         String?  // JSON координат полей: name, date, courseTitle, certNumber
-  courseId            String?
-  course              Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  minScore            Int?
-  requiredStatus      String?
-  validityDays        Int?
-  numberingFormat     String?
-  allowUserDownload   Boolean  @default(true)
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  name               String
+  backgroundImageUrl String? // подложка PDF/PNG/JPG — загрузка в форме шаблона
+  textMapping        String? // JSON координат полей: name, date, courseTitle, certNumber
+  courseId           String?
+  course             Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  minScore           Int?
+  requiredStatus     String?
+  validityDays       Int?
+  numberingFormat    String?
+  allowUserDownload  Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   certificates Certificate[]
 }
 
 model Certificate {
-  id         String    @id @default(cuid())
+  id         String               @id @default(cuid())
   userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   courseId   String
-  course     Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course     Course               @relation(fields: [courseId], references: [id], onDelete: Cascade)
   templateId String?
   template   CertificateTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  certNumber String    @unique
+  certNumber String               @unique
   pdfUrl     String?
-  issuedAt   DateTime  @default(now())
+  issuedAt   DateTime             @default(now())
   revokedAt  DateTime?
   expiryDate DateTime?
 
@@ -296,8 +297,8 @@ model Certificate {
 model Media {
   id            String   @id @default(cuid())
   title         String
-  fileUrl       String   // для type=link — внешний URL
-  thumbnailUrl  String?  // обложка/превью (для видео и ссылок)
+  fileUrl       String // для type=link — внешний URL
+  thumbnailUrl  String? // обложка/превью (для видео и ссылок)
   mimeType      String?
   category      String?
   description   String?
@@ -313,7 +314,8 @@ model Media {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  mediaGroups   MediaGroup[]
+  mediaGroups MediaGroup[]
+
   @@index([courseId])
   @@index([category])
 }
@@ -340,7 +342,7 @@ model Ticket {
   subject     String
   status      String   @default("open") // open, in_progress, resolved, closed
   messages    String   @default("[]")
-  orderNumber String?  // при обращении «Нет доступа» — заказ для аналитики (7.4)
+  orderNumber String? // при обращении «Нет доступа» — заказ для аналитики (7.4)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -350,32 +352,32 @@ model Ticket {
 }
 
 model PhygitalVerification {
-  id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courseId   String
-  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessonId   String?
+  id             String                              @id @default(cuid())
+  userId         String
+  user           User                                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId       String
+  course         Course                              @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessonId       String?
   /// video | text — тип задания (текстовые ответы и видео проходят одну очередь проверки)
-  assignmentType String @default("video")
-  videoUrl   String
-  status     String   @default("pending") // pending, approved, rejected
-  reviewedBy String?
-  reviewedAt DateTime?
-  comment    String?
-  createdAt  DateTime @default(now())
+  assignmentType String                              @default("video")
+  videoUrl       String
+  status         String                              @default("pending") // pending, approved, rejected
+  reviewedBy     String?
+  reviewedAt     DateTime?
+  comment        String?
+  createdAt      DateTime                            @default(now())
   threadComments PhygitalVerificationThreadComment[]
 }
 
 /// Переписка по заданию: слушатель и проверяющий (менеджер/админ).
 model PhygitalVerificationThreadComment {
-  id               String   @id @default(cuid())
-  verificationId   String
-  verification     PhygitalVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
-  authorUserId     String
-  author           User     @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
-  body             String
-  createdAt        DateTime @default(now())
+  id             String               @id @default(cuid())
+  verificationId String
+  verification   PhygitalVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  authorUserId   String
+  author         User                 @relation(fields: [authorUserId], references: [id], onDelete: Cascade)
+  body           String
+  createdAt      DateTime             @default(now())
 
   @@index([verificationId, createdAt])
 }
@@ -416,7 +418,7 @@ model NotificationTemplate {
   id        String   @id @default(cuid())
   name      String
   subject   String?
-  body      String   // тело с плейсхолдерами %recfirstname%, %reclastname%, %date%, %systemtitle%, %objectname%
+  body      String // тело с плейсхолдерами %recfirstname%, %reclastname%, %date%, %systemtitle%, %objectname%
   type      String   @default("both") // "internal" | "email" | "both"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -425,28 +427,28 @@ model NotificationTemplate {
 }
 
 model NotificationSet {
-  id          String   @id @default(cuid())
-  eventType   String   // enrollment, certificate_issued, enrollment_excluded, access_opened, access_closed, ...
-  name        String
-  templateId  String?
-  template    NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
-  isDefault   Boolean  @default(false)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String                @id @default(cuid())
+  eventType  String // enrollment, certificate_issued, enrollment_excluded, access_opened, access_closed, ...
+  name       String
+  templateId String?
+  template   NotificationTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  isDefault  Boolean               @default(false)
+  isActive   Boolean               @default(true)
+  createdAt  DateTime              @default(now())
+  updatedAt  DateTime              @updatedAt
 
   courseLinks CourseNotificationSet[]
 }
 
 model NotificationLog {
-  id         String   @id @default(cuid())
-  userId     String?  // null если пользователь удалён
-  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  eventType  String
-  subject    String?
-  content    String   // итоговый текст (срез)
-  channel    String   // "internal" | "email"
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String? // null если пользователь удалён
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  eventType String
+  subject   String?
+  content   String // итоговый текст (срез)
+  channel   String // "internal" | "email"
+  createdAt DateTime @default(now())
 
   @@index([createdAt])
   @@index([userId])
@@ -454,12 +456,12 @@ model NotificationLog {
 }
 
 model CourseNotificationSet {
-  id               String   @id @default(cuid())
-  courseId         String
-  course           Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  id                String          @id @default(cuid())
+  courseId          String
+  course            Course          @relation(fields: [courseId], references: [id], onDelete: Cascade)
   notificationSetId String
-  notificationSet NotificationSet @relation(fields: [notificationSetId], references: [id], onDelete: Cascade)
-  createdAt        DateTime @default(now())
+  notificationSet   NotificationSet @relation(fields: [notificationSetId], references: [id], onDelete: Cascade)
+  createdAt         DateTime        @default(now())
 
   @@unique([courseId, notificationSetId])
 }
@@ -467,7 +469,7 @@ model CourseNotificationSet {
 model CommsTemplate {
   id        String   @id @default(cuid())
   name      String
-  channel   String   // email, telegram
+  channel   String // email, telegram
   subject   String?
   htmlBody  String?
   variables String?  @default("[]")
@@ -490,47 +492,47 @@ model CommsSend {
 
 /// Входящая почта (IMAP): ящик админки.
 model InboundMailbox {
-  id           String   @id @default(cuid())
-  label        String
-  imapHost     String
-  imapPort     Int      @default(993)
-  imapTls      Boolean  @default(true)
-  username     String
-  passwordEnc  String
-  folder       String   @default("INBOX")
-  lastUid      Int?
-  lastSyncedAt DateTime?
-  lastSyncStatus String?
-  lastSyncError  String?
+  id                String    @id @default(cuid())
+  label             String
+  imapHost          String
+  imapPort          Int       @default(993)
+  imapTls           Boolean   @default(true)
+  username          String
+  passwordEnc       String
+  folder            String    @default("INBOX")
+  lastUid           Int?
+  lastSyncedAt      DateTime?
+  lastSyncStatus    String?
+  lastSyncError     String?
   lastSyncCheckedAt DateTime?
-  retentionDays Int      @default(365)
-  enabled      Boolean  @default(true)
-  smtpHost     String?
-  smtpPort     Int?
-  smtpTls      Boolean? @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  retentionDays     Int       @default(365)
+  enabled           Boolean   @default(true)
+  smtpHost          String?
+  smtpPort          Int?
+  smtpTls           Boolean?  @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  messages InboundMessage[]
+  messages      InboundMessage[]
   domainMailbox DomainMailbox?
 }
 
 /// Ящик на домене @avaterra.pro (Mailcow и связь с InboundMailbox для IMAP).
 model DomainMailbox {
-  id               String   @id @default(cuid())
-  email            String   @unique
+  id               String          @id @default(cuid())
+  email            String          @unique
   localPart        String
-  domain           String   @default("avaterra.pro")
+  domain           String          @default("avaterra.pro")
   label            String
-  status           String   @default("active") // active | suspended
+  status           String          @default("active") // active | suspended
   passwordEnc      String
-  provisioningKind String   @default("mailcow") // mailcow | manual
+  provisioningKind String          @default("mailcow") // mailcow | manual
   provisioningRef  String?
-  inboundMailboxId String?  @unique
+  inboundMailboxId String?         @unique
   inboundMailbox   InboundMailbox? @relation(fields: [inboundMailboxId], references: [id], onDelete: SetNull)
   createdById      String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
 
   @@index([domain])
   @@index([localPart, domain])
@@ -538,7 +540,7 @@ model DomainMailbox {
 
 /// Сообщение, импортированное с IMAP.
 model InboundMessage {
-  id             String   @id @default(cuid())
+  id             String         @id @default(cuid())
   mailboxId      String
   mailbox        InboundMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
   imapUid        Int
@@ -547,14 +549,14 @@ model InboundMessage {
   references     String?
   fromAddress    String
   fromName       String?
-  toAddresses    String   @default("[]")
+  toAddresses    String         @default("[]")
   subject        String?
   receivedAt     DateTime
   bodyText       String?
   bodyHtml       String?
   matchedUserId  String?
-  matchedUser    User?    @relation(fields: [matchedUserId], references: [id], onDelete: SetNull)
-  hasAttachments Boolean  @default(false)
+  matchedUser    User?          @relation(fields: [matchedUserId], references: [id], onDelete: SetNull)
+  hasAttachments Boolean        @default(false)
   snippet        String?
 
   @@unique([mailboxId, imapUid])
@@ -573,8 +575,8 @@ model EmailDeliveryLog {
   user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   recipient    String
   subject      String?
-  status       String   // sent | failed | skipped
-  provider     String   // resend | smtp
+  status       String // sent | failed | skipped
+  provider     String // resend | smtp
   direction    String   @default("outbound")
   errorMessage String?
   sentBy       String?
@@ -589,77 +591,79 @@ model EmailDeliveryLog {
 
 /// Сохранённые API-ключи для LLM (несколько ключей, выбор в настройках чат-бота/тьютора).
 model LlmApiKey {
-  id               String   @id @default(cuid())
-  name             String   // например "DeepSeek основной", "OpenAI запасной"
-  provider         String   // deepseek, openai, anthropic
-  apiKeyEncrypted  String
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String   @id @default(cuid())
+  name            String // например "DeepSeek основной", "OpenAI запасной"
+  provider        String // deepseek, openai, anthropic
+  apiKeyEncrypted String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  llmSettings      LlmSetting[]
+  llmSettings LlmSetting[]
 }
 
 model LlmSetting {
-  id        String   @id @default(cuid())
-  key       String   @unique
-  provider  String
-  model     String
-  systemPrompt String?
-  temperature Float?  @default(0.7)
-  maxTokens  Int?    @default(2000)
+  id              String     @id @default(cuid())
+  key             String     @unique
+  provider        String
+  model           String
+  systemPrompt    String?
+  temperature     Float?     @default(0.7)
+  maxTokens       Int?       @default(2000)
   apiKeyEncrypted String?
-  apiKeyId   String?  // если задан — использовать сохранённый ключ
-  apiKey    LlmApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  apiKeyId        String? // если задан — использовать сохранённый ключ
+  apiKey          LlmApiKey? @relation(fields: [apiKeyId], references: [id], onDelete: SetNull)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
   @@index([apiKeyId])
 }
 
 /// Шаблоны промптов для чат-бота: несколько вариантов, один активный, статистика использования.
 model PromptTemplate {
-  id          String    @id @default(cuid())
-  name        String
-  content     String    // текст system prompt
-  scope       String    @default("chatbot") // chatbot | course-tutor
-  isActive    Boolean   @default(false)
-  usageCount  Int       @default(0)
-  lastUsedAt  DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id         String    @id @default(cuid())
+  name       String
+  content    String // текст system prompt
+  scope      String    @default("chatbot") // chatbot | course-tutor
+  isActive   Boolean   @default(false)
+  usageCount Int       @default(0)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
 model SystemSetting {
   id        String   @id @default(cuid())
   key       String   @unique
   value     String   @default("")
-  category  String?  // general, email, payments, branding
+  category  String? // general, email, payments, branding
   updatedAt DateTime @updatedAt
 }
 
 // Service: товары витрины главной — description/imageUrl для карточки «Купить курс»
 model Service {
-  id          String   @id @default(cuid())
-  slug        String   @unique
-  name        String
-  description String?
-  imageUrl    String?
-  price       Int
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  name              String
+  description       String?
+  imageUrl          String?
+  price             Int
   paykeeperTariffId String?
-  courseId    String?
-  course      Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  courseId          String?
+  course            Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  isActive          Boolean  @default(true)
+  installmentEnabled Boolean @default(false)
+  maxInstallments   Int      @default(3)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 }
 
 model UserEnergy {
-  userId         String   @id
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  xp             Int      @default(0)
-  level          Int      @default(1)
+  userId         String    @id
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  xp             Int       @default(0)
+  level          Int       @default(1)
   lastPracticeAt DateTime?
-  updatedAt      DateTime @updatedAt
+  updatedAt      DateTime  @updatedAt
 }
 
 /// Журнал изменений заряда (геймификация): урок, ручная правка админом.
@@ -667,7 +671,7 @@ model GamificationXpEvent {
   id           String   @id @default(cuid())
   userId       String
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  source       String   // lesson_complete | admin_delta | admin_set
+  source       String // lesson_complete | admin_delta | admin_set
   delta        Int
   balanceAfter Int
   meta         String   @default("{}")
@@ -677,59 +681,61 @@ model GamificationXpEvent {
 }
 
 model Lead {
-  id                 Int      @id @default(autoincrement())
-  name               String
-  phone              String
-  email              String?
-  message            String?
-  notes              String?  // admin notes
-  status             String   @default("new")
-  source             String?  // form, landing, manual
-  convertedToUserId  String?
-  lastOrderNumber    String?  // при оплате заказа с email лида — для аналитики (1.3)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  id                Int      @id @default(autoincrement())
+  name              String
+  phone             String
+  email             String?
+  message           String?
+  notes             String? // admin notes
+  status            String   @default("new")
+  source            String? // form, landing, manual
+  convertedToUserId String?
+  lastOrderNumber   String? // при оплате заказа с email лида — для аналитики (1.3)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   @@index([status])
   @@index([createdAt])
 }
 
 model Order {
-  id          Int      @id @default(autoincrement())
-  orderNumber String   @unique
+  id          Int       @id @default(autoincrement())
+  orderNumber String    @unique
   tariffId    String
   amount      Int
   clientEmail String
   clientPhone String?
   /// ФИО клиента из формы оплаты (используется в письмах вместо локальной части email).
   clientName  String?
-  status      String   @default("pending")
+  status      String    @default("pending")
   paidAt      DateTime?
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  user        User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   /// Идентификатор счёта PayKeeper (invoice_id).
-  paykeeperInvoiceId   String?
+  paykeeperInvoiceId  String?
   /// Прямая ссылка на оплату из ответа PayKeeper (invoice_url).
-  paykeeperInvoiceUrl  String?
+  paykeeperInvoiceUrl String?
   /// Идентификатор платежа PayKeeper после оплаты / сверки.
-  paykeeperPaymentId   String?
+  paykeeperPaymentId  String?
   /// Нормализованный статус PayKeeper (success, obtained, …).
-  paykeeperStatus      String?
+  paykeeperStatus     String?
   /// Сырой статус / источник последней синхронизации.
-  paykeeperRawStatus   String?
+  paykeeperRawStatus  String?
   /// Фактически оплаченная сумма (руб., целое), если отличается от amount.
-  paidAmountRub        Int?
+  paidAmountRub       Int?
   /// Уже возвращено через PayKeeper (руб., целое), для учёта частичных возвратов.
-  refundedAmountRub    Int      @default(0)
+  refundedAmountRub   Int       @default(0)
   /// Ключ/идентификатор чека в PayKeeper (если передан).
-  receiptKey           String?
-  lastSyncedAt         DateTime?
+  receiptKey          String?
+  lastSyncedAt        DateTime?
 
   paykeeperRefunds  PaykeeperRefundRecord[]
   paykeeperReceipts PaykeeperReceiptRecord[]
+  paymentLinks      PaymentLink[]
+  installmentPlan   InstallmentPlan?
 
   @@index([userId])
   @@index([status])
@@ -778,6 +784,7 @@ model PasswordToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+
   @@index([token])
   @@index([expiresAt])
 }
@@ -790,44 +797,45 @@ model EmailVerificationToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+
   @@index([token])
   @@index([expiresAt])
 }
 
 model Mailing {
-  id            String    @id @default(cuid())
-  internalTitle String
-  emailSubject  String
-  emailBody     String
-  senderName    String?
-  senderEmail   String?
-  status        String    @default("planned")  // planned | processing | completed
-  scheduleMode  String    @default("manual")  // manual | scheduled
-  scheduledAt   DateTime?
+  id              String    @id @default(cuid())
+  internalTitle   String
+  emailSubject    String
+  emailBody       String
+  senderName      String?
+  senderEmail     String?
+  status          String    @default("planned") // planned | processing | completed
+  scheduleMode    String    @default("manual") // manual | scheduled
+  scheduledAt     DateTime?
   recipientConfig String? // JSON: { type: 'all'|'role'|'list', role?: string, userIds?: string[] }
-  attachments   String?   // JSON: массив { name, pathOrKey, size }
-  createdById   String?
-  createdBy     User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  startedAt     DateTime?
-  completedAt   DateTime?
+  attachments     String? // JSON: массив { name, pathOrKey, size }
+  createdById     String?
+  createdBy       User?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  startedAt       DateTime?
+  completedAt     DateTime?
 
   logs MailingLog[]
 }
 
 model MailingLog {
-  id              String   @id @default(cuid())
-  mailingId       String
-  mailing         Mailing  @relation(fields: [mailingId], references: [id], onDelete: Cascade)
-  userId          String?
-  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  recipientEmail  String
-  recipientName   String?
-  status          String   // "sent" | "failed"
-  errorMessage    String?
-  sentAt          DateTime?
-  createdAt       DateTime @default(now())
+  id             String    @id @default(cuid())
+  mailingId      String
+  mailing        Mailing   @relation(fields: [mailingId], references: [id], onDelete: Cascade)
+  userId         String?
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  recipientEmail String
+  recipientName  String?
+  status         String // "sent" | "failed"
+  errorMessage   String?
+  sentAt         DateTime?
+  createdAt      DateTime  @default(now())
 
   @@index([mailingId])
 }
@@ -839,36 +847,37 @@ model MailingUnsubscribe {
 }
 
 model Publication {
-  id              String   @id @default(cuid())
-  title           String
-  type            String   // "news" | "announcement"
-  status          String   @default("active") // "active" | "closed"
-  publishAt       DateTime
-  teaser          String?
-  content         String
-  keywords        String?
-  viewsCount      Int      @default(0)
-  ratingSum       Int      @default(0)
-  ratingCount     Int      @default(0)
-  allowComments   Boolean  @default(true)
-  allowRating     Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String   @id @default(cuid())
+  title         String
+  type          String // "news" | "announcement"
+  status        String   @default("active") // "active" | "closed"
+  publishAt     DateTime
+  teaser        String?
+  content       String
+  keywords      String?
+  viewsCount    Int      @default(0)
+  ratingSum     Int      @default(0)
+  ratingCount   Int      @default(0)
+  allowComments Boolean  @default(true)
+  allowRating   Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  comments        PublicationComment[]
+  comments PublicationComment[]
+
   @@index([status])
   @@index([publishAt])
 }
 
 model PublicationComment {
-  id             String   @id @default(cuid())
-  publicationId  String
-  publication    Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
-  userId         String?
-  user           User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  authorName     String?
-  content        String
-  createdAt      DateTime @default(now())
+  id            String      @id @default(cuid())
+  publicationId String
+  publication   Publication @relation(fields: [publicationId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName    String?
+  content       String
+  createdAt     DateTime    @default(now())
 
   @@index([publicationId])
 }
@@ -896,7 +905,7 @@ model BrandProfile {
   id          String   @id @default(cuid())
   slug        String   @unique @default("avaterra")
   kbVersion   String?
-  dataJson    String   // YAML KB → JSON
+  dataJson    String // YAML KB → JSON
   toneOfVoice String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -916,7 +925,7 @@ model ContentPlan {
 }
 
 model ContentItem {
-  id             String    @id @default(cuid())
+  id             String       @id @default(cuid())
   planId         String?
   plan           ContentPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
   publishDate    DateTime
@@ -926,7 +935,7 @@ model ContentItem {
   outline        String?
   cta            String?
   themeId        String?
-  theme          ThemePool? @relation(fields: [themeId], references: [id], onDelete: SetNull)
+  theme          ThemePool?   @relation(fields: [themeId], references: [id], onDelete: SetNull)
   audience       String?
   rubric         String?
   generatedText  String?
@@ -934,14 +943,14 @@ model ContentItem {
   imageUrl       String?
   imageUrlBackup String?
   /// planned | generating | quality_failed | dedup_blocked | ready | approved | published | rejected
-  status         String    @default("planned")
-  qualityIssues  String?   // JSON
-  dedupSignature String?   // base64 MinHash
-  dedupKeywords  String?   // JSON string[]
+  status         String       @default("planned")
+  qualityIssues  String? // JSON
+  dedupSignature String? // base64 MinHash
+  dedupKeywords  String? // JSON string[]
   telegramMsgId  Int?
   publishedAt    DateTime?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   postStats PostStat[]
 
@@ -968,7 +977,7 @@ model SitePageVersion {
   pageId         String
   page           SitePage @relation(fields: [pageId], references: [id], onDelete: Cascade)
   contentHash    String
-  normalizedJson String?  // JSON блоков
+  normalizedJson String? // JSON блоков
   fetchedAt      DateTime @default(now())
 
   @@index([pageId, fetchedAt])
@@ -983,7 +992,7 @@ model SiteSignal {
   score      Int       @default(0)
   severity   String    @default("low")
   summary    String
-  payload    String?   // JSON
+  payload    String? // JSON
   /// new | processed | ignored
   status     String    @default("new")
   createdAt  DateTime  @default(now())
@@ -1004,7 +1013,7 @@ model ThemePool {
   status    String   @default("pending")
   /// kb | radar | manual
   source    String   @default("kb")
-  payload   String?  // JSON
+  payload   String? // JSON
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -1024,11 +1033,109 @@ model PostStat {
   views         Int          @default(0)
   forwards      Int          @default(0)
   reactions     Int          @default(0)
-  rawPayload    String?      // JSON
+  rawPayload    String? // JSON
   fetchedAt     DateTime     @default(now())
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
   @@index([contentItemId])
   @@index([telegramMsgId])
+}
+
+// ═══════════════════════════════════════════════════════
+// Эпик 1: Персональные товары и платёжные ссылки
+// ═══════════════════════════════════════════════════════
+
+/// Персональный товар — разовая услуга, создаваемая админом (консультация, тестирование).
+model PersonalProduct {
+  id              String    @id @default(cuid())
+  name            String
+  description     String?
+  priceRub        Int
+  /// null = бессрочный; иначе — дата/время истечения ссылки
+  expiresAt       DateTime?
+  isActive        Boolean   @default(true)
+  installmentEnabled Boolean @default(false)
+  maxInstallments Int       @default(3)
+  createdById     String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  links PaymentLink[]
+
+  @@index([isActive])
+  @@index([createdAt])
+}
+
+/// Уникальная платёжная ссылка — генерируется для персонального товара.
+model PaymentLink {
+  id                  String          @id @default(cuid())
+  productId           String
+  product             PersonalProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  token               String          @unique
+  /// pending | paid | expired
+  status              String          @default("pending")
+  clientEmail         String?
+  clientName          String?
+  userId              String?
+  user                User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  orderId             Int?
+  order               Order?          @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  paykeeperInvoiceId  String?
+  paykeeperInvoiceUrl String?
+  createdAt           DateTime        @default(now())
+  paidAt              DateTime?
+
+  @@index([token])
+  @@index([status])
+  @@index([productId])
+  @@index([paykeeperInvoiceId])
+  @@index([createdAt])
+}
+
+// ═══════════════════════════════════════════════════════
+// Эпик 2: Рассрочка
+// ═══════════════════════════════════════════════════════
+
+/// План рассрочки — привязан к заказу.
+model InstallmentPlan {
+  id            String    @id @default(cuid())
+  orderId       Int       @unique
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  totalParts    Int
+  partAmountRub Int
+  /// active | completed | defaulted | cancelled
+  status        String    @default("active")
+  nextPaymentAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  payments InstallmentPayment[]
+
+  @@index([status])
+  @@index([nextPaymentAt])
+}
+
+/// Отдельный платёж в рамках рассрочки.
+model InstallmentPayment {
+  id                 String          @id @default(cuid())
+  planId             String
+  plan               InstallmentPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  partNumber         Int
+  amountRub          Int
+  /// scheduled | paid | failed | overdue
+  status             String          @default("scheduled")
+  scheduledAt        DateTime
+  paidAt             DateTime?
+  paykeeperPaymentId String?
+  errorMessage       String?
+  retryCount         Int             @default(0)
+  reminderSent3d     Boolean         @default(false)
+  reminderSent1d     Boolean         @default(false)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  @@unique([planId, partNumber])
+  @@index([status])
+  @@index([scheduledAt])
 }

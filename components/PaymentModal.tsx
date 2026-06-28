@@ -29,6 +29,7 @@ interface PaymentModalProps {
 function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
   const [loading, setLoading] = useState(false);
   const [pdConsent, setPdConsent] = useState(false);
+  const [installmentParts, setInstallmentParts] = useState(0);
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -127,6 +128,32 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
           <span className="font-semibold text-[var(--text)]">Итого:</span>
           <span className="text-2xl font-bold text-plum">{priceLabel}</span>
         </div>
+        {tariff.installmentEnabled && tariff.price >= 100 && tariff.maxInstallments && tariff.maxInstallments >= 2 && (
+          <div className="mt-3 pt-3 border-t border-[var(--border)]">
+            <p className="text-sm text-[var(--text-muted)] mb-2">Или оплатите частями:</p>
+            <div className="flex flex-wrap gap-2">
+              {Array.from({ length: tariff.maxInstallments - 1 }, (_, i) => i + 2).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setInstallmentParts(installmentParts === n ? 0 : n)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    installmentParts === n
+                      ? 'bg-plum text-white'
+                      : 'bg-white border border-[var(--border)] hover:bg-[var(--lavender-light)] text-[var(--text)]'
+                  }`}
+                >
+                  {n}× {Math.ceil(tariff.price / n).toLocaleString('ru-RU')} ₽
+                </button>
+              ))}
+            </div>
+            {installmentParts > 0 && (
+              <p className="text-xs text-[var(--text-muted)] mt-2">
+                Первый платёж: {Math.ceil(tariff.price / installmentParts).toLocaleString('ru-RU')} ₽, затем {installmentParts - 1} ежемесячных списания
+              </p>
+            )}
+          </div>
+        )}
       </div>
       <PersonalDataConsentCheckbox
         id="payment-pd-consent"

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { CreateInstallmentDialog } from '@/components/admin/CreateInstallmentDialog';
 import { Button } from '@/components/ui/button';
 import { SearchInput } from '@/components/ui/SearchInput';
 import { DateRangeFilter } from '@/components/ui/DateRangeFilter';
@@ -25,7 +26,7 @@ import {
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { StatusBadge } from '@/components/ui/StatusBadge';
-import { Check, FileText, Ban, CreditCard } from 'lucide-react';
+import { Check, FileText, Ban, CreditCard, CalendarClock } from 'lucide-react';
 import { format } from 'date-fns';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
 import { downloadXlsx } from '@/lib/export-xlsx';
@@ -77,6 +78,7 @@ export function PaymentsTableClient({
   const [detailOrder, setDetailOrder] = useState<OrderRow | null>(null);
   const [cancelTarget, setCancelTarget] = useState<OrderRow | null>(null);
   const [refundTarget, setRefundTarget] = useState<OrderRow | null>(null);
+  const [installmentOrder, setInstallmentOrder] = useState<OrderRow | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [refunding, setRefunding] = useState(false);
   const [pkSyncing, setPkSyncing] = useState(false);
@@ -550,6 +552,11 @@ export function PaymentsTableClient({
                   <Ban className="mr-1 h-4 w-4" /> Отменить заказ
                 </Button>
               )}
+              {detailOrder.status === 'pending' && detailOrder.amount >= 10 && (
+                <Button size="sm" variant="secondary" className="text-blue-700" onClick={() => setInstallmentOrder(detailOrder)}>
+                  <CalendarClock className="mr-1 h-4 w-4" /> Рассрочка
+                </Button>
+              )}
             </div>
           </DialogContent>
         </Dialog>
@@ -593,6 +600,19 @@ export function PaymentsTableClient({
           columnConfig={PAYMENTS_TABLE_COLUMNS}
           visibleColumnIds={visibleColumnIds}
           onVisibleColumnIdsChange={setVisibleColumnIds}
+        />
+      )}
+      {installmentOrder && (
+        <CreateInstallmentDialog
+          open={!!installmentOrder}
+          onClose={() => setInstallmentOrder(null)}
+          orderNumber={installmentOrder.orderNumber}
+          amount={installmentOrder.amount}
+          clientEmail={installmentOrder.clientEmail}
+          onSuccess={() => {
+            setDetailOrder(null);
+            toast.success('Рассрочка оформлена');
+          }}
         />
       )}
     </div>

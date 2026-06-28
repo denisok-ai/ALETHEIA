@@ -14,6 +14,9 @@
 | `app/(auth)/` | Логин, регистрация, сброс пароля |
 | `app/portal/` | Портал: student, admin, manager |
 | `app/portal/admin/mail/` | **Центр почты:** доставка (Resend/SMTP), ящики домена, входящие IMAP, ссылки на письма/рассылки и журналы. Старые пути `/portal/admin/domain-mailboxes` и `/portal/admin/inmail` перенаправляют сюда (`?tab=mailboxes` / `?tab=inbox`). |
+| `app/portal/admin/personal-products/` | **Персональные товары:** создание, редактирование, удаление, AI-генерация описаний, пагинация. |
+| `app/portal/admin/installments/` | **Рассрочки:** каталог с прогресс-баром, детали, управление статусом. |
+| `app/pay/[token]/` | **Публичный чекаут:** страница оплаты с выбором рассрочки, success/fail. |
 | `app/api/` | API-маршруты |
 | `components/` | React-компоненты (UI, секции, портал) |
 | `lib/` | Утилиты: paykeeper, auth, db, email, telegram, certificates |

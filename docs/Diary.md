@@ -2,6 +2,42 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-06-27 — Аудит прод-сервера + модуль «Персональные товары»
+
+### Наблюдения
+- Аудит прод-сервера (95.181.224.70): все сервисы стабильны (aletheia, telegram-poll, aletheia-jobs, nginx, Mailcow 18 контейнеров). Health OK, v3.5.5, commit 70d6205.
+- SSL сертификаты avaterra.pro + mail.avaterra.pro — действуют до 2026-09-13 (77 дней).
+- В логах `aletheia` найдены EADDRINUSE crash-loop за 9-18 июня (рестарт counter ~28700+). Причина — конфликт PM2 и systemd на порту 3000. Решено при деплое 3.5.5.
+- Journal забит логами crash-loop (~515 MB). Выполнена очистка `journalctl --vacuum-time=7d` (освобождено 339 MB).
+- Mailcow полностью работает: `docker ps` показывает 18 контейнеров (все UP 8 дней). IMAP-тест `test-mimocode@avaterra.pro` — LOGIN SUCCESS.
+
+### Решения
+- Добавлен rate limiting в `aletheia.service`: `StartLimitIntervalSec=300`, `StartLimitBurst=5` — защита от бесконечного crash-loop. Backup: `aletheia.service.bak-20260627`.
+- SEO-код (`lang="ru"`, canonical, OG locale) — всё уже настроено в `layout.tsx`. Placeholder-контакты — проблема конфигурации (.env/БД), не кода.
+- Реализован модуль «Персональные товары» (Эпик 1):
+  - Prisma: `PersonalProduct`, `PaymentLink`, `InstallmentPlan`, `InstallmentPayment`.
+  - Миграция: `20260627120000_add_personal_products_and_installments`.
+  - API: `/api/portal/admin/personal-products` (CRUD), `/api/portal/admin/personal-products/[id]/links` (генерация ссылок).
+  - Публичный чекаут: `/pay/[token]` (страница оплаты), `/pay/[token]/success`, `/pay/[token]/fail`.
+  - Админка: `/portal/admin/personal-products` (каталог + создание + дублирование), `/portal/admin/personal-products/[id]` (детали + генерация ссылок + копирование).
+  - PayKeeper интеграция: `createPayKeeperInvoice` с правильными полями (`sum`, `orderid`, `clientid`, `service_name`, `client_email`).
+- Эпик 2 (Рассрочка): API создания (`POST /api/portal/admin/installments`), cron (`/api/cron/installment-payments`), webhook расширен для `ORDER-I1/I2` формата, админка (каталог + детали).
+- Уведомления по рассрочке: `lib/installment-notify.ts` — Telegram-оповещения админам (5 событий), email-чеки клиентам, email-напоминания за 3/1 день. Тип `EmailModule` расширен значением `'installment'`.
+- Аудит кода: найдены и исправлены 3 проблемы (admin auth на installments POST, orphaned Order при PayKeeper fail, избыточный тернарник) + 4 улучшения (race condition → `$transaction`, дедуп напоминаний → `reminderSent3d`/`reminderSent1d`, email validation, rate limit checkout). Миграция `20260627140000` — reminder flags.
+- PayKeeper минимум 10₽: платёжный шлюз блокирует транзакции ниже 10₽ (ошибка на странице оплаты, API принимает без ошибки). Добавлена валидация в checkout и API создания товара. Зафиксировано в `PayKeeper-API-Map.md`.
+- Email-уведомления при создании ссылки: `sendTransactionalEmail` с кнопкой «Перейти к оплату».
+- Отмена/удаление ссылок: API `PATCH/DELETE payment-links/[id]`, UI кнопки в карточке ссылки, статус `cancelled` на checkout.
+- Рассрочка из админки: `CreateInstallmentDialog` в карточке заказа, кнопка «Рассрочка» для pending заказов ≥ 10₽.
+- Рассрочка в персональных товарах: `installmentEnabled`/`maxInstallments` в `PersonalProduct` и `Service`; UI выбора частей в форме товаров и на карточках главной; модалка оплаты с выбором рассрочки.
+- Документация рассрочки для бухгалтера: механизм, cron-списания, уведомления, финансовые риски (момент признания выручки, НДС, неполная оплата, возвраты) — в `PayKeeper-API-Map.md`.
+
+### Проблемы
+- PowerShell/WSL UNC path: CMD.EXE не поддерживает `\\wsl.localhost\...`, `prisma migrate dev` требует интерактивного режима. Обход: миграция создана вручную, `prisma format` + `prisma generate` работают.
+- `db` vs `prisma` импорт: в `lib/db.ts` экспорт называется `prisma`, а не `db` — исправлено во всех новых API-файлах.
+- `PaymentData` тип PayKeeper: поля `sum`/`orderid`/`clientid`/`service_name`/`client_email` (не `amount`/`orderId`/`description`).
+
+---
+
 ## 2026-06-15 (деплой 3.5.5 на прод)
 
 ### Наблюдения

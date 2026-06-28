@@ -15,7 +15,8 @@ export type EmailModule =
   | 'comms'
   | 'payments'
   | 'settings'
-  | 'inmail';
+  | 'inmail'
+  | 'installment';
 
 export interface EmailDeliveryContext {
   module: EmailModule;

@@ -70,6 +70,7 @@ async function loadDashboardMetrics(period: 7 | 30 | 90) {
     recentPaidOrders,
     recentLeads,
     recentUsers,
+    personalProductLinks,
   ] = await Promise.all([
     prisma.profile.count({ where: { status: 'active' } }),
     prisma.course.count(),
@@ -110,6 +111,10 @@ async function loadDashboardMetrics(period: 7 | 30 | 90) {
       take: 10,
       select: { id: true, email: true, createdAt: true },
     }),
+    prisma.paymentLink.findMany({
+      where: { status: 'paid', paidAt: { gte: monthStart } },
+      include: { product: { select: { name: true, priceRub: true } } },
+    }),
   ]);
 
   return {
@@ -132,6 +137,7 @@ async function loadDashboardMetrics(period: 7 | 30 | 90) {
     recentPaidOrders,
     recentLeads,
     recentUsers,
+    personalProductLinks,
   };
 }
 
@@ -179,6 +185,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
     recentPaidOrders,
     recentLeads,
     recentUsers,
+    personalProductLinks,
   } = data;
 
   const revenueMonth = paidOrders.reduce((s, o) => s + o.amount, 0);
@@ -306,6 +313,30 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
           <p className="text-2xl font-bold text-[var(--portal-text)]">{leadsCount}</p>
         </div>
       </div>
+
+      {personalProductLinks.length > 0 && (
+        <div className="portal-card p-5">
+          <h3 className="text-sm font-semibold text-[var(--portal-text)] mb-3">Персональные продажи (мес.)</h3>
+          <div className="flex items-center gap-6">
+            <div>
+              <p className="text-2xl font-bold text-[var(--portal-text)]">
+                {personalProductLinks.reduce((s, l) => s + (l.product?.priceRub ?? 0), 0).toLocaleString('ru-RU')} ₽
+              </p>
+              <p className="text-xs text-[var(--portal-text-muted)]">{personalProductLinks.length} оплат</p>
+            </div>
+            <div className="flex-1 overflow-x-auto">
+              <div className="flex gap-2">
+                {personalProductLinks.slice(0, 5).map((l) => (
+                  <div key={l.id} className="px-3 py-1.5 bg-[var(--portal-accent-soft)] rounded-lg text-xs">
+                    <p className="font-medium text-[var(--portal-accent-dark)]">{l.product?.name}</p>
+                    <p className="text-[var(--portal-text-muted)]">{(l.product?.priceRub ?? 0).toLocaleString('ru-RU')} ₽</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         <div className="portal-metric">

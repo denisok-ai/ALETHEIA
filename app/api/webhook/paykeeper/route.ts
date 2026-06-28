@@ -11,6 +11,12 @@ import {
   writePaykeeperIntegrationLog,
 } from '@/lib/paykeeper-integration-log';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
+import { sendTransactionalEmail } from '@/lib/email-service';
+import {
+  buildInstallmentContext,
+  notifyInstallmentPaymentPaid,
+  notifyInstallmentCompleted,
+} from '@/lib/installment-notify';
 
 export async function POST(request: NextRequest) {
   try {
@@ -64,9 +70,160 @@ export async function POST(request: NextRequest) {
     }
 
     const { id, orderid, sum, clientid } = params;
+
+    // --- Рассрочка: orderid вида "ORDERNUMBER-I1", "ORDERNUMBER-I2" ---
+    const installmentMatch = orderid.match(/^(.+)-I(\d+)$/);
+    if (installmentMatch) {
+      const baseOrderNumber = installmentMatch[1];
+      const partNumber = parseInt(installmentMatch[2], 10);
+      const baseOrder = await prisma.order.findUnique({ where: { orderNumber: baseOrderNumber } });
+      if (!baseOrder) {
+        await writePaykeeperIntegrationLog({
+          direction: 'inbound', event: 'webhook.installment_order_not_found', status: 'error',
+          orderNumber: orderid, message: 'Базовый заказ рассрочки не найден',
+        });
+        return NextResponse.json({ error: 'Base order not found' }, { status: 404 });
+      }
+      const plan = await prisma.installmentPlan.findUnique({ where: { orderId: baseOrder.id } });
+      if (!plan) {
+        await writePaykeeperIntegrationLog({
+          direction: 'inbound', event: 'webhook.installment_plan_not_found', status: 'error',
+          orderNumber: orderid, message: 'План рассрочки не найден',
+        });
+        return NextResponse.json({ error: 'Installment plan not found' }, { status: 404 });
+      }
+      const payment = await prisma.installmentPayment.findFirst({
+        where: { planId: plan.id, partNumber },
+      });
+      if (!payment) {
+        await writePaykeeperIntegrationLog({
+          direction: 'inbound', event: 'webhook.installment_payment_not_found', status: 'error',
+          orderNumber: orderid, message: `Платёж #${partNumber} не найден`,
+        });
+        return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
+      }
+      if (payment.status === 'paid') {
+        await writePaykeeperIntegrationLog({
+          direction: 'inbound', event: 'webhook.installment_idempotent', status: 'success',
+          orderNumber: orderid, message: `Платёж #${partNumber} уже оплачен`,
+        });
+        return new NextResponse(buildPayKeeperWebhookResponse(id, secret), {
+          status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+        });
+      }
+
+      let allCompleted = false;
+      await prisma.$transaction(async (tx) => {
+        await tx.installmentPayment.update({
+          where: { id: payment.id },
+          data: { status: 'paid', paidAt: new Date(), paykeeperPaymentId: id },
+        });
+        const allPayments = await tx.installmentPayment.findMany({ where: { planId: plan.id } });
+        const allPaid = allPayments.every((p) => p.status === 'paid');
+        if (allPaid) {
+          await tx.installmentPlan.update({
+            where: { id: plan.id },
+            data: { status: 'completed', nextPaymentAt: null },
+          });
+          await tx.order.update({
+            where: { id: baseOrder.id },
+            data: { status: 'paid', paidAt: new Date() },
+          });
+          allCompleted = true;
+        } else {
+          const nextDue = allPayments.find((p) => p.status === 'scheduled');
+          await tx.installmentPlan.update({
+            where: { id: plan.id },
+            data: { nextPaymentAt: nextDue?.scheduledAt ?? null },
+          });
+        }
+      });
+
+      const ctx = await buildInstallmentContext(payment.id);
+      if (allCompleted) {
+        if (ctx) notifyInstallmentCompleted(ctx);
+      } else {
+        if (ctx) notifyInstallmentPaymentPaid(ctx);
+      }
+
+      await writePaykeeperIntegrationLog({
+        direction: 'inbound', event: 'webhook.installment_paid', status: 'success',
+        orderNumber: orderid, message: `Рассрочка #${partNumber}/${plan.totalParts} оплачена`,
+        payload: { paykeeperId: id, allCompleted },
+      });
+      return new NextResponse(buildPayKeeperWebhookResponse(id, secret), {
+        status: 200, headers: { 'Content-Type': 'text/plain; charset=utf-8' },
+      });
+    }
+
+    // --- Обычная оплата (не рассрочка) ---
     const order = await prisma.order.findUnique({
       where: { orderNumber: orderid },
     });
+
+    // --- PaymentLink: обновить статус ссылки, если это персональный товар ---
+    if (order) {
+      const paymentLink = await prisma.paymentLink.findFirst({
+        where: { orderId: order.id },
+      });
+      if (paymentLink && paymentLink.status === 'pending') {
+        await prisma.paymentLink.update({
+          where: { id: paymentLink.id },
+          data: { status: 'paid', paidAt: new Date() },
+        });
+        await writePaykeeperIntegrationLog({
+          direction: 'inbound', event: 'webhook.payment_link_paid', status: 'success',
+          orderNumber: orderid, message: `Платёжная ссылка ${paymentLink.token} оплачена`,
+        });
+        const product = await prisma.personalProduct.findUnique({ where: { id: paymentLink.productId } });
+        if (product) {
+          notifyAdminsTelegramAsync('payment_received', [
+            `Персональный товар: ${product.name}`,
+            `Клиент: ${paymentLink.clientName || paymentLink.clientEmail}`,
+            `Сумма: ${product.priceRub.toLocaleString('ru-RU')} ₽`,
+            `Заказ: ${orderid}`,
+          ]);
+          if (paymentLink.clientEmail) {
+            const existingLead = await prisma.lead.findFirst({
+              where: { email: paymentLink.clientEmail.trim().toLowerCase() },
+            });
+            if (!existingLead) {
+              await prisma.lead.create({
+                data: {
+                  name: paymentLink.clientName || paymentLink.clientEmail.split('@')[0],
+                  phone: '',
+                  email: paymentLink.clientEmail.trim().toLowerCase(),
+                  message: `Оплата персонального товара: ${product.name} (${product.priceRub} ₽)`,
+                  status: 'converted',
+                  source: 'personal_product',
+                  lastOrderNumber: orderid,
+                },
+              });
+            } else {
+              await prisma.lead.update({
+                where: { id: existingLead.id },
+                data: { lastOrderNumber: orderid },
+              });
+            }
+            sendTransactionalEmail({
+              to: paymentLink.clientEmail,
+              subject: `Оплата получена — ${product.name} — АВАТЕРРА`,
+              html: `<div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:24px;">
+                <h2 style="color:#2D1B4E;">АВАТЕРРА — оплата получена</h2>
+                <p>Здравствуйте${paymentLink.clientName ? `, ${paymentLink.clientName}` : ''}!</p>
+                <p>Оплата по услуге <strong>«${product.name}»</strong> успешно получена.</p>
+                <table style="width:100%;border-collapse:collapse;margin:16px 0;">
+                  <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Заказ</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:bold;">${orderid}</td></tr>
+                  <tr><td style="padding:8px;border-bottom:1px solid #eee;color:#666;">Сумма</td><td style="padding:8px;border-bottom:1px solid #eee;font-weight:bold;">${product.priceRub.toLocaleString('ru-RU')} ₽</td></tr>
+                </table>
+                <p style="color:#999;font-size:12px;margin-top:24px;">АВАТЕРРА · Школа мышечного тестирования</p>
+              </div>`,
+              context: { module: 'payments', entityId: paymentLink.id },
+            }).catch(() => {});
+          }
+        }
+      }
+    }
 
     if (!order) {
       console.error('Webhook: order not found', orderid);

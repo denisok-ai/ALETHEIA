@@ -17,6 +17,8 @@ export type TariffItem = {
   popular?: boolean;
   /** Обложка с витрины (админка → Товары) */
   imageUrl?: string | null;
+  installmentEnabled?: boolean;
+  maxInstallments?: number;
 };
 
 const FALLBACK_TARIFFS: TariffItem[] = [
@@ -97,6 +99,8 @@ export function Pricing() {
                 description: string;
                 features?: string[];
                 imageUrl?: string | null;
+                installmentEnabled?: boolean;
+                maxInstallments?: number;
               }) => ({
                 id: p.slug,
                 slug: p.slug,
@@ -106,6 +110,8 @@ export function Pricing() {
                 features: Array.isArray(p.features) ? p.features : [p.description || p.name],
                 popular: p.slug === 'avaterra-praktik',
                 imageUrl: p.imageUrl ?? null,
+                installmentEnabled: p.installmentEnabled ?? false,
+                maxInstallments: p.maxInstallments ?? 3,
               })
             )
           );
@@ -190,6 +196,11 @@ export function Pricing() {
                       <p className="mt-6 text-3xl font-bold text-plum">
                         {tariff.price <= 0 ? 'Бесплатно' : `${tariff.price.toLocaleString('ru-RU')} ₽`}
                       </p>
+                      {tariff.installmentEnabled && tariff.price >= 100 && tariff.maxInstallments && tariff.maxInstallments >= 2 && (
+                        <p className="mt-1 text-sm text-[var(--text-muted)]">
+                          Рассрочка от {Math.ceil(tariff.price / tariff.maxInstallments).toLocaleString('ru-RU')} ₽/мес
+                        </p>
+                      )}
                       <Button
                         variant={tariff.popular ? 'landingRose' : 'landingSoft'}
                         className="mt-6 w-full"
@@ -197,6 +208,15 @@ export function Pricing() {
                       >
                         {tariff.price <= 0 ? 'Получить бесплатно' : 'Купить'}
                       </Button>
+                      {tariff.installmentEnabled && tariff.price >= 100 && tariff.maxInstallments && tariff.maxInstallments >= 2 && (
+                        <Button
+                          variant="ghost"
+                          className="mt-2 w-full text-plum"
+                          onClick={() => setModalTariff(tariff)}
+                        >
+                          Купить в рассрочку от {Math.ceil(tariff.price / tariff.maxInstallments).toLocaleString('ru-RU')} ₽/мес
+                        </Button>
+                      )}
                       </div>
                     </div>
                   </div>

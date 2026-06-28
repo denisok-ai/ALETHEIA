@@ -1,5 +1,5 @@
 /**
- * Admin: CRM — leads from leads table, funnel, convert to user.
+ * Admin: CRM — leads from leads table, funnel, convert to user, personal product sales.
  */
 import type { Metadata } from 'next';
 import { getServerSession } from 'next-auth';
@@ -23,9 +23,15 @@ export default async function AdminCrmPage() {
     );
   }
 
-  const leads = await prisma.lead.findMany({
-    orderBy: { createdAt: 'desc' },
-  });
+  const [leads, paidLinks] = await Promise.all([
+    prisma.lead.findMany({ orderBy: { createdAt: 'desc' } }),
+    prisma.paymentLink.findMany({
+      where: { status: 'paid' },
+      orderBy: { paidAt: 'desc' },
+      include: { product: { select: { name: true, priceRub: true } } },
+      take: 50,
+    }),
+  ]);
 
   const STATUS_ORDER = ['new', 'contacted', 'qualified', 'converted', 'lost'] as const;
   const byStatus = leads.reduce(
@@ -36,6 +42,8 @@ export default async function AdminCrmPage() {
     {} as Record<string, number>
   );
   const statusEntries = CRM_LEAD_STATUSES.map((status) => [status, byStatus[status] ?? 0] as const);
+
+  const personalRevenue = paidLinks.reduce((s, l) => s + (l.product?.priceRub ?? 0), 0);
 
   const list = leads.map((l) => ({
     id: l.id,
@@ -75,6 +83,47 @@ export default async function AdminCrmPage() {
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Воронка лидов</h2>
         <CrmFunnelChart byStatus={byStatus} />
       </div>
+
+      {paidLinks.length > 0 && (
+        <div className="portal-card min-w-0 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-base font-semibold text-[var(--portal-text)]">Персональные продажи</h2>
+            <span className="text-sm text-[var(--portal-text-muted)]">
+              {paidLinks.length} оплат · {personalRevenue.toLocaleString('ru-RU')} ₽
+            </span>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border)]">
+                  <th className="text-left py-2 px-3 font-medium text-[var(--portal-text-muted)]">Товар</th>
+                  <th className="text-left py-2 px-3 font-medium text-[var(--portal-text-muted)]">Клиент</th>
+                  <th className="text-right py-2 px-3 font-medium text-[var(--portal-text-muted)]">Сумма</th>
+                  <th className="text-left py-2 px-3 font-medium text-[var(--portal-text-muted)]">Дата оплаты</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paidLinks.map((link) => (
+                  <tr key={link.id} className="border-b border-[var(--border)] hover:bg-[var(--portal-accent-soft)]">
+                    <td className="py-2.5 px-3 font-medium text-[var(--portal-text)]">
+                      {link.product?.name ?? '—'}
+                    </td>
+                    <td className="py-2.5 px-3 text-[var(--portal-text-muted)]">
+                      {link.clientName || link.clientEmail || '—'}
+                    </td>
+                    <td className="py-2.5 px-3 text-right tabular-nums font-medium text-[var(--portal-text)]">
+                      {(link.product?.priceRub ?? 0).toLocaleString('ru-RU')} ₽
+                    </td>
+                    <td className="py-2.5 px-3 text-[var(--portal-text-muted)]">
+                      {link.paidAt ? new Date(link.paidAt).toLocaleString('ru-RU') : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <CrmLeadsClient initialLeads={list} />
     </div>

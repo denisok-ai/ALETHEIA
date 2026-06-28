@@ -52,6 +52,8 @@ export async function PATCH(
     paykeeperTariffId?: string | null;
     courseId?: string | null;
     isActive?: boolean;
+    installmentEnabled?: boolean;
+    maxInstallments?: number;
   };
   try {
     body = await request.json();
@@ -71,6 +73,8 @@ export async function PATCH(
     paykeeperTariffId?: string | null;
     courseId?: string | null;
     isActive?: boolean;
+    installmentEnabled?: boolean;
+    maxInstallments?: number;
   } = {};
   if (typeof body.slug === 'string') {
     const slug = body.slug.trim().toLowerCase().replace(/\s+/g, '-');
@@ -94,6 +98,8 @@ export async function PATCH(
   if (body.paykeeperTariffId !== undefined) data.paykeeperTariffId = typeof body.paykeeperTariffId === 'string' && body.paykeeperTariffId.trim() ? body.paykeeperTariffId.trim() : null;
   if (body.courseId !== undefined) data.courseId = typeof body.courseId === 'string' && body.courseId.trim() ? body.courseId.trim() : null;
   if (typeof body.isActive === 'boolean') data.isActive = body.isActive;
+  if (typeof body.installmentEnabled === 'boolean') data.installmentEnabled = body.installmentEnabled;
+  if (typeof body.maxInstallments === 'number') data.maxInstallments = Math.min(Math.max(body.maxInstallments, 2), 6);
 
   if (body.price !== undefined) {
     const raw = body.price;
@@ -124,6 +130,8 @@ export async function PATCH(
       courseId: updated.courseId,
       courseTitle: updated.course?.title ?? null,
       isActive: updated.isActive,
+      installmentEnabled: updated.installmentEnabled,
+      maxInstallments: updated.maxInstallments,
     },
   });
 }

@@ -28,6 +28,8 @@ export async function GET() {
       courseId: s.courseId,
       courseTitle: s.course?.title ?? null,
       isActive: s.isActive,
+      installmentEnabled: s.installmentEnabled,
+      maxInstallments: s.maxInstallments,
       createdAt: s.createdAt.toISOString(),
     })),
   });
@@ -46,6 +48,8 @@ export async function POST(request: NextRequest) {
     paykeeperTariffId?: string | null;
     courseId?: string | null;
     isActive?: boolean;
+    installmentEnabled?: boolean;
+    maxInstallments?: number;
   };
   try {
     body = await request.json();
@@ -76,6 +80,8 @@ export async function POST(request: NextRequest) {
   const courseId = typeof body.courseId === 'string' && body.courseId.trim() ? body.courseId.trim() : null;
   const paykeeperTariffId = typeof body.paykeeperTariffId === 'string' && body.paykeeperTariffId.trim() ? body.paykeeperTariffId.trim() : slug;
   const isActive = body.isActive !== false;
+  const installmentEnabled = body.installmentEnabled === true;
+  const maxInstallments = typeof body.maxInstallments === 'number' ? Math.min(Math.max(body.maxInstallments, 2), 6) : 3;
   const description =
     typeof body.description === 'string' && body.description.trim() ? body.description.trim() : null;
   const imageUrl =
@@ -91,6 +97,8 @@ export async function POST(request: NextRequest) {
       paykeeperTariffId,
       courseId,
       isActive,
+      installmentEnabled,
+      maxInstallments,
     },
   });
 
@@ -105,6 +113,8 @@ export async function POST(request: NextRequest) {
       paykeeperTariffId: service.paykeeperTariffId,
       courseId: service.courseId,
       isActive: service.isActive,
+      installmentEnabled: service.installmentEnabled,
+      maxInstallments: service.maxInstallments,
     },
   });
 }

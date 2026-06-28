@@ -296,4 +296,38 @@
 
 ---
 
+## Этап 14. Модуль «Персональные товары» (Эпик 1)
+
+| Задача | Приоритет | Статус | Описание |
+|--------|-----------|--------|----------|
+| Модели данных (PersonalProduct, PaymentLink) | Высокий | Завершена | Prisma: PersonalProduct (name, description, priceRub, expiresAt, isActive); PaymentLink (token, status, clientEmail/Name, orderId, PayKeeper поля). Миграция 20260627120000. |
+| API CRUD персональных товаров | Высокий | Завершена | GET/POST `/api/portal/admin/personal-products`; GET/POST `/api/portal/admin/personal-products/[id]/links` (генерация ссылок с nanoid). |
+| Публичная страница чекаута | Высокий | Завершена | `/pay/[token]` — минималистичный UI (логотип, название, цена, email/имя, кнопка «Оплатить»); TTL-контроль (expired → заглушка); статусы pending/paid/expired. |
+| PayKeeper интеграция | Высокий | Завершена | POST `/api/pay/[token]/checkout` — создание Order + PayKeeper invoice (sum, orderid, clientid, service_name, client_email); редирект на success/fail. |
+| Страницы success/fail | Средний | Завершена | `/pay/[token]/success` (чек отправлен), `/pay/[token]/fail` (повторить или на главную). |
+| Админка: каталог товаров | Высокий | Завершена | `/portal/admin/personal-products` — таблица с пагинацией, поиск, создание, редактирование, дублирование, удаление (ConfirmDialog), AI-генерация описаний (5 пресетов + произвольный запрос). |
+| Админка: детали товара + ссылки | Высокий | Завершена | `/portal/admin/personal-products/[id]` — информация о товаре, генерация ссылок (с email/именем), копирование в буфер, таблица ссылок со статусами. |
+| Вебхук PayKeeper для PaymentLink | Высокий | Завершена | Обработка webhook: поиск PaymentLink по paykeeperInvoiceId, обновление статуса, Telegram админу + email клиенту при оплате. |
+| Интеграция с CRM и Dashboard | Средний | Завершена | Авто-создание лида при оплате персонального товара; виджет «Персональные продажи» на дашборде. |
+| Уведомления при оплате | Средний | Завершена | Telegram админу + email клиенту при оплате персональной ссылки. |
+
+---
+
+## Этап 15. Модуль «Рассрочка» (Эпик 2)
+
+| Задача | Приоритет | Статус | Описание |
+|--------|-----------|--------|----------|
+| Модели данных (InstallmentPlan, InstallmentPayment) | Высокий | Завершена | Prisma: InstallmentPlan (orderId, totalParts, partAmountRub, status, nextPaymentAt); InstallmentPayment (partNumber, amountRub, status, scheduledAt). Связи с Order. |
+| Логика создания рассрочки при checkout | Высокий | Завершена | POST `/api/portal/admin/installments` — создание Order + InstallmentPlan + N InstallmentPayment; первый платёж — немедленно через PayKeeper. |
+| Cron ежедневных списаний | Высокий | Завершена | GET `/api/cron/installment-payments` (защита CRON_SECRET) — поиск scheduledAt ≤ now, создание PayKeeper invoice, обновление статусов. |
+| Вебхук PayKeeper для рассрочки | Высокий | Завершена | Обработка webhook: orderid вида `ORDER-I1` → обновление InstallmentPayment, проверка всех платежей, автозавершение плана. |
+| Вебхук PayKeeper для PaymentLink | Высокий | Завершена | Обновление PaymentLink.status → paid при оплате через webhook. |
+| API управления рассрочками | Высокий | Завершена | GET/PATCH `/api/portal/admin/installments/[id]` — просмотр, смена статуса (completed/defaulted/cancelled). |
+| Админка: каталог рассрочек | Высокий | Завершена | `/portal/admin/installments` — список с прогресс-баром, статусы, суммы. |
+| Админка: детали рассрочки | Высокий | Завершена | `/portal/admin/installments/[id]` — график платежей, ручное управление статусом. |
+| Уведомления по рассрочке | Средний | Завершена | `lib/installment-notify.ts`: Telegram (создание, платёж, завершена, ошибка, напоминание); email-чеки; email-напоминания за 3/1 день; cron auto-charge + reminders + overdue. |
+| Документация для бухгалтера | Средний | Завершена | `PayKeeper-API-Map.md` — механизм рассрочки, cron, уведомления, финансовые риски (выручка, НДС, неполная оплата, возвраты). |
+
+---
+
 *Новые задачи добавлять в соответствующий этап с указанием приоритета. При выполнении менять статус на «В процессе» / «Завершена».*

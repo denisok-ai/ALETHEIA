@@ -66,6 +66,8 @@ export async function GET() {
       courseId: s.courseId,
       courseTitle: s.course?.title ?? s.name,
       features,
+      installmentEnabled: s.installmentEnabled,
+      maxInstallments: s.maxInstallments,
     };
   });
 

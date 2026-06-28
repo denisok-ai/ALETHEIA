@@ -54,6 +54,8 @@ export interface ServiceRow {
   courseId: string | null;
   courseTitle: string | null;
   isActive: boolean;
+  installmentEnabled: boolean;
+  maxInstallments: number;
   createdAt: string;
 }
 
@@ -86,6 +88,8 @@ export function ServicesAdminBlock() {
     paykeeperTariffId: '',
     courseId: '',
     isActive: true,
+    installmentEnabled: false,
+    maxInstallments: 3,
   });
 
   const load = useCallback(async () => {
@@ -154,6 +158,8 @@ export function ServicesAdminBlock() {
       paykeeperTariffId: '',
       courseId: '',
       isActive: true,
+      installmentEnabled: false,
+      maxInstallments: 3,
     });
     setSaveError(null);
     setFormOpen(true);
@@ -171,6 +177,8 @@ export function ServicesAdminBlock() {
       paykeeperTariffId: s.paykeeperTariffId ?? '',
       courseId: s.courseId ?? '',
       isActive: s.isActive,
+      installmentEnabled: s.installmentEnabled,
+      maxInstallments: s.maxInstallments,
     });
     setSaveError(null);
     setFormOpen(true);
@@ -296,6 +304,8 @@ export function ServicesAdminBlock() {
         paykeeperTariffId: form.paykeeperTariffId.trim() || null,
         courseId: form.courseId.trim() || null,
         isActive: form.isActive,
+        installmentEnabled: form.installmentEnabled,
+        maxInstallments: form.maxInstallments,
       };
       if (isEdit && idForPatch) {
         const res = await fetch(`/api/portal/admin/services/${encodeURIComponent(idForPatch)}`, {
@@ -594,6 +604,46 @@ export function ServicesAdminBlock() {
               <Label htmlFor="svc-active" className="font-normal">
                 Показывать в магазине на главной
               </Label>
+            </div>
+            <div className="space-y-2 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="svc-installment"
+                  checked={form.installmentEnabled}
+                  onChange={(e) => setForm((p) => ({ ...p, installmentEnabled: e.target.checked }))}
+                  className="rounded border-[#E2E8F0]"
+                />
+                <Label htmlFor="svc-installment" className="font-normal">
+                  Доступна рассрочка
+                </Label>
+              </div>
+              {form.installmentEnabled && (
+                <div className="flex items-center gap-3 ml-6">
+                  <span className="text-sm text-gray-600">Максимум частей:</span>
+                  <div className="flex gap-1">
+                    {[2, 3, 4, 5, 6].map((n) => (
+                      <button
+                        key={n}
+                        type="button"
+                        onClick={() => setForm((p) => ({ ...p, maxInstallments: n }))}
+                        className={`px-2.5 py-1 rounded text-sm font-medium transition-colors ${
+                          form.maxInstallments === n
+                            ? 'bg-[#2D1B4E] text-white'
+                            : 'bg-white border hover:bg-gray-100 text-gray-700'
+                        }`}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                  </div>
+                  {form.price >= 10 && (
+                    <span className="text-xs text-gray-400">
+                      ≈ {Math.ceil(form.price / form.maxInstallments).toLocaleString('ru-RU')} ₽/мес
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
             {saveError && <p className="text-sm text-red-600">{saveError}</p>}
             <div className="flex flex-wrap gap-2 border-t border-[#E2E8F0] pt-4">

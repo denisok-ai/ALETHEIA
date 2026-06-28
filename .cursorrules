@@ -19,6 +19,7 @@
 11. **manual-qa-checklist.md** — ручной чек-лист функционала по ролям (гость, студент, менеджер, админ).
 12. **manual-testing-form.md** — форма проведения прогона и шаблон обратной связи по багам.
 13. **Mail-Server.md** — автономная почта @avaterra.pro (Mailcow, DNS, переменные `MAIL_*`), см. также Mail-Current-State.md.
+14. **PayKeeper-API-Map.md** — карта API PayKeeper, рассрочка, учёт для бухгалтера.
 
 ---
 
@@ -27,6 +28,7 @@
 - Решения согласуются с Project.md и Diary.md.
 - После значимых изменений обновлять документацию.
 - При неясностях — сверяться с qa.md.
+- Версионирование: SemVer, CHANGELOG.md.
 
 ---
 
@@ -43,10 +45,24 @@
 - **Framework:** Next.js 14+ (App Router), TypeScript (strict).
 - **Стили:** Tailwind CSS. Цвета: primary #2D1B4E, secondary #D4AF37, dark #0A0E27.
 - **Анимации:** Framer Motion (reveal, модалки), React Three Fiber для 3D (Hero).
-- **UI:** Компоненты в components/ui (button, input, label, dialog).
-- **Платежи:** PayKeeper API (`lib/paykeeper/` — модульный клиент, см. `docs/PayKeeper-API-Map.md`). Валидация webhook по секрету.
-- **БД:** Prisma + SQLite (локально). Схема — prisma/schema.prisma, клиент — lib/db.ts. Для прода — PostgreSQL (сменить provider в schema).
-- **Деплой:** Vercel. Переменные окружения — см. .env.example.
+- **UI:** Компоненты в components/ui (button, input, label, dialog, table, pagination).
+- **Платежи:** PayKeeper API (`lib/paykeeper/` — модульный клиент, см. `docs/PayKeeper-API-Map.md`). Валидация webhook по секрету. Минимум 10₽.
+- **БД:** Prisma + SQLite (локально). Схема — prisma/schema.prisma, клиент — lib/db.ts (`export const prisma`). Для прода — PostgreSQL (сменить provider в schema).
+- **Деплой:** VPS (systemd). `npm run deploy:rsync` (WSL → VPS). Переменные окружения — см. .env.example.
+- **Уведомления:** Telegram Bot API (long-polling), Resend/SMTP для email.
+- **Рассрочка:** InstallmentPlan + InstallmentPayment, cron `/api/cron/installment-payments`, webhook обрабатывает `orderid` вида `ORDER-I1`.
+
+---
+
+## Модули (v3.6.0)
+
+| Модель | Назначение | Файлы |
+|--------|------------|-------|
+| `PersonalProduct` | Персональные товары (разовые услуги) | `app/portal/admin/personal-products/`, `app/api/portal/admin/personal-products/` |
+| `PaymentLink` | Уникальные платёжные ссылки | `app/api/portal/admin/payment-links/`, `app/pay/[token]/` |
+| `InstallmentPlan` | План рассрочки | `app/api/portal/admin/installments/`, `app/portal/admin/installments/` |
+| `InstallmentPayment` | Платежи рассрочки | `app/api/cron/installment-payments/` |
+| `Service` | Товары витрины (с `installmentEnabled`) | `app/portal/admin/shop/`, `app/api/portal/admin/services/` |
 
 ---
 
@@ -56,6 +72,10 @@
 - Безопасность: валидация ввода, не хранить секреты на клиенте, проверка подписи webhook PayKeeper.
 - Переиспользуемые компоненты, понятная структура. В начале новых файлов — краткий комментарий о назначении.
 - Доступность: семантика HTML, фокус, prefers-reduced-motion при анимациях.
+- Импорт Prisma: `import { prisma } from '@/lib/db'` (не `db`).
+- Импорт PayKeeper: `import { createPayKeeperInvoice } from '@/lib/paykeeper'` — тип `PaymentData` использует `sum`, `orderid`, `clientid`, `service_name`, `client_email`.
+- Email: `import { sendTransactionalEmail } from '@/lib/email-service'` — требуется `context: { module, entityId }`.
+- Telegram: `import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify'`.
 
 ---
 
@@ -76,4 +96,4 @@
 - Tailwind: https://tailwindcss.com/docs
 - Framer Motion: https://www.framer.com/motion/
 - PayKeeper: https://help.paykeeper.ru/
-- Supabase: https://supabase.com/docs
+- Prisma: https://www.prisma.io/docs
