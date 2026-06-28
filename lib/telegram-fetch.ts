@@ -63,7 +63,7 @@ export async function telegramApiFetch(input: string, init?: RequestInit): Promi
     } catch (e) {
       lastError = e;
       const msg = e instanceof Error ? e.message : String(e);
-      if (attempt < MAX_RETRIES && /timeout|ECONNRESET|ECONNREFUSED|UND_ERR|abort|REALITY/i.test(msg)) {
+      if (attempt < MAX_RETRIES && /timeout|ECONNRESET|ECONNREFUSED|UND_ERR|abort|REALITY|fetch failed|socket hang up/i.test(msg)) {
         await new Promise((r) => setTimeout(r, RETRY_DELAY_MS * attempt));
         continue;
       }
