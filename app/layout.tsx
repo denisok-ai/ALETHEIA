@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Inter, Lora } from 'next/font/google';
+import localFont from 'next/font/local';
 import nextDynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
@@ -25,17 +25,17 @@ const ChatBot = nextDynamic(
   { ssr: false }
 );
 
-/** Lora + Inter через next/font — без ручного `<head>` (иначе в App Router часто «сыро» без Tailwind/chunk CSS). Кириллица: subsets latin + cyrillic. */
-const lora = Lora({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+/** Lora + Inter — локальные woff2 (self-hosted), чтобы сборка не падала на VPS без доступа к Google Fonts. */
+const lora = localFont({
+  src: [
+    { path: '../public/fonts/Lora-Variable.woff2', style: 'normal' },
+    { path: '../public/fonts/Lora-Italic-Variable.woff2', style: 'italic' },
+  ],
   variable: '--font-lora',
   display: 'swap',
 });
-const inter = Inter({
-  subsets: ['latin', 'cyrillic'],
-  weight: ['400', '500', '600', '700'],
+const inter = localFont({
+  src: '../public/fonts/InterVariable.woff2',
   variable: '--font-inter',
   display: 'swap',
 });
