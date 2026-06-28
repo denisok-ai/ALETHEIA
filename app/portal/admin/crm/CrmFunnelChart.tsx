@@ -2,6 +2,7 @@
 
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { CRM_LEAD_STATUSES, CRM_LEAD_STATUS_FUNNEL_LABEL } from '@/lib/crm-lead-status';
+import { useContainerSize } from '@/lib/useContainerSize';
 const COLORS = ['#f59e0b', '#3b82f6', '#8b5cf6', '#10b981', '#6b7280'];
 
 interface FunnelData {
@@ -17,21 +18,25 @@ export function CrmFunnelChart({ byStatus }: { byStatus: Record<string, number> 
     label: CRM_LEAD_STATUS_FUNNEL_LABEL[s],
   }));
 
+  const { ref, ready } = useContainerSize<HTMLDivElement>();
+
   return (
-    <div className="h-48 w-full min-h-[192px] min-w-0">
-      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
-        <BarChart data={data} layout="vertical" margin={{ top: 8, right: 8, left: 60, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-          <XAxis type="number" tick={{ fontSize: 11 }} />
-          <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={55} />
-          <Tooltip formatter={(v) => [Number(v ?? 0), 'Лидов']} />
-          <Bar dataKey="count" radius={[0, 4, 4, 0]}>
-            {data.map((_, i) => (
-              <Cell key={i} fill={COLORS[i % COLORS.length]} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
+    <div ref={ref} className="h-48 w-full min-h-[192px] min-w-0">
+      {ready && (
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
+          <BarChart data={data} layout="vertical" margin={{ top: 8, right: 8, left: 60, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis type="number" tick={{ fontSize: 11 }} />
+            <YAxis type="category" dataKey="label" tick={{ fontSize: 11 }} width={55} />
+            <Tooltip formatter={(v) => [Number(v ?? 0), 'Лидов']} />
+            <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+              {data.map((_, i) => (
+                <Cell key={i} fill={COLORS[i % COLORS.length]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }

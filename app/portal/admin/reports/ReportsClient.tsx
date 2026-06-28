@@ -18,6 +18,7 @@ import { BarChart3, BookOpen, Users, Calendar, Download, List, FileSpreadsheet, 
 import { format } from 'date-fns';
 import { formatRub, formatIsoDateRu, formatIsoDayMonth } from '@/lib/format-ru';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { useContainerSize } from '@/lib/useContainerSize';
 import { downloadXlsxFromArrays } from '@/lib/export-xlsx';
 import { toast } from 'sonner';
 
@@ -99,6 +100,8 @@ export function ReportsClient() {
   const [userGroupId, setUserGroupId] = useState('');
   const [courseGroupId, setCourseGroupId] = useState('');
   const [groupIntersection, setGroupIntersection] = useState<{ rows: GroupIntersectionRow[] } | null>(null);
+
+  const periodChart = useContainerSize<HTMLDivElement>();
 
   useEffect(() => {
     if (reportType !== 'course-learners') return;
@@ -750,7 +753,8 @@ export function ReportsClient() {
         <>
           <Card className="p-6">
             <h3 className="mb-4 font-heading text-lg font-semibold text-[var(--portal-text)]">Динамика по дням</h3>
-            <div className="h-64 w-full min-h-[256px] min-w-0">
+            <div ref={periodChart.ref} className="h-64 w-full min-h-[256px] min-w-0">
+              {periodChart.ready && (
               <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
                 <LineChart data={byPeriod.rows} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -777,6 +781,7 @@ export function ReportsClient() {
                   <Line yAxisId="right" type="monotone" dataKey="revenue" stroke="#F59E0B" name="Выручка (₽)" strokeWidth={2} dot={{ r: 3 }} />
                 </LineChart>
               </ResponsiveContainer>
+              )}
             </div>
           </Card>
           <Card className="overflow-hidden p-0">

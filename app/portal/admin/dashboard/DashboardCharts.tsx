@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { PORTAL_PATH } from '@/lib/portal-paths';
 import { formatRub } from '@/lib/format-ru';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
+import { useContainerSize } from '@/lib/useContainerSize';
 
 const PERIODS = [7, 30, 90] as const;
 
@@ -34,6 +35,9 @@ export function DashboardCharts({
 
   const hasRevenue = revenueData.some((d) => d.revenue > 0 || d.count > 0);
   const hasActivity = activityData.some((d) => d.enrollments > 0 || d.certificates > 0);
+
+  const revenueChart = useContainerSize<HTMLDivElement>();
+  const activityChart = useContainerSize<HTMLDivElement>();
 
   function setPeriod(p: number) {
     const next = new URLSearchParams(searchParams.toString());
@@ -83,7 +87,8 @@ export function DashboardCharts({
           </div>
         </div>
         {revenueData.length > 0 && hasRevenue ? (
-          <div className="h-64 w-full min-h-[256px]" style={{ minWidth: 0 }}>
+          <div ref={revenueChart.ref} className="h-64 w-full min-h-[256px]" style={{ minWidth: 0 }}>
+            {revenueChart.ready && (
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
               <BarChart data={revenueData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -96,6 +101,7 @@ export function DashboardCharts({
                 <Bar dataKey="revenue" fill="#2D1B4E" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            )}
           </div>
         ) : (
           <div className="py-12 text-center">
@@ -112,7 +118,8 @@ export function DashboardCharts({
       <div className="mt-6 portal-card p-6">
         <h2 className="mb-3 text-lg font-semibold text-[var(--portal-text)]">Активность по дням (записи и сертификаты)</h2>
         {activityData.length > 0 && hasActivity ? (
-          <div className="h-64 w-full min-h-[256px] min-w-0">
+          <div ref={activityChart.ref} className="h-64 w-full min-h-[256px] min-w-0">
+            {activityChart.ready && (
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
               <LineChart data={activityData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -124,6 +131,7 @@ export function DashboardCharts({
                 <Line type="monotone" dataKey="certificates" stroke="#D4AF37" name="Сертификаты" strokeWidth={2} dot={{ r: 3 }} />
               </LineChart>
             </ResponsiveContainer>
+            )}
           </div>
         ) : (
           <div className="py-12 text-center">
