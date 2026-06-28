@@ -15,10 +15,9 @@ const STATE_DIR = process.env.TELEGRAM_POLL_STATE_DIR?.trim() || '/var/lib/aleth
 const STATE_FILE = path.join(STATE_DIR, 'telegram-poll-offset.json');
 
 /** Long-poll timeout (сек) — Telegram держит соединение до этого времени. */
-export const TELEGRAM_LONG_POLL_TIMEOUT_SEC = 30;
-/** HTTP timeout для getUpdates: дольше long-poll + запас на прокси. */
+export const TELEGRAM_LONG_POLL_TIMEOUT_SEC = 15;
 export const TELEGRAM_GET_UPDATES_HTTP_TIMEOUT_MS =
-  (TELEGRAM_LONG_POLL_TIMEOUT_SEC + 15) * 1000;
+  (TELEGRAM_LONG_POLL_TIMEOUT_SEC + 25) * 1000;
 
 const ALLOWED_UPDATES = ['message', 'callback_query'] as const;
 
