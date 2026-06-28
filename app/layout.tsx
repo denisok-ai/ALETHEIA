@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import localFont from 'next/font/local';
 import nextDynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
@@ -23,26 +22,6 @@ const ChatBot = nextDynamic(
   () => import('@/components/ChatBot').then((m) => ({ default: m.ChatBot })),
   { ssr: false }
 );
-
-const lora = localFont({
-  src: [
-    { path: '../public/fonts/lora-cyrillic-wght-normal.woff2', style: 'normal', unicodeRange: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' },
-    { path: '../public/fonts/lora-latin-wght-normal.woff2', style: 'normal', unicodeRange: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' },
-    { path: '../public/fonts/lora-cyrillic-wght-italic.woff2', style: 'italic', unicodeRange: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' },
-    { path: '../public/fonts/lora-latin-wght-italic.woff2', style: 'italic', unicodeRange: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' },
-  ],
-  variable: '--font-lora',
-  display: 'swap',
-});
-
-const inter = localFont({
-  src: [
-    { path: '../public/fonts/inter-cyrillic-wght-normal.woff2', style: 'normal', unicodeRange: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' },
-    { path: '../public/fonts/inter-latin-wght-normal.woff2', style: 'normal', unicodeRange: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' },
-  ],
-  variable: '--font-inter',
-  display: 'swap',
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -131,7 +110,7 @@ export default async function RootLayout({
   const settings = await getSystemSettings();
   const siteUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
   return (
-    <html lang="ru" className={`${lora.variable} ${inter.variable}`}>
+    <html lang="ru">
       <body className="min-h-screen font-body antialiased">
         <JsonLdOrganization siteUrl={siteUrl} phone={settings.contact_phone} />
         <JsonLdWebSite siteUrl={siteUrl} name={BRAND_SITE_NAME} />
