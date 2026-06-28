@@ -10,6 +10,9 @@ import {
   fetchUserCertificates,
   fetchUserCourseProgress,
   fetchUserOpenTickets,
+  fetchPublishedCourses,
+  fetchUserNotifications,
+  fetchUserInstallmentSchedule,
 } from './queries';
 import {
   findUserByTelegramId,
@@ -316,6 +319,75 @@ export async function handleSupportCallback(ctx: BotContext, action: string): Pr
   }
 }
 
+export async function handleCourses(ctx: BotContext): Promise<void> {
+  const courses = await fetchPublishedCourses();
+  if (courses.length === 0) {
+    await botReply(ctx, 'Пока нет опубликованных курсов.', { replyMarkup: backToMainKeyboard() });
+    return;
+  }
+  const { siteUrl } = await getBotSiteSettings();
+  const lines = courses.map((c) => {
+    const price = c.price ? `${c.price.toLocaleString('ru-RU')} ₽` : 'Бесплатно';
+    return `📚 <b>${escapeHtml(c.title)}</b>\n   ${price}${c.description ? `\n   ${escapeHtml(c.description.slice(0, 100))}` : ''}`;
+  });
+  const footer = siteUrl ? `\n\n<a href="${siteUrl}/course/probuzhdenie">Перейти на сайт</a>` : '';
+  await botReply(ctx, `<b>Каталог курсов</b>\n\n${lines.join('\n\n')}${footer}`, {
+    replyMarkup: backToMainKeyboard(),
+  });
+}
+
+export async function handleNotifications(ctx: BotContext): Promise<void> {
+  if (!ctx.telegramUserId) {
+    await botReply(ctx, 'Сначала привяжите аккаунт: /link email@example.com', { replyMarkup: backToMainKeyboard() });
+    return;
+  }
+  const user = await findUserByTelegramId(ctx.telegramUserId);
+  if (!user) {
+    await botReply(ctx, 'Аккаунт не найден. Привяжите: /link email@example.com', { replyMarkup: backToMainKeyboard() });
+    return;
+  }
+  const rows = await fetchUserNotifications(user.id);
+  if (rows.length === 0) {
+    await botReply(ctx, 'У вас пока нет уведомлений.', { replyMarkup: backToMainKeyboard() });
+    return;
+  }
+  const lines = rows.map((r) => {
+    const read = r.isRead ? '✅' : '🔔';
+    const date = r.createdAt.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' });
+    const subject = r.type === 'notification' ? r.content.slice(0, 60) : r.type;
+    return `${read} <b>${escapeHtml(subject)}</b> (${date})`;
+  });
+  await botReply(ctx, `<b>Последние уведомления</b>\n\n${lines.join('\n')}`, {
+    replyMarkup: backToMainKeyboard(),
+  });
+}
+
+export async function handleSchedule(ctx: BotContext): Promise<void> {
+  if (!ctx.telegramUserId) {
+    await botReply(ctx, 'Сначала привяжите аккаунт: /link email@example.com', { replyMarkup: backToMainKeyboard() });
+    return;
+  }
+  const user = await findUserByTelegramId(ctx.telegramUserId);
+  if (!user) {
+    await botReply(ctx, 'Аккаунт не найден. Привяжите: /link email@example.com', { replyMarkup: backToMainKeyboard() });
+    return;
+  }
+  const rows = await fetchUserInstallmentSchedule(user.id);
+  if (rows.length === 0) {
+    await botReply(ctx, 'У вас нет активных рассрочек.', { replyMarkup: backToMainKeyboard() });
+    return;
+  }
+  const statusEmoji: Record<string, string> = { paid: '✅', scheduled: '🕐', overdue: '⚠️', failed: '❌' };
+  const lines = rows.map((r) => {
+    const emoji = statusEmoji[r.status] ?? '❓';
+    const date = r.scheduledAt.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' });
+    return `${emoji} Платёж ${r.partNumber}: ${r.amountRub.toLocaleString('ru-RU')} ₽ — ${date} (${r.status})`;
+  });
+  await botReply(ctx, `<b>График платежей</b>\n\n${lines.join('\n')}`, {
+    replyMarkup: backToMainKeyboard(),
+  });
+}
+
 export async function handleTextInSession(ctx: BotContext, text: string): Promise<boolean> {
   const session = await getBotSession(ctx.chatId);
   if (session.state === 'funnel_freeform') {
@@ -335,6 +407,11 @@ export async function handleTextInSession(ctx: BotContext, text: string): Promis
   if (session.state === 'admin_ticket_reply' && ctx.isAdmin) {
     const { handleAdminTicketReplyMessage } = await import('./admin-handlers');
     await handleAdminTicketReplyMessage(ctx, text);
+    return true;
+  }
+  if (session.state === 'admin_broadcast' && ctx.isAdmin) {
+    const { handleAdminBroadcastMessage } = await import('./admin-handlers');
+    await handleAdminBroadcastMessage(ctx, text);
     return true;
   }
   return false;

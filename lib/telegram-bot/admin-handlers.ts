@@ -30,6 +30,7 @@ import {
   fetchUserCardByEmail,
   postManagerTicketReply,
   searchUsersByEmail,
+  fetchLatestOpenTicket,
 } from './queries';
 import { setSessionState } from './session';
 
@@ -389,6 +390,54 @@ export async function handleNotifyTest(ctx: BotContext): Promise<void> {
     ctx,
     `✅ Тест отправлен вам. Рассылка админам: sent=${stats.sent}, failed=${stats.failed}${stats.skipped ? ', нет подписчиков' : ''}.`
   );
+}
+
+export async function handleAdminBroadcast(ctx: BotContext): Promise<void> {
+  await setSessionState(ctx.chatId, 'admin_broadcast');
+  await reply(ctx, '📢 Введите текст рассылки администраторам:');
+}
+
+export async function handleAdminBroadcastMessage(ctx: BotContext, text: string): Promise<void> {
+  const { notifyAdminsTelegram } = await import('@/lib/telegram-admin-notify');
+  const stats = await notifyAdminsTelegram('contact_lead', [
+    `📢 Рассылка от ${ctx.displayName}:`,
+    text,
+  ]);
+  await reply(ctx, `✅ Отправлено: sent=${stats.sent}, failed=${stats.failed}${stats.skipped ? ', нет подписчиков' : ''}.`);
+}
+
+export async function handleAdminQuickReply(ctx: BotContext): Promise<void> {
+  const ticket = await fetchLatestOpenTicket();
+  if (!ticket) {
+    await reply(ctx, 'Нет открытых тикетов.');
+    return;
+  }
+  await setSessionState(ctx.chatId, 'admin_ticket_reply', { ticketId: ticket.id });
+  const date = ticket.createdAt.toLocaleDateString('ru-RU', { timeZone: 'Europe/Moscow' });
+  await reply(
+    ctx,
+    `📝 Последний тикет: <b>${escapeHtml(ticket.subject)}</b>\nОт: ${escapeHtml(ticket.userEmail)} (${date})\n\nВведите ответ:`,
+    adminBackKeyboard()
+  );
+}
+
+export async function handleAdminHealth(ctx: BotContext): Promise<void> {
+  const { siteUrl } = await getBotSiteSettings();
+  const url = siteUrl || 'https://avaterra.pro';
+  try {
+    const res = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(10000) });
+    const data = (await res.json()) as { ok?: boolean; version?: string; commit?: string; database?: string };
+    if (data.ok) {
+      await reply(
+        ctx,
+        `✅ <b>Сервер здоров</b>\n\nВерсия: ${data.version ?? '?'}\nКоммит: ${data.commit ?? '?'}\nБД: ${data.database ?? '?'}\nHTTP: ${res.status}`
+      );
+    } else {
+      await reply(ctx, `⚠️ Сервер ответил, но ok=false\nHTTP: ${res.status}`);
+    }
+  } catch (e) {
+    await reply(ctx, `❌ Сервер не отвечает: ${e instanceof Error ? e.message : 'timeout'}`);
+  }
 }
 
 export async function handleAdminCallback(ctx: BotContext, action: string, extra?: string): Promise<void> {

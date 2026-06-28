@@ -372,3 +372,94 @@ export async function fetchGuestTicketsByTelegramMeta(
   });
   return tickets;
 }
+
+export type PublishedCourseRow = {
+  id: string;
+  title: string;
+  description: string | null;
+  price: number | null;
+};
+
+export async function fetchPublishedCourses(): Promise<PublishedCourseRow[]> {
+  return prisma.course.findMany({
+    where: { status: 'published' },
+    orderBy: { createdAt: 'desc' },
+    take: 20,
+    select: { id: true, title: true, description: true, price: true },
+  });
+}
+
+export type UserNotificationRow = {
+  id: string;
+  type: string;
+  content: string;
+  createdAt: Date;
+  isRead: boolean;
+};
+
+export async function fetchUserNotifications(userId: string, limit = 5): Promise<UserNotificationRow[]> {
+  return prisma.notification.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+    take: limit,
+    select: { id: true, type: true, content: true, createdAt: true, isRead: true },
+  });
+}
+
+export type InstallmentScheduleRow = {
+  orderNumber: string;
+  partNumber: number;
+  amountRub: number;
+  status: string;
+  scheduledAt: Date;
+};
+
+export async function fetchUserInstallmentSchedule(userId: string): Promise<InstallmentScheduleRow[]> {
+  const plans = await prisma.installmentPlan.findMany({
+    where: { order: { userId } },
+    include: {
+      order: { select: { orderNumber: true } },
+      payments: { orderBy: { partNumber: 'asc' } },
+    },
+  });
+  const rows: InstallmentScheduleRow[] = [];
+  for (const plan of plans) {
+    for (const p of plan.payments) {
+      rows.push({
+        orderNumber: plan.order.orderNumber,
+        partNumber: p.partNumber,
+        amountRub: p.amountRub,
+        status: p.status,
+        scheduledAt: p.scheduledAt,
+      });
+    }
+  }
+  return rows.sort((a, b) => a.scheduledAt.getTime() - b.scheduledAt.getTime());
+}
+
+export type LatestTicketRow = {
+  id: string;
+  subject: string;
+  userEmail: string;
+  createdAt: Date;
+};
+
+export async function fetchLatestOpenTicket(): Promise<LatestTicketRow | null> {
+  const ticket = await prisma.ticket.findFirst({
+    where: { status: { in: ['open', 'in_progress'] } },
+    orderBy: { updatedAt: 'desc' },
+    select: {
+      id: true,
+      subject: true,
+      createdAt: true,
+      user: { select: { email: true } },
+    },
+  });
+  if (!ticket) return null;
+  return {
+    id: ticket.id,
+    subject: ticket.subject,
+    userEmail: ticket.user.email,
+    createdAt: ticket.createdAt,
+  };
+}

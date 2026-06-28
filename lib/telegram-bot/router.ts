@@ -17,6 +17,10 @@ import {
   handleAdminDigest,
   handleAdminTicketReplyPrompt,
   handleNotifyTest,
+  handleAdminBroadcast,
+  handleAdminBroadcastMessage,
+  handleAdminQuickReply,
+  handleAdminHealth,
 } from './admin-handlers';
 import {
   handleCertificates,
@@ -31,6 +35,9 @@ import {
   handleTicketStatus,
   handleUserMainMenu,
   handleFaqCategory,
+  handleCourses,
+  handleNotifications,
+  handleSchedule,
 } from './support-handlers';
 import { handleFunnelChoice, handleFunnelWelcome, shouldShowFunnelOnStart } from './funnel';
 import { handleContentCallback, handleContentCommand } from './content-handlers';
@@ -188,6 +195,15 @@ async function handleCommand(ctx: BotContext): Promise<void> {
     case '/cert':
       await handleCertificates(ctx);
       break;
+    case '/courses':
+      await handleCourses(ctx);
+      break;
+    case '/notifications':
+      await handleNotifications(ctx);
+      break;
+    case '/schedule':
+      await handleSchedule(ctx);
+      break;
     case '/ticket_status':
       await handleTicketStatus(ctx);
       break;
@@ -278,6 +294,27 @@ async function handleCommand(ctx: BotContext): Promise<void> {
         return;
       }
       await handleNotifyTest(ctx);
+      break;
+    case '/broadcast':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      await handleAdminBroadcast(ctx);
+      break;
+    case '/reply':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      await handleAdminQuickReply(ctx);
+      break;
+    case '/health':
+      if (!ctx.isAdmin) {
+        await safeReply(ctx.chatId, '⛔ Команда только для администраторов.');
+        return;
+      }
+      await handleAdminHealth(ctx);
       break;
     default: {
       if (CONTENT_COMMANDS.has(cmd)) {

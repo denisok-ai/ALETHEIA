@@ -45,7 +45,8 @@ export type BotSessionState =
   | 'support_compose'
   | 'funnel_freeform'
   | 'admin_user_search'
-  | 'admin_ticket_reply';
+  | 'admin_ticket_reply'
+  | 'admin_broadcast';
 
 export type BotSession = {
   state: BotSessionState;
