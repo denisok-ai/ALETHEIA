@@ -299,7 +299,9 @@ Telegram Bot API (исходящий getUpdates + sendMessage)
 | ServerName | `www.google.com` |
 | `.env` | `HTTPS_PROXY=http://127.0.0.1:10809` |
 
-**Стабильность:** ⚠️ Интермиттирующая — ~70% запросов проходят, ~30% падают с `REALITY: received real certificate`. Retry-логика в `lib/telegram-fetch.ts` (5 попыток, таймаут 25 сек) компенсирует часть сбоев. Для 100% стабильности нужен другой VPN-сервер или коммерческий прокси.
+**Стабильность:** ✅ 100% (после исправления 2026-06-29). Причина прежних сбоев: на VPN сервере работали **два xray** на порту 443 с разными ключами — старый конфиг `/usr/local/etc/xray-vless.json` конфликтовал с x-ui. После убийства старого процесса и синхронизации ключей прокси стабилен.
+
+**Retry-логика:** `lib/telegram-fetch.ts` — 5 попыток, таймаут 25 сек, паттерны: `timeout|ECONNRESET|ECONNREFUSED|UND_ERR|abort|REALITY|fetch failed|socket hang up`.
 
 **Команды:**
 ```bash
@@ -307,19 +309,32 @@ Telegram Bot API (исходящий getUpdates + sendMessage)
 systemctl is-active xray-avaterra
 journalctl -u xray-avaterra --no-pager -n 20
 
-# Тест прокси
+# Тест прокси (5 попыток)
 source /opt/ALETHEIA/.env
-curl -s --proxy http://127.0.0.1:10809 --connect-timeout 10 --max-time 20 "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe"
+for i in 1 2 3 4 5; do
+  curl -s --proxy http://127.0.0.1:10809 --connect-timeout 10 --max-time 20 "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/getMe" | grep -q '"ok":true' && echo "$i: OK" || echo "$i: FAIL"
+done
 
 # Перезапуск
 systemctl restart xray-avaterra
 ```
 
+**Доступ к VPN серверу:**
+- SSH: `ssh -i ~/.ssh/id_ed25519 root@103.110.64.230` (ключ на локальной машине Windows: `C:\Users\Denisok\.ssh\id_ed25519`)
+- x-ui панель: `http://103.110.64.230:20224/DmTWE0fhhOmSm9wfrW/` (admin / XuiAdmin2026)
+- WireGuard: `amnezia-awg2` контейнер, порт 46877 (AmneziaWG)
+- VPS peer добавлен: `soxjUwHA135+M8GMxCp2zOxVI8Fm2WFQrw1OKj51RxU=` → `10.8.1.10/32`
+
+**Известные проблемы на VPN сервере:**
+- Два xray процесса на порту 443: старый (`/usr/local/etc/xray-vless.json`) и x-ui (`bin/config.json`). Если x-ui перезапускается, старый может подняться снова — убить: `pkill -f xray-vless.json`
+- fail2ban может забанить IP VPS при множественных попытках подключения — разбанить: `fail2ban-client set sshd unbanip <IP>`
+
 **Обновление ключа Reality:**
-1. Через x-ui панель: `http://103.110.64.230:20224/DmTWE0fhhOmSm9wfrW/` (admin / XuiAdmin2026)
-2. Удалить inbound, создать новый с новым ключом
-3. Обновить `publicKey` в `/usr/local/etc/xray-avaterra.json`
-4. `systemctl restart xray-avaterra`
+1. SSH на VPN сервер (ключ `id_ed25519`)
+2. Через x-ui панель удалить/создать inbound
+3. Убедиться что `/usr/local/etc/xray-vless.json` удалён или отключён
+4. Обновить `publicKey` в `/usr/local/etc/xray-avaterra.json` на VPS
+5. `systemctl restart xray-avaterra`
 
 ---
 

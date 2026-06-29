@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.7.0] - 2026-06-28
+## [3.7.0] - 2026-06-28 (обновлён 2026-06-29)
 
 ### Added
 
@@ -20,13 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `/health` — (админ) проверка здоровья сервера через /api/health (версия, коммит, БД).
 - **Тип `BotSessionState` расширен:** добавлено состояние `admin_broadcast` для сессии рассылки.
 - **xray VLESS Reality proxy:** `xray-avaterra.service` на VPS для обхода блокировки Telegram API из РФ. Прокси через VPN сервер `103.110.64.230:443`. HTTP proxy на `127.0.0.1:10809`.
+- **Self-hosted шрифты:** Inter + Lora загружаются через `@font-face` в CSS (fontsource woff2, latin + cyrillic subsets). Сборка не зависит от Google Fonts.
+
+### Fixed
+
+- **Telegram proxy стабилизирован (2026-06-29):** на VPN сервере работали два xray на порту 443 с разными ключами. Убран старый процесс, ключи синхронизированы. Прокси стабилен 100%.
+- **VPS разбанен в fail2ban** на VPN сервере.
+- **WireGuard peer** добавлен в `amnezia-awg2` (порт 46877) для будущего использования.
 
 ### Changed
 
 - **Telegram API timeout:** увеличен с 8 до 25 секунд (`lib/telegram-fetch.ts`).
-- **Telegram retry логика:** 5 попыток с exponential backoff для timeout/ECONNRESET/fetch failed/REALITY ошибок.
+- **Telegram retry логика:** 5 попыток с exponential backoff для timeout/ECONNRESET/fetch failed/REALITY/socket hang up ошибок.
 - **Long-poll timeout:** уменьшен с 30 до 15 секунд для быстрого восстановления при сбоях прокси.
-- **Self-hosted шрифты:** Inter + Lora загружаются через `@font-face` в CSS (fontsource woff2, latin + cyrillic subsets). Сборка не зависит от Google Fonts.
 
 ## [3.6.1] - 2026-06-28
 
