@@ -16,12 +16,11 @@ export async function GET() {
     null;
 
   let databaseOk = false;
-  let databaseMessage: string | undefined;
   try {
     await prisma.$queryRaw`SELECT 1`;
     databaseOk = true;
   } catch (e) {
-    databaseMessage = e instanceof Error ? e.message : 'database_unreachable';
+    console.error('[health] database check failed:', e);
   }
 
   const ok = databaseOk;
@@ -33,7 +32,6 @@ export async function GET() {
       version,
       commit,
       database: databaseOk ? 'ok' : 'error',
-      ...(databaseMessage ? { databaseError: databaseMessage } : {}),
     },
     {
       status,

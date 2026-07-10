@@ -58,7 +58,7 @@
     "build": "next build",
     "build:clean": "node scripts/clean-next.mjs && next build",
     "build:server": "NODE_OPTIONS='--max-old-space-size=1536' next build",
-    "start": "next start",
+    "start": "next start -H 127.0.0.1",
     "start:debug": "NODE_OPTIONS='--inspect' next start",
     "lint": "next lint",
     "predeploy": "npm run lint && npm run build",

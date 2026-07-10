@@ -5,26 +5,15 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { getEnvOverrides } from '@/lib/settings';
 import { runMailingSend } from '@/lib/mailing-send';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
-  const overrides = await getEnvOverrides();
-  const secret = overrides.cron_secret;
-  if (!secret) {
-    return NextResponse.json(
-      { error: 'Cron secret not configured. Set CRON_SECRET.' },
-      { status: 503 }
-    );
-  }
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace(/^Bearer\s+/i, '').trim();
-  if (token !== secret) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = await requireCronAuth(request);
+  if (authError) return authError;
 
   const now = new Date();
   const mailings = await prisma.mailing.findMany({

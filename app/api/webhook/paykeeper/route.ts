@@ -102,6 +102,26 @@ export async function POST(request: NextRequest) {
         });
         return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
       }
+      const installmentPaidAmount = Number(sum);
+      if (
+        !Number.isFinite(installmentPaidAmount) ||
+        Math.round(installmentPaidAmount) !== payment.amountRub
+      ) {
+        console.warn('[PayKeeper webhook] installment_amount_mismatch', {
+          orderid,
+          expected: payment.amountRub,
+          received: sum,
+        });
+        await writePaykeeperIntegrationLog({
+          direction: 'inbound',
+          event: 'webhook.installment_amount_mismatch',
+          status: 'error',
+          orderNumber: orderid,
+          message: `Сумма webhook (${sum}) ≠ сумме платежа рассрочки (${payment.amountRub})`,
+          payload: { expectedRub: payment.amountRub, receivedSum: sum },
+        });
+        return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+      }
       if (payment.status === 'paid') {
         await writePaykeeperIntegrationLog({
           direction: 'inbound', event: 'webhook.installment_idempotent', status: 'success',

@@ -254,13 +254,7 @@ export async function GET() {
         payment_email[k] = resolvePaymentEmailField(raw, DEFAULT_PAYMENT_EMAIL_TEMPLATES.genericBody);
       }
     }
-    if (PAYKEEPER_SENSITIVE.has(k)) {
-      try {
-        keysOut[k] = v ? decrypt(v) : '';
-      } catch {
-        keysOut[k] = '';
-      }
-    } else if (SENSITIVE_KEYS.has(k)) {
+    if (PAYKEEPER_SENSITIVE.has(k) || SENSITIVE_KEYS.has(k)) {
       keysOut[k] = v.length > 0;
     } else {
       keysOut[k] = PAYKEEPER_SERVER_KEYS.has(k)

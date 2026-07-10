@@ -25,11 +25,31 @@ export function isLoopbackHostname(host: string): boolean {
   return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '::1';
 }
 
+/** Первый не-loopback URL из кандидатов; в production loopback никогда не применяется. */
+export function pickPublicSiteUrl(candidates: Array<string | null | undefined>): string {
+  const fallback = 'https://avaterra.pro';
+  const isProd = process.env.NODE_ENV === 'production';
+
+  for (const candidate of candidates) {
+    const trimmed = candidate?.trim();
+    if (!trimmed) continue;
+    try {
+      const host = new URL(normalizeSiteUrl(trimmed)).hostname;
+      if (isProd && isLoopbackHostname(host)) continue;
+      return normalizeSiteUrl(trimmed);
+    } catch {
+      continue;
+    }
+  }
+
+  return fallback;
+}
+
 /**
  * NextAuth читает `NEXTAUTH_URL` из `process.env` на запросах.
  *
  * **Приоритет источников:** `nextauth_url` в БД (Портал → Настройки) → `site_url` в БД →
- * `NEXT_PUBLIC_URL` → `NEXTAUTH_URL` в `.env` (только если из БД не задано ни одного URL).
+ * `NEXT_PUBLIC_URL` → `NEXTAUTH_URL` в `.env`.
  *
  * В `development`, если в БД **нет** поля `nextauth_url`, не подставляем продакшен-`site_url`
  * (иначе next-auth/react: `CLIENT_FETCH_ERROR` при открытии с localhost). Явный `nextauth_url`
@@ -43,14 +63,14 @@ export function applyNextAuthUrlToProcessEnv(params: {
   const site = params.siteUrl?.trim();
   const pub = process.env.NEXT_PUBLIC_URL?.trim() || '';
   const envFallback = process.env.NEXTAUTH_URL?.trim() || '';
-  const raw = explicit || site || pub || envFallback;
-  if (!raw) return;
 
   if (process.env.NODE_ENV === 'development') {
     if (explicit) {
       Reflect.set(process.env, 'NEXTAUTH_URL', normalizeSiteUrl(explicit));
       return;
     }
+    const raw = site || pub || envFallback;
+    if (!raw) return;
     try {
       const host = new URL(normalizeSiteUrl(raw)).hostname;
       if (!isLoopbackHostname(host)) return;
@@ -59,31 +79,23 @@ export function applyNextAuthUrlToProcessEnv(params: {
     }
   }
 
-  /**
-   * В production нельзя применять из БД URL на localhost — иначе ломается getServerSession,
-   * админские API отдают 403, а блок «Состояние интеграций» из‑за пустого JSON показывает всё красным.
-   */
-  let effective = raw;
-  if (process.env.NODE_ENV === 'production' && explicit) {
-    try {
-      const explicitHost = new URL(normalizeSiteUrl(explicit)).hostname;
-      if (isLoopbackHostname(explicitHost)) {
-        const withoutExplicit = site || pub || envFallback;
-        if (withoutExplicit) {
-          console.warn(
-            '[applyNextAuthUrlToProcessEnv] В production nextauth_url в БД указывает на localhost — игнорируем, используем site_url / NEXT_PUBLIC_URL / NEXTAUTH_URL из .env'
-          );
-          effective = withoutExplicit;
-        }
+  const effective = pickPublicSiteUrl([explicit, site, pub, envFallback]);
+  const prev = process.env.NEXTAUTH_URL?.trim();
+  if (prev !== effective) {
+    const hadLoopback = [explicit, site, pub, envFallback].some((c) => {
+      if (!c?.trim()) return false;
+      try {
+        return isLoopbackHostname(new URL(normalizeSiteUrl(c)).hostname);
+      } catch {
+        return false;
       }
-    } catch {
-      const withoutExplicit = site || pub || envFallback;
-      if (withoutExplicit) {
-        console.warn('[applyNextAuthUrlToProcessEnv] Некорректный nextauth_url в БД — используем запасной URL');
-        effective = withoutExplicit;
-      }
+    });
+    if (hadLoopback) {
+      console.warn(
+        `[applyNextAuthUrlToProcessEnv] Loopback URL в настройках — NEXTAUTH_URL=${effective}`
+      );
     }
   }
 
-  Reflect.set(process.env, 'NEXTAUTH_URL', normalizeSiteUrl(effective));
+  Reflect.set(process.env, 'NEXTAUTH_URL', effective);
 }

@@ -3,12 +3,15 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = checkRateLimit(request, 'unsubscribe', 5);
+  if (rateLimitRes) return rateLimitRes;
   let body: { email?: string };
   try {
     body = await request.json();

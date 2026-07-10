@@ -5,6 +5,13 @@
 
 const windowMs = 60 * 1000; // 1 minute
 const store = new Map<string, { count: number; resetAt: number }>();
+let callsSinceSweep = 0;
+
+function sweepExpired(now: number): void {
+  for (const [key, entry] of store) {
+    if (now >= entry.resetAt) store.delete(key);
+  }
+}
 
 function getKey(prefix: string, ip: string): string {
   return `${prefix}:${ip}`;
@@ -32,6 +39,11 @@ export function checkRateLimit(
   const ip = getClientIp(request);
   const key = getKey(prefix, ip);
   const now = Date.now();
+  callsSinceSweep += 1;
+  if (callsSinceSweep >= 200) {
+    callsSinceSweep = 0;
+    sweepExpired(now);
+  }
   let entry = store.get(key);
 
   if (!entry) {

@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { publicationCommentSchema } from '@/lib/validations/publication';
 import { logPersonalDataConsent } from '@/lib/consent-log';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET(
   _request: NextRequest,
@@ -39,6 +40,9 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitRes = checkRateLimit(request, 'publication-comment', 8);
+  if (rateLimitRes) return rateLimitRes;
+
   const { id } = await params;
   const session = await getServerSession(authOptions);
 

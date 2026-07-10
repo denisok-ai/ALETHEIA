@@ -4,25 +4,14 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { syncAllEnabledMailboxes } from '@/lib/inmail-sync';
-import { getEnvOverrides } from '@/lib/settings';
+import { requireCronAuth } from '@/lib/cron-auth';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
 
 export async function GET(request: NextRequest) {
-  const overrides = await getEnvOverrides();
-  const secret = overrides.cron_secret;
-  if (!secret) {
-    return NextResponse.json(
-      { error: 'Cron secret not configured. Set CRON_SECRET.' },
-      { status: 503 }
-    );
-  }
-  const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace(/^Bearer\s+/i, '').trim();
-  if (token !== secret) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authError = await requireCronAuth(request);
+  if (authError) return authError;
 
   const results = await syncAllEnabledMailboxes();
   return NextResponse.json({

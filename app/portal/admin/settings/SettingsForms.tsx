@@ -77,8 +77,8 @@ interface SettingsKeys {
   email_payment_generic_body?: string;
   paykeeper_server: string;
   paykeeper_login: string;
-  paykeeper_password: string;
-  paykeeper_secret: string;
+  paykeeper_password: string | boolean;
+  paykeeper_secret: string | boolean;
   paykeeper_use_test: boolean;
   paykeeper_test_server: string;
   paykeeper_test_login: string;
@@ -260,8 +260,8 @@ export function SettingsForms() {
       ...p,
       paykeeper_server: keys.paykeeper_server ?? '',
       paykeeper_login: keys.paykeeper_login ?? '',
-      paykeeper_password: keys.paykeeper_password ?? '',
-      paykeeper_secret: keys.paykeeper_secret ?? '',
+      paykeeper_password: typeof keys.paykeeper_password === 'string' ? keys.paykeeper_password : '',
+      paykeeper_secret: typeof keys.paykeeper_secret === 'string' ? keys.paykeeper_secret : '',
     }));
     setPaykeeperTest((p) => ({
       ...p,

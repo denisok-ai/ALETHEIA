@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { hash } from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import { prisma } from '@/lib/db';
 import { writeAuditLog } from '@/lib/audit';
 
@@ -11,9 +12,10 @@ const TEMP_PASSWORD_LENGTH = 12;
 
 function generateTempPassword(): string {
   const chars = 'abcdefghjkmnpqrstuvwxyzABCDEFGHJKMNPQRSTUVWXYZ23456789';
+  const bytes = randomBytes(TEMP_PASSWORD_LENGTH);
   let s = '';
   for (let i = 0; i < TEMP_PASSWORD_LENGTH; i++) {
-    s += chars[Math.floor(Math.random() * chars.length)];
+    s += chars[bytes[i]! % chars.length];
   }
   return s;
 }

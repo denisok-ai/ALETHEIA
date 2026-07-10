@@ -21,9 +21,13 @@ Environment=TZ=Europe/Moscow
 # (иначе импорт правит prisma/dev.db в /opt, а сервис стартует из другого каталога / с другим DATABASE_URL).
 EnvironmentFile=-/opt/ALETHEIA/.env
 Environment=NODE_OPTIONS=--max-old-space-size=512
+# Слушать только localhost — снаружи доступ через nginx :443
+Environment=HOSTNAME=127.0.0.1
 ExecStart=/usr/bin/npm run start
 Restart=always
 RestartSec=5
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Install]
 WantedBy=multi-user.target

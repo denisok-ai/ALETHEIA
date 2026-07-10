@@ -13,7 +13,6 @@ const ALLOWED_TYPES = [
   'image/png',
   'image/gif',
   'image/webp',
-  'image/svg+xml',
   'application/pdf',
   'video/mp4',
   'video/webm',
@@ -52,7 +51,7 @@ export async function POST(request: NextRequest) {
   }
 
   const ext = file.name.split('.').pop()?.toLowerCase() || 'bin';
-  const safeExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'mp4', 'webm', 'mp3', 'wav', 'txt', 'doc', 'docx'];
+  const safeExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'pdf', 'mp4', 'webm', 'mp3', 'wav', 'txt', 'doc', 'docx'];
   const safeExt = safeExts.includes(ext) ? ext : 'bin';
   const safeName = `${nanoid(10)}.${safeExt}`;
   const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'media');

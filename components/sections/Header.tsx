@@ -45,7 +45,7 @@ const navLinks: NavLink[] = [
   },
   { href: '/blog', label: 'Блог' },
   { href: '/about', label: 'О мастере', shortLabel: 'Мастер' },
-  { href: '/faq', label: 'Вопросы и ответы', shortLabel: 'FAQ' },
+  { href: '/faq', label: 'Вопросы и ответы' },
   { href: '/contacts', label: 'Контакты' },
 ];
 

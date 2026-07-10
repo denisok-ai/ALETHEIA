@@ -26,7 +26,10 @@ export async function middleware(request: NextRequest) {
   if (token && AUTH_PAGES.includes(path)) {
     const role = (token.role as string) ?? 'user';
     const home = getPortalHomeForRole(role).path;
-    return NextResponse.redirect(new URL(home, request.url));
+    const url = request.nextUrl.clone();
+    url.pathname = home;
+    url.search = '';
+    return NextResponse.redirect(url);
   }
 
   if (!path.startsWith(PORTAL_PREFIX)) {
