@@ -106,18 +106,22 @@
 
 Для фоновых задач по расписанию используется общий секрет **`CRON_SECRET`** (БД или `.env`), заголовок: `Authorization: Bearer <CRON_SECRET>`.
 
+**Обязателен на проде:** модуль `lib/cron-auth.ts` (`requireCronAuth`) при **отсутствии** секрета возвращает **503** (раньше проверка пропускалась). Без `CRON_SECRET` cron-маршруты недоступны — это ожидаемое поведение. Одноразовая настройка на VPS: `scripts/setup-cron-secret-prod.sh`; проверка: `grep ^CRON_SECRET= /opt/ALETHEIA/.env` (значение не логировать).
+
 | Маршрут | Назначение |
 |---------|------------|
 | `GET /api/cron/mailings-send` | Запланированные рассылки |
 | `GET /api/cron/inmail-sync` | Синхронизация IMAP-ящиков (**Входящие**) |
+| `GET /api/cron/installment-payments` | Рассрочка: напоминания, автосписание, overdue |
 
-На Vercel добавьте вызовы в [Cron Jobs](https://vercel.com/docs/cron-jobs); на VPS — `crontab` + `curl`. Учитывайте `maxDuration` маршрутов (например 60 с): при большом потоке писем синк продолжится со следующего запуска по сохранённому UID.
+На Vercel добавьте вызовы в [Cron Jobs](https://vercel.com/docs/cron-jobs); на VPS — `scripts/install-aletheia-http-cron.sh` (файл `/etc/cron.d/aletheia-http-cron`) или `crontab` + `scripts/cron-http-call.sh`.
 
 **Пример ручной проверки cron с сервера (подставьте URL и секрет):**
 
 ```bash
 curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/cron/mailings-send"
 curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/cron/inmail-sync"
+curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/cron/installment-payments"
 ```
 
 Ожидается HTTP 200 и JSON с кратким отчётом; при неверном секрете — 401.

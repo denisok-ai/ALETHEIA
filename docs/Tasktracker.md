@@ -2,7 +2,7 @@
 
 Отслеживание прогресса разработки. Основа — этапы и требования из `docs/Project.md`.
 
-**Версия продукта (package.json):** 3.5.4 — см. CHANGELOG [3.5.4] (2026-06-15): Telegram long-polling; Phase 1 bot UX (/about, FAQ); deploy hardening; SSL renewal до 2026-09-13. Предыдущий релиз [3.5.3] (2026-06-14): CRM backfill; прод-аудит VPS.  
+**Версия продукта (package.json):** 3.7.0 — см. CHANGELOG [3.7.0]: Security hardening (2026-07-10); Telegram bot commands; xray proxy. Предыдущий релиз [3.6.0] (2026-06-27): персональные товары, рассрочка.  
 **База трекера:** 3.0 (портал, роли, SCORM, сертификаты, коммуникации).  
 **Легенда статусов:** Не начата | В процессе | Завершена  
 **Приоритеты:** Критический | Высокий | Средний | Низкий
@@ -327,6 +327,21 @@
 | Админка: детали рассрочки | Высокий | Завершена | `/portal/admin/installments/[id]` — график платежей, ручное управление статусом. |
 | Уведомления по рассрочке | Средний | Завершена | `lib/installment-notify.ts`: Telegram (создание, платёж, завершена, ошибка, напоминание); email-чеки; email-напоминания за 3/1 день; cron auto-charge + reminders + overdue. |
 | Документация для бухгалтера | Средний | Завершена | `PayKeeper-API-Map.md` — механизм рассрочки, cron, уведомления, финансовые риски (выручка, НДС, неполная оплата, возвраты). |
+
+---
+
+## Этап 16. Аудит ИБ и hardening (2026-07-10)
+
+| Задача | Приоритет | Статус | Описание |
+|--------|-----------|--------|----------|
+| Обязательный CRON_SECRET | Критический | Завершена | `lib/cron-auth.ts`; без секрета → 503; VPS: `setup-cron-secret-prod.sh`, `/etc/cron.d/aletheia-http-cron`. |
+| VPS: ufw, sshd, bind 127.0.0.1 | Критический | Завершена | `security-hardening-prod.sh`, `security-phase2-prod.sh`, `restore-ufw-prod.sh`; ufw 22/80/443 + Mailcow 25/587/993. |
+| SCORM nginx auth_request | Высокий | Завершена | `GET /api/portal/scorm/access-check`; `apply-nginx-scorm-auth-prod.sh`. |
+| Rate limits (login, unsubscribe, comments) | Высокий | Завершена | `lib/rate-limit.ts` + sweep; NextAuth credentials, `/api/unsubscribe`, publication comments. |
+| PayKeeper: валидация суммы рассрочки | Высокий | Завершена | Webhook сверяет amount с `InstallmentPayment.amountRub`. |
+| CSP, admin GET mask, health | Средний | Завершена | `next.config.mjs`; admin settings GET; SVG upload removed; `/api/health` без leak ошибок БД. |
+| Fix login redirect после bind localhost | Критический | Завершена | `middleware.ts`, `lib/site-url.ts`, `app/auth/callback/route.ts`. |
+| security-verify-prod.sh | Средний | Завершена | Read-only квартальный аудит; см. Production-Server.md §6.2, Support.md. |
 
 ---
 

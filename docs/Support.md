@@ -26,7 +26,7 @@
 | `docs/` | Документация |
 | `docs/Personal-Data-RKN-Checklist.md` | **Персональные данные и РКН:** чеклист для уведомления оператора, сверки с текстами `/privacy` и `/pd-consent` |
 | `docs/Local-Prisma.md` | **Локальный запуск** (Prisma + SQLite) |
-| `docs/Production-Server.md` | **Продуктивный VPS:** обновление, единый каталог `/opt/ALETHEIA`, диагностика `npm run prod:diagnostics`, аудит `scripts/run-prod-audit.sh`, §12 — снимок от 2026-06-15 |
+| `docs/Production-Server.md` | **Продуктивный VPS:** обновление, единый каталог `/opt/ALETHEIA`, диагностика `npm run prod:diagnostics`, аудит `scripts/run-prod-audit.sh`, **§6.2 / §12 — hardening ИБ 2026-07-10**, `scripts/security-verify-prod.sh` |
 | `docs/Server-Setup.md` | **Legacy** (старый сценарий `/var/www` + PM2) — не путать с текущим продом |
 | `docs/Portal-Redesign-Plan.md` | **План доработки портала** — эталон «Мои курсы», список страниц по ролям |
 | `docs/User-Journey-Audit.md` | **Аудит пользовательского пути** — от заявки/покупки до ЛК и поддержки, сценарии и план доработок |
@@ -65,6 +65,17 @@
 5. Освободить порт без лишнего шума: **`fuser -k 3000/tcp`** (Linux) или `kill $(lsof -t -i:3000)` только если `lsof` что-то вернул.
 
 ### Прод-сервер: аудит, fail2ban, пустой CRM
+
+**Верификация безопасности (read-only, раз в квартал или после инцидента):** на VPS
+
+```bash
+cd /opt/ALETHEIA
+sudo bash scripts/security-verify-prod.sh | tee ~/security-verify-$(date +%F).txt
+```
+
+Проверяет: sshd :22 + keys, ufw (без 5173), Next.js на 127.0.0.1:3000, `CRON_SECRET`, `/etc/cron.d/aletheia-http-cron`, SCORM anon denied, права `.env`/`dev.db`, health. При `FAIL>0` — см. `docs/Production-Server.md` §6.2; восстановление ufw: `sudo bash scripts/restore-ufw-prod.sh`.
+
+**Первичный hardening (один раз или после переустановки):** `security-hardening-prod.sh` → `setup-cron-secret-prod.sh` → `install-aletheia-http-cron.sh` → `security-phase2-prod.sh` → `apply-nginx-scorm-auth-prod.sh` → `security-post-setup-prod.sh` (все в `scripts/`, на VPS от root). **Не ставить** `iptables-persistent` — ломает ufw.
 
 **Полный аудит VPS (фазы 0–6):** с WSL в корне репозитория — `bash scripts/run-prod-audit.sh` (все фазы) или `bash scripts/run-prod-audit.sh 3` (одна фаза). Скрипт по SSH копирует и запускает `scripts/prod-audit-remote.sh` на `95.181.224.70`; лог сохраняется в `/tmp/prod-audit-*.log`. Требуется SSH-ключ (по умолчанию `~/.ssh/avaterra_deploy_nopass`, см. комментарии в скрипте). Итоговое состояние — `docs/Production-Server.md` §12.
 

@@ -2,6 +2,51 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-07-10 — Аудит ИБ: код + VPS hardening
+
+### Наблюдения
+- Cron `/api/cron/installment-payments` на проде был **открыт** (при отсутствии `CRON_SECRET` проверка пропускалась). Webhook рассрочки не сверял сумму платежа.
+- В git-документации были секреты VPN/x-ui (удалены, ротация на VPN-сервере — вручную: нет SSH-ключа с агента).
+- UFW допускал порт **5173** без слушателя; HTTP cron для рассылок/IMAP/рассрочки не был настроен в `/etc/cron.d`.
+
+### Решения
+- Код: `lib/cron-auth.ts`, обязательный Bearer; валидация суммы рассрочки; rate limit login; маскировка секретов в admin GET; убран SVG upload; security headers.
+- VPS: `security-hardening-prod.sh` (ufw 22/80/443, sshd drop-in, HSTS, chmod 600 `.env`/`dev.db`); `CRON_SECRET` в `.env`; `/etc/cron.d/aletheia-http-cron`; бэкапы `.env` зашифрованы gpg.
+- Скрипты: `cron-http-call.sh`, `install-aletheia-http-cron.sh`, `security-post-setup-prod.sh`, `setup-cron-secret-prod.sh`.
+
+### 2026-07-10 (фаза 2) — сеть и sshd
+- Next.js привязан к **127.0.0.1:3000** (`next start -H 127.0.0.1`); снаружи :3000 недоступен.
+- **PasswordAuthentication no** (исправлен `50-cloud-init.conf` + drop-in).
+- **DOCKER-USER** iptables для dev-портов 6333/8888/8001/8002/9000/9001.
+- Mailcow на том же VPS: почтовые порты 25/587/993 — штатно публичны; панель nginx на 127.0.0.1:8088.
+- **Инцидент:** установка `iptables-persistent` удалила `ufw` — восстановлен вручную (`restore-ufw-prod.sh`); в phase2 больше не ставим iptables-persistent.
+
+### 2026-07-10 (фаза 3) — CSP и SCORM
+- **CSP** в `next.config.mjs` (default-src self, object-src none, frame-src self).
+- **SCORM:** `GET /api/portal/scorm/access-check` + nginx `auth_request` на `/uploads/scorm/` — без сессии **403**; SSH не менялся.
+
+### 2026-07-10 (фаза 4) — верификация и мелкие доработки
+- Rate limit на POST комментариев публикаций (8 req/min); sweep устаревших записей в `lib/rate-limit.ts`.
+- Скрипт `scripts/security-verify-prod.sh` — read-only аудит (SSH :22, ufw, cron, SCORM, права); fix `sshd -T` через `/usr/sbin/sshd -T -f`.
+- `scripts/vpn-reality-rotate-local.sh` — чеклист ротации Reality на VPN (вручную, нет SSH с агента).
+- **Инцидент:** ufw снова был deinstall (после iptables-persistent) — восстановлен `restore-ufw-prod.sh`; добавлены порты Mailcow 25/587/993 в скрипты ufw.
+
+### 2026-07-10 — поломка входа «Вход» → localhost:3000
+- **Причина:** после `next start -H 127.0.0.1` middleware редиректил залогиненных с `/login` через `new URL(home, request.url)` — база URL стала `http://127.0.0.1:3000`, браузер уходил на `localhost:3000/portal/admin/dashboard`.
+- **Исправление:** `middleware.ts` — `request.nextUrl.clone()` вместо `new URL(..., request.url)`; `lib/site-url.ts` — в production игнорировать loopback из всех источников (`pickPublicSiteUrl`); `app/auth/callback/route.ts` — редирект через `request.nextUrl.clone()`; nginx `proxy_redirect` localhost→avaterra.pro (страховка до деплоя middleware).
+
+### 2026-07-10 — прочие доработки
+- **Rate limit:** login (`POST …/callback/credentials`, 10 req/min), отписка (`POST /api/unsubscribe`, 5), комментарии публикаций (`POST …/comments`, 8); периодический sweep устаревших записей в `lib/rate-limit.ts` (каждые 200 вызовов).
+- **Admin GET настроек:** секреты (`SENSITIVE_KEYS`, PayKeeper password/secret) отдаются как boolean «задано», не plaintext.
+- **Загрузки:** SVG убран из разрешённых MIME (снижение XSS через uploaded SVG).
+- **Навигация:** пункт FAQ в `Header.tsx` переименован в **«Вопросы и ответы»** (как на `/faq` и в чек-листе QA).
+- **Документация:** секреты VPN/x-ui удалены из `Production-Server.md` — значения только на VPS / в менеджере паролей.
+
+### Проблемы
+- **iptables-persistent ↔ ufw:** установка `iptables-persistent` дважды снимала ufw (`deinstall`) — восстановление `scripts/restore-ufw-prod.sh`; в `security-phase2-prod.sh` больше не ставим iptables-persistent.
+- **Ротация Reality VPN:** с агента нет SSH на VPN-сервер — чеклист `scripts/vpn-reality-rotate-local.sh` для ручного запуска.
+- **Деплой после bind 127.0.0.1:** обязателен выкат `middleware.ts` + `lib/site-url.ts`, иначе редирект после входа ломается.
+
 ## 2026-06-27 — Аудит прод-сервера + модуль «Персональные товары»
 
 ### Наблюдения

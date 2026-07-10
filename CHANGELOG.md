@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.7.0] - 2026-06-28 (обновлён 2026-06-29)
+## [3.7.0] - 2026-06-28 (обновлён 2026-07-10)
+
+### Security (2026-07-10)
+
+- **Cron:** `lib/cron-auth.ts` — обязательный `CRON_SECRET`; без секрета маршруты `/api/cron/*` → 503; на VPS — `/etc/cron.d/aletheia-http-cron` + `scripts/cron-http-call.sh`.
+- **PayKeeper:** webhook рассрочки сверяет сумму платежа с `InstallmentPayment.amountRub` (лог `installment_amount_mismatch` при расхождении).
+- **Rate limits:** login (10/min), unsubscribe (5/min), комментарии публикаций (8/min); sweep устаревших записей в `lib/rate-limit.ts`.
+- **Admin settings GET:** секреты маскируются (boolean «задано»); загрузка SVG отключена.
+- **Headers / CSP:** `next.config.mjs` — CSP (`default-src 'self'`, `object-src 'none'`, `frame-src 'self'`), Permissions-Policy; `/api/health` не отдаёт текст ошибки БД клиенту.
+- **Prod bind:** `npm run start` → `next start -H 127.0.0.1` (порт 3000 только localhost); fix редиректа после входа (`middleware.ts`, `lib/site-url.ts`, `app/auth/callback`).
+- **SCORM:** `GET /api/portal/scorm/access-check` + nginx `auth_request` на `/uploads/scorm/` (`scripts/apply-nginx-scorm-auth-prod.sh`).
+- **VPS hardening:** ufw 22/80/443 + Mailcow 25/587/993; sshd port 22 + keys only; скрипты `security-hardening-prod.sh`, `security-verify-prod.sh`, `restore-ufw-prod.sh`, `ssh-safety-guard.sh`.
+- **UI:** FAQ в шапке — «Вопросы и ответы» (`Header.tsx`).
 
 ### Added
 

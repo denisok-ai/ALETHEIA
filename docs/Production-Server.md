@@ -25,6 +25,7 @@
 
 - **Рекомендуемый запуск:** **systemd** — unit `aletheia.service`.
 - **Пример unit:** [`scripts/systemd/aletheia.service.example`](../scripts/systemd/aletheia.service.example) — поля **`WorkingDirectory=/opt/ALETHEIA`** и `ExecStart=npm run start` должны указывать на **тот же** каталог, где выполняли `npm run build`.
+- **Привязка на проде:** `npm run start` в `package.json` задаёт **`next start -H 127.0.0.1`** — Node слушает только **127.0.0.1:3000**; снаружи доступен только через nginx (443). Не открывать :3000 в ufw.
 - **Порт upstream для nginx:** по умолчанию **3000** (переопределяется `PORT` в `.env` — тогда в nginx `proxy_pass` должен совпадать).
 - **`NODE_ENV`:** `production` (в unit или окружении).
 - **Секреты и URL:** файл **`.env`** в `/opt/ALETHEIA` (в git не коммитится). Список переменных — [.env.example](../.env.example), подробнее — [Env-Config.md](Env-Config.md).
@@ -41,7 +42,8 @@
 - **Конфиг сайта:** `/etc/nginx/sites-available/aletheia` → симлинк `sites-enabled/aletheia`.
 - **Схема:** HTTPS (443) и/или HTTP → `proxy_pass http://127.0.0.1:3000` (или другой порт из `.env`).
 - **Кеш `proxy_cache`:** если для `location /` включены `proxy_cache` и длинный `proxy_cache_valid 200`, nginx может отдавать **устаревший HTML/RSC** после деплоя. Рекомендация: для динамики не кешировать ответы приложения (`proxy_no_cache` / отдельный `location` только для `/_next/static/`). Пример без кеша HTML — [`scripts/nginx-aletheia.conf`](../scripts/nginx-aletheia.conf).
-- **Заголовки безопасности:** в приложении заданы `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` ([`next.config.mjs`](../next.config.mjs) → `headers`). При дублировании тех же имён в nginx убедитесь, что значения совпадают; **HSTS** и принудительный **HTTPS** обычно задаются в nginx/certbot, не в Next.js.
+- **Заголовки безопасности:** в приложении заданы `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, **Content-Security-Policy** и `Permissions-Policy` ([`next.config.mjs`](../next.config.mjs) → `headers`). CSP: `default-src 'self'`, `object-src 'none'`, `frame-src 'self'`. При дублировании тех же имён в nginx убедитесь, что значения совпадают; **HSTS** и принудительный **HTTPS** обычно задаются в nginx/certbot, не в Next.js.
+- **SCORM static (`/uploads/scorm/`):** на проде — nginx **`auth_request`** → внутренний `location = /internal/scorm-auth-check` → `GET /api/portal/scorm/access-check` (с cookie сессии). Без авторизации — **401/403**. Установка/патч: [`scripts/apply-nginx-scorm-auth-prod.sh`](../scripts/apply-nginx-scorm-auth-prod.sh). Проверка: `curl -s -o /dev/null -w '%{http_code}' https://avaterra.pro/uploads/scorm/` без cookie → не 200.
 - **После правок:** `sudo nginx -t && sudo systemctl reload nginx`.
 
 **Чеклист обзора (при инцидентах или раз в квартал):** убедиться, что для HTML/RSC не включён агрессивный `proxy_cache` на `location /`; при медленном `next/image` на сервере — установлен **sharp** в `/opt/ALETHEIA` (см. §2). План перехода на **PostgreSQL** при росте нагрузки — [Deploy.md](Deploy.md) (раздел про БД).
@@ -90,6 +92,33 @@
 | **Деплой без git** | С ПК (WSL): **`npm run deploy:rsync`** → [`scripts/deploy-rsync-from-local.sh`](../scripts/deploy-rsync-from-local.sh) (по умолчанию `root@95.181.224.70:/opt/ALETHEIA`). Локальный **`next build` до** остановки сервиса на VPS; rsync **`lib/`**, **`app/`**, `.next/`, `scripts/`; на сервере — только **systemd** (PM2 удаляется), рестарт `aletheia` + **`aletheia-telegram-poll.service`**. **Не запускать** `deploy:rsync` на самом VPS. |
 | **Mailcow (черновик)** | [`scripts/setup-mailcow-docker-vps.sh`](../scripts/setup-mailcow-docker-vps.sh) — на VPS от root: Docker + clone Mailcow в `/opt/mailcow-dockerized`; дальше `generate_config.sh`, TLS/DNS — [Mail-Server.md](Mail-Server.md). |
 | **Telegram-бот** | **Long-polling:** `aletheia-telegram-poll.service` → `scripts/telegram-poll-daemon.ts` → `lib/telegram-long-poll.ts`; webhook **не** регистрируется (`getWebhookInfo.url` пуст). Токен и Chat ID — БД (Портал → Настройки → Интеграции); «Обновить команды бота» — `deleteWebhook` + `setMyCommands`. Исходящие вызовы — `HTTPS_PROXY` / `TELEGRAM_API_TIMEOUT_MS` в `.env`. См. [Support.md — Telegram](Support.md#telegram-бот-long-polling-токен-блокировки). |
+| **Безопасность (2026-07-10)** | Код: `lib/cron-auth.ts` (обязательный `CRON_SECRET`), rate limits, маскировка секретов в admin GET, CSP в `next.config.mjs`, health без leak ошибок БД. VPS: ufw, sshd keys-only :22, HTTP cron, SCORM auth_request. См. §12, §13, [Diary.md — 2026-07-10](Diary.md). |
+
+## 6.2 Безопасность продуктивного VPS (2026-07-10)
+
+Краткий порядок первичного hardening (на сервере от root, каталог `/opt/ALETHEIA`):
+
+1. **Бэкап и базовый hardening:** `sudo bash scripts/security-hardening-prod.sh` — ufw **22/80/443** + Mailcow **25/587/993**, sshd drop-in (порт **22**, `PasswordAuthentication no`, `PubkeyAuthentication yes`), chmod **600** на `.env` и `prisma/dev.db`, HSTS в nginx.
+2. **CRON_SECRET:** `sudo bash scripts/setup-cron-secret-prod.sh` → добавить секрет в `.env` (не коммитить).
+3. **HTTP cron:** `sudo bash scripts/install-aletheia-http-cron.sh` → `/etc/cron.d/aletheia-http-cron` (рассылки */5, IMAP */15, рассрочка hourly) через `scripts/cron-http-call.sh`.
+4. **Фаза 2 (сеть):** `sudo bash scripts/security-phase2-prod.sh` — подтверждение bind 127.0.0.1, DOCKER-USER для dev-портов Docker. **Не ставить** `iptables-persistent` — конфликтует с ufw (см. инциденты ниже).
+5. **SCORM nginx:** `sudo bash scripts/apply-nginx-scorm-auth-prod.sh`.
+6. **Пост-настройка:** `sudo bash scripts/security-post-setup-prod.sh` — шифрование бэкапов `.env` (gpg), закрытие лишних ufw-правил (5173).
+
+**Верификация (read-only, раз в квартал или после инцидента):**
+
+```bash
+cd /opt/ALETHEIA
+sudo bash scripts/security-verify-prod.sh | tee ~/security-verify-$(date +%F).txt
+```
+
+Ожидается `Summary: FAIL=0`. При сбое ufw после iptables: `sudo bash scripts/restore-ufw-prod.sh`.
+
+**Перед reload sshd:** `sudo bash scripts/ssh-safety-guard.sh` — проверка порта 22 и PubkeyAuthentication.
+
+**Инциденты (2026-07-10):** установка `iptables-persistent` дважды приводила к **deinstall ufw** — правила firewall сбрасывались; восстановлено `restore-ufw-prod.sh` (включая порты Mailcow). В phase2 скриптах iptables-persistent больше не используется.
+
+**Ротация Reality VPN (103.110.64.230):** локальный чеклист `scripts/vpn-reality-rotate-local.sh` (SSH на VPN вручную); ключи **не** хранить в git — см. §14.1.
 
 ## 6.1 Развёртывание приложения без git на сервере + почта
 
@@ -214,32 +243,29 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 
 ## 12. Зафиксировано на сервере
 
-*Обновляйте таблицу после смены хоста, домена или способа запуска. После `git pull` на VPS полезно прогнать **раздел 9** и при необходимости **раздел 10**.*
+*Обновляйте таблицу после смены хоста, домена или способа запуска. После `git pull` на VPS полезно прогнать **раздел 9** и **`scripts/security-verify-prod.sh`** (раз в квартал).*
 
-| Поле | Значение (актуально на 2026-06-15) |
+| Поле | Значение (актуально на 2026-07-10) |
 |------|-------------------------------------|
-| Дата аудита | **2026-06-15** (деплой **3.5.5**, рестарт `aletheia-jobs`) |
-| Версия приложения | **3.5.5** (`/api/health` → `version`, **200**) |
+| Дата аудита ИБ | **2026-07-10** (код + VPS hardening, см. [Diary.md](Diary.md)) |
+| Версия приложения | **3.7.0** (`/api/health` → `version`) |
 | SSL Let's Encrypt | `avaterra.pro` + `www`, `mail.avaterra.pro` — продлены **2026-06-15**, истекают **2026-09-13** |
 | Хост VPS | p941004.kvmvps, Ubuntu 24.04 LTS, IP 95.181.224.70 |
 | Активный корень приложения | /opt/ALETHEIA |
-| Git на проде (после аудита) | **bef9e6d** — deploy 3.5.5; `/api/health` → `commit` совпадает |
-| Документация (репо) | **8348dfe**, **b73e914**, **81f551b** (audit §12); **f84ccfe** (Diary CRM); код backfill — **c4f5ed4** |
-| Unit systemd | aletheia.service: `EnvironmentFile=-/opt/ALETHEIA/.env`, `DATABASE_URL=file:/opt/ALETHEIA/prisma/dev.db` (абсолютный путь в `.env`), `NODE_OPTIONS=--max-old-space-size=512`, `Restart=always`, `WorkingDirectory=/opt/ALETHEIA` |
-| Порт Node | 3000 (nginx → 127.0.0.1:3000) |
-| Тип БД | SQLite, /opt/ALETHEIA/prisma/dev.db; миграции Prisma — без pending |
-| CRM (после аудита) | Таблица `Lead` была **0 строк** (не баг UI); backfill из заказов — **7 лидов** (`npm run db:backfill-leads-from-orders`, см. Support.md) |
-| Файл nginx vhost | /etc/nginx/sites-enabled/aletheia — `location /` без proxy_cache (только `/_next/static/` и `/_next/image`) |
-| fail2ban | Установлен; jails: **sshd**, **nginx-http-auth**, **nginx-limit-req** (`/etc/fail2ban/jail.local`) |
-| Mailcow | /opt/mailcow-dockerized; `docker-compose.override.yml` — лимиты RAM mysql/sogo/rspamd/clamd; **SOGo включён** |
-| Docker | `/etc/docker/daemon.json` — json-file, max-size=10m, max-file=3 |
-| journald | `SystemMaxUse=500M` в `/etc/systemd/journald.conf`; освобождено **~2.9 GB** на диске |
-| Бэкап перед работами | `/root/backups/20260614/` — dev.db.bak (~5.1 MB), public-uploads.tar.gz (~1.4 GB), .env.bak |
-| PM2 | Дубликат **aletheia** удалён (~657k restarts); рабочий процесс Next.js — **только systemd**; PM2 не используется как fallback при деплое |
-| Telegram poll worker | **`aletheia-telegram-poll.service`** — `scripts/telegram-poll-daemon.ts`, offset `/var/lib/aletheia/telegram-poll-offset.json`; webhook **не** зарегистрирован |
-| Content jobs worker | **`aletheia-jobs.service`** — `scripts/jobs-daemon.ts` (Site Radar, weekly plan, daily publish); лог `/var/log/aletheia-jobs.log` |
-| DenisBot1 (Python) | **Не развёрнут** на VPS (2026-06-15); единый бот — TypeScript long-poll |
-| Скрипт аудита | [`scripts/run-prod-audit.sh`](../scripts/run-prod-audit.sh) (WSL → SSH) + [`scripts/prod-audit-remote.sh`](../scripts/prod-audit-remote.sh) на VPS (фазы 0–6) |
+| Unit systemd | aletheia.service: `EnvironmentFile=-/opt/ALETHEIA/.env`, `DATABASE_URL=file:/opt/ALETHEIA/prisma/dev.db`, `WorkingDirectory=/opt/ALETHEIA` |
+| Порт Node | **127.0.0.1:3000** (`next start -H 127.0.0.1`); nginx → proxy_pass localhost:3000 |
+| ufw | **active:** 22, 80, 443, 25, 587, 993 (Mailcow); **5173 закрыт**; DOCKER-USER блокирует dev-порты Docker снаружи |
+| sshd | Порт **22**, `PasswordAuthentication no`, `PubkeyAuthentication yes` (drop-in + исправлен `50-cloud-init.conf`) |
+| CRON_SECRET | В `/opt/ALETHEIA/.env`; cron `/etc/cron.d/aletheia-http-cron` (рассылки / IMAP / рассрочка) |
+| SCORM static | nginx `auth_request` на `/uploads/scorm/` → `/api/portal/scorm/access-check` |
+| Права файлов | `.env` и `prisma/dev.db` — mode **600** |
+| fail2ban | jails: **sshd**, **nginx-http-auth**, **nginx-limit-req** |
+| Mailcow | /opt/mailcow-dockerized; UI nginx на **127.0.0.1:8088**; SMTP/IMAP порты публичны |
+| Telegram poll worker | **`aletheia-telegram-poll.service`**; xray proxy `127.0.0.1:10809` |
+| Content jobs worker | **`aletheia-jobs.service`** |
+| PM2 | **Не используется** — только systemd |
+| Скрипт верификации ИБ | [`scripts/security-verify-prod.sh`](../scripts/security-verify-prod.sh) (read-only) |
+| Предыдущий аудит | 2026-06-15 (деплой 3.5.5) — см. историю в git / Diary |
 
 ---
 
@@ -256,6 +282,17 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 | [`scripts/deploy-rsync-from-local.sh`](../scripts/deploy-rsync-from-local.sh) | Деплой с **WSL** без обновления git на VPS. |
 | [`scripts/nginx-clear-proxy-cache.sh`](../scripts/nginx-clear-proxy-cache.sh) | Только сброс proxy-кеша nginx + reload (нужен root). |
 | [`scripts/nginx-aletheia.conf`](../scripts/nginx-aletheia.conf) | Пример reverse proxy **без** кеша HTML для Next. |
+| [`scripts/security-hardening-prod.sh`](../scripts/security-hardening-prod.sh) | Бэкап, ufw (22/80/443 + Mailcow 25/587/993), sshd drop-in (порт 22 + ключи), nginx HSTS, права `.env`/`dev.db`. |
+| [`scripts/security-post-setup-prod.sh`](../scripts/security-post-setup-prod.sh) | HTTP cron, nginx upload locations, шифрование бэкапов `.env` (gpg), закрытие ufw 5173. |
+| [`scripts/security-verify-prod.sh`](../scripts/security-verify-prod.sh) | **Read-only** аудит ИБ: sshd :22, ufw, bind 127.0.0.1:3000, CRON_SECRET, SCORM, health, права файлов. Раз в квартал. |
+| [`scripts/cron-http-call.sh`](../scripts/cron-http-call.sh) | Вызов `/api/cron/*` с Bearer из `.env`. |
+| [`scripts/install-aletheia-http-cron.sh`](../scripts/install-aletheia-http-cron.sh) | `/etc/cron.d/aletheia-http-cron` (рассылки / IMAP / рассрочка). |
+| [`scripts/security-phase2-prod.sh`](../scripts/security-phase2-prod.sh) | Фаза 2: Next.js на 127.0.0.1, sshd без паролей, DOCKER-USER для dev-портов. **Без iptables-persistent.** |
+| [`scripts/restore-ufw-prod.sh`](../scripts/restore-ufw-prod.sh) | Восстановить ufw (22/80/443 + Mailcow 25/587/993) + DOCKER-USER в `after.rules` после конфликта с iptables-persistent. |
+| [`scripts/apply-nginx-scorm-auth-prod.sh`](../scripts/apply-nginx-scorm-auth-prod.sh) | nginx `auth_request` для `/uploads/scorm/` (доступ только с сессией портала). |
+| [`scripts/ssh-safety-guard.sh`](../scripts/ssh-safety-guard.sh) | Guard перед reload sshd: порт 22 + PubkeyAuthentication yes. |
+| [`scripts/setup-cron-secret-prod.sh`](../scripts/setup-cron-secret-prod.sh) | Одноразово: добавить `CRON_SECRET` в `.env` на VPS. |
+| [`scripts/vpn-reality-rotate-local.sh`](../scripts/vpn-reality-rotate-local.sh) | Чеклист ротации Reality на VPN-сервере (вручную с SSH на 103.110.64.230). |
 | [`scripts/systemd/aletheia.service.example`](../scripts/systemd/aletheia.service.example) | Пример unit systemd. |
 
 **npm на ПК:** `npm run deploy:rsync` — обёртка над rsync-скриптом.
@@ -293,9 +330,9 @@ Telegram Bot API (исходящий getUpdates + sendMessage)
 | Прокси | HTTP на `127.0.0.1:10809` |
 | VPN сервер | `103.110.64.230:443` |
 | Протокол | VLESS Reality |
-| UUID | `f507c415-ad09-4c44-a012-75a3b2213bd3` |
-| PublicKey | `1zoeXM_RbhiAYX4nDGmbmpJ9AmJragay62ZR2XleHFY` |
-| ShortId | `d696d8ee721e815f` |
+| UUID | *(см. `/usr/local/etc/xray-avaterra.json` на VPS — не хранить в git)* |
+| PublicKey | *(см. конфиг xray на VPS)* |
+| ShortId | *(см. конфиг xray на VPS)* |
 | ServerName | `www.google.com` |
 | `.env` | `HTTPS_PROXY=http://127.0.0.1:10809` |
 
@@ -320,10 +357,9 @@ systemctl restart xray-avaterra
 ```
 
 **Доступ к VPN серверу:**
-- SSH: `ssh -i ~/.ssh/id_ed25519 root@103.110.64.230` (ключ на локальной машине Windows: `C:\Users\Denisok\.ssh\id_ed25519`)
-- x-ui панель: `http://103.110.64.230:20224/DmTWE0fhhOmSm9wfrW/` (admin / XuiAdmin2026)
-- WireGuard: `amnezia-awg2` контейнер, порт 46877 (AmneziaWG)
-- VPS peer добавлен: `soxjUwHA135+M8GMxCp2zOxVI8Fm2WFQrw1OKj51RxU=` → `10.8.1.10/32`
+- SSH: `ssh -i ~/.ssh/id_ed25519 root@103.110.64.230` (ключ только на локальной машине, не в репозитории)
+- x-ui панель: URL и учётные данные — в менеджере паролей / на VPN-сервере (не коммитить в git)
+- WireGuard: порт 46877 (AmneziaWG); peer VPS — см. конфиг на VPN-сервере
 
 **Известные проблемы на VPN сервере:**
 - Два xray процесса на порту 443: старый (`/usr/local/etc/xray-vless.json`) и x-ui (`bin/config.json`). Если x-ui перезапускается, старый может подняться снова — убить: `pkill -f xray-vless.json`
