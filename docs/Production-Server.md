@@ -118,6 +118,8 @@ sudo bash scripts/security-verify-prod.sh | tee ~/security-verify-$(date +%F).tx
 
 **Инциденты (2026-07-10):** установка `iptables-persistent` дважды приводила к **deinstall ufw** — правила firewall сбрасывались; восстановлено `restore-ufw-prod.sh` (включая порты Mailcow). В phase2 скриптах iptables-persistent больше не используется.
 
+**Исходящая почта (2026-07-13):** после ufw-инцидентов nft **MAILCOW isolation** в Mailcow блокировала return TCP в `br-mailcow` — Postfix не доставлял на внешние MX (timeout :25), хотя с хоста порт открыт. Исправление: `DISABLE_NETFILTER_ISOLATION_RULE=y` в `/opt/mailcow-dockerized/mailcow.conf`, flush chain MAILCOW, рестарт netfilter/unbound/postfix. Проверка: `bash scripts/prod-mailcow-outbound-check-remote.sh`. Подробнее — [Diary.md — 2026-07-13](Diary.md), [Mail-Server.md](Mail-Server.md).
+
 **Ротация Reality VPN (103.110.64.230):** локальный чеклист `scripts/vpn-reality-rotate-local.sh` (SSH на VPN вручную); ключи **не** хранить в git — см. §14.1.
 
 ## 6.1 Развёртывание приложения без git на сервере + почта

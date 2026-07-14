@@ -2,6 +2,36 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-07-13 — Исходящая почта Mailcow: DNS + nft isolation
+
+### Наблюдения
+- В SOGo/webmail накопились **Delayed Mail (still being retried)** от `MAILER-DAEMON@mail.avaterra.pro`.
+- Ошибка MX: `Name service error for name=list.ru type=MX: Host not found` — Postfix не мог резолвить через `unbound-mailcow` (кратковременные сбои Unbound после рестартов).
+- После восстановления MX доставка всё равно не шла: `connect to mxs.mail.ru:25: Connection timed out` **только из контейнера Postfix**; с хоста `nc mxs.mail.ru 25` — OK.
+- **tcpdump:** SYN-ACK на `eth0` не доходил до `br-mailcow` — сработало правило nft **MAILCOW isolation** (`iifname != "br-mailcow" oifname "br-mailcow" ip protocol tcp drop`), оставшееся после инцидентов с ufw/iptables **2026-07-10**.
+
+### Решения
+- В `/opt/mailcow-dockerized/mailcow.conf`: **`DISABLE_NETFILTER_ISOLATION_RULE=y`** (штатная опция Mailcow, не костыль в Postfix).
+- Пересоздан/рестарт **`netfilter-mailcow`**, **`nft flush chain ip filter MAILCOW`**, рестарт **`unbound-mailcow`** + **`postfix-mailcow`**, **`postqueue -f`**.
+- Проверка: MX `list.ru` → `10 mxs.mail.ru.` из unbound/postfix; SMTP `220 ESMTP ready`; **очередь пуста** (4 отложенных письма ушли).
+
+### Инструменты
+- Скрипт **`scripts/prod-mailcow-outbound-check-remote.sh`** — read-only аудит; **`--fix`** — повтор стандартного восстановления.
+- Скрипт **`scripts/prod-system-health-check-remote.sh`** — аудит всех модулей (systemd, cron, nginx, docker, security-verify).
+- Раздел «Исходящая доставка» в [Mail-Server.md](Mail-Server.md).
+
+## 2026-07-13 (вечер) — Аудит модулей прода
+
+### Наблюдения
+- Полный read-only аудит VPS: **aletheia**, nginx, telegram-poll, jobs, cron HTTP, Mailcow, ufw, fail2ban — **OK**; `security-verify-prod.sh` **20/0/0**.
+- WARN в логах: PayKeeper `PL-*` — ложное «товар не найден» для `personal-*` tariffId (обработка payment link уже в webhook); inmail-sync `EAI_AGAIN` 12.07 (DNS почты, до фикса); telegram-poll рестарты 12.07 каждые 5 мин из‑за агрессивного `telegram-webhook-health.sh` при сбое прокси.
+- Failed units не из стека: `apparmor.service`, `wg-quick@wg-tg.service`.
+
+### Решения
+- Код: `processPaidOrder` распознаёт `personal-{id}`, не дублирует письмо/Telegram для payment link.
+- `telegram-webhook-health.sh`: cooldown 30 мин на рестарт poll; при сбое прокси — только outline, без рестарта poll.
+- `scripts/prod-system-health-check-remote.sh` + отчёт `prod-system-health-report.txt`.
+
 ## 2026-07-10 — Аудит ИБ: код + VPS hardening
 
 ### Наблюдения

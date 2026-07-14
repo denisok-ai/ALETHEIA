@@ -126,6 +126,35 @@ npm run mailcow:apply-branding
 
 Пустой `mailbox.attributes` (`{}`) после SQL-создания ящика — отдельная частая причина; пакетно: `bash scripts/prod-mailcow-fix-mailbox-attrs-remote.sh`. Не открывайте **`/SOGo/so/`** напрямую — это API без сессии; используйте **`/SOGo/`**. После правок — жёсткое обновление страницы (Ctrl+Shift+R).
 
+## Исходящая доставка (Delayed Mail / MX / timeout)
+
+Сообщения **MAILER-DAEMON** «Delayed Mail (still being retried)» — это Postfix на `mail.avaterra.pro`, не приложение Next.js.
+
+| Симптом в bounce | Вероятная причина | Действие |
+|------------------|-------------------|----------|
+| `type=MX: Host not found, try again` | **`unbound-mailcow`** недоступен или ещё стартует; Postfix резолвит через `@unbound` (172.22.1.254) | `docker compose ps unbound-mailcow`; логи `docker compose logs unbound-mailcow`; `docker compose up -d unbound-mailcow && docker compose restart postfix-mailcow` |
+| MX резолвится, `connect to …:25: Connection timed out` **из контейнера**, с хоста порт 25 открыт | Правило **nft MAILCOW isolation** блокирует **return TCP** в Docker bridge после инцидентов ufw/iptables | В `mailcow.conf`: **`DISABLE_NETFILTER_ISOLATION_RULE=y`**; рестарт `netfilter-mailcow`, `nft flush chain ip filter MAILCOW`, рестарт postfix; см. [Diary.md — 2026-07-13](Diary.md) |
+| Всё резолвится, очередь не пустеет | Отложенные письма в defer | `docker compose exec -T postfix-mailcow postqueue -f` и `mailq` |
+
+**Быстрая проверка с WSL:**
+
+```bash
+bash scripts/prod-mailcow-outbound-check-remote.sh
+# при подтверждённой регрессии:
+bash scripts/prod-mailcow-outbound-check-remote.sh --fix
+```
+
+Ручная проверка на VPS (`/opt/mailcow-dockerized`):
+
+```bash
+docker compose exec -T postfix-mailcow dig +short MX list.ru @unbound
+docker compose exec -T postfix-mailcow bash -lc 'echo QUIT | nc -w5 mxs.mail.ru 25'
+docker compose exec -T postfix-mailcow mailq
+nft list chain ip filter MAILCOW
+```
+
+Не подменяйте резолвер Postfix на `8.8.8.8`, пока не включён осознанный режим **`SKIP_UNBOUND=y`** по документации Mailcow.
+
 ## Инструменты в репозитории
 
 | Путь | Назначение |
@@ -144,4 +173,5 @@ npm run mailcow:apply-branding
 | [`scripts/prod-mailcow-test-sogo-imap-remote.sh`](../scripts/prod-mailcow-test-sogo-imap-remote.sh) | С WSL: IMAP/SOGo smoke для ящика |
 | [`scripts/prod-inmail-sync-all-remote.sh`](../scripts/prod-inmail-sync-all-remote.sh) | С WSL: IMAP-sync всех включённых `InboundMailbox`, обновление `lastSyncStatus` в UI |
 | [`scripts/mail-e2e-selfcheck-remote.sh`](../scripts/mail-e2e-selfcheck-remote.sh) | С WSL: полный E2E (тестовый ящик → IMAP → SMTP на admin@ → sync → cleanup); **`npm run mail:e2e-selfcheck`** |
+| [`scripts/prod-mailcow-outbound-check-remote.sh`](../scripts/prod-mailcow-outbound-check-remote.sh) | С WSL: DNS/unbound, nft MAILCOW, очередь Postfix; **`--fix`** — стандартное восстановление исходящей доставки |
 | [`scripts/append-own-smtp-env-prod.sh`](../scripts/append-own-smtp-env-prod.sh) | Включить `MAIL_USE_OWN_SMTP` + `EMAIL_TRANSPORT=smtp` на проде |

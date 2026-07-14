@@ -37,16 +37,24 @@ fi
 if systemctl is-active --quiet aletheia-telegram-poll.service 2>/dev/null; then
   echo "$(date -Is) poll_worker=active"
 else
-  echo "$(date -Is) WARN: aletheia-telegram-poll.service not active — restarting"
-  systemctl restart aletheia-telegram-poll.service 2>/dev/null || true
+  RESTART_COOLDOWN=/var/run/aletheia-telegram-poll-restart.ts
+  now=$(date +%s)
+  last=0
+  [[ -f "$RESTART_COOLDOWN" ]] && last=$(stat -c %Y "$RESTART_COOLDOWN" 2>/dev/null || echo 0)
+  if (( now - last > 1800 )); then
+    echo "$(date -Is) WARN: aletheia-telegram-poll.service not active — restarting"
+    systemctl restart aletheia-telegram-poll.service 2>/dev/null || true
+    touch "$RESTART_COOLDOWN"
+  else
+    echo "$(date -Is) WARN: poll inactive but restart cooldown active (${last})"
+  fi
 fi
 
-# Прокси для исходящих
+# Прокси для исходящих — рестарт только outline; poll не трогаем (иначе каждые 5 мин при blip прокси).
 if [[ -n "$PROXY" ]]; then
   CODE=$(curl -sS -o /dev/null -w "%{http_code}" --connect-timeout 8 -x "$PROXY" https://api.telegram.org/ || echo "000")
   if [[ "$CODE" != "302" && "$CODE" != "200" ]]; then
-    echo "$(date -Is) WARN: proxy $PROXY telegram http=$CODE — restart outline"
+    echo "$(date -Is) WARN: proxy $PROXY telegram http=$CODE — restart outline only"
     systemctl restart outline-ss-local outline-telegram-proxy 2>/dev/null || true
-    systemctl restart aletheia-telegram-poll.service 2>/dev/null || true
   fi
 fi

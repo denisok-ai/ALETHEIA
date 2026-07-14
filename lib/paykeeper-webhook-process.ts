@@ -12,7 +12,7 @@ import { wrapEmailHtml } from '@/lib/email-templates';
 import { sendTransactionalEmail } from '@/lib/email-service';
 import { triggerNotification } from '@/lib/notifications';
 import { createPasswordToken } from '@/lib/password-token';
-import { findActiveServiceForOrderTariff } from '@/lib/order-service';
+import { findActiveServiceForOrderTariff, findPersonalProductForOrderTariff } from '@/lib/order-service';
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
@@ -138,10 +138,17 @@ export async function processPaidOrder(
   const service = order.tariffId
     ? await findActiveServiceForOrderTariff(order.tariffId)
     : null;
+  const personalProduct = order.tariffId
+    ? await findPersonalProductForOrderTariff(order.tariffId)
+    : null;
+  const paymentLink =
+    personalProduct != null
+      ? await prisma.paymentLink.findFirst({ where: { orderId: order.id } })
+      : null;
   const courseId = service?.courseId ?? null;
 
-  if (order.tariffId && !service) {
-    const msg = `Заказ ${orderNumber}: tariffId="${order.tariffId}" — активный товар не найден (slug / paykeeperTariffId).`;
+  if (order.tariffId && !service && !personalProduct) {
+    const msg = `Заказ ${orderNumber}: tariffId="${order.tariffId}" — активный товар не найден (slug / paykeeperTariffId / personal).`;
     console.warn(`[PayKeeper] ${msg}`);
     warnings.push(msg);
   } else if (service && !courseId) {
@@ -323,7 +330,7 @@ export async function processPaidOrder(
       loginUrl,
       successUrl,
       portal_title: portalTitle,
-      courseTitle: '',
+      courseTitle: personalProduct?.name ?? '',
       userName: 'уважаемый клиент',
       orderAmount,
       supportEmail,
@@ -331,17 +338,22 @@ export async function processPaidOrder(
       ofertaUrl,
       company_address: settings.company_legal_address?.trim() || '',
     };
-    const subject = renderPaymentEmailTemplate(paymentTpl.genericSubject, vars);
-    const body = renderPaymentEmailTemplate(paymentTpl.genericBody, vars);
-    const mailRes = await sendPaymentEmail({
-      order,
-      subject,
-      html: body,
-      userId: resultUserId ?? order.userId ?? null,
-    });
-    if (!mailRes.ok) {
-      console.error('[PayKeeper] Send generic payment email:', mailRes.error);
-      warnings.push('Не удалось отправить письмо об оплате.');
+    // Платёжная ссылка (personal-*): письмо и Telegram уже отправлены в webhook до processPaidOrder.
+    if (!paymentLink) {
+      const subject = renderPaymentEmailTemplate(paymentTpl.genericSubject, vars);
+      const body = renderPaymentEmailTemplate(paymentTpl.genericBody, vars);
+      const mailRes = await sendPaymentEmail({
+        order,
+        subject,
+        html: body,
+        userId: resultUserId ?? order.userId ?? null,
+      });
+      if (!mailRes.ok) {
+        console.error('[PayKeeper] Send generic payment email:', mailRes.error);
+        warnings.push('Не удалось отправить письмо об оплате.');
+      }
+    } else {
+      emailKind = 'none';
     }
   }
 
@@ -376,13 +388,16 @@ export async function processPaidOrder(
     });
   }
 
-  notifyAdminsTelegramAsync('payment_received', [
-    `Заказ: ${orderNumber}`,
-    `Сумма: ${orderAmount}`,
-    `Email: ${order.clientEmail.trim()}`,
-    ...(courseTitleLabel ? [`Курс: ${courseTitleLabel}`] : []),
-    enrollmentCreated ? 'Зачисление: да' : 'Зачисление: нет',
-  ]);
+  if (!paymentLink) {
+    notifyAdminsTelegramAsync('payment_received', [
+      `Заказ: ${orderNumber}`,
+      `Сумма: ${orderAmount}`,
+      `Email: ${order.clientEmail.trim()}`,
+      ...(personalProduct ? [`Персональный товар: ${personalProduct.name}`] : []),
+      ...(courseTitleLabel ? [`Курс: ${courseTitleLabel}`] : []),
+      enrollmentCreated ? 'Зачисление: да' : 'Зачисление: нет',
+    ]);
+  }
 
   return result;
 }

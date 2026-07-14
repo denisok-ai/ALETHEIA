@@ -101,3 +101,7 @@ scripts/_run_remote_prod_fix.sh
 scripts/_ssh_test.sh
 scripts/test-write.txt
 scripts/lineedit.py
+
+# Generated prod audit reports
+prod-system-health-report.txt
+mail-dns-report.txt

@@ -54,6 +54,34 @@ export function orderTariffIdForStorage(service: ServiceForOrderTariff): string 
   return pk || service.slug;
 }
 
+const PERSONAL_TARIFF_PREFIX = 'personal-';
+
+/** Ключ заказа персонального товара: `personal-{PersonalProduct.id}`. */
+export function parsePersonalProductIdFromTariff(tariffId: string | null | undefined): string | null {
+  const raw = tariffId?.trim();
+  if (!raw?.startsWith(PERSONAL_TARIFF_PREFIX)) return null;
+  const id = raw.slice(PERSONAL_TARIFF_PREFIX.length).trim();
+  return id || null;
+}
+
+export type PersonalProductForOrder = {
+  id: string;
+  name: string;
+  priceRub: number;
+  isActive: boolean;
+};
+
+export async function findPersonalProductForOrderTariff(
+  tariffId: string
+): Promise<PersonalProductForOrder | null> {
+  const productId = parsePersonalProductIdFromTariff(tariffId);
+  if (!productId) return null;
+  return prisma.personalProduct.findUnique({
+    where: { id: productId },
+    select: { id: true, name: true, priceRub: true, isActive: true },
+  });
+}
+
 export function assertServiceLinkedToCourse(
   service: ServiceForOrderTariff | null
 ): { ok: true; courseId: string } | { ok: false; error: string } {
