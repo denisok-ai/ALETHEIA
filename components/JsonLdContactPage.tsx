@@ -1,6 +1,8 @@
 /**
  * Schema.org: страница контактов + организация с телефоном и email.
  */
+import { jsonLdString } from '@/lib/json-ld';
+
 export function JsonLdContactPage({
   siteUrl,
   pageUrl,
@@ -46,6 +48,6 @@ export function JsonLdContactPage({
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(data) }} />
   );
 }

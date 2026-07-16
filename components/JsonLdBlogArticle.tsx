@@ -2,6 +2,7 @@
  * Schema.org BlogPosting для статей блога (SEO).
  */
 import { BRAND_LOGO_URL } from '@/lib/brand';
+import { jsonLdString } from '@/lib/json-ld';
 
 export function JsonLdBlogArticle({
   headline,
@@ -63,6 +64,6 @@ export function JsonLdBlogArticle({
   }
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(data) }} />
   );
 }

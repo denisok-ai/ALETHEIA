@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { jsonLdString } from '@/lib/json-ld';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
@@ -32,7 +33,7 @@ export default async function FaqPage() {
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdString(faqJsonLd) }}
       />
       <JsonLdBreadcrumbList
         items={[

@@ -1,6 +1,8 @@
 /**
  * Schema.org BreadcrumbList для навигации в выдаче (SEO).
  */
+import { jsonLdString } from '@/lib/json-ld';
+
 type Crumb = { name: string; url: string };
 
 export function JsonLdBreadcrumbList({ items }: { items: Crumb[] }) {
@@ -18,6 +20,6 @@ export function JsonLdBreadcrumbList({ items }: { items: Crumb[] }) {
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(data) }} />
   );
 }

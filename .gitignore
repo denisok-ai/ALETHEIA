@@ -11,9 +11,10 @@ out/
 dist/
 build/
 
-# Uploads (SCORM, media, mailings)
-public/uploads/
-uploads/
+# Uploads (SCORM, media, mailings) — только каталоги данных в корне,
+# не app/api/**/uploads/ с кодом
+/public/uploads/
+/uploads/
 
 # Env (секреты не коммитить)
 .env
@@ -39,8 +40,11 @@ test-results/
 playwright-report/
 playwright/.cache/
 
-# SQLite dev DB (локальная копия)
+# SQLite dev DB (локальная копия) и её служебные файлы — могут содержать данные БД
 prisma/dev.db
+prisma/*.db-journal
+prisma/*.db-wal
+prisma/*.db-shm
 # Бэкапы БД (сервер/ручные копии — не коммитить)
 prisma/dev.db.bak*
 prisma/*.db.bak*

@@ -3,6 +3,7 @@
  */
 
 import crypto from 'crypto';
+import { timingSafeStringEqual } from '@/lib/timing-safe';
 
 function strParam(v: unknown): string {
   if (v === undefined || v === null) return '';
@@ -24,7 +25,7 @@ export function validatePayKeeperWebhook(params: Record<string, unknown>, secret
     .createHash('md5')
     .update(`${id}${sum}${clientid}${orderid}${secret}`)
     .digest('hex');
-  return hash === key;
+  return timingSafeStringEqual(hash, key);
 }
 
 export function buildPayKeeperWebhookResponse(id: string, secret: string): string {

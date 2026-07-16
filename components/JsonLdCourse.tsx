@@ -1,11 +1,21 @@
 import { absoluteCourseCheckoutUrl, COURSE_SLUG } from '@/lib/content/course-lynda-teaser';
+import { jsonLdString } from '@/lib/json-ld';
 import { LANDING_REVIEWS } from '@/lib/content/testimonials';
 import { BRAND_LOGO_URL } from '@/lib/brand';
 
 /**
  * Schema.org: курс, преподаватель и отзывы (главная страница).
  */
-export function JsonLdCourse({ siteUrl }: { siteUrl: string }) {
+export type CourseOfferInput = { name: string; price: number; url: string };
+
+export function JsonLdCourse({
+  siteUrl,
+  offers,
+}: {
+  siteUrl: string;
+  /** Реальные тарифы из БД (имя, цена в рублях, URL страницы тарифа) */
+  offers?: CourseOfferInput[];
+}) {
   const base = siteUrl.replace(/\/$/, '');
   const offerUrl = absoluteCourseCheckoutUrl(base);
   const personId = `${base}/about#person`;
@@ -51,11 +61,22 @@ export function JsonLdCourse({ siteUrl }: { siteUrl: string }) {
           '@id': personId,
         },
         inLanguage: 'ru-RU',
-        offers: {
-          '@type': 'Offer',
-          url: offerUrl,
-          availability: 'https://schema.org/InStock',
-        },
+        offers:
+          offers && offers.length > 0
+            ? offers.map((o) => ({
+                '@type': 'Offer',
+                name: o.name,
+                price: o.price,
+                priceCurrency: 'RUB',
+                url: o.url,
+                availability: 'https://schema.org/InStock',
+                category: o.price > 0 ? 'Paid' : 'Free',
+              }))
+            : {
+                '@type': 'Offer',
+                url: offerUrl,
+                availability: 'https://schema.org/InStock',
+              },
         aggregateRating: {
           '@type': 'AggregateRating',
           ratingValue: avg,
@@ -69,6 +90,6 @@ export function JsonLdCourse({ siteUrl }: { siteUrl: string }) {
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(data) }} />
   );
 }

@@ -181,8 +181,51 @@ export async function POST(request: NextRequest) {
       where: { orderNumber: orderid },
     });
 
+    if (!order) {
+      console.error('Webhook: order not found', orderid);
+      await writePaykeeperIntegrationLog({
+        direction: 'inbound',
+        event: 'webhook.order_not_found',
+        status: 'error',
+        orderNumber: orderid,
+        message: 'Заказ с таким orderid не найден в БД',
+        payload: { id, sum, clientid: maskEmailForLog(clientid) },
+      });
+      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+    }
+    // Сумма и клиент проверяются ДО любых мутаций (статус ссылки, лиды, письма):
+    // иначе при расхождении суммы side-effects уже выполнены, а ответ — 400
+    const paidAmount = Number(sum);
+    if (!Number.isFinite(paidAmount) || Math.round(paidAmount * 100) !== order.amount * 100) {
+      console.warn('[PayKeeper webhook] amount_mismatch', { orderid, expected: order.amount, received: sum });
+      await writePaykeeperIntegrationLog({
+        direction: 'inbound',
+        event: 'webhook.amount_mismatch',
+        status: 'error',
+        orderNumber: orderid,
+        message: `Сумма webhook (${sum}) ≠ сумме заказа (${order.amount})`,
+        payload: { expectedRub: order.amount, receivedSum: sum },
+      });
+      return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
+    }
+    if (clientid && clientid.trim().toLowerCase() !== order.clientEmail.trim().toLowerCase()) {
+      console.warn('[PayKeeper webhook] client_mismatch', { orderid, expected: order.clientEmail, received: clientid });
+      await writePaykeeperIntegrationLog({
+        direction: 'inbound',
+        event: 'webhook.client_mismatch',
+        status: 'error',
+        orderNumber: orderid,
+        message: 'clientid не совпадает с email заказа',
+        payload: {
+          expected: maskEmailForLog(order.clientEmail),
+          received: maskEmailForLog(clientid),
+        },
+      });
+      return NextResponse.json({ error: 'Client mismatch' }, { status: 400 });
+    }
+
     // --- PaymentLink: обновить статус ссылки, если это персональный товар ---
-    if (order) {
+    {
       const paymentLink = await prisma.paymentLink.findFirst({
         where: { orderId: order.id },
       });
@@ -245,48 +288,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    if (!order) {
-      console.error('Webhook: order not found', orderid);
-      await writePaykeeperIntegrationLog({
-        direction: 'inbound',
-        event: 'webhook.order_not_found',
-        status: 'error',
-        orderNumber: orderid,
-        message: 'Заказ с таким orderid не найден в БД',
-        payload: { id, sum, clientid: maskEmailForLog(clientid) },
-      });
-      return NextResponse.json({ error: 'Order not found' }, { status: 404 });
-    }
-    const paidAmount = Number(sum);
-    if (!Number.isFinite(paidAmount) || Math.round(paidAmount * 100) !== order.amount * 100) {
-      console.warn('[PayKeeper webhook] amount_mismatch', { orderid, expected: order.amount, received: sum });
-      await writePaykeeperIntegrationLog({
-        direction: 'inbound',
-        event: 'webhook.amount_mismatch',
-        status: 'error',
-        orderNumber: orderid,
-        message: `Сумма webhook (${sum}) ≠ сумме заказа (${order.amount})`,
-        payload: { expectedRub: order.amount, receivedSum: sum },
-      });
-      return NextResponse.json({ error: 'Amount mismatch' }, { status: 400 });
-    }
-    if (clientid && clientid.trim().toLowerCase() !== order.clientEmail.trim().toLowerCase()) {
-      console.warn('[PayKeeper webhook] client_mismatch', { orderid, expected: order.clientEmail, received: clientid });
-      await writePaykeeperIntegrationLog({
-        direction: 'inbound',
-        event: 'webhook.client_mismatch',
-        status: 'error',
-        orderNumber: orderid,
-        message: 'clientid не совпадает с email заказа',
-        payload: {
-          expected: maskEmailForLog(order.clientEmail),
-          received: maskEmailForLog(clientid),
-        },
-      });
-      return NextResponse.json({ error: 'Client mismatch' }, { status: 400 });
-    }
-
-    const paidAmountRub = Math.round(Number(sum));
+    const paidAmountRub = Math.round(paidAmount);
     if (order.status === 'paid' && order.paykeeperPaymentId === id) {
       await writePaykeeperIntegrationLog({
         direction: 'inbound',

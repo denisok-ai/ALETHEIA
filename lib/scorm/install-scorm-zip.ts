@@ -123,7 +123,8 @@ export async function installScormZip(opts: {
     if (entry.dir) continue;
     const fullPath = path.join(prefix, filePath);
     const resolvedFull = path.resolve(fullPath);
-    if (!resolvedFull.startsWith(resolvedPrefix)) {
+    // + path.sep: иначе запись вида "../vN-evil/x" проходит проверку по префиксу без разделителя
+    if (resolvedFull !== resolvedPrefix && !resolvedFull.startsWith(resolvedPrefix + path.sep)) {
       continue;
     }
     const content = await entry.async('nodebuffer');

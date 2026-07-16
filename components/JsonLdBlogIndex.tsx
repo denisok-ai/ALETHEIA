@@ -1,6 +1,8 @@
 /**
  * Schema.org: список статей блога (ItemList) для страницы /blog.
  */
+import { jsonLdString } from '@/lib/json-ld';
+
 type PostRef = { slug: string; title: string };
 
 export function JsonLdBlogIndex({ siteUrl, posts }: { siteUrl: string; posts: PostRef[] }) {
@@ -22,6 +24,6 @@ export function JsonLdBlogIndex({ siteUrl, posts }: { siteUrl: string; posts: Po
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(data) }} />
   );
 }

@@ -4,6 +4,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { getEnvOverrides } from '@/lib/settings';
+import { timingSafeStringEqual } from '@/lib/timing-safe';
 
 export async function requireCronAuth(request: NextRequest): Promise<NextResponse | null> {
   const overrides = await getEnvOverrides();
@@ -15,8 +16,8 @@ export async function requireCronAuth(request: NextRequest): Promise<NextRespons
     );
   }
   const authHeader = request.headers.get('authorization');
-  const token = authHeader?.replace(/^Bearer\s+/i, '').trim();
-  if (token !== secret) {
+  const token = authHeader?.replace(/^Bearer\s+/i, '').trim() ?? '';
+  if (!timingSafeStringEqual(token, secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   return null;

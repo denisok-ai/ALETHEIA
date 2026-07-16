@@ -2,6 +2,7 @@
  * Schema.org Article / NewsArticle для публичных публикаций (SEO).
  */
 import { BRAND_LOGO_URL } from '@/lib/brand';
+import { jsonLdString } from '@/lib/json-ld';
 
 type Props = {
   headline: string;
@@ -66,6 +67,6 @@ export function JsonLdNewsArticle({
   }
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(data) }} />
   );
 }

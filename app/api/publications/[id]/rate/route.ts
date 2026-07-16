@@ -4,11 +4,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { publicationRateSchema } from '@/lib/validations/publication';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitRes = checkRateLimit(request, 'publication-rate', 5);
+  if (rateLimitRes) return rateLimitRes;
+
   const { id } = await params;
 
   const pub = await prisma.publication.findFirst({

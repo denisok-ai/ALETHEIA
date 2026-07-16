@@ -1,6 +1,8 @@
 /**
  * Schema.org: WebSite, связан с организацией через @id (см. JsonLdOrganization).
  */
+import { jsonLdString } from '@/lib/json-ld';
+
 export function JsonLdWebSite({
   siteUrl,
   name,
@@ -21,6 +23,6 @@ export function JsonLdWebSite({
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(data) }} />
   );
 }

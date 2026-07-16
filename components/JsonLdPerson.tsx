@@ -2,6 +2,8 @@
  * Schema.org Person — страница эксперта / мастера.
  * @id совпадает с ссылкой instructor в JsonLdCourse (главная).
  */
+import { jsonLdString } from '@/lib/json-ld';
+
 export function JsonLdPerson({
   id,
   name,
@@ -30,6 +32,6 @@ export function JsonLdPerson({
   };
 
   return (
-    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }} />
+    <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLdString(data) }} />
   );
 }

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-07-16) — SEO / ИИ-поисковики / витрина
+
+- **Публичные страницы товаров:** `/services` (каталог тарифов) и `/services/[slug]` (SSR из БД: описание, состав, цена, рассрочка, покупка через `PaymentModal`); Product+Offer JSON-LD (`components/JsonLdProduct.tsx`), хлебные крошки, перекрёстные ссылки. Общий источник данных — `lib/shop/public-products.ts` (используется API `/api/shop/products`, главной, sitemap, llms.txt).
+- **SSR тарифов на главной:** `Pricing` принимает `initialProducts` с сервера — поисковики видят реальные тарифы из БД, а не fallback; карточки ссылаются на страницы товаров.
+- **llms.txt / llms-full.txt:** динамические маршруты (`app/llms.txt/route.ts`, `app/llms-full.txt/route.ts`) — актуальные тарифы с ценами из БД, FAQ, блог; статический `public/llms.txt` удалён.
+- **robots.txt:** явные allow-правила для ИИ-краулеров (GPTBot, OAI-SearchBot, ClaudeBot, PerplexityBot, Google-Extended, YandexAdditional и др.).
+- **sitemap.xml:** добавлены `/services` и страницы товаров из БД (lastModified из `updatedAt`).
+- **RSS:** в `/feed.xml` добавлены новости (Publication) вместе с блогом, сортировка по дате.
+- **JSON-LD цены:** Offer с `price`/`priceCurrency: RUB` в Course-разметке главной и лендингов (`JsonLdCourse`, `JsonLdCoursePage` + `priceRange`; «Пробуждение» — AggregateOffer 22 000–44 000 ₽).
+- **OG-баннер 1200×630:** `public/images/og/og-default.png` (генератор `scripts/generate-og-image.mjs`) вместо портретного 1024×1280 во всех metadata; `favicon.ico` (генератор `scripts/generate-favicon.mjs`).
+
+### Security (2026-07-16)
+
+- **Приватная статика:** `/uploads/media/`, `/uploads/verifications/`, `/uploads/scorm/` требуют сессию в `middleware.ts` (401 анониму); для прода — nginx `auth_request` → новый `GET /api/portal/uploads/access-check` (`scripts/apply-nginx-uploads-auth-prod.sh`, эталон `scripts/nginx-aletheia.conf`). Обложки `/uploads/services/` остаются публичными.
+- **JSON-LD XSS:** все `<script type="application/ld+json">` сериализуются через `lib/json-ld.ts` (`jsonLdString` экранирует `<`, `>`, `&` в `\uXXXX`) — строка вида `</script><script>` в заголовке публикации больше не выходит из тега.
+- **Timing-safe сравнение секретов:** `lib/timing-safe.ts`; применено в `lib/cron-auth.ts` (Bearer cron) и `lib/paykeeper/webhook.ts` (MD5-подпись).
+- **PayKeeper webhook:** проверки суммы и клиента перенесены ДО мутаций PaymentLink/Lead/email — при расхождении суммы side-effects больше не выполняются.
+- **SCORM zip-slip:** проверка префикса пути с `path.sep` (`lib/scorm/install-scorm-zip.ts`).
+- **Rate limit:** рейтинг публикаций `POST /api/publications/[id]/rate` — 5/мин.
+- **.gitignore:** `prisma/*.db-journal|-wal|-shm` (журнал SQLite мог утечь в git).
+
 ## [3.7.0] - 2026-06-28 (обновлён 2026-07-10)
 
 ### Security (2026-07-10)

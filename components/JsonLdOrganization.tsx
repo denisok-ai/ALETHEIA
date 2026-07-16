@@ -2,6 +2,7 @@
  * Разметка Schema.org для поисковиков (организация / образовательная школа).
  */
 import { BRAND_LOGO_URL } from '@/lib/brand';
+import { jsonLdString } from '@/lib/json-ld';
 
 export function JsonLdOrganization({
   siteUrl,
@@ -33,7 +34,7 @@ export function JsonLdOrganization({
   return (
     <script
       type="application/ld+json"
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(data) }}
+      dangerouslySetInnerHTML={{ __html: jsonLdString(data) }}
     />
   );
 }
