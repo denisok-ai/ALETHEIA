@@ -46,6 +46,15 @@
 - **SCORM static (`/uploads/scorm/`):** на проде — nginx **`auth_request`** → внутренний `location = /internal/scorm-auth-check` → `GET /api/portal/scorm/access-check` (с cookie сессии). Без авторизации — **401/403**. Установка/патч: [`scripts/apply-nginx-scorm-auth-prod.sh`](../scripts/apply-nginx-scorm-auth-prod.sh). Проверка: `curl -s -o /dev/null -w '%{http_code}' https://avaterra.pro/uploads/scorm/` без cookie → не 200.
 - **Приватная статика (`/uploads/media/`, `/uploads/verifications/`):** аналогично SCORM — nginx **`auth_request`** → `location = /internal/uploads-auth-check` → `GET /api/portal/uploads/access-check` (нужна сессия). Установка/патч (после деплоя приложения с этим маршрутом): [`scripts/apply-nginx-uploads-auth-prod.sh`](../scripts/apply-nginx-uploads-auth-prod.sh). В приложении та же отсечка продублирована в [`middleware.ts`](../middleware.ts) (dev и деплой без nginx-патча). Обложки товаров `/uploads/services/` остаются публичными.
 - **После правок:** `sudo nginx -t && sudo systemctl reload nginx`.
+- **`sites-enabled/aletheia` — симлинк на `sites-available/aletheia`** (исправлено 2026-07-16: был обычным файлом, из-за чего патчи в `sites-available` не действовали и SCORM-auth не работал). Править только `sites-available`.
+
+## Бэкапы в Google Drive (настроено 2026-07-16)
+
+- **Что:** ежедневно 03:30 MSK — SQLite-снапшот БД, `.env`, nginx-конфиги, cron, systemd-юниты → tar.gz, шифрование gpg AES256 → `gdrive:avaterra-backups/daily/`. По воскресеньям дополнительно `rclone sync public/uploads` (SCORM/медиа) → `gdrive:avaterra-backups/uploads/`.
+- **Ротация:** Drive — 10 дней (daily), локальный staging `/root/backups/gdrive-staging` — 7 дней.
+- **Скрипты:** [`scripts/backup-gdrive-prod.sh`](../scripts/backup-gdrive-prod.sh) (установлен как `/usr/local/bin/aletheia-backup-gdrive.sh`), установка — [`scripts/setup-backup-gdrive-prod.sh`](../scripts/setup-backup-gdrive-prod.sh); cron — `/etc/cron.d/aletheia-backup-gdrive`; лог — `/var/log/aletheia-backup.log`.
+- **Секреты:** rclone-токен — `/root/.config/rclone/rclone.conf` (600); passphrase шифрования — `/root/.backup-passphrase` (600). **Копию passphrase хранить вне сервера** — без неё бэкапы не расшифровать.
+- **Восстановление:** `rclone copy gdrive:avaterra-backups/daily/aletheia-<TS>.tar.gz.gpg . && gpg --batch --passphrase-file /root/.backup-passphrase -d aletheia-<TS>.tar.gz.gpg | tar -xz` (внутри `dev.db`, `env`, конфиги). Проверка выполнена 2026-07-16: расшифровка + `PRAGMA integrity_check` = ok.
 
 **Чеклист обзора (при инцидентах или раз в квартал):** убедиться, что для HTML/RSC не включён агрессивный `proxy_cache` на `location /`; при медленном `next/image` на сервере — установлен **sharp** в `/opt/ALETHEIA` (см. §2). План перехода на **PostgreSQL** при росте нагрузки — [Deploy.md](Deploy.md) (раздел про БД).
 
