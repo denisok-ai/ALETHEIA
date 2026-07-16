@@ -26,11 +26,12 @@ import {
 } from '@/lib/content/course-mt-landing';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
+import { getPublicProducts } from '@/lib/shop/public-products';
 import { Gift, Sparkles } from 'lucide-react';
 
 const DESCRIPTION =
   'Курс «Навыки мышечного тестирования»: научитесь находить причины проблем за 5–15 минут. 6 живых занятий с куратором + 2 с автором. Доступ 3 месяца.';
-const OG_IMAGE_PATH = '/images/tatiana/tatiana-hero.png' as const;
+const OG_IMAGE_PATH = '/images/og/og-default.png' as const;
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -58,7 +59,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
       locale: 'ru_RU',
       siteName: 'АВАТЕРРА',
-      images: [{ url: ogImageAbs, width: 1024, height: 1280, alt: 'Курс мышечного тестирования — школа АВАТЕРРА' }],
+      images: [{ url: ogImageAbs, width: 1200, height: 630, alt: 'Курс мышечного тестирования — школа АВАТЕРРА' }],
     },
     twitter: { card: 'summary_large_image', title, description: DESCRIPTION, images: [ogImageAbs] },
     robots: { index: true, follow: true },
@@ -72,6 +73,13 @@ export default async function CourseNavykiPage() {
 
   const courseTitle = 'Навыки мышечного тестирования и работа с подсознанием';
 
+  // Диапазон цен платных тарифов из БД — для Offer в schema.org Course
+  const paidPrices = (await getPublicProducts()).map((p) => p.price).filter((p) => p > 0);
+  const priceRange =
+    paidPrices.length > 0
+      ? { low: Math.min(...paidPrices), high: Math.max(...paidPrices) }
+      : undefined;
+
   return (
     <>
       <AnalyticsCourseView />
@@ -81,7 +89,7 @@ export default async function CourseNavykiPage() {
           { name: `Курс «${courseTitle}»`, url: pageUrl },
         ]}
       />
-      <JsonLdCoursePage name={courseTitle} description={DESCRIPTION} pageUrl={pageUrl} />
+      <JsonLdCoursePage name={courseTitle} description={DESCRIPTION} pageUrl={pageUrl} priceRange={priceRange} />
 
       <div className="bg-[var(--bg)]">
         <div className="mx-auto max-w-6xl px-4 pt-20 md:px-8 md:pt-22">

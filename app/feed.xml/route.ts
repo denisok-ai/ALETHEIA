@@ -1,6 +1,7 @@
 import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
+import { prisma } from '@/lib/db';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,27 +15,52 @@ function escapeXml(s: string): string {
 }
 
 /**
- * RSS 2.0 для статей блога (обнаружение и агрегаторы).
+ * RSS 2.0: статьи блога + новости из БД (обнаружение и агрегаторы).
  */
 export async function GET() {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const channelLink = `${base}/blog`;
 
-  const itemsXml = blogPostsMeta
-    .map((p) => {
-      const link = `${base}/blog/${p.slug}`;
-      const pubDate = new Date(p.publishedAt).toUTCString();
-      return [
+  type FeedItem = { title: string; link: string; date: Date; description: string };
+  const blogItems: FeedItem[] = blogPostsMeta.map((p) => ({
+    title: p.title,
+    link: `${base}/blog/${p.slug}`,
+    date: new Date(p.publishedAt),
+    description: p.description,
+  }));
+
+  let newsItems: FeedItem[] = [];
+  try {
+    const pubs = await prisma.publication.findMany({
+      where: { status: 'active' },
+      select: { id: true, title: true, teaser: true, publishAt: true },
+      orderBy: { publishAt: 'desc' },
+      take: 50,
+    });
+    newsItems = pubs.map((p) => ({
+      title: p.title,
+      link: `${base}/news/${p.id}`,
+      date: p.publishAt ?? new Date(0),
+      description: p.teaser ?? p.title,
+    }));
+  } catch {
+    // БД недоступна — отдаём только блог
+  }
+
+  const itemsXml = [...blogItems, ...newsItems]
+    .sort((a, b) => b.date.getTime() - a.date.getTime())
+    .map((p) =>
+      [
         '<item>',
         `<title>${escapeXml(p.title)}</title>`,
-        `<link>${link}</link>`,
-        `<guid isPermaLink="true">${link}</guid>`,
-        `<pubDate>${pubDate}</pubDate>`,
+        `<link>${p.link}</link>`,
+        `<guid isPermaLink="true">${p.link}</guid>`,
+        `<pubDate>${p.date.toUTCString()}</pubDate>`,
         `<description>${escapeXml(p.description)}</description>`,
         '</item>',
-      ].join('');
-    })
+      ].join('')
+    )
     .join('');
 
   const xml = `<?xml version="1.0" encoding="UTF-8"?>

@@ -51,7 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       locale: 'ru_RU',
       publishedTime: post.publishedAt,
       modifiedTime: post.publishedAt,
-      images: [{ url: ogImageAbs, width: 1024, height: 1280, alt: post.title }],
+      images: [{ url: ogImageAbs, width: 1200, height: 630, alt: post.title }],
     },
     twitter: {
       card: 'summary_large_image',

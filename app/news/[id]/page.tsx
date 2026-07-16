@@ -61,7 +61,7 @@ export async function generateMetadata({
       locale: 'ru_RU',
       publishedTime: pub.publishAt.toISOString(),
       modifiedTime: pub.updatedAt.toISOString(),
-      images: [{ url: ogImageAbs, width: 1024, height: 1280, alt: pub.title }],
+      images: [{ url: ogImageAbs, width: 1200, height: 630, alt: pub.title }],
     },
     twitter: {
       card: 'summary_large_image',

@@ -85,10 +85,10 @@ export async function generateMetadata(): Promise<Metadata> {
       siteName: 'АВАТЕРРА',
       images: [
         {
-          url: '/images/tatiana/tatiana-hero.png',
-          width: 1024,
-          height: 1280,
-          alt: 'Татьяна Стрельцова — основательница школы кинезиологии АВАТЕРРА',
+          url: '/images/og/og-default.png',
+          width: 1200,
+          height: 630,
+          alt: 'АВАТЕРРА — школа мышечного тестирования и кинезиологии',
         },
       ],
     },
@@ -96,7 +96,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: 'summary_large_image',
       title: ogTitle,
       description: ogDescription,
-      images: ['/images/tatiana/tatiana-hero.png'],
+      images: ['/images/og/og-default.png'],
     },
     robots: { index: true, follow: true, googleBot: { index: true, follow: true } },
   };

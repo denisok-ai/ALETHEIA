@@ -9,6 +9,8 @@ import { LandingFAQ } from '@/components/sections/LandingFAQ';
 import { getSystemSettings } from '@/lib/settings';
 import { DEFAULT_OG_IMAGE_PATH, SEO_HOME } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
+import { getPublicProducts } from '@/lib/shop/public-products';
+import type { TariffItem } from '@/components/sections/Pricing';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -26,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
       locale: 'ru_RU',
       siteName: 'АВАТЕРРА',
-      images: [{ url: ogImageAbs, width: 1024, height: 1280, alt: SEO_HOME.title }],
+      images: [{ url: ogImageAbs, width: 1200, height: 630, alt: SEO_HOME.title }],
     },
     twitter: {
       card: 'summary_large_image',
@@ -49,10 +51,30 @@ const FAQ = dynamic(() => import('@/components/sections/FAQ').then((m) => m.FAQ)
 export default async function HomePage() {
   const settings = await getSystemSettings();
   const siteUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
+  const base = siteUrl.replace(/\/$/, '');
+  // Товары рендерятся на сервере: поисковики видят реальные тарифы, а не fallback после гидрации
+  const products = await getPublicProducts();
+  const tariffs: TariffItem[] = products.map((p) => ({
+    id: p.slug,
+    slug: p.slug,
+    name: p.name,
+    price: p.price,
+    description: p.cardDescription,
+    features: p.features,
+    popular: p.slug === 'avaterra-praktik',
+    imageUrl: p.imageUrl,
+    installmentEnabled: p.installmentEnabled,
+    maxInstallments: p.maxInstallments,
+  }));
+  const courseOffers = products.map((p) => ({
+    name: p.name,
+    price: p.price,
+    url: `${base}/services/${p.slug}`,
+  }));
   return (
     <>
       <AnalyticsHomeEngagement />
-      <JsonLdCourse siteUrl={siteUrl} />
+      <JsonLdCourse siteUrl={siteUrl} offers={courseOffers.length ? courseOffers : undefined} />
       <JsonLdLandingFaq />
       <Hero />
       <HowItWorks />
@@ -62,7 +84,7 @@ export default async function HomePage() {
       <Testimonials />
       <LandingBlog />
       <LandingFAQ />
-      <Pricing />
+      <Pricing initialProducts={tariffs.length ? tariffs : undefined} />
       <FAQ />
     </>
   );

@@ -30,4 +30,4 @@ export const SEO_CONTACTS = {
     'Телефон, email и адрес школы кинезиологии АВАТЕРРА. Свяжитесь с нами по вопросам курса и обучения.',
 } as const;
 
-export const DEFAULT_OG_IMAGE_PATH = '/images/tatiana/tatiana-hero.png' as const;
+export const DEFAULT_OG_IMAGE_PATH = '/images/og/og-default.png' as const;

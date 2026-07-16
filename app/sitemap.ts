@@ -3,6 +3,7 @@ import { getSystemSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
+import { getPublicProducts } from '@/lib/shop/public-products';
 
 /**
  * Генерирует sitemap.xml для поисковых систем.
@@ -20,6 +21,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { path: '', changeFrequency: 'weekly' as const, priority: 1 },
     { path: '/course/navyki-myshechnogo-testirovaniya', changeFrequency: 'weekly' as const, priority: 0.85 },
     { path: '/course/probuzhdenie', changeFrequency: 'weekly' as const, priority: 0.85 },
+    { path: '/services', changeFrequency: 'weekly' as const, priority: 0.85 },
     { path: '/about', changeFrequency: 'monthly' as const, priority: 0.8 },
     { path: '/blog', changeFrequency: 'weekly' as const, priority: 0.75 },
     { path: '/faq', changeFrequency: 'monthly' as const, priority: 0.72 },
@@ -43,6 +45,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
+  // Тарифы/услуги из БД — страницы товаров /services/[slug]
+  const serviceEntries: MetadataRoute.Sitemap = (await getPublicProducts()).map((p) => ({
+    url: `${base}/services/${p.slug}`,
+    lastModified: p.updatedAt,
+    changeFrequency: 'weekly' as const,
+    priority: 0.8,
+  }));
+
   let newsEntries: MetadataRoute.Sitemap = [];
   try {
     const pubs = await prisma.publication.findMany({
@@ -61,5 +71,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // БД недоступна при сборке / ошибка — отдаём только статические URL
   }
 
-  return [...staticEntries, ...newsEntries];
+  return [...staticEntries, ...serviceEntries, ...newsEntries];
 }

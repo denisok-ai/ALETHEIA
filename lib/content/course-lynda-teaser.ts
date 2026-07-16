@@ -67,7 +67,7 @@ export const courseModules: { title: string; teaser: string; detail: string }[] 
 ];
 
 /** Дефолтное OG-изображение для статей блога (публичный путь). */
-export const BLOG_DEFAULT_OG_IMAGE = '/images/tatiana/tatiana-hero.png' as const;
+export const BLOG_DEFAULT_OG_IMAGE = '/images/og/og-default.png' as const;
 
 export const blogPostsMeta = [
   {

@@ -84,7 +84,12 @@ export default async function ProbuzhdeniePage() {
           { name: 'Курс «Пробуждение»', url: pageUrl },
         ]}
       />
-      <JsonLdCoursePage name="Курс «Пробуждение»" description={DESCRIPTION} pageUrl={pageUrl} />
+      <JsonLdCoursePage
+        name="Курс «Пробуждение»"
+        description={DESCRIPTION}
+        pageUrl={pageUrl}
+        priceRange={{ low: 22_000, high: 44_000 }}
+      />
 
       <div className="bg-[var(--bg)] text-[var(--text)]">
         {/* Герой: светлая зона — как на прод-лендинге зигзага */}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Link from 'next/link';
 import { motion, useInView } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { TiltCard } from '@/components/ui/TiltCard';
@@ -71,11 +72,14 @@ const FALLBACK_TARIFFS: TariffItem[] = [
   },
 ];
 
-export function Pricing() {
+export function Pricing({ initialProducts }: { initialProducts?: TariffItem[] }) {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-80px' });
   const pricingScrollTracked = useRef(false);
-  const [products, setProducts] = useState<TariffItem[]>(FALLBACK_TARIFFS);
+  const hasServerProducts = !!initialProducts && initialProducts.length > 0;
+  const [products, setProducts] = useState<TariffItem[]>(
+    hasServerProducts ? initialProducts : FALLBACK_TARIFFS
+  );
   const [modalTariff, setModalTariff] = useState<TariffItem | null>(null);
 
   useEffect(() => {
@@ -85,6 +89,8 @@ export function Pricing() {
   }, [isInView]);
 
   useEffect(() => {
+    // Товары уже отрендерены сервером — клиентский refetch не нужен
+    if (hasServerProducts) return;
     fetch('/api/shop/products', { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => {
@@ -118,7 +124,7 @@ export function Pricing() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [hasServerProducts]);
 
   return (
     <>
@@ -217,6 +223,14 @@ export function Pricing() {
                           Купить в рассрочку от {Math.ceil(tariff.price / tariff.maxInstallments).toLocaleString('ru-RU')} ₽/мес
                         </Button>
                       )}
+                      {tariff.slug ? (
+                        <Link
+                          href={`/services/${tariff.slug}`}
+                          className="mt-3 block text-center text-sm text-plum underline-offset-4 hover:underline"
+                        >
+                          Подробнее о тарифе
+                        </Link>
+                      ) : null}
                       </div>
                     </div>
                   </div>

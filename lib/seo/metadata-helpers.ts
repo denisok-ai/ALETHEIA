@@ -8,12 +8,12 @@ export function buildPublicPageMetadata(opts: {
   description: string;
   canonical: string;
   ogType?: 'website' | 'article';
-  /** Абсолютный URL OG-изображения (по умолчанию — герой Татьяны) */
+  /** Абсолютный URL OG-изображения (по умолчанию — брендовый баннер 1200×630) */
   ogImageUrl?: string;
 }): Metadata {
   const { title, description, canonical, ogType = 'website', ogImageUrl } = opts;
   const images = ogImageUrl
-    ? [{ url: ogImageUrl, width: 1024, height: 1280, alt: title }]
+    ? [{ url: ogImageUrl, width: 1200, height: 630, alt: title }]
     : undefined;
 
   return {
