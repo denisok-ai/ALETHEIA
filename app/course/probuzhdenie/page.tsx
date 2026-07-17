@@ -89,6 +89,7 @@ export default async function ProbuzhdeniePage() {
         description={DESCRIPTION}
         pageUrl={pageUrl}
         priceRange={{ low: 22_000, high: 44_000 }}
+        courseWorkload="PT15H"
       />
 
       <div className="bg-[var(--bg)] text-[var(--text)]">

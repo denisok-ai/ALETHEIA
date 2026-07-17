@@ -10,12 +10,15 @@ export function JsonLdCoursePage({
   description,
   pageUrl,
   priceRange,
+  courseWorkload = 'PT20H',
 }: {
   name: string;
   description: string;
   pageUrl: string;
   /** Цены в рублях: low === high — одна цена, иначе AggregateOffer с диапазоном */
   priceRange?: { low: number; high: number };
+  /** Суммарная трудоёмкость (ISO 8601), по умолчанию ~20 часов (6 модулей + 8 живых занятий) */
+  courseWorkload?: string;
 }) {
   let origin = '';
   try {
@@ -56,6 +59,13 @@ export function JsonLdCoursePage({
         }
       : {}),
     inLanguage: 'ru-RU',
+    // Google Course rich results требуют hasCourseInstance с courseMode/courseWorkload
+    hasCourseInstance: {
+      '@type': 'CourseInstance',
+      courseMode: 'Online',
+      courseWorkload,
+      inLanguage: 'ru-RU',
+    },
     offers: priceRange
       ? priceRange.low === priceRange.high
         ? {

@@ -6,6 +6,7 @@ import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { publicationUpdateSchema } from '@/lib/validations/publication';
 import { writeAuditLog } from '@/lib/audit';
+import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
@@ -113,6 +114,9 @@ export async function PATCH(
     entityId: id,
     diff: { title: pub.title },
   });
+
+  // Мгновенная переиндексация (в т.ч. при снятии с публикации — поисковик увидит 404/noindex)
+  pingIndexNowForPathsAsync([`/news/${pub.id}`, '/news']);
 
   return NextResponse.json({
     publication: {

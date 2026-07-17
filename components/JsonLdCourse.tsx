@@ -61,6 +61,14 @@ export function JsonLdCourse({
           '@id': personId,
         },
         inLanguage: 'ru-RU',
+        // Google Course rich results требуют hasCourseInstance с courseMode/courseWorkload
+        hasCourseInstance: {
+          '@type': 'CourseInstance',
+          courseMode: 'Online',
+          // ~20 часов: 6 модулей + 8 живых занятий
+          courseWorkload: 'PT20H',
+          inLanguage: 'ru-RU',
+        },
         offers:
           offers && offers.length > 0
             ? offers.map((o) => ({

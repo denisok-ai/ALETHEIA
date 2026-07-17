@@ -7,6 +7,7 @@ import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { publicationCreateSchema } from '@/lib/validations/publication';
 import { writeAuditLog } from '@/lib/audit';
+import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
@@ -100,6 +101,11 @@ export async function POST(request: NextRequest) {
     entityId: pub.id,
     diff: { title: pub.title, type: pub.type },
   });
+
+  // Мгновенная индексация новой публикации (Яндекс/Bing, fire-and-forget)
+  if (pub.status === 'active') {
+    pingIndexNowForPathsAsync([`/news/${pub.id}`, '/news']);
+  }
 
   return NextResponse.json({
     publication: {

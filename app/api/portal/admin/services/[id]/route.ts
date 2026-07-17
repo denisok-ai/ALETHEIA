@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
 
 export async function GET(
   _request: NextRequest,
@@ -117,6 +118,9 @@ export async function PATCH(
     data,
     include: { course: { select: { title: true } } },
   });
+
+  // Мгновенная переиндексация тарифа (и при деактивации — поисковик увидит noindex)
+  pingIndexNowForPathsAsync([`/services/${updated.slug}`, '/services', '/']);
 
   return NextResponse.json({
     service: {

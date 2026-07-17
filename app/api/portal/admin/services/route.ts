@@ -4,6 +4,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
 
 export async function GET() {
   const auth = await requireAdminSession();
@@ -101,6 +102,11 @@ export async function POST(request: NextRequest) {
       maxInstallments,
     },
   });
+
+  // Мгновенная индексация страницы тарифа (Яндекс/Bing, fire-and-forget)
+  if (service.isActive) {
+    pingIndexNowForPathsAsync([`/services/${service.slug}`, '/services', '/']);
+  }
 
   return NextResponse.json({
     service: {

@@ -3,6 +3,7 @@
  */
 import { BRAND_LOGO_URL } from '@/lib/brand';
 import { jsonLdString } from '@/lib/json-ld';
+import { SOCIAL_LINKS } from '@/lib/social-links';
 
 export function JsonLdOrganization({
   siteUrl,
@@ -24,6 +25,13 @@ export function JsonLdOrganization({
       'Школа мышечного тестирования. Курс по обучению методу: причина проблемы за 30 секунд. Основатель — Татьяна Стрельцова.',
     areaServed: 'RU',
     inLanguage: 'ru-RU',
+    // Соцпрофили: связывают сайт с сущностью бренда в графе знаний
+    sameAs: Object.values(SOCIAL_LINKS),
+    founder: {
+      '@type': 'Person',
+      name: 'Татьяна Стрельцова',
+      url: `${url}/about`,
+    },
     ...(phone?.trim()
       ? {
           telephone: phone.trim(),
