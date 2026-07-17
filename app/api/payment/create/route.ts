@@ -17,6 +17,7 @@ import {
   writePaykeeperIntegrationLog,
 } from '@/lib/paykeeper-integration-log';
 import { logPersonalDataConsent } from '@/lib/consent-log';
+import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'payment-create', 10);
@@ -184,12 +185,21 @@ export async function POST(request: NextRequest) {
         orderNumber,
         message: msg.slice(0, 500),
       });
+      // Алерт админам: клиент не смог оплатить — узнаём сразу, а не от клиентов
+      notifyAdminsTelegramAsync('paykeeper_webhook_error', [
+        'Не удалось создать счёт PayKeeper (клиент не смог перейти к оплате)',
+        `Заказ: ${orderNumber}, сумма: ${amount} ₽`,
+        `Email: ${maskEmailForLog(email.trim())}`,
+        `Ошибка: ${msg.slice(0, 200)}`,
+      ]);
       return NextResponse.json(
         {
-          error: 'Ошибка создания платежа. Проверьте настройки PayKeeper.',
+          // Текст видит клиент — без внутренних терминов
+          error:
+            'Платёжный сервис временно недоступен. Попробуйте ещё раз через несколько минут — заказ сохранён. Если не получится, напишите нам через страницу контактов.',
           success: false,
         },
-        { status: 500 }
+        { status: 502 }
       );
     }
 

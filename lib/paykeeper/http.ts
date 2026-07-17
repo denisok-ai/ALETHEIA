@@ -7,8 +7,14 @@ import { PayKeeperApiError, formatPayKeeperConnectionError } from '@/lib/paykeep
 import { parsePayKeeperToken } from '@/lib/paykeeper/token';
 
 const TOKEN_TTL_MS = 23 * 60 * 60 * 1000;
-const FETCH_TIMEOUT_MS = 25_000;
-const MAX_NETWORK_RETRIES = 2;
+/**
+ * Бюджет на весь цикл (таймаут × попытки + паузы) должен укладываться в
+ * proxy_read_timeout nginx (60s): иначе клиент видит вечное «создание платежа»
+ * и обрыв соединения вместо внятной ошибки (инцидент 16.07.2026).
+ * 12s × 2 попытки + 0.4s ≈ 25s максимум.
+ */
+const FETCH_TIMEOUT_MS = 12_000;
+const MAX_NETWORK_RETRIES = 1;
 
 type TokenEntry = { token: string; at: number };
 const tokenByKey = new Map<string, TokenEntry>();

@@ -51,10 +51,13 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
       } else {
         body.tariffId = tariff.id;
       }
+      // Таймаут: иначе при недоступном платёжном сервисе «создание платежа» висит
+      // до обрыва nginx (60s+) без внятной ошибки (инцидент 16.07.2026)
       const res = await fetch('/api/payment/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: AbortSignal.timeout(45_000),
       });
       let data: { success?: boolean; paymentUrl?: string; error?: string };
       try {
@@ -75,7 +78,12 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
       }
     } catch (err) {
       console.error(err);
-      toast.error('Ошибка сети. Проверьте подключение и попробуйте снова. Или свяжитесь с нами.');
+      const timedOut = err instanceof Error && (err.name === 'TimeoutError' || err.name === 'AbortError');
+      toast.error(
+        timedOut
+          ? 'Платёжный сервис отвечает дольше обычного. Подождите пару минут и попробуйте снова — или напишите нам, поможем оплатить.'
+          : 'Ошибка сети. Проверьте подключение и попробуйте снова. Или свяжитесь с нами.'
+      );
     } finally {
       setLoading(false);
     }
