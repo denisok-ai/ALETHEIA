@@ -180,11 +180,22 @@ else
   npx prisma migrate deploy
   npx prisma generate
 fi
+CACHE_CLEARED=0
 if [[ -d /var/cache/nginx ]] && [[ -n "$(ls -A /var/cache/nginx 2>/dev/null)" ]]; then
   sudo sh -c 'rm -rf /var/cache/nginx/*' || true
+  CACHE_CLEARED=1
 fi
 if command -v nginx >/dev/null 2>&1; then
-  sudo nginx -t 2>/dev/null && sudo nginx -s reload || true
+  if sudo nginx -t 2>/dev/null; then
+    # После очистки кэша — restart, а не reload: reload не сбрасывает индекс
+    # cache-manager в shared memory → он пытается удалить уже удалённые файлы
+    # и спамит [crit] unlink() в error.log. restart пересобирает индекс начисто.
+    if [[ "$CACHE_CLEARED" = "1" ]]; then
+      sudo systemctl restart nginx || sudo nginx -s reload || true
+    else
+      sudo nginx -s reload || true
+    fi
+  fi
 fi
 fuser -k 3000/tcp 2>/dev/null || true
 sleep 1
