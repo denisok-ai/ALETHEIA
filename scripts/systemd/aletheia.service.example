@@ -10,6 +10,10 @@
 [Unit]
 Description=AVATERRA Next.js (ALETHEIA)
 After=network.target
+# Лимит рестартов принадлежит секции [Unit] (в [Service] systemd их игнорирует):
+# при серии быстрых крашей не «сдаваться» — 5 попыток за 300с.
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 [Service]
 Type=simple
@@ -24,10 +28,9 @@ Environment=NODE_OPTIONS=--max-old-space-size=512
 # Слушать только localhost — снаружи доступ через nginx :443
 Environment=HOSTNAME=127.0.0.1
 ExecStart=/usr/bin/npm run start
+# Автоперезапуск при краше/OOM (проверено: kill -9 → сервис поднимается за ~5с)
 Restart=always
 RestartSec=5
-StartLimitIntervalSec=300
-StartLimitBurst=5
 
 [Install]
 WantedBy=multi-user.target
