@@ -12,8 +12,10 @@ import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { JsonLdProduct } from '@/components/JsonLdProduct';
+import { JsonLdFaqPage } from '@/components/JsonLdFaqPage';
 import { ServiceBuyButton } from '@/components/ServiceBuyButton';
 import type { TariffItem } from '@/components/sections/Pricing';
+import { MT_AUDIENCES, MT_FAQ, MT_RESULTS } from '@/lib/content/course-mt-landing';
 
 type Params = { slug: string };
 
@@ -81,6 +83,7 @@ export default async function ServicePage({ params }: { params: Params }) {
         imageUrl={product.imageUrl}
         siteUrl={base}
       />
+      <JsonLdFaqPage items={MT_FAQ} />
       <div className="bg-[var(--bg)] text-[var(--text)]">
         <div className="mx-auto max-w-4xl px-5 pb-24 pt-20 md:px-8">
           <Breadcrumbs
@@ -148,6 +151,66 @@ export default async function ServicePage({ params }: { params: Params }) {
               </p>
             </div>
           </div>
+
+          {/* Содержательные блоки: уникальный контент для ранжирования и ответов ИИ */}
+          <section className="mt-14 border-t border-[var(--border)] pt-10">
+            <h2 className="font-heading text-2xl font-semibold">О методе мышечного тестирования</h2>
+            <p className="mt-3 max-w-3xl leading-relaxed text-[var(--text-muted)]">
+              Мышечное тестирование — прикладной метод кинезиологии (появился в 1960-х). Тело даёт
+              ответ «да/нет» через изменение тонуса мышцы: мышца ослабевает в ответ на стресс или
+              несоответствие — это физиологический рефлекс нервной системы, а не «энергия» или
+              эзотерика. Метод помогает находить скрытую причину проблемы примерно за 30 секунд и
+              работать с ней осознанно. Обучение проходит онлайн на русском языке, доступно из любой
+              страны.
+            </p>
+          </section>
+
+          <section className="mt-12">
+            <h2 className="font-heading text-2xl font-semibold">Кому подходит обучение</h2>
+            <ul className="mt-4 grid gap-4 sm:grid-cols-2">
+              {MT_AUDIENCES.map((a) => (
+                <li
+                  key={a.audience}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"
+                >
+                  <p className="font-semibold text-[var(--text)]">{a.audience}</p>
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">{a.solution}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="mt-12">
+            <h2 className="font-heading text-2xl font-semibold">Что вы получите</h2>
+            <ul className="mt-4 space-y-3">
+              {MT_RESULTS.map((r) => (
+                <li key={r.title} className="flex gap-3">
+                  <span className="mt-1 text-plum" aria-hidden>
+                    ✓
+                  </span>
+                  <span>
+                    <span className="font-semibold text-[var(--text)]">{r.title}. </span>
+                    <span className="text-[var(--text-muted)]">{r.text}</span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="mt-12">
+            <h2 className="font-heading text-2xl font-semibold">Частые вопросы</h2>
+            <dl className="mt-4 space-y-5">
+              {MT_FAQ.map((f) => (
+                <div
+                  key={f.q}
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"
+                >
+                  <dt className="font-semibold text-[var(--text)]">{f.q}</dt>
+                  <dd className="mt-2 text-sm leading-relaxed text-[var(--text-muted)]">{f.a}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
 
           {others.length > 0 && (
             <div className="mt-12">
