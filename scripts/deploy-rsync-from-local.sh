@@ -113,9 +113,10 @@ set -euo pipefail
 cd "$DEPLOY_ROOT"
 # Deadman-страховка: если деплой прервётся (обрыв SSH/rsync) и сервис останется
 # выключенным — независимый (setsid, переживает SIGHUP) сторож поднимет его через 7 мин.
-# При успешном деплое сервис уже active → сторож no-op; в конце деплоя он снимается.
-pkill -f 'ALETHEIA_DEPLOY_DEADMAN' 2>/dev/null || true
-setsid bash -c 'sleep 420; systemctl is-active --quiet aletheia.service || systemctl start aletheia.service' ALETHEIA_DEPLOY_DEADMAN </dev/null >>/var/log/aletheia-deploy-deadman.log 2>&1 &
+# Управление через флаг-файл: дизарм = удалить файл (без гонок с kill).
+# При успешном деплое флаг снимается в конце → сторож просыпается и ничего не делает.
+: > /run/aletheia-deploy.active
+setsid bash -c 'sleep 420; if [ -e /run/aletheia-deploy.active ]; then systemctl is-active --quiet aletheia.service || systemctl start aletheia.service; rm -f /run/aletheia-deploy.active; fi' </dev/null >>/var/log/aletheia-deploy-deadman.log 2>&1 &
 if systemctl is-active --quiet aletheia.service 2>/dev/null; then
   sudo systemctl stop aletheia.service
 elif command -v pm2 >/dev/null 2>&1 && pm2 describe aletheia &>/dev/null; then
@@ -206,8 +207,8 @@ if ! systemctl list-unit-files 2>/dev/null | grep -q '^aletheia.service'; then
 fi
 sudo systemctl restart aletheia.service
 sudo systemctl is-active aletheia.service
-# Деплой дошёл до штатного рестарта — снимаем deadman-сторож.
-pkill -f 'ALETHEIA_DEPLOY_DEADMAN' 2>/dev/null || true
+# Деплой дошёл до штатного рестарта — снимаем флаг (сторож проснётся и ничего не сделает).
+rm -f /run/aletheia-deploy.active
 
 echo "=== Telegram long-poll worker ==="
 cp scripts/aletheia-telegram-poll.service /etc/systemd/system/aletheia-telegram-poll.service
