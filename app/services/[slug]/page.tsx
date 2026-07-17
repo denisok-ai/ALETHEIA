@@ -25,7 +25,8 @@ function metaDescriptionFor(name: string, card: string, price: number): string {
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const product = await getPublicProductBySlug(params.slug);
-  if (!product) return { robots: { index: false, follow: false } };
+  // notFound() в generateMetadata → реальный 404-статус (иначе стриминг успевает отдать 200)
+  if (!product) notFound();
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const ogImageUrl = product.imageUrl

@@ -48,7 +48,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const path = `/course/${PROBUZHDENIE_BERLINSKA_SLUG}`;
   const canonical = `${base}${path}`;
-  const title = 'Пробуждение — курс (блоки фото + текст) | АВАТЕРРА';
+  const title = 'Курс «Пробуждение» — 21 день практики с телом | АВАТЕРРА';
   const ogImageAbs = `${base}${OG_IMAGE_PATH}`;
   return {
     title,

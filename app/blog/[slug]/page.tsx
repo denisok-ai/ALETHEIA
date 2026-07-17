@@ -31,7 +31,8 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = params;
   const post = blogPostsMeta.find((p) => p.slug === slug);
-  if (!post) return {};
+  // notFound() в generateMetadata → реальный 404-статус (иначе стриминг успевает отдать 200)
+  if (!post) notFound();
 
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');

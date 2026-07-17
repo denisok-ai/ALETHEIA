@@ -72,6 +72,9 @@ export function Footer({ contactPhone }: FooterProps) {
               <Link href="/course/navyki-myshechnogo-testirovaniya" className="hover:text-plum transition-colors">
                 Курс «{courseIntro.title}»
               </Link>
+              <Link href="/services" className="hover:text-plum transition-colors">
+                Тарифы и услуги
+              </Link>
               <Link href="/about" className="hover:text-plum transition-colors">
                 О мастере
               </Link>
