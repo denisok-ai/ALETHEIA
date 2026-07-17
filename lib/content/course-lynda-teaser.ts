@@ -76,7 +76,7 @@ export const blogPostsMeta = [
     description:
       'Почему тело честнее разума и как мышечное тестирование помогает за 30 секунд проверить «моё или навязанное».',
     publishedAt: '2026-04-01T10:00:00+03:00',
-    ogImage: BLOG_DEFAULT_OG_IMAGE,
+    ogImage: '/images/og/blog-telo-znaet-otvet.png',
   },
   {
     slug: 'pochemu-problemy-vozvrashautysya',
@@ -84,7 +84,7 @@ export const blogPostsMeta = [
     description:
       'Знать причину ≠ убрать заряд: как тело хранит энергию воспоминаний и зачем нужен измеримый инструмент.',
     publishedAt: '2026-04-03T11:00:00+03:00',
-    ogImage: BLOG_DEFAULT_OG_IMAGE,
+    ogImage: '/images/og/blog-pochemu-problemy-vozvrashautysya.png',
   },
   {
     slug: 'mify-o-myshechnom-testirovanii',
@@ -92,7 +92,7 @@ export const blogPostsMeta = [
     description:
       'Эзотерика или нейрофизиология? Нужен ли дар? Разбираем заблуждения и факты.',
     publishedAt: '2026-04-05T12:00:00+03:00',
-    ogImage: BLOG_DEFAULT_OG_IMAGE,
+    ogImage: '/images/og/blog-mify-o-myshechnom-testirovanii.png',
   },
   {
     slug: 'stress-hronika-ili-signal-tela',
@@ -100,7 +100,7 @@ export const blogPostsMeta = [
     description:
       'Как отличить привычный фон от сигнала тела и зачем мышечный тест помогает увидеть, где перегруз и что с этим делать.',
     publishedAt: '2026-04-08T09:30:00+03:00',
-    ogImage: BLOG_DEFAULT_OG_IMAGE,
+    ogImage: '/images/og/blog-stress-hronika-ili-signal-tela.png',
   },
   {
     slug: 'pervye-shagi-myshechnogo-testirovaniya',
@@ -108,7 +108,7 @@ export const blogPostsMeta = [
     description:
       'С чего начать без спешки: контакт с телом, вода, простой тест — и почему важнее качество связи с мышцой, чем «сильное давление».',
     publishedAt: '2026-04-12T10:15:00+03:00',
-    ogImage: BLOG_DEFAULT_OG_IMAGE,
+    ogImage: '/images/og/blog-pervye-shagi-myshechnogo-testirovaniya.png',
   },
   {
     slug: 'probuzhdenie-21-den-osoznannosti',
