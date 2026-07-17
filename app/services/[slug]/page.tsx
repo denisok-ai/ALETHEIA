@@ -4,6 +4,7 @@
  */
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
@@ -101,11 +102,14 @@ export default async function ServicePage({ params }: { params: Params }) {
           <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
             {product.imageUrl ? (
               <div className="relative aspect-[3/2] w-full bg-[var(--lavender-light)] sm:aspect-[2/1]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                {/* Обложка тарифа над сгибом — приоритетная загрузка + AVIF/WebP */}
+                <Image
                   src={product.imageUrl}
                   alt={product.name}
-                  className="absolute inset-0 h-full w-full object-cover object-center"
+                  fill
+                  priority
+                  sizes="(max-width: 896px) 100vw, 896px"
+                  className="object-cover object-center"
                 />
               </div>
             ) : null}

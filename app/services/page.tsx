@@ -3,6 +3,7 @@
  */
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublicProducts } from '@/lib/shop/public-products';
@@ -79,11 +80,13 @@ export default async function ServicesIndexPage() {
                 >
                   {p.imageUrl ? (
                     <div className="relative aspect-[3/2] w-full shrink-0 bg-[var(--lavender-light)]">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      {/* next/image: AVIF/WebP + нужный размер + lazy */}
+                      <Image
                         src={p.imageUrl}
                         alt={p.name}
-                        className="absolute inset-0 h-full w-full object-cover object-center"
+                        fill
+                        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 384px"
+                        className="object-cover object-center"
                       />
                     </div>
                   ) : null}

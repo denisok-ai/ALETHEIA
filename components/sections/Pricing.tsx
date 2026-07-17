@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, useInView } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { TiltCard } from '@/components/ui/TiltCard';
@@ -177,11 +178,13 @@ export function Pricing({ initialProducts }: { initialProducts?: TariffItem[] })
                     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
                       {tariff.imageUrl ? (
                         <div className="relative aspect-[3/2] w-full shrink-0 bg-[var(--lavender-light)]">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
+                          {/* next/image: AVIF/WebP + нужный размер + lazy (блок ниже сгиба) */}
+                          <Image
                             src={tariff.imageUrl}
                             alt=""
-                            className="absolute inset-0 h-full w-full object-cover object-center"
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 384px"
+                            className="object-cover object-center"
                           />
                         </div>
                       ) : null}
