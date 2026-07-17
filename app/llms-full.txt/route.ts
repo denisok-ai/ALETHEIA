@@ -8,6 +8,7 @@ import { getPublicProducts } from '@/lib/shop/public-products';
 import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
 import { FAQ_JSON_LD_ITEMS } from '@/lib/landing-faq';
 import { MT_MODULES } from '@/lib/content/course-mt-landing';
+import { PROB_WEEKS } from '@/lib/content/course-probuzhdenie';
 
 export const dynamic = 'force-dynamic';
 
@@ -52,6 +53,14 @@ ${bullets}
 ${results}`;
   });
 
+  const probWeekBlocks = PROB_WEEKS.map((w) => {
+    const bullets = w.bullets.map((b) => `- ${b}`).join('\n');
+    return `### ${w.title} — ${w.subtitle}
+${w.intro}
+
+${bullets}`;
+  });
+
   const contactsParts = [
     settings.contact_phone ? `Телефон: ${settings.contact_phone}` : null,
     `Страница контактов: ${base}/contacts`,
@@ -71,6 +80,10 @@ ${results}`;
 ## Программа основного курса (по модулям)
 
 ${moduleBlocks.join('\n\n')}
+
+## Программа курса «Пробуждение» (3 недели)
+
+${probWeekBlocks.join('\n\n')}
 
 ## Тарифы и цены (актуальные, из каталога)
 
