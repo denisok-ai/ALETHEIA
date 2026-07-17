@@ -16,6 +16,10 @@ import { JsonLdFaqPage } from '@/components/JsonLdFaqPage';
 import { ServiceBuyButton } from '@/components/ServiceBuyButton';
 import type { TariffItem } from '@/components/sections/Pricing';
 import { MT_AUDIENCES, MT_FAQ, MT_RESULTS } from '@/lib/content/course-mt-landing';
+import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
+
+/** 3 статьи блога для перелинковки со страницы тарифа (обратная связь блог↔продукт). */
+const RELATED_ARTICLES = ['telo-znaet-otvet', 'mify-o-myshechnom-testirovanii', 'pochemu-problemy-vozvrashautysya'];
 
 type Params = { slug: string };
 
@@ -210,6 +214,25 @@ export default async function ServicePage({ params }: { params: Params }) {
                 </div>
               ))}
             </dl>
+          </section>
+
+          <section className="mt-12">
+            <h2 className="font-heading text-2xl font-semibold">Статьи по теме</h2>
+            <ul className="mt-4 space-y-3">
+              {blogPostsMeta
+                .filter((p) => RELATED_ARTICLES.includes(p.slug))
+                .map((p) => (
+                  <li key={p.slug}>
+                    <Link
+                      href={`/blog/${p.slug}`}
+                      className="font-semibold text-plum underline-offset-4 hover:underline"
+                    >
+                      {p.title}
+                    </Link>
+                    <p className="mt-1 text-sm text-[var(--text-muted)]">{p.description}</p>
+                  </li>
+                ))}
+            </ul>
           </section>
 
           {others.length > 0 && (
