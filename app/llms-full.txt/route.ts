@@ -7,6 +7,7 @@ import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublicProducts } from '@/lib/shop/public-products';
 import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
 import { FAQ_JSON_LD_ITEMS } from '@/lib/landing-faq';
+import { MT_MODULES } from '@/lib/content/course-mt-landing';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +38,20 @@ ${features}`;
     (p) => `- [${p.title}](${base}/blog/${p.slug}): ${p.description}`
   );
 
+  const moduleBlocks = MT_MODULES.map((m) => {
+    const bullets = m.bullets.map((b) => `- ${b}`).join('\n');
+    const results = m.results.map((r) => `- ${r}`).join('\n');
+    return `### Модуль ${m.number}. ${m.title}
+${m.weekTitle}
+${m.intro}
+
+Что разбираем:
+${bullets}
+
+Результат модуля:
+${results}`;
+  });
+
   const contactsParts = [
     settings.contact_phone ? `Телефон: ${settings.contact_phone}` : null,
     `Страница контактов: ${base}/contacts`,
@@ -52,6 +67,10 @@ ${features}`;
 
 Основной курс: «Навыки мышечного тестирования и работа с подсознанием» — ${base}/course/navyki-myshechnogo-testirovaniya
 Курс «Пробуждение» (3 недели; группа 22 000 ₽, индивидуально 44 000 ₽) — ${base}/course/probuzhdenie
+
+## Программа основного курса (по модулям)
+
+${moduleBlocks.join('\n\n')}
 
 ## Тарифы и цены (актуальные, из каталога)
 
