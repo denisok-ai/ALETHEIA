@@ -324,7 +324,7 @@ export async function POST(request: NextRequest) {
       if (repairedAccess) {
         const msg = `Заказ ${orderid}: доступ отсутствовал и был восстановлен при повторном оповещении.`;
         console.warn(`[PayKeeper] ${msg}`);
-        notifyAdminsTelegramAsync('payment_received', [
+        notifyAdminsTelegramAsync('payment_needs_attention', [
           msg,
           'Проверьте, может ли клиент войти: если сбой случился до отправки письма, у него нет пароля.',
         ]);

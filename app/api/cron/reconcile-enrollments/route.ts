@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
     if (result.repaired.length > 0) {
       const byNumber = new Map(result.missing.map((m) => [m.orderNumber, m]));
-      notifyAdminsTelegramAsync('payment_received', [
+      notifyAdminsTelegramAsync('payment_needs_attention', [
         `Восстановлен доступ по оплаченным заказам: ${result.repaired.length}`,
         ...result.repaired.slice(0, 10).map((n) => {
           const m = byNumber.get(n);
@@ -68,27 +68,27 @@ export async function GET(request: NextRequest) {
       ]);
     }
 
-    // Тревога о заказах, требующих ручной проверки, — не на каждый прогон.
-    // Задача идёт каждые 10 минут, а такие заказы могут висеть неделями: без
-    // ограничения админам шло бы по сообщению об одном и том же круглые сутки,
-    // и тревоги перестали бы читать. Повторяем только если состав изменился
-    // или прошло больше суток.
-    const attentionKey = result.needsAttention
+    // Тревожим только там, где от админа реально что-то требуется: оплата есть,
+    // а аккаунта под неё нет. Заказы с признаком намеренного отзыва доступа в
+    // тревогу НЕ идут — по ним всё сделано осознанно и делать нечего, а они
+    // остаются в выборке навсегда и давали бы ежедневное сообщение до скончания
+    // времён. Видеть их можно в ответе маршрута (поле needsAttention) и в
+    // отчёте `?repair=0`.
+    const actionable = result.needsAttention.filter((m) => m.needsUser);
+
+    // Даже по ним — не на каждый прогон: задача идёт каждые 10 минут, а заказ
+    // может ждать разбора неделями. Повтор только при смене состава или раз в сутки.
+    const attentionKey = actionable
       .map((m) => m.orderNumber)
       .sort()
       .join(',');
-    const shouldAlertAttention =
-      result.needsAttention.length > 0 && (await shouldNotifyAgain(attentionKey));
+    const shouldAlertAttention = actionable.length > 0 && (await shouldNotifyAgain(attentionKey));
 
     if (shouldAlertAttention) {
-      notifyAdminsTelegramAsync('paykeeper_webhook_error', [
-        `Оплачено без доступа, автоматически не чинится: ${result.needsAttention.length}`,
-        ...result.needsAttention.slice(0, 10).map((m) =>
-          m.needsUser
-            ? `· ${m.orderNumber} — нет аккаунта для ${m.clientEmail}`
-            : `· ${m.orderNumber} — похоже на намеренный отзыв доступа, не трогаем`
-        ),
-        'Заказы с отозванным доступом оставлены как есть. Остальным нужна ручная проверка.',
+      notifyAdminsTelegramAsync('payment_needs_attention', [
+        `Оплачено, но выдать доступ некому: ${actionable.length}`,
+        ...actionable.slice(0, 10).map((m) => `· ${m.orderNumber} — нет аккаунта для ${m.clientEmail}`),
+        'Создайте аккаунт с этим email или свяжитесь с клиентом.',
       ]);
     }
 

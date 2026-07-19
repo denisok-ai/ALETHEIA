@@ -147,7 +147,7 @@ export async function processPaidOrder(
     if (repairedAccess) {
       const msg = `Заказ ${orderNumber}: доступ отсутствовал и был восстановлен при повторной обработке.`;
       console.warn(`[PayKeeper] ${msg}`);
-      notifyAdminsTelegramAsync('payment_received', [msg]);
+      notifyAdminsTelegramAsync('payment_needs_attention', [msg]);
     }
 
     await writePaykeeperIntegrationLog({

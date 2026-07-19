@@ -13,6 +13,7 @@ export type AdminTelegramEvent =
   | 'payment_received'
   | 'support_ticket'
   | 'paykeeper_webhook_error'
+  | 'payment_needs_attention'
   | 'installment_created'
   | 'installment_payment_received'
   | 'installment_completed'
@@ -25,6 +26,7 @@ const EVENT_LABELS: Record<AdminTelegramEvent, string> = {
   payment_received: 'Оплата получена',
   support_ticket: 'Новый тикет поддержки',
   paykeeper_webhook_error: 'Ошибка webhook PayKeeper',
+  payment_needs_attention: 'Оплата требует ручной проверки',
   installment_created: 'Новая рассрочка',
   installment_payment_received: 'Платёж по рассрочке',
   installment_completed: 'Рассрочка завершена',
