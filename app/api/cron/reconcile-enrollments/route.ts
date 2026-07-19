@@ -6,12 +6,43 @@
  * причины и не зависит от того, повторит ли PayKeeper доставку вебхука.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
 import { requireCronAuth } from '@/lib/cron-auth';
 import { markCronOk } from '@/lib/cron-heartbeat';
 import { reconcileEnrollments } from '@/lib/payments/reconcile-enrollments';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 export const dynamic = 'force-dynamic';
+
+const ATTENTION_STATE_KEY = 'reconcile_attention_state';
+/** Повтор тревоги об одних и тех же заказах — не чаще раза в сутки. */
+const ATTENTION_REPEAT_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Слать ли тревогу: да, если состав проблемных заказов изменился или прошли
+ * сутки с прошлого сообщения. Состояние — в SystemSetting, чтобы переживать
+ * перезапуск приложения (иначе после каждого деплоя тревога шла бы заново).
+ */
+async function shouldNotifyAgain(key: string): Promise<boolean> {
+  try {
+    const row = await prisma.systemSetting.findUnique({ where: { key: ATTENTION_STATE_KEY } });
+    const prev = row?.value ? (JSON.parse(row.value) as { key: string; at: string }) : null;
+    const changed = prev?.key !== key;
+    const stale = !prev || Date.now() - new Date(prev.at).getTime() >= ATTENTION_REPEAT_MS;
+    if (!changed && !stale) return false;
+    const value = JSON.stringify({ key, at: new Date().toISOString() });
+    await prisma.systemSetting.upsert({
+      where: { key: ATTENTION_STATE_KEY },
+      update: { value },
+      create: { key: ATTENTION_STATE_KEY, value, category: 'payments' },
+    });
+    return true;
+  } catch (e) {
+    // Сбой учёта не должен глушить тревогу — лучше лишнее сообщение, чем немое
+    console.error('[reconcile] учёт тревог недоступен:', e);
+    return true;
+  }
+}
 
 export async function GET(request: NextRequest) {
   const authError = await requireCronAuth(request);
@@ -37,7 +68,19 @@ export async function GET(request: NextRequest) {
       ]);
     }
 
-    if (result.needsAttention.length > 0) {
+    // Тревога о заказах, требующих ручной проверки, — не на каждый прогон.
+    // Задача идёт каждые 10 минут, а такие заказы могут висеть неделями: без
+    // ограничения админам шло бы по сообщению об одном и том же круглые сутки,
+    // и тревоги перестали бы читать. Повторяем только если состав изменился
+    // или прошло больше суток.
+    const attentionKey = result.needsAttention
+      .map((m) => m.orderNumber)
+      .sort()
+      .join(',');
+    const shouldAlertAttention =
+      result.needsAttention.length > 0 && (await shouldNotifyAgain(attentionKey));
+
+    if (shouldAlertAttention) {
       notifyAdminsTelegramAsync('paykeeper_webhook_error', [
         `Оплачено без доступа, автоматически не чинится: ${result.needsAttention.length}`,
         ...result.needsAttention.slice(0, 10).map((m) =>
