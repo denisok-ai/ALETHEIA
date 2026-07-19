@@ -15,7 +15,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const canonical = `${base}/blog`;
-  const title = 'Блог | АВАТЕРРА';
+  const title = 'Блог о мышечном тестировании и работе с телом';
 
   return {
     ...buildPublicPageMetadata({

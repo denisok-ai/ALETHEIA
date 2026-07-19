@@ -38,7 +38,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const path = `/course/${COURSE_SLUG}`;
   const canonical = `${base}${path}`;
-  const title = 'Курс мышечного тестирования онлайн | Школа АВАТЕРРА';
+  // Бренд добавляет шаблон в layout — вручную не дублируем
+  const title = 'Курс мышечного тестирования онлайн: научиться за 6 модулей';
   const ogImageAbs = `${base}${OG_IMAGE_PATH}`;
   return {
     title,

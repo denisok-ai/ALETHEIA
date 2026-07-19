@@ -8,11 +8,14 @@ import { prisma } from '@/lib/db';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
+import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { jsonLdString } from '@/lib/json-ld';
 
 const TITLE = 'Новости и анонсы школы АВАТЕРРА';
+/** Мета-заголовок без бренда: его добавляет шаблон layout */
+const SEO_TITLE = 'Новости и анонсы школы';
 const DESCRIPTION =
   'События, статьи и объявления школы мышечного тестирования АВАТЕРРА: запуски потоков, живые встречи, новые материалы.';
 
@@ -20,9 +23,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   return buildPublicPageMetadata({
-    title: TITLE,
+    title: SEO_TITLE,
     description: DESCRIPTION,
     canonical: `${base}/news`,
+    ogImageUrl: `${base}${DEFAULT_OG_IMAGE_PATH}`,
   });
 }
 

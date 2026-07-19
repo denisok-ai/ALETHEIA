@@ -41,7 +41,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const ogImageAbs = `${base}${ogPath}`;
 
   return {
-    title: `${post.title} | АВАТЕРРА`,
+    // Бренд добавит шаблон layout — иначе двойной суффикс
+    title: post.title,
     description: post.description,
     alternates: { canonical },
     openGraph: {

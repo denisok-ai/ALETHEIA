@@ -8,11 +8,14 @@ import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublicProducts } from '@/lib/shop/public-products';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
+import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { jsonLdString } from '@/lib/json-ld';
 
 const TITLE = 'Тарифы и услуги школы АВАТЕРРА';
+/** Мета-заголовок без бренда: его добавляет шаблон layout ('%s | АВАТЕРРА') */
+const SEO_TITLE = 'Тарифы и цены на обучение';
 const DESCRIPTION =
   'Обучение мышечному тестированию: бесплатное знакомство с методом, полный курс «Практик» и наставничество Татьяны Стрельцовой. Актуальные цены и состав тарифов.';
 
@@ -20,9 +23,10 @@ export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   return buildPublicPageMetadata({
-    title: TITLE,
+    title: SEO_TITLE,
     description: DESCRIPTION,
     canonical: `${base}/services`,
+    ogImageUrl: `${base}${DEFAULT_OG_IMAGE_PATH}`,
   });
 }
 

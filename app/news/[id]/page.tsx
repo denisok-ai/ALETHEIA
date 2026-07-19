@@ -41,7 +41,8 @@ export async function generateMetadata({
   const description = publicationMetaDescription(pub.teaser, pub.content ?? '');
   const ogPath = BLOG_DEFAULT_OG_IMAGE;
   const ogImageAbs = `${base}${ogPath}`;
-  const title = `${pub.title} | АВАТЕРРА`;
+  // Бренд добавит шаблон layout — иначе получалось «… | АВАТЕРРА | АВАТЕРРА»
+  const title = pub.title;
   const kw = pub.keywords
     ?.split(/[,;]+/)
     .map((s) => s.trim())
