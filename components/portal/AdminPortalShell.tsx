@@ -54,6 +54,7 @@ const adminSections: NavSection[] = [
       { href: '/portal/admin/certificates', label: 'Сертификаты', icon: icon(Award) },
       { href: '/portal/admin/certificate-templates', label: 'Шаблоны сертификатов', icon: icon(LayoutTemplate) },
       { href: '/portal/admin/publications', label: 'Публикации', icon: icon(Newspaper) },
+      { href: '/portal/admin/blog', label: 'Блог сайта', icon: icon(FileText) },
       { href: '/portal/admin/media', label: 'Медиатека', icon: icon(FolderOpen) },
     ],
   },
