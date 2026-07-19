@@ -3,6 +3,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
@@ -23,24 +24,29 @@ export async function GET(request: NextRequest) {
   const dateTo = new Date(year, month, 0, 23, 59, 59, 999);
   const daysInMonth = dateTo.getDate();
 
-  const sessions = await prisma.visitLog.findMany({
-    where: {
-      loginAt: { gte: dateFrom, lte: dateTo },
-    },
-    select: { userId: true, loginAt: true },
-  });
+  // Считает БД, а не Node. Раньше сюда грузились ВСЕ записи посещений за месяц
+  // (без take) — ради 30 чисел. Портал шлёт ping каждые 120 секунд на каждого
+  // залогиненного, поэтому таблица растёт быстро: при трёх сотнях активных
+  // студентов это миллионы строк в куче процесса на один запрос графика.
+  // Уникальные пользователи по дням считаются одним GROUP BY.
+  const rows = await prisma.$queryRaw<{ day: string; cnt: bigint | number }[]>(
+    Prisma.sql`SELECT strftime('%d', datetime(loginAt / 1000, 'unixepoch', 'localtime')) AS day,
+                      COUNT(DISTINCT userId) AS cnt
+               FROM "VisitLog"
+               WHERE loginAt >= ${dateFrom.getTime()} AND loginAt <= ${dateTo.getTime()}
+               GROUP BY day`
+  );
 
-  const uniqueByDay: Record<number, Set<string>> = {};
-  for (let d = 1; d <= daysInMonth; d++) uniqueByDay[d] = new Set();
-
-  for (const s of sessions) {
-    const day = s.loginAt.getDate();
-    if (day >= 1 && day <= daysInMonth) uniqueByDay[day].add(s.userId);
+  const countByDay: Record<number, number> = {};
+  for (let d = 1; d <= daysInMonth; d++) countByDay[d] = 0;
+  for (const r of rows) {
+    const day = parseInt(r.day, 10);
+    if (day >= 1 && day <= daysInMonth) countByDay[day] = Number(r.cnt);
   }
 
   const data = Array.from({ length: daysInMonth }, (_, i) => {
     const day = i + 1;
-    return { day, uniqueVisitors: uniqueByDay[day]?.size ?? 0 };
+    return { day, uniqueVisitors: countByDay[day] ?? 0 };
   });
 
   return NextResponse.json({
