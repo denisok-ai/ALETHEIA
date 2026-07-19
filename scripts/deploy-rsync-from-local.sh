@@ -139,7 +139,18 @@ rsync -avz --delete -e "$RSYNC_RSH" ./app/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/app/"
 rsync -avz --delete -e "$RSYNC_RSH" ./components/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/components/"
 # Prisma: без --delete — иначе rsync с --exclude удалит dev.db на сервере.
 # Локальные *.db на прод по умолчанию не копируем (см. DEPLOY_COPY_LOCAL_DB).
-rsync -avz --exclude 'dev.db' --exclude '*.db' -e "$RSYNC_RSH" ./prisma/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/prisma/"
+# Перед синком prisma/ сбрасываем журнал WAL прода в основной файл БД: тогда
+# даже при ошибке в исключениях rsync свежие транзакции уже в dev.db, а не
+# только в спутнике -wal. Вторая линия защиты к исключению ниже.
+ssh "${SSH_OPTS[@]}" "$DEPLOY_SSH" "cd '$DEPLOY_ROOT' && sqlite3 prisma/dev.db 'PRAGMA wal_checkpoint(TRUNCATE);' >/dev/null 2>&1" || true
+
+# Шаблон 'dev.db*' обязателен: прежние '--exclude dev.db --exclude *.db' НЕ
+# покрывали спутников WAL — dev.db-wal и dev.db-shm. С 19.07.2026 приложение
+# работает в режиме WAL, и деплой начал копировать ЛОКАЛЬНЫЙ (пустой) журнал
+# поверх боевого, уничтожая транзакции прода, ещё не сброшенные в основной файл.
+# Обнаружено сквозной проверкой: тестовый заказ с оплатой исчез после деплоя.
+# Реальная оплата, пришедшая незадолго до выкладки, пропала бы так же — молча.
+rsync -avz --exclude 'dev.db*' --exclude '*.db' -e "$RSYNC_RSH" ./prisma/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/prisma/"
 # Утилиты (импорт/экспорт данных, прочие ts-скрипты) — раньше на сервер не попадали.
 rsync -avz --delete -e "$RSYNC_RSH" ./scripts/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/scripts/"
 if [[ "${DEPLOY_COPY_LOCAL_DB:-}" = "1" ]]; then
