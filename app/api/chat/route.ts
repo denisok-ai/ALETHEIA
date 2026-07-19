@@ -11,6 +11,12 @@ import {
   resolveEffectiveChatModel,
 } from '@/lib/llm-chat-completion';
 import { checkRateLimit } from '@/lib/rate-limit';
+import {
+  UNTRUSTED_DATA_POLICY,
+  logSuspiciousLlmInput,
+  sanitizeLlmInput,
+  wrapUntrusted,
+} from '@/lib/llm-guard';
 import { logLlmRequest } from '@/lib/llm-request-log';
 import { applyPublicChatPlaceholders } from '@/lib/ai-placeholders';
 import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
@@ -34,7 +40,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const message = typeof body?.message === 'string' ? body.message.trim() : '';
+    // Guard: лимит длины (вытеснение контекста и денежное истощение), чистка control-символов
+    const guarded = sanitizeLlmInput(body?.message, 'chat');
+    if (guarded.suspicious) {
+      logSuspiciousLlmInput({
+        surface: 'public-chat',
+        actor: (session?.user as { id?: string } | undefined)?.id ?? null,
+        snippet: guarded.text,
+      });
+    }
+    const message = guarded.text;
     if (!message) {
       return NextResponse.json(
         { error: 'Напишите ваш вопрос.' },
@@ -105,8 +120,9 @@ export async function POST(request: NextRequest) {
       apiKey,
       model,
       messages: [
-        { role: 'system', content: fullSystemContent },
-        { role: 'user', content: message },
+        { role: 'system', content: `${fullSystemContent}\n\n${UNTRUSTED_DATA_POLICY}` },
+        // Вопрос гостя — недоверенные данные, а не инструкции
+        { role: 'user', content: wrapUntrusted(message, 'вопрос посетителя сайта') },
       ],
       maxTokens,
       temperature,

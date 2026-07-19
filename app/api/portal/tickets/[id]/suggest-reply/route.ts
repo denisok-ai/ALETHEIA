@@ -13,6 +13,8 @@ import { completeLlmChat, resolveChatbotProvider } from '@/lib/llm-chat-completi
 import { getEnvOverrides, getKnowledgeBase, getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { logLlmRequest } from '@/lib/llm-request-log';
+import { sanitizeLlmInput, wrapUntrusted } from '@/lib/llm-guard';
+import { checkRateLimit } from '@/lib/rate-limit';
 const KB_MAX_CHARS = 6000;
 
 function parseMessages(raw: string): { role: string; content: string; at: string }[] {
@@ -30,9 +32,12 @@ function parseMessages(raw: string): { role: string; content: string; at: string
 }
 
 export async function POST(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimitRes = checkRateLimit(request, 'llm-suggest-reply', 15);
+  if (rateLimitRes) return rateLimitRes;
+
   const session = await getServerSession(authOptions);
   const role = (session?.user as { role?: string })?.role;
   if (!session?.user || (role !== 'manager' && role !== 'admin')) {
@@ -55,13 +60,15 @@ export async function POST(
   }
 
   const messages = parseMessages(ticket.messages);
+  // Клиент может писать «[manager]: ...» в своём сообщении и подделывать реплики
+  // поддержки — вся переписка идёт как недоверенные данные.
   const contextLines = [
-    `Тема: ${ticket.subject}`,
+    `Тема: ${sanitizeLlmInput(ticket.subject, 'ticket').text}`,
     '',
     'Переписка:',
-    ...messages.map((m) => `[${m.role}]: ${m.content}`),
+    ...messages.map((m) => `[${m.role}]: ${sanitizeLlmInput(m.content, 'ticket').text}`),
   ];
-  const context = contextLines.join('\n');
+  const context = wrapUntrusted(contextLines.join('\n'), 'переписка тикета поддержки');
 
   const systemSettings = await getSystemSettings();
   const siteBase = normalizeSiteUrl(

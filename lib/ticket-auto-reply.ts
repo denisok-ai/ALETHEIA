@@ -10,6 +10,12 @@ import { getEnvOverrides, getKnowledgeBase, getSystemSettings } from '@/lib/sett
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { prisma } from '@/lib/db';
 import { logLlmRequest } from '@/lib/llm-request-log';
+import {
+  UNTRUSTED_DATA_POLICY,
+  logSuspiciousLlmInput,
+  sanitizeLlmInput,
+  wrapUntrusted,
+} from '@/lib/llm-guard';
 const KB_MAX_CHARS = 6000;
 const MAX_REPLY_LENGTH = 800;
 
@@ -70,8 +76,32 @@ export async function generateAutoReply(subject: string, firstMessage: string): 
     sysParts.push(knowledgeSnippet);
     sysParts.push('---');
   }
+  // Ответ уходит клиенту на почту без ревью человека — обращение оборачиваем как
+  // недоверенные данные, иначе инструкция в тексте тикета говорит от имени компании.
+  sysParts.push('');
+  sysParts.push(UNTRUSTED_DATA_POLICY);
   const sys = sysParts.join('\n');
-  const userContent = `Тема обращения: ${subject}\n\nСообщение клиента:\n${firstMessage}\n\n---\nДай краткий ответ от имени поддержки.`;
+
+  const guardedSubject = sanitizeLlmInput(subject, 'ticket');
+  const guardedMessage = sanitizeLlmInput(firstMessage, 'ticket');
+  if (guardedSubject.suspicious || guardedMessage.suspicious) {
+    logSuspiciousLlmInput({
+      surface: 'ticket-auto-reply',
+      actor: null,
+      snippet: `${guardedSubject.text} | ${guardedMessage.text}`,
+    });
+    // Авто-ответ клиенту при подозрительном вводе не отправляем — оставляем менеджеру
+    return null;
+  }
+
+  const userContent = [
+    wrapUntrusted(
+      `Тема обращения: ${guardedSubject.text}\n\nСообщение клиента:\n${guardedMessage.text}`,
+      'обращение клиента в поддержку'
+    ),
+    '',
+    'Дай краткий ответ от имени поддержки.',
+  ].join('\n');
 
   const settings = await prisma.llmSetting.findUnique({
     where: { key: 'chatbot' },

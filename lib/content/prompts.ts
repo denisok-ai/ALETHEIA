@@ -2,6 +2,7 @@
  * Промпты DeepSeek для генерации постов AVATERRA.
  */
 import { normalizeBrandFromKb } from './brand-kb';
+import { UNTRUSTED_DATA_POLICY, sanitizeLlmInput, wrapUntrusted } from '@/lib/llm-guard';
 
 type BrandNorm = ReturnType<typeof normalizeBrandFromKb>;
 
@@ -90,6 +91,7 @@ export function buildTextPrompts(brand: BrandNorm, request: GenerationRequest): 
   const system = [
     'Ты — редактор Telegram-канала школы «Аватэрра» (avaterra.pro).',
     `Tone of Voice: ${brand.toneOfVoice}`,
+    UNTRUSTED_DATA_POLICY,
     COMMON_RULES_RU,
     `Длина: ${minL}-${maxL} знаков.`,
     `Структура:\n${structure}`,
@@ -102,12 +104,20 @@ export function buildTextPrompts(brand: BrandNorm, request: GenerationRequest): 
     .filter(Boolean)
     .join('\n\n');
 
+  // Тема и план приходят из Site Radar — это текст с ВНЕШНИХ страниц (непрямая
+  // инъекция). Оборачиваем как данные, иначе инструкция с чужой страницы
+  // управляет постом, который уходит подписчикам.
   const user = [
     `Тип: ${request.postType}`,
-    `Тема: ${request.topic}`,
-    `Цель: ${request.objective}`,
-    `План: ${request.outline}`,
-    `CTA: ${request.cta}`,
+    wrapUntrusted(
+      [
+        `Тема: ${sanitizeLlmInput(request.topic, 'theme').text}`,
+        `Цель: ${request.objective}`,
+        `План: ${request.outline}`,
+        `CTA: ${request.cta}`,
+      ].join('\n'),
+      'тема из мониторинга сайта (внешний источник)'
+    ),
     request.feedback ? `Исправь:\n${request.feedback}` : '',
     'Верни только готовый текст поста без служебных заголовков.',
   ]

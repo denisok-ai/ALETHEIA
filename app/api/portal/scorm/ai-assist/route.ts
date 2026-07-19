@@ -15,6 +15,8 @@ import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { streamText, convertToModelMessages } from 'ai';
 import { createDeepSeek } from '@ai-sdk/deepseek';
+import { checkRateLimit } from '@/lib/rate-limit';
+import { MAX_HISTORY_MESSAGES, UNTRUSTED_DATA_POLICY } from '@/lib/llm-guard';
 
 const DEFAULT_MODEL = 'deepseek-chat';
 
@@ -23,6 +25,10 @@ function getMessageContent(m: { content?: string; text?: string }): string {
 }
 
 export async function POST(request: NextRequest) {
+  // Лимит: каждый запрос тащит весь aiContext курса в промпт — защита от денежного истощения
+  const rateLimitRes = checkRateLimit(request, 'ai-tutor', 20);
+  if (rateLimitRes) return rateLimitRes;
+
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
   if (!userId) {
@@ -160,6 +166,8 @@ export async function POST(request: NextRequest) {
 Если ответа нет в материалах — скажи об этом и предложи обратиться к куратору.
 Не выдумывай факты.
 
+${UNTRUSTED_DATA_POLICY}
+
 ---
 ${contentText}`;
 
@@ -182,7 +190,15 @@ ${contentText}`;
   const deepseek = createDeepSeek({ apiKey });
   const model = deepseek(modelId as 'deepseek-chat');
 
-  const modelMessages = await convertToModelMessages(messages as Parameters<typeof convertToModelMessages>[0]);
+  // Guard: история приходит от клиента — роль `system` запрещена (подмена инструкций),
+  // роли нормализуются, объём ограничен. Формат UIMessage (parts) сохраняем как есть.
+  const safeMessages = (messages as { role?: unknown }[])
+    .filter((m) => m && typeof m === 'object' && m.role !== 'system')
+    .slice(-MAX_HISTORY_MESSAGES);
+
+  const modelMessages = await convertToModelMessages(
+    safeMessages as Parameters<typeof convertToModelMessages>[0]
+  );
 
   const result = streamText({
     model,
