@@ -6,7 +6,7 @@
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublicProducts } from '@/lib/shop/public-products';
-import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
+import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,7 +20,7 @@ export async function GET() {
     return `- [${p.name}](${base}/services/${p.slug}): ${p.cardDescription.slice(0, 200)} Цена: ${price}.`;
   });
 
-  const blogLines = blogPostsMeta.map(
+  const blogLines = (await getPublishedBlogPosts()).map(
     (p) => `- [${p.title}](${base}/blog/${p.slug}): ${p.description}`
   );
 

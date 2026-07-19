@@ -5,7 +5,7 @@
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublicProducts } from '@/lib/shop/public-products';
-import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
+import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { FAQ_JSON_LD_ITEMS } from '@/lib/landing-faq';
 import { MT_MODULES } from '@/lib/content/course-mt-landing';
 import { PROB_WEEKS } from '@/lib/content/course-probuzhdenie';
@@ -35,7 +35,7 @@ ${features}`;
 
   const faqBlocks = FAQ_JSON_LD_ITEMS.map((i) => `**${i.q}**\n${i.a}`);
 
-  const blogLines = blogPostsMeta.map(
+  const blogLines = (await getPublishedBlogPosts()).map(
     (p) => `- [${p.title}](${base}/blog/${p.slug}): ${p.description}`
   );
 

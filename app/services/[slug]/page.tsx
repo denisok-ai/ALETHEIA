@@ -17,7 +17,7 @@ import { JsonLdFaqPage } from '@/components/JsonLdFaqPage';
 import { ServiceBuyButton } from '@/components/ServiceBuyButton';
 import type { TariffItem } from '@/components/sections/Pricing';
 import { MT_AUDIENCES, MT_FAQ, MT_RESULTS } from '@/lib/content/course-mt-landing';
-import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
+import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 
 /** 3 статьи блога для перелинковки со страницы тарифа (обратная связь блог↔продукт). */
 const RELATED_ARTICLES = ['telo-znaet-otvet', 'mify-o-myshechnom-testirovanii', 'pochemu-problemy-vozvrashautysya'];
@@ -56,6 +56,12 @@ export default async function ServicePage({ params }: { params: Params }) {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const pageUrl = `${base}/services/${product.slug}`;
+
+  // Перелинковка блог↔тариф. Список желаемых статей задан в RELATED_ARTICLES,
+  // но берём только реально опубликованные: статью могли снять с публикации или
+  // удалить, и ссылка на неё вела бы в никуда.
+  const publishedPosts = await getPublishedBlogPosts();
+  const relatedArticles = publishedPosts.filter((p) => RELATED_ARTICLES.includes(p.slug));
 
   const tariff: TariffItem = {
     id: product.slug,
@@ -223,8 +229,7 @@ export default async function ServicePage({ params }: { params: Params }) {
           <section className="mt-12">
             <h2 className="font-heading text-2xl font-semibold">Статьи по теме</h2>
             <ul className="mt-4 space-y-3">
-              {blogPostsMeta
-                .filter((p) => RELATED_ARTICLES.includes(p.slug))
+              {relatedArticles
                 .map((p) => (
                   <li key={p.slug}>
                     <Link

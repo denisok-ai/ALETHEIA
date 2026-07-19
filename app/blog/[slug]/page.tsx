@@ -6,38 +6,30 @@ import { BlogArticleCourseLinks } from '@/components/BlogArticleCourseLinks';
 import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
 import { JsonLdBlogArticle } from '@/components/JsonLdBlogArticle';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
-import {
-  BLOG_DEFAULT_OG_IMAGE,
-  type BlogArticleBody,
-  blogArticleBodies,
-  blogPostsMeta,
-} from '@/lib/content/course-lynda-teaser';
+import { getBlogPostBySlug, getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
 type Props = { params: { slug: string } };
 
-function isMarkdownBody(body: BlogArticleBody): body is { h1: string; markdown: string } {
-  return 'markdown' in body;
-}
-
 const blogMarkdownClassName =
   'mt-6 text-[var(--text)] leading-[var(--leading-body)] [&>h2]:mt-10 [&>h2]:font-heading [&>h2]:text-2xl [&>h2]:font-semibold [&>h2]:text-[var(--text)] [&>h2]:first:mt-0 [&>h3]:mt-8 [&>h3]:mb-2 [&>h3]:font-heading [&>h3]:text-xl [&>h3]:font-semibold [&>h3]:text-[var(--text)] [&>p]:mt-0 [&>p]:leading-relaxed [&>p+p]:mt-4 [&>ul]:my-4 [&>ul]:ml-5 [&>ul]:list-disc [&>ul]:space-y-2 [&>ul>li]:text-[var(--text-muted)] [&>hr]:my-10 [&>hr]:border-0 [&>hr]:border-t [&>hr]:border-[var(--border)] [&_strong]:font-semibold [&_strong]:text-[var(--text)]';
 
-export function generateStaticParams() {
-  return blogPostsMeta.map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  const posts = await getPublishedBlogPosts();
+  return posts.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = params;
-  const post = blogPostsMeta.find((p) => p.slug === slug);
+  const post = await getBlogPostBySlug(slug);
   // notFound() в generateMetadata → реальный 404-статус (иначе стриминг успевает отдать 200)
   if (!post) notFound();
 
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const canonical = `${base}/blog/${slug}`;
-  const ogPath = post.ogImage ?? BLOG_DEFAULT_OG_IMAGE;
+  const ogPath = post.ogImage;
   const ogImageAbs = `${base}${ogPath}`;
 
   return {
@@ -67,14 +59,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function BlogArticlePage({ params }: Props) {
   const { slug } = params;
-  const post = blogPostsMeta.find((p) => p.slug === slug);
-  const body = blogArticleBodies[slug as keyof typeof blogArticleBodies];
-  if (!post || !body) notFound();
+  const post = await getBlogPostBySlug(slug);
+  if (!post) notFound();
+  const body = post.body;
 
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const pageUrl = `${base}/blog/${slug}`;
-  const ogPath = post.ogImage ?? BLOG_DEFAULT_OG_IMAGE;
+  const ogPath = post.ogImage;
   const imageUrlAbs = `${base}${ogPath}`;
   const publishedLabel = new Date(post.publishedAt).toLocaleDateString('ru-RU', {
     day: 'numeric',
@@ -82,7 +74,7 @@ export default async function BlogArticlePage({ params }: Props) {
     year: 'numeric',
   });
 
-  const related = blogPostsMeta.filter((p) => p.slug !== slug).slice(0, 3);
+  const related = (await getPublishedBlogPosts()).filter((p) => p.slug !== slug).slice(0, 3);
 
   return (
     <>
@@ -94,7 +86,7 @@ export default async function BlogArticlePage({ params }: Props) {
         ]}
       />
       <JsonLdBlogArticle
-        headline={body.h1}
+        headline={post.h1}
         description={post.description}
         pageUrl={pageUrl}
         datePublished={post.publishedAt}
@@ -119,10 +111,10 @@ export default async function BlogArticlePage({ params }: Props) {
 
         <article className="max-w-[var(--prose-max-width)]">
           <h1 className="font-heading text-3xl font-semibold leading-tight text-[var(--text)] sm:text-4xl">
-            {body.h1}
+            {post.h1}
           </h1>
           <p className="mt-2 text-sm text-[var(--text-soft)]">Опубликовано: {publishedLabel}</p>
-          {isMarkdownBody(body) ? (
+          {body.kind === 'markdown' ? (
             <div className={blogMarkdownClassName}>
               <ReactMarkdown
                 components={{

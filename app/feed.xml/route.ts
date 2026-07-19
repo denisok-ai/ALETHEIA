@@ -1,4 +1,4 @@
-import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
+import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { prisma } from '@/lib/db';
@@ -23,7 +23,7 @@ export async function GET() {
   const channelLink = `${base}/blog`;
 
   type FeedItem = { title: string; link: string; date: Date; description: string };
-  const blogItems: FeedItem[] = blogPostsMeta.map((p) => ({
+  const blogItems: FeedItem[] = (await getPublishedBlogPosts()).map((p) => ({
     title: p.title,
     link: `${base}/blog/${p.slug}`,
     date: new Date(p.publishedAt),

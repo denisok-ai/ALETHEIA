@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { JsonLdBlogIndex } from '@/components/JsonLdBlogIndex';
 import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
-import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
+import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { getSystemSettings } from '@/lib/settings';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
@@ -30,12 +30,13 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function BlogIndexPage() {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
+  const posts = await getPublishedBlogPosts();
 
   return (
     <>
       <JsonLdBlogIndex
         siteUrl={base}
-        posts={blogPostsMeta.map((p) => ({ slug: p.slug, title: p.title }))}
+        posts={posts.map((p) => ({ slug: p.slug, title: p.title }))}
       />
       <JsonLdBreadcrumbList
         items={[
@@ -58,7 +59,7 @@ export default async function BlogIndexPage() {
       <p className="mt-4 text-[var(--text-muted)]">Материалы для тех, кто хочет глубже слышать тело и работать с причиной, а не только со следствием.</p>
 
       <ul className="mt-8 space-y-5">
-        {blogPostsMeta.map((post) => (
+        {posts.map((post) => (
           <li key={post.slug}>
             <Link
               href={`/blog/${post.slug}`}

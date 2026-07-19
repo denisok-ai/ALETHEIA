@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { getSystemSettings } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 import { normalizeSiteUrl } from '@/lib/site-url';
-import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
+import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { getPublicProducts } from '@/lib/shop/public-products';
 
 /**
@@ -58,6 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   const products = await getPublicProducts();
+  const blogPosts = await getPublishedBlogPosts();
 
   const newestOf = (dates: (Date | null | undefined)[]): Date | undefined => {
     const ms = dates.filter(Boolean).map((d) => (d as Date).getTime());
@@ -66,7 +67,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // У списков дата вычисляется из самого свежего материала внутри — вручную её
   // задавать бессмысленно: она устареет при первой же публикации.
-  const newestPost = newestOf(blogPostsMeta.map((p) => new Date(p.publishedAt)));
+  const newestPost = newestOf(blogPosts.map((p) => new Date(p.publishedAt)));
   const newestProduct = newestOf(products.map((p) => p.updatedAt));
   const derived: Record<string, Date | undefined> = {
     '/blog': newestPost,
@@ -86,7 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         priority,
       };
     }),
-    ...blogPostsMeta.map((p) => ({
+    ...blogPosts.map((p) => ({
       url: `${base}/blog/${p.slug}`,
       lastModified: new Date(p.publishedAt),
       changeFrequency: 'monthly' as const,
