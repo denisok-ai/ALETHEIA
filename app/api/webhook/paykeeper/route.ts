@@ -71,6 +71,23 @@ export async function POST(request: NextRequest) {
 
     const { id, orderid, sum, clientid } = params;
 
+    // Пустой orderid допустим формулой подписи PayKeeper, а валидатор требует
+    // непустыми только id/sum/key. Раньше следующая строка сразу вызывала
+    // orderid.match(...) и падала с TypeError → ответ 500, бесконечные ретраи
+    // PayKeeper и поток ложных алертов «Исключение» админам.
+    if (!orderid) {
+      console.warn('[PayKeeper webhook] no_orderid');
+      await writePaykeeperIntegrationLog({
+        direction: 'inbound',
+        event: 'webhook.no_orderid',
+        status: 'warning',
+        orderNumber: null,
+        message: 'Уведомление без orderid — сопоставить с заказом невозможно',
+        payload: payloadPreview,
+      });
+      return NextResponse.json({ ok: true, skipped: 'no orderid' });
+    }
+
     // --- Рассрочка: orderid вида "ORDERNUMBER-I1", "ORDERNUMBER-I2" ---
     const installmentMatch = orderid.match(/^(.+)-I(\d+)$/);
     if (installmentMatch) {

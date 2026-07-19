@@ -15,6 +15,7 @@ import { createPasswordToken } from '@/lib/password-token';
 import { findActiveServiceForOrderTariff, findPersonalProductForOrderTariff } from '@/lib/order-service';
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
+import { repairEnrollmentForOrder } from '@/lib/payments/reconcile-enrollments';
 
 async function sendPaymentEmail(params: {
   order: { id: number; clientEmail: string };
@@ -96,6 +97,29 @@ export async function processPaidOrder(
   if (!order) {
     return { success: false, error: 'Order not found' };
   }
+  // Возвращённый или отменённый заказ повторной оплатой не считается. Раньше
+  // единственной проверкой было `status === 'paid'`, поэтому запоздалый или
+  // повторный вебхук возвращал такой заказ обратно в `paid` с новым paidAt,
+  // слал письмо «оплата получена» и уведомление о продаже — при том, что доступ
+  // остаётся закрытым (upsert зачисления не снимает accessClosed). В БД при
+  // этом оставалось противоречие: status='paid' вместе с суммой возврата.
+  if (order.status === 'refunded' || order.status === 'cancelled') {
+    const msg = `Заказ ${orderNumber}: вебхук об оплате пришёл на заказ в статусе «${order.status}» — обработка пропущена.`;
+    console.warn(`[PayKeeper] ${msg}`);
+    await writePaykeeperIntegrationLog({
+      direction: 'inbound',
+      event: 'process_paid_order.invalid_transition',
+      status: 'warning',
+      orderNumber,
+      message: msg,
+    });
+    notifyAdminsTelegramAsync('paykeeper_webhook_error', [
+      msg,
+      'Требуется проверка: возможен повторный платёж по возвращённому заказу.',
+    ]);
+    return { success: true, alreadyPaid: true, warnings: [msg] };
+  }
+
   if (order.status === 'paid') {
     console.info('[PayKeeper webhook] idempotent_ok already_paid', { orderNumber });
     if (paykeeperMeta?.paykeeperPaymentId && order.paykeeperPaymentId !== paykeeperMeta.paykeeperPaymentId) {
@@ -110,18 +134,46 @@ export async function processPaidOrder(
         })
         .catch(() => {});
     }
+    // Самолечение: если предыдущая обработка оборвалась между записью `paid` и
+    // созданием зачисления, здесь был тупик — ветка просто выходила, и доступ
+    // не выдавал уже никто. Повторная доставка от PayKeeper — единственный
+    // автоматический шанс это исправить, и теперь он используется.
+    let repairedAccess = false;
+    try {
+      repairedAccess = await repairEnrollmentForOrder(orderNumber);
+    } catch (e) {
+      console.error(`[PayKeeper] Заказ ${orderNumber}: восстановление доступа не удалось:`, e);
+    }
+    if (repairedAccess) {
+      const msg = `Заказ ${orderNumber}: доступ отсутствовал и был восстановлен при повторной обработке.`;
+      console.warn(`[PayKeeper] ${msg}`);
+      notifyAdminsTelegramAsync('payment_received', [msg]);
+    }
+
     await writePaykeeperIntegrationLog({
       direction: 'inbound',
       event: 'process_paid_order.idempotent',
       status: 'success',
       orderNumber,
-      message: 'Заказ уже был оплачен — повторная обработка пропущена',
+      message: repairedAccess
+        ? 'Заказ уже был оплачен; отсутствовавшее зачисление восстановлено'
+        : 'Заказ уже был оплачен — повторная обработка пропущена',
     });
-    return { success: true, alreadyPaid: true };
+    return {
+      success: true,
+      alreadyPaid: true,
+      enrollmentCreated: repairedAccess,
+    };
   }
 
-  await prisma.order.update({
-    where: { orderNumber },
+  // Атомарный захват заказа. Раньше проверка `status === 'paid'` и запись шли
+  // двумя отдельными запросами: два вебхука, пришедшие одновременно (штатное
+  // поведение PayKeeper при таймауте ответа), оба читали `pending`, оба
+  // проходили гейт и оба выполняли обработку. Клиент получал два письма — в том
+  // числе два разных токена установки пароля, из которых рабочим оставался
+  // только последний. Условие в самом updateMany делает гейт неделимым.
+  const claimed = await prisma.order.updateMany({
+    where: { orderNumber, status: order.status },
     data: {
       status: 'paid',
       paidAt: new Date(),
@@ -134,6 +186,18 @@ export async function processPaidOrder(
       ...(paykeeperMeta?.paidAmountRub != null && { paidAmountRub: paykeeperMeta.paidAmountRub }),
     },
   });
+  if (claimed.count === 0) {
+    // Заказ перехватила параллельная обработка — она же отправит письма.
+    console.info('[PayKeeper webhook] concurrent_claim_skipped', { orderNumber });
+    await writePaykeeperIntegrationLog({
+      direction: 'inbound',
+      event: 'process_paid_order.concurrent_skip',
+      status: 'success',
+      orderNumber,
+      message: 'Заказ одновременно обрабатывался другим вызовом — дубль пропущен',
+    });
+    return { success: true, alreadyPaid: true };
+  }
 
   const service = order.tariffId
     ? await findActiveServiceForOrderTariff(order.tariffId)
@@ -192,6 +256,28 @@ export async function processPaidOrder(
 
     let userId = user?.id;
 
+    // Пользователь без профиля войти не может: роль и статус аккаунта хранятся
+    // в Profile. Такие записи могли остаться от прежнего нетранзакционного
+    // создания — достраиваем профиль, раз он всё равно был запрошен выше.
+    if (user && !user.profile) {
+      try {
+        await prisma.profile.create({
+          data: {
+            id: `p-${user.id}`,
+            userId: user.id,
+            role: 'user',
+            status: 'active',
+            email: order.clientEmail.trim(),
+            emailVerifiedAt: new Date(),
+          },
+        });
+        console.warn(`[PayKeeper] Заказ ${orderNumber}: восстановлен отсутствовавший профиль пользователя.`);
+      } catch (e) {
+        console.error(`[PayKeeper] Заказ ${orderNumber}: не удалось создать профиль:`, e);
+        warnings.push('Не удалось создать профиль пользователя — вход может быть недоступен.');
+      }
+    }
+
     if (!userId) {
       try {
         const tempPassword = nanoid(24);
@@ -203,23 +289,34 @@ export async function processPaidOrder(
           rawClientName && !/@/.test(rawClientName) && !/^[a-z0-9_.+-]+$/i.test(rawClientName)
             ? rawClientName
             : null;
-        const newUser = await prisma.user.create({
-          data: {
-            email: emailTrim,
-            passwordHash,
-            displayName,
-          },
-        });
-        await prisma.profile.create({
-          data: {
-            id: `p-${newUser.id}`,
-            userId: newUser.id,
-            role: 'user',
-            status: 'active',
-            email: newUser.email,
-            displayName,
-            emailVerifiedAt: new Date(),
-          },
+        // User и Profile — одной транзакцией. Раньше это были два независимых
+        // запроса: при сбое между ними оставался пользователь без профиля, а
+        // роль и статус аккаунта живут именно в Profile. На повторной доставке
+        // вебхука такой пользователь уже находился поиском, ветка создания
+        // профиля пропускалась навсегда, письмо со ссылкой на установку пароля
+        // не отправлялось — и войти он не мог никогда (пароль случайный).
+        // Хеш пароля посчитан выше, до транзакции: bcrypt занимает ~100 мс и
+        // внутри держал бы блокировку записи SQLite.
+        const newUser = await prisma.$transaction(async (tx) => {
+          const created = await tx.user.create({
+            data: {
+              email: emailTrim,
+              passwordHash,
+              displayName,
+            },
+          });
+          await tx.profile.create({
+            data: {
+              id: `p-${created.id}`,
+              userId: created.id,
+              role: 'user',
+              status: 'active',
+              email: created.email,
+              displayName,
+              emailVerifiedAt: new Date(),
+            },
+          });
+          return created;
         });
         userId = newUser.id;
         userWasAutoCreated = true;
