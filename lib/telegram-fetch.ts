@@ -72,3 +72,24 @@ export async function telegramApiFetch(input: string, init?: RequestInit): Promi
   }
   throw lastError;
 }
+
+/**
+ * Запрос к любому домену Telegram через тот же прокси.
+ *
+ * Нужен для веб-версии канала (t.me) и CDN картинок (cdn*.telesco.pe): с этого
+ * сервера они, как и api.telegram.org, напрямую недоступны — импорт постов
+ * падал с ETIMEDOUT, пока ходил обычным fetch.
+ *
+ * Отличается от telegramApiFetch отсутствием ретраев: импорт запускается
+ * вручную, и лучше сразу показать ошибку, чем молча ждать полторы минуты.
+ */
+export async function telegramWebFetch(input: string, init?: RequestInit): Promise<Response> {
+  const agent = getProxyAgent();
+  const nextInit = withTelegramTimeout(init);
+  if (!agent) return fetch(input, nextInit);
+  const res = await undiciFetch(input, {
+    ...nextInit,
+    dispatcher: agent,
+  } as Parameters<typeof undiciFetch>[1]);
+  return res as unknown as Response;
+}

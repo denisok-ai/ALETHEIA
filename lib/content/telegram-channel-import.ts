@@ -13,6 +13,7 @@
 import { mkdir, writeFile } from 'fs/promises';
 import path from 'path';
 import { prisma } from '@/lib/db';
+import { telegramWebFetch } from '@/lib/telegram-fetch';
 
 export type ImportedPost = {
   sourceUrl: string;
@@ -155,7 +156,7 @@ export function descriptionFromText(text: string): string {
  */
 export async function savePhoto(photoUrl: string, slug: string): Promise<string | null> {
   try {
-    const res = await fetch(photoUrl, { signal: AbortSignal.timeout(30_000) });
+    const res = await telegramWebFetch(photoUrl, { signal: AbortSignal.timeout(30_000) });
     if (!res.ok) return null;
 
     const len = Number(res.headers.get('content-length') ?? '0');
@@ -197,7 +198,7 @@ export async function importChannelPosts(
     createdSlugs: [],
   };
 
-  const res = await fetch(`https://t.me/s/${channel}`, {
+  const res = await telegramWebFetch(`https://t.me/s/${channel}`, {
     headers: { 'User-Agent': 'Mozilla/5.0 (compatible; AvaterraBlogImport/1.0)' },
     signal: AbortSignal.timeout(30_000),
   });
