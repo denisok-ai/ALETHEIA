@@ -8,6 +8,7 @@ import {
   notifyInstallmentReminder,
 } from '@/lib/installment-notify';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { markCronOk } from '@/lib/cron-heartbeat';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 export async function GET(req: NextRequest) {
@@ -181,5 +182,6 @@ export async function GET(req: NextRequest) {
     ]);
     return NextResponse.json(payload, { status: 500 });
   }
+  await markCronOk('installment-payments');
   return NextResponse.json(payload);
 }

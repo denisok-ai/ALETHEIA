@@ -7,6 +7,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { runMailingSend } from '@/lib/mailing-send';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { markCronOk } from '@/lib/cron-heartbeat';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -35,5 +36,6 @@ export async function GET(request: NextRequest) {
     });
   }
 
+  await markCronOk('mailings-send');
   return NextResponse.json({ processed: results.length, results });
 }

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { syncAllEnabledMailboxes } from '@/lib/inmail-sync';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { markCronOk } from '@/lib/cron-heartbeat';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 export const dynamic = 'force-dynamic';
@@ -36,5 +37,6 @@ export async function GET(request: NextRequest) {
     ]);
     return NextResponse.json(payload, { status: 500 });
   }
+  await markCronOk('inmail-sync');
   return NextResponse.json(payload);
 }

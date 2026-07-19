@@ -12,6 +12,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { markCronOk } from '@/lib/cron-heartbeat';
 import { getPayKeeperConfigFromSettings } from '@/lib/paykeeper';
 import { refreshPayKeeperToken } from '@/lib/paykeeper/http';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
@@ -64,6 +65,34 @@ export async function GET(request: NextRequest) {
 
   const cfg = await getPayKeeperConfigFromSettings();
   if (!cfg?.server) {
+    // «Не настроен» — это тоже отказ мониторинга, а не нейтральное состояние.
+    // Раньше здесь молча возвращался 503: если админ очистил или сломал
+    // настройки PayKeeper, пробник переставал работать, в логе cron копились
+    // ошибки, но Telegram-алерта не было — то есть мониторинг платежей
+    // выключался ровно тем же способом, от которого он должен защищать.
+    const msg = 'Мониторинг PayKeeper не работает: настройки не заданы или повреждены.';
+    console.error(`[paykeeper-health] ${msg}`);
+    // Частота — через тот же механизм состояния, что и остальные алерты этого
+    // маршрута: иначе при незаданных настройках админам шло бы по сообщению
+    // каждые 5 минут, и такие тревоги быстро перестают читать.
+    const prev = await readState();
+    const nowIso = new Date().toISOString();
+    const shouldAlert =
+      prev?.status !== 'fail' ||
+      !prev.lastAlertAt ||
+      Date.now() - new Date(prev.lastAlertAt).getTime() >= REMIND_MS;
+    if (shouldAlert) {
+      notifyAdminsTelegramAsync('paykeeper_webhook_error', [
+        msg,
+        'Проверьте Портал → Настройки → PayKeeper. Пока настроек нет, сбои приёма оплаты не отслеживаются.',
+      ]);
+    }
+    await writeState({
+      status: 'fail',
+      since: prev?.status === 'fail' ? prev.since : nowIso,
+      lastAlertAt: shouldAlert ? nowIso : prev?.lastAlertAt,
+      lastError: 'not_configured',
+    });
     return NextResponse.json({ ok: false, error: 'PayKeeper не настроен' }, { status: 503 });
   }
 
@@ -99,6 +128,7 @@ export async function GET(request: NextRequest) {
     if (prev?.status !== 'ok') {
       await writeState({ status: 'ok', since: nowIso });
     }
+    await markCronOk('paykeeper-health');
     return NextResponse.json({ ok: true, latencyMs });
   }
 

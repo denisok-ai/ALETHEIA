@@ -7,6 +7,7 @@
  */
 import { NextRequest, NextResponse } from 'next/server';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { markCronOk } from '@/lib/cron-heartbeat';
 import { reconcileEnrollments } from '@/lib/payments/reconcile-enrollments';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
@@ -48,6 +49,7 @@ export async function GET(request: NextRequest) {
       ]);
     }
 
+    await markCronOk('reconcile-enrollments');
     return NextResponse.json({
       scanned: result.scanned,
       missing: result.missing.length,

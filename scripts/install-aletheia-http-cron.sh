@@ -35,6 +35,12 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # причины и не зависит от того, повторит ли PayKeeper доставку вебхука.
 # Интервал выбран так, чтобы клиент ждал доступ минуты, а не часы.
 */10 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh reconcile-enrollments
+
+# Сторож фоновых задач — каждые 30 мин.
+# Сообщает, если задача перестала ВЫПОЛНЯТЬСЯ вообще (пропал файл cron,
+# рестарт-луп демона). Живёт вне приложения: механизм внутри не может
+# сообщить о собственной смерти.
+*/30 * * * * root /opt/ALETHEIA/scripts/cron-heartbeat-watchdog.sh
 CRONEOF
 
 chmod 644 /etc/cron.d/aletheia-http-cron
