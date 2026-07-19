@@ -119,6 +119,10 @@ model VisitLog {
   @@index([loginAt])
   @@index([lastActivityAt])
   @@index([logoutAt])
+  // Ping-хартбит портала бьёт по (userId, logoutAt: null) каждые 120 секунд на
+  // каждого залогиненного. Раздельные индексы выше здесь не помогают —
+  // планировщик возьмёт только один из них.
+  @@index([userId, logoutAt])
 }
 
 model Profile {
@@ -255,6 +259,11 @@ model ScormProgress {
   lastUpdated      DateTime @updatedAt
 
   @@unique([userId, courseId, lessonId])
+  // Отчёты группируют по courseId (groupBy в reports/by-course, learners,
+  // выдача сертификатов). Составной unique выше здесь не работает: courseId в
+  // нём не ведущая колонка. ScormProgress растёт как пользователи × курсы ×
+  // уроки — это самая быстрорастущая таблица проекта.
+  @@index([courseId])
 }
 
 model CertificateTemplate {
@@ -331,6 +340,9 @@ model Notification {
 
   @@index([userId])
   @@index([createdAt])
+  // Список уведомлений студента — выборка по userId с сортировкой по createdAt.
+  // Раздельные индексы выше дают только один из двух шагов.
+  @@index([userId, createdAt])
 }
 
 model Ticket {
@@ -367,6 +379,13 @@ model PhygitalVerification {
   comment        String?
   createdAt      DateTime                            @default(now())
   threadComments PhygitalVerificationThreadComment[]
+
+  // Очередь менеджера фильтрует по status/courseId, сортирует по createdAt и
+  // считает count тем же условием — без индексов это два полных скана таблицы
+  // на каждое открытие очереди и на каждый рендер дашборда.
+  @@index([status, createdAt])
+  @@index([courseId])
+  @@index([userId])
 }
 
 /// Переписка по заданию: слушатель и проверяющий (менеджер/админ).
@@ -488,6 +507,12 @@ model CommsSend {
   sentBy       String?
   errorMessage String?
   isTest       Boolean  @default(false)
+
+  // Журнал отправок пишется строкой на каждого получателя каждой рассылки и
+  // растёт неограниченно, а админка фильтрует по status/channel/sentAt и
+  // сортирует по sentAt — без индексов это скан всей таблицы, дважды.
+  @@index([sentAt])
+  @@index([status, sentAt])
 }
 
 /// Входящая почта (IMAP): ящик админки.
@@ -641,20 +666,20 @@ model SystemSetting {
 
 // Service: товары витрины главной — description/imageUrl для карточки «Купить курс»
 model Service {
-  id                String   @id @default(cuid())
-  slug              String   @unique
-  name              String
-  description       String?
-  imageUrl          String?
-  price             Int
-  paykeeperTariffId String?
-  courseId          String?
-  course            Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
-  isActive          Boolean  @default(true)
-  installmentEnabled Boolean @default(false)
-  maxInstallments   Int      @default(3)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  slug               String   @unique
+  name               String
+  description        String?
+  imageUrl           String?
+  price              Int
+  paykeeperTariffId  String?
+  courseId           String?
+  course             Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  isActive           Boolean  @default(true)
+  installmentEnabled Boolean  @default(false)
+  maxInstallments    Int      @default(3)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
 model UserEnergy {
@@ -743,6 +768,9 @@ model Order {
   @@index([createdAt])
   @@index([paykeeperPaymentId])
   @@index([paykeeperInvoiceId])
+  // Поиск заказов клиента по почте: сверка зачислений, привязка заказов при
+  // входе, создание тикета. Без индекса это скан всей таблицы заказов.
+  @@index([clientEmail])
 }
 
 /// Запросы возврата через PayKeeper (/change/payment/reverse/).
@@ -1048,18 +1076,18 @@ model PostStat {
 
 /// Персональный товар — разовая услуга, создаваемая админом (консультация, тестирование).
 model PersonalProduct {
-  id              String    @id @default(cuid())
-  name            String
-  description     String?
-  priceRub        Int
+  id                 String    @id @default(cuid())
+  name               String
+  description        String?
+  priceRub           Int
   /// null = бессрочный; иначе — дата/время истечения ссылки
-  expiresAt       DateTime?
-  isActive        Boolean   @default(true)
-  installmentEnabled Boolean @default(false)
-  maxInstallments Int       @default(3)
-  createdById     String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  expiresAt          DateTime?
+  isActive           Boolean   @default(true)
+  installmentEnabled Boolean   @default(false)
+  maxInstallments    Int       @default(3)
+  createdById        String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   links PaymentLink[]
 
