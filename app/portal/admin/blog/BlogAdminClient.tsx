@@ -3,7 +3,7 @@
 /**
  * Admin: статьи блога — список, создание, правка, удаление.
  */
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,8 @@ import {
 } from '@/components/ui/dialog';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { SearchInput } from '@/components/ui/SearchInput';
+import { TablePagination, STANDARD_PAGE_SIZES } from '@/components/ui/TablePagination';
 import { Plus, Pencil, Trash2, ExternalLink, FileText } from 'lucide-react';
 
 export interface BlogRow {
@@ -80,6 +82,22 @@ export function BlogAdminClient({ initialPosts }: { initialPosts: BlogRow[] }) {
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<BlogRow | null>(null);
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(20);
+
+  // Статей будет много: автопубликация из канала добавляет их ежедневно.
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return posts;
+    return posts.filter(
+      (p) => p.title.toLowerCase().includes(q) || p.slug.toLowerCase().includes(q)
+    );
+  }, [posts, search]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  const safePage = Math.min(page, totalPages - 1);
+  const pageRows = filtered.slice(safePage * pageSize, safePage * pageSize + pageSize);
 
   async function refresh() {
     const r = await fetch('/api/portal/admin/blog');
@@ -166,7 +184,16 @@ export function BlogAdminClient({ initialPosts }: { initialPosts: BlogRow[] }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-end">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <SearchInput
+          defaultValue={search}
+          onSearch={(v: string) => {
+            setSearch(v);
+            setPage(0);
+          }}
+          placeholder="Поиск по заголовку или адресу"
+          wrapperClassName="w-full sm:w-80"
+        />
         <Button onClick={openCreate} className="gap-2">
           <Plus className="h-4 w-4" /> Новая статья
         </Button>
@@ -192,7 +219,7 @@ export function BlogAdminClient({ initialPosts }: { initialPosts: BlogRow[] }) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {posts.map((p) => (
+              {pageRows.map((p) => (
                 <TableRow key={p.id}>
                   <TableCell className="font-medium">{p.title}</TableCell>
                   <TableCell className="text-[var(--portal-text-muted)]">{p.slug}</TableCell>
@@ -243,6 +270,18 @@ export function BlogAdminClient({ initialPosts }: { initialPosts: BlogRow[] }) {
               ))}
             </TableBody>
           </Table>
+          <TablePagination
+            currentPage={safePage}
+            totalPages={totalPages}
+            total={filtered.length}
+            pageSize={pageSize}
+            pageSizeOptions={STANDARD_PAGE_SIZES}
+            onPageChange={setPage}
+            onPageSizeChange={(s) => {
+              setPageSize(s);
+              setPage(0);
+            }}
+          />
         </div>
       )}
 

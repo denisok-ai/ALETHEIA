@@ -35,9 +35,29 @@ ${features}`;
 
   const faqBlocks = FAQ_JSON_LD_ITEMS.map((i) => `**${i.q}**\n${i.a}`);
 
-  const blogLines = (await getPublishedBlogPosts()).map(
-    (p) => `- [${p.title}](${base}/blog/${p.slug}): ${p.description}`
-  );
+  /**
+   * Статьи целиком, а не строчкой со ссылкой.
+   *
+   * Смысл llms-full.txt в том, чтобы ИИ-ассистент мог ОТВЕТИТЬ на вопрос по
+   * материалам школы, а не только узнать, что такая статья существует. Раньше
+   * здесь лежали те же заголовки и обрезанные описания, что и в кратком
+   * llms.txt, — то есть расширенная версия ничем от краткой не отличалась.
+   */
+  const blogPosts = await getPublishedBlogPosts();
+  const blogLines = blogPosts.map((p) => {
+    const text =
+      p.body.kind === 'markdown' ? p.body.markdown : p.body.paragraphs.join('\n\n');
+    const published = new Date(p.publishedAt).toLocaleDateString('ru-RU', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    });
+    return `### ${p.h1}
+Ссылка: ${base}/blog/${p.slug}
+Опубликовано: ${published}
+
+${text}`;
+  });
 
   const moduleBlocks = MT_MODULES.map((m) => {
     const bullets = m.bullets.map((b) => `- ${b}`).join('\n');
@@ -99,7 +119,7 @@ ${faqBlocks.join('\n\n')}
 
 ## Статьи блога
 
-${blogLines.join('\n')}
+${blogLines.join('\n\n')}
 
 ## Об основательнице
 
