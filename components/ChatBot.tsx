@@ -39,10 +39,16 @@ export function ChatBot() {
     setMessages((prev) => [...prev, { role: 'user', text }]);
     setLoading(true);
     try {
+      // История диалога: без неё бот забывал контекст и на «а рассрочка есть?»
+      // отвечал невпопад. Шлём последние реплики, сервер их фильтрует и ограничивает.
+      const history = messages.slice(-8).map((m) => ({
+        role: m.role === 'bot' ? 'assistant' : 'user',
+        content: m.text,
+      }));
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: text }),
+        body: JSON.stringify({ message: text, history }),
       });
       const data = await res.json();
       if (!res.ok) {

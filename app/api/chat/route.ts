@@ -14,6 +14,7 @@ import { checkRateLimit } from '@/lib/rate-limit';
 import {
   UNTRUSTED_DATA_POLICY,
   logSuspiciousLlmInput,
+  sanitizeChatHistory,
   sanitizeLlmInput,
   wrapUntrusted,
 } from '@/lib/llm-guard';
@@ -51,6 +52,8 @@ export async function POST(request: NextRequest) {
       });
     }
     const message = guarded.text;
+    // История от клиента: роль system отбрасывается, объём и длина ограничены (llm-guard)
+    const history = sanitizeChatHistory(body?.history);
     if (!message) {
       return NextResponse.json(
         { error: 'Напишите ваш вопрос.' },
@@ -124,6 +127,11 @@ export async function POST(request: NextRequest) {
       model,
       messages: [
         { role: 'system', content: `${fullSystemContent}\n\n${UNTRUSTED_DATA_POLICY}` },
+        // Предыдущие реплики — чтобы бот понимал «а рассрочка на него есть?»
+        ...history.map((m) => ({
+          role: m.role,
+          content: m.role === 'user' ? wrapUntrusted(m.content, 'предыдущий вопрос посетителя') : m.content,
+        })),
         // Вопрос гостя — недоверенные данные, а не инструкции
         { role: 'user', content: wrapUntrusted(message, 'вопрос посетителя сайта') },
       ],
