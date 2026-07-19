@@ -26,8 +26,11 @@ case "$fails" in ''|*[!0-9]*) fails=0 ;; esac
 
 notify() {
   local text="$1"
-  local token chat_ids
+  local token chat_ids proxy
   token=$(grep -m1 '^TELEGRAM_BOT_TOKEN=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"' | tr -d "'")
+  # ВАЖНО: Telegram с этого сервера доступен только через прокси (проверено 19.07.2026:
+  # прямой запрос к api.telegram.org не проходит). Без -x тревоги молча не доставлялись бы.
+  proxy=$(grep -m1 '^HTTPS_PROXY=' "$ENV_FILE" 2>/dev/null | cut -d= -f2- | tr -d '"' | tr -d "'")
   chat_ids=$(sqlite3 "$PROD_ROOT/prisma/dev.db" \
     "SELECT value FROM SystemSetting WHERE key='telegram_admin_chat_ids';" 2>/dev/null)
   [ -z "$token" ] && return 0
@@ -35,7 +38,8 @@ notify() {
   for id in "${ids[@]}"; do
     id=$(echo "$id" | tr -d ' ')
     [ -z "$id" ] && continue
-    curl -sS --max-time 15 -o /dev/null \
+    curl -sS --max-time 20 -o /dev/null \
+      ${proxy:+-x "$proxy"} \
       "https://api.telegram.org/bot${token}/sendMessage" \
       -d "chat_id=${id}" --data-urlencode "text=${text}" || true
   done
