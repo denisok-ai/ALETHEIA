@@ -207,8 +207,12 @@ else
   # из-за set -e не дошёл до старта приложения — сайт лежал, пока не подняли
   # руками. Останавливаем воркеров на время миграции и поднимаем обратно
   # безусловно (trap), даже если миграция упадёт.
+  # Основное приложение тоже: оно держит соединение с БД, и без его остановки
+  # `migrate deploy` падает с «database is locked» даже когда применять нечего
+  # (движку нужен доступ к таблице _prisma_migrations). Простой при этом не
+  # растёт — приложение всё равно перезапускается ниже по скрипту.
   STOPPED_WORKERS=""
-  for svc in aletheia-jobs aletheia-telegram-poll; do
+  for svc in aletheia aletheia-jobs aletheia-telegram-poll; do
     if systemctl is-active --quiet "$svc" 2>/dev/null; then
       systemctl stop "$svc" && STOPPED_WORKERS="$STOPPED_WORKERS $svc"
     fi
