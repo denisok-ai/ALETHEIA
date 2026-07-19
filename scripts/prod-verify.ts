@@ -47,6 +47,27 @@ async function main() {
     add(`SEO: ${name}`, (await head(path)) === 200);
   }
 
+  // 3b. Несуществующие адреса не должны попадать в индекс.
+  // Из-за стриминга Next 14 статус на /blog/[slug] и /services/[slug] остаётся
+  // 200, поэтому единственный сигнал поисковику — мета-тег noindex. Без него
+  // индексируемой становится любая выдуманная ссылка, а их бесконечно много.
+  try {
+    const probes = ['/blog/nesuschestvuyuschaya-statya-proverka', '/services/nesuschestvuyuschiy-tarif-proverka'];
+    const indexable: string[] = [];
+    for (const p of probes) {
+      const html = await fetch(`${BASE}${p}`).then((r) => r.text());
+      const robots = html.match(/<meta name="robots" content="([^"]*)"/i)?.[1] ?? '';
+      if (!/noindex/i.test(robots)) indexable.push(`${p} → ${robots || 'тега нет'}`);
+    }
+    add(
+      'несуществующие страницы закрыты от индексации',
+      indexable.length === 0,
+      indexable.join('; ')
+    );
+  } catch (e) {
+    add('несуществующие страницы закрыты от индексации', false, String(e));
+  }
+
   // 4. Разметка на главной
   try {
     const html = await fetch(`${BASE}/`).then((r) => r.text());
