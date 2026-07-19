@@ -153,6 +153,16 @@ async function main() {
     res.needsAttention.some((m) => m.orderNumber === revoked.orderNumber && m.looksRevoked)
   );
 
+  // 8b. repairEnrollmentForOrder вызывается не только из processPaidOrder, но и
+  //     из ранней ветки идемпотентности в маршруте вебхука. Проверяем саму
+  //     функцию на обоих состояниях: разрыв между ней и маршрутом стоил живой
+  //     поломки (самолечение было недостижимо на самом частом пути).
+  const { repairEnrollmentForOrder } = await import('../lib/payments/reconcile-enrollments');
+  check(
+    'точечное восстановление не трогает отозванный доступ',
+    (await repairEnrollmentForOrder(revoked.orderNumber)) === false
+  );
+
   // 9. А оборвавшийся поток (userId пуст) — чинится
   const brokenFlow = await mkOrder({ clientEmail: 'client@example.com' });
   await db.enrollment.deleteMany({ where: { userId: user.id, courseId: course.id } });

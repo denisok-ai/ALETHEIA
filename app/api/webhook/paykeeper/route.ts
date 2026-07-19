@@ -6,6 +6,7 @@ import {
 } from '@/lib/paykeeper';
 import { prisma } from '@/lib/db';
 import { processPaidOrder } from '@/lib/paykeeper-webhook-process';
+import { repairEnrollmentForOrder } from '@/lib/payments/reconcile-enrollments';
 import {
   maskEmailForLog,
   writePaykeeperIntegrationLog,
@@ -307,13 +308,36 @@ export async function POST(request: NextRequest) {
 
     const paidAmountRub = Math.round(paidAmount);
     if (order.status === 'paid' && order.paykeeperPaymentId === id) {
+      // Самолечение обязано быть и здесь. У маршрута своя ранняя проверка
+      // идемпотентности, которая возвращает ответ, НЕ доходя до
+      // processPaidOrder, — а восстановление доступа живёт внутри него. То есть
+      // на самом частом пути (PayKeeper повторяет то же уведомление) починка
+      // была недостижима: заказ оплачен, зачисления нет, ретрай ничего не менял.
+      // Обнаружено сквозной проверкой на проде 19.07.2026: тест вызывал
+      // processPaidOrder напрямую и потому этот разрыв не показывал.
+      let repairedAccess = false;
+      try {
+        repairedAccess = await repairEnrollmentForOrder(orderid);
+      } catch (e) {
+        console.error(`[PayKeeper] Заказ ${orderid}: восстановление доступа не удалось:`, e);
+      }
+      if (repairedAccess) {
+        const msg = `Заказ ${orderid}: доступ отсутствовал и был восстановлен при повторном оповещении.`;
+        console.warn(`[PayKeeper] ${msg}`);
+        notifyAdminsTelegramAsync('payment_received', [
+          msg,
+          'Проверьте, может ли клиент войти: если сбой случился до отправки письма, у него нет пароля.',
+        ]);
+      }
       await writePaykeeperIntegrationLog({
         direction: 'inbound',
         event: 'webhook.idempotent',
         status: 'success',
         orderNumber: orderid,
-        message: 'Повторное оповещение: заказ уже оплачен этим платежом PayKeeper',
-        payload: { paykeeperId: id },
+        message: repairedAccess
+          ? 'Повторное оповещение: отсутствовавшее зачисление восстановлено'
+          : 'Повторное оповещение: заказ уже оплачен этим платежом PayKeeper',
+        payload: { paykeeperId: id, repairedAccess },
       });
       return new NextResponse(buildPayKeeperWebhookResponse(id, secret), {
         status: 200,
