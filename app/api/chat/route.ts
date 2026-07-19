@@ -19,7 +19,9 @@ import {
   sanitizeLlmInput,
   wrapUntrusted,
 } from '@/lib/llm-guard';
-import { buildLiveCatalogBlock } from '@/lib/ai/live-catalog';
+import { buildLiveCatalogBlock, getCachedPublicProducts } from '@/lib/ai/live-catalog';
+import { auditAnswerAgainstCatalog, describeFindings, shouldAlert } from '@/lib/ai/answer-audit';
+import { notifyAdminsTelegram } from '@/lib/telegram-admin-notify';
 import { logLlmRequest } from '@/lib/llm-request-log';
 import { applyPublicChatPlaceholders } from '@/lib/ai-placeholders';
 import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
@@ -170,6 +172,28 @@ export async function POST(request: NextRequest) {
     const answer =
       llmResult.content ||
       'Не удалось получить ответ. Попробуйте переформулировать вопрос.';
+
+    // Сверка с витриной: модель могла назвать цену из устаревшей базы знаний или
+    // выдумать тариф (так уже было 19.07.2026). Ответ не правим — только сообщаем
+    // админам, иначе ошибка уходит клиенту молча.
+    try {
+      const findings = auditAnswerAgainstCatalog(answer, await getCachedPublicProducts());
+      if (findings.length) {
+        const detail = describeFindings(findings);
+        console.warn('[answer-audit] расхождение с витриной:', detail, '| вопрос:', message.slice(0, 120));
+        if (shouldAlert(findings)) {
+          await notifyAdminsTelegram('contact_lead', [
+            'Бот назвал данные, которых нет в витрине:',
+            detail,
+            `Вопрос посетителя: ${message.slice(0, 200)}`,
+            'Проверьте базу знаний в Портал → Настройки AI.',
+          ]);
+        }
+      }
+    } catch (e) {
+      // Сверка — вспомогательная: её сбой не должен лишать посетителя ответа
+      console.error('[answer-audit] сбой проверки:', e);
+    }
 
     if (activeTemplateId) {
       await prisma.promptTemplate.update({

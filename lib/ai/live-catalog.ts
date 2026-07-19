@@ -6,11 +6,25 @@
  * (обнаружено на проде 2026-07-19). Этот блок добавляется к базе знаний на лету,
  * поэтому цены в ответах бота всегда совпадают с витриной.
  */
-import { getPublicProducts } from '@/lib/shop/public-products';
+import { getPublicProducts, type PublicProduct } from '@/lib/shop/public-products';
 
 /** Кэш: тарифы меняются редко, а чат вызывается часто. */
 let cache: { at: number; value: string } | null = null;
+let productsCache: { at: number; value: PublicProduct[] } | null = null;
 const CACHE_TTL_MS = 5 * 60 * 1000;
+
+/**
+ * Товары витрины с тем же TTL, что и текстовый блок.
+ * Нужны сверке ответа бота (lib/ai/answer-audit) — без кэша каждое сообщение
+ * в чате давало бы лишний запрос к БД.
+ */
+export async function getCachedPublicProducts(): Promise<PublicProduct[]> {
+  const now = Date.now();
+  if (productsCache && now - productsCache.at < CACHE_TTL_MS) return productsCache.value;
+  const value = await getPublicProducts();
+  productsCache = { at: now, value };
+  return value;
+}
 
 function formatPrice(price: number): string {
   return price <= 0 ? 'бесплатно' : `${price.toLocaleString('ru-RU')} ₽`;
@@ -26,7 +40,7 @@ export async function buildLiveCatalogBlock(siteBase: string): Promise<string> {
 
   let value = '';
   try {
-    const products = await getPublicProducts();
+    const products = await getCachedPublicProducts();
     if (products.length) {
       const base = siteBase.replace(/\/$/, '');
       const lines = products.map((p) => {
@@ -65,4 +79,5 @@ export async function buildLiveCatalogBlock(siteBase: string): Promise<string> {
 /** Сброс кэша (после изменения товаров в админке). */
 export function clearLiveCatalogCache(): void {
   cache = null;
+  productsCache = null;
 }
