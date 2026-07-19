@@ -30,6 +30,13 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # Рассрочка: напоминания, автосписание, overdue — каждый час
 0 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh installment-payments
 
+# Мониторинг доступности PayKeeper — каждые 5 мин.
+# Сделан после инцидента 16.07.2026 (PayKeeper молчал ~7 минут, клиенты не могли
+# оплатить, узнали от клиентов), но в этот установщик внесён не был — а он
+# перезаписывает файл целиком, поэтому запись терялась при каждом запуске.
+# Обнаружено 19.07.2026: пробник не работал с 17.07.
+*/5 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh paykeeper-health
+
 # Сверка «оплачено, но доступа нет» — каждые 10 мин.
 # Страховочная сетка платёжного контура: ловит расхождение независимо от
 # причины и не зависит от того, повторит ли PayKeeper доставку вебхука.
@@ -47,7 +54,7 @@ chmod 644 /etc/cron.d/aletheia-http-cron
 
 echo "Installed /etc/cron.d/aletheia-http-cron"
 echo "=== Manual test (all endpoints) ==="
-for ep in mailings-send inmail-sync installment-payments reconcile-enrollments; do
+for ep in mailings-send inmail-sync installment-payments reconcile-enrollments paykeeper-health; do
   if "$CALL" "$ep"; then
     echo "$ep: OK"
   else

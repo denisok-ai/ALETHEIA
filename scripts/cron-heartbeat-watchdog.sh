@@ -37,13 +37,23 @@ fi
 now_s=$(date +%s)
 stale_list=""
 
+# Есть ли вообще хоть одна отметка: если система уже пишет их, то задача совсем
+# без отметки — подозрительна. Именно так 19.07.2026 обнаружился мёртвый
+# мониторинг PayKeeper: он не был внесён в расписание и «молчал» двое суток, а
+# сторож его не видел, потому что отметки не было вовсе.
+any_heartbeat=$(sqlite3 "$DB" "SELECT COUNT(*) FROM SystemSetting WHERE key LIKE 'cron_last_ok_%';" 2>/dev/null || echo 0)
+
 for job in "${!EXPECTED[@]}"; do
   interval=${EXPECTED[$job]}
   # Отметка хранится в SystemSetting как ISO-строка
   iso=$(sqlite3 "$DB" "SELECT value FROM SystemSetting WHERE key='cron_last_ok_${job}';" 2>/dev/null)
   if [ -z "$iso" ]; then
-    # Отметки ещё не было: задача либо ни разу не отработала, либо только
-    # что развёрнута. Не тревожим — иначе первый же деплой даст ложный сигнал.
+    # Отметки нет. На свежем развёртывании это норма (никто ещё не отработал) —
+    # тревожим только если другие задачи отметки уже пишут, то есть система
+    # жива, а конкретно эта не запускается.
+    if [ "${any_heartbeat:-0}" -gt 0 ]; then
+      stale_list="${stale_list}\n· ${job}: не выполнялась ни разу (ожидается каждые ${interval} мин)"
+    fi
     continue
   fi
   last_s=$(date -d "$iso" +%s 2>/dev/null || echo 0)
