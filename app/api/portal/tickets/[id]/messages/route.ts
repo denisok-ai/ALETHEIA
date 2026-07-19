@@ -10,6 +10,7 @@ import { sendTransactionalEmail } from '@/lib/email-service';
 import { buildTicketAutoReplyEmail } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
 import { notifyTicketOwnerTelegramReply } from '@/lib/telegram-ticket-notify';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 interface MessageItem {
   role: 'user' | 'manager';
@@ -35,6 +36,10 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // спам в переписке
+  const rateLimitRes = checkRateLimit(request, 'ticket-message', 20);
+  if (rateLimitRes) return rateLimitRes;
+
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
   const role = (session?.user as { role?: string })?.role;

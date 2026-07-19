@@ -10,12 +10,17 @@ import { prisma } from '@/lib/db';
 import { nanoid } from 'nanoid';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo', 'video/x-matroska'];
 const MAX_SIZE = 200 * 1024 * 1024; // 200 MB
 const SAFE_EXTS = ['mp4', 'webm', 'mov', 'avi', 'mkv'];
 
 export async function POST(request: NextRequest) {
+  // файлы до 200 МБ — риск забить диск
+  const rateLimitRes = checkRateLimit(request, 'verification-upload', 10);
+  if (rateLimitRes) return rateLimitRes;
+
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
   const role = (session?.user as { role?: string })?.role;

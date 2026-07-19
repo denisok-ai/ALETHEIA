@@ -16,6 +16,7 @@ import { claimPaidOrdersForUser } from '@/lib/claim-orders';
 import { generateAutoReply, isConfidentReply } from '@/lib/ticket-auto-reply';
 import { sendTicketCreatedNotifications } from '@/lib/ticket-create-notify';
 import { ticketCreateSchema } from '@/lib/validations/ticket';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 /** Найти первый оплаченный заказ по email, по которому у пользователя нет доступа к курсу. */
 async function findPaidOrderWithoutAccess(userId: string, emailNorm: string): Promise<string | null> {
@@ -39,6 +40,10 @@ async function findPaidOrderWithoutAccess(userId: string, emailNorm: string): Pr
 }
 
 export async function POST(request: NextRequest) {
+  // каждый тикет запускает LLM-автоответ (деньги)
+  const rateLimitRes = checkRateLimit(request, 'ticket-create', 5);
+  if (rateLimitRes) return rateLimitRes;
+
   const session = await getServerSession(authOptions);
   const userId = (session?.user as { id?: string })?.id;
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
