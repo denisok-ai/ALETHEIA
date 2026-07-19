@@ -25,6 +25,20 @@ export async function POST(
   if (order.status === 'paid') {
     return NextResponse.json({ success: true, alreadyPaid: true });
   }
+  // Возвращённый или отменённый заказ подтвердить нельзя. Раньше проверялся
+  // только статус 'paid', поэтому вызов уходил в processPaidOrder, тот отвечал
+  // success (ничего не сделав), а маршрут писал в аудит «оплата подтверждена» —
+  // запись, которой не соответствовало ни одно действие. В интерфейсе кнопка
+  // для таких статусов скрыта, но API оставался доступен напрямую.
+  if (order.status === 'refunded' || order.status === 'cancelled') {
+    return NextResponse.json(
+      {
+        error: `Заказ в статусе «${order.status}» — подтверждение оплаты невозможно.`,
+        success: false,
+      },
+      { status: 409 }
+    );
+  }
 
   const result = await processPaidOrder(order.orderNumber);
   if (!result.success) {

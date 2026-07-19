@@ -113,6 +113,7 @@
 | `GET /api/cron/mailings-send` | Запланированные рассылки |
 | `GET /api/cron/inmail-sync` | Синхронизация IMAP-ящиков (**Входящие**) |
 | `GET /api/cron/installment-payments` | Рассрочка: напоминания, автосписание, overdue |
+| `GET /api/cron/reconcile-enrollments` | Сверка «оплачено, но доступа нет»: восстановление зачислений (`?repair=0` — только отчёт, без изменений) |
 
 На Vercel добавьте вызовы в [Cron Jobs](https://vercel.com/docs/cron-jobs); на VPS — `scripts/install-aletheia-http-cron.sh` (файл `/etc/cron.d/aletheia-http-cron`) или `crontab` + `scripts/cron-http-call.sh`.
 
@@ -122,6 +123,7 @@
 curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/cron/mailings-send"
 curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/cron/inmail-sync"
 curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/cron/installment-payments"
+curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/cron/reconcile-enrollments?repair=0"
 ```
 
 Ожидается HTTP 200 и JSON с кратким отчётом; при неверном секрете — 401.
