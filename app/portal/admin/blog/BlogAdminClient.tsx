@@ -47,6 +47,7 @@ type FormState = {
   body: string;
   bodyFormat: 'markdown' | 'paragraphs';
   ogImage: string;
+  coverImage: string;
   status: 'draft' | 'published';
 };
 
@@ -59,6 +60,7 @@ const EMPTY_FORM: FormState = {
   body: '',
   bodyFormat: 'markdown',
   ogImage: '',
+  coverImage: '',
   status: 'draft',
 };
 
@@ -110,6 +112,7 @@ export function BlogAdminClient({ initialPosts }: { initialPosts: BlogRow[] }) {
       body: post.body,
       bodyFormat: post.bodyFormat === 'paragraphs' ? 'paragraphs' : 'markdown',
       ogImage: post.ogImage ?? '',
+      coverImage: (post as unknown as { coverImage?: string }).coverImage ?? '',
       status: post.status === 'published' ? 'published' : 'draft',
     });
     setOpen(true);
@@ -130,6 +133,7 @@ export function BlogAdminClient({ initialPosts }: { initialPosts: BlogRow[] }) {
           body: form.body,
           bodyFormat: form.bodyFormat,
           ogImage: form.ogImage,
+          coverImage: form.coverImage,
           status: form.status,
         }),
       });
@@ -330,6 +334,18 @@ export function BlogAdminClient({ initialPosts }: { initialPosts: BlogRow[] }) {
               </div>
               <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
                 Абзацы разделяются пустой строкой. {form.body.length} символов.
+              </p>
+            </div>
+            <div>
+              <Label htmlFor="b-cover">Иллюстрация статьи</Label>
+              <Input
+                id="b-cover"
+                value={form.coverImage}
+                onChange={(e) => setForm({ ...form, coverImage: e.target.value })}
+                placeholder="/uploads/blog/moya-statya.jpg"
+              />
+              <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+                Показывается вверху статьи и в карточке списка. Пусто — статья без картинки.
               </p>
             </div>
             <div>

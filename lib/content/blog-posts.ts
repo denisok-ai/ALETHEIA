@@ -31,6 +31,8 @@ export type BlogPostView = {
   description: string;
   body: BlogPostBody;
   ogImage: string;
+  /** Иллюстрация в теле статьи и в карточке списка. null — показывать нечего. */
+  coverImage: string | null;
   publishedAt: string;
 };
 
@@ -67,6 +69,8 @@ function staticPosts(): BlogPostView[] {
       description: meta.description,
       body: view,
       ogImage: meta.ogImage ?? BLOG_DEFAULT_OG_IMAGE,
+      // У статей из файла иллюстрации нет — только карточка для соцсетей.
+      coverImage: null,
       publishedAt: meta.publishedAt,
     };
   });
@@ -87,6 +91,7 @@ export async function getPublishedBlogPosts(): Promise<BlogPostView[]> {
       description: r.description,
       body: parseBody(r.body, r.bodyFormat),
       ogImage: r.ogImage ?? BLOG_DEFAULT_OG_IMAGE,
+      coverImage: r.coverImage,
       publishedAt: (r.publishedAt ?? r.createdAt).toISOString(),
     }));
   } catch (e) {

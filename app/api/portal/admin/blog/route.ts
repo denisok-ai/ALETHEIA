@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
       body: normalizedBody,
       bodyFormat,
       ogImage: data.ogImage || null,
+      coverImage: data.coverImage || null,
       status: data.status,
       // Дата публикации проставляется в момент публикации, а не создания:
       // по ней строится порядок в блоге и lastmod в sitemap.

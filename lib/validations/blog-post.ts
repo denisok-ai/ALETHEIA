@@ -24,6 +24,7 @@ export const blogPostInputSchema = z.object({
   body: z.string().trim().min(50, 'Текст статьи слишком короткий'),
   bodyFormat: z.enum(['markdown', 'paragraphs']).default('markdown'),
   ogImage: z.string().trim().max(300).optional().default(''),
+  coverImage: z.string().trim().max(300).optional().default(''),
   status: z.enum(['draft', 'published']).default('draft'),
 });
 

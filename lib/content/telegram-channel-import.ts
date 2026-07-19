@@ -251,6 +251,8 @@ export async function importChannelPosts(
           body: post.text,
           bodyFormat: 'markdown',
           ogImage,
+          // Фото поста годится и как превью, и как иллюстрация статьи.
+          coverImage: ogImage,
           // Черновик: перенесённый пост не должен появляться на сайте сам.
           status: 'draft',
           publishedAt: null,

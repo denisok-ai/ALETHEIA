@@ -90,6 +90,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
       body: normalizedBody,
       bodyFormat,
       ogImage: data.ogImage || null,
+      coverImage: data.coverImage || null,
       status: data.status,
       publishedAt,
     },

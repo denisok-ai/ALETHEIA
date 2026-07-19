@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { JsonLdBlogIndex } from '@/components/JsonLdBlogIndex';
@@ -63,11 +64,25 @@ export default async function BlogIndexPage() {
           <li key={post.slug}>
             <Link
               href={`/blog/${post.slug}`}
-              className="block rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)] transition-colors hover:border-plum/30"
+              className="block overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-soft)] transition-colors hover:border-plum/30"
             >
+              {/* Обложка есть не у всех статей: у перенесённых из файла её нет,
+                  и карточка тогда остаётся текстовой, без пустого места. */}
+              {post.coverImage ? (
+                <Image
+                  src={post.coverImage}
+                  alt={post.title}
+                  width={800}
+                  height={420}
+                  sizes="(max-width: 768px) 100vw, 700px"
+                  className="h-48 w-full object-cover sm:h-56"
+                />
+              ) : null}
+              <div className="p-6">
               <h2 className="font-heading text-xl font-semibold text-[var(--text)]">{post.title}</h2>
               <p className="mt-2 text-sm text-[var(--text-muted)]">{post.description}</p>
               <span className="mt-3 inline-block text-sm font-medium text-plum">Читать</span>
+              </div>
             </Link>
           </li>
         ))}

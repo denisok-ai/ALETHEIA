@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
@@ -114,6 +115,21 @@ export default async function BlogArticlePage({ params }: Props) {
             {post.h1}
           </h1>
           <p className="mt-2 text-sm text-[var(--text-soft)]">Опубликовано: {publishedLabel}</p>
+          {/* Иллюстрация статьи. Показываем coverImage, а не ogImage: последняя —
+              карточка для соцсетей с текстом поверх, в теле статьи неуместна. */}
+          {post.coverImage ? (
+            <div className="mt-6 overflow-hidden rounded-2xl border border-[var(--border)]">
+              <Image
+                src={post.coverImage}
+                alt={post.h1}
+                width={1200}
+                height={800}
+                sizes="(max-width: 768px) 100vw, 720px"
+                className="h-auto w-full object-cover"
+                priority
+              />
+            </div>
+          ) : null}
           {body.kind === 'markdown' ? (
             <div className={blogMarkdownClassName}>
               <ReactMarkdown
