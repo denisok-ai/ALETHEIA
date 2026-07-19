@@ -12,11 +12,33 @@ import { normalizeSiteUrl } from '@/lib/site-url';
 
 const DESCRIPTION = 'Статьи о мышечном тестировании, теле и подсознании — школы АВАТЕРРА.';
 
-export async function generateMetadata(): Promise<Metadata> {
+/** Статей на странице. Список пополняется ежедневно из Telegram-канала. */
+const PAGE_SIZE = 9;
+
+type Props = { searchParams?: { page?: string } };
+
+/** Номер страницы из адреса. Мусор и значения вне диапазона сводим к первой. */
+function pageFromParams(raw: string | undefined, totalPages: number): number {
+  const n = Number.parseInt(raw ?? '1', 10);
+  if (!Number.isFinite(n) || n < 1) return 1;
+  return Math.min(n, Math.max(1, totalPages));
+}
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
-  const canonical = `${base}/blog`;
-  const title = 'Блог о мышечном тестировании и работе с телом';
+  const posts = await getPublishedBlogPosts();
+  const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
+  const page = pageFromParams(searchParams?.page, totalPages);
+
+  // Канонический адрес указывает сам на себя, а не на первую страницу: иначе
+  // поисковик считает вторую и последующие копиями первой и выбрасывает их из
+  // индекса вместе со ссылками на статьи, которые видны только там.
+  const canonical = page > 1 ? `${base}/blog?page=${page}` : `${base}/blog`;
+  const title =
+    page > 1
+      ? `Блог о мышечном тестировании — страница ${page}`
+      : 'Блог о мышечном тестировании и работе с телом';
 
   return {
     ...buildPublicPageMetadata({
@@ -28,10 +50,13 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export default async function BlogIndexPage() {
+export default async function BlogIndexPage({ searchParams }: Props) {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
-  const posts = await getPublishedBlogPosts();
+  const allPosts = await getPublishedBlogPosts();
+  const totalPages = Math.max(1, Math.ceil(allPosts.length / PAGE_SIZE));
+  const page = pageFromParams(searchParams?.page, totalPages);
+  const posts = allPosts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <>
@@ -87,6 +112,52 @@ export default async function BlogIndexPage() {
           </li>
         ))}
       </ul>
+
+      {/* Обычные ссылки, а не кнопки: по ним должен пройти и поисковик, иначе
+          статьи со второй страницы останутся вне обхода. */}
+      {totalPages > 1 ? (
+        <nav className="mt-10 flex flex-wrap items-center justify-center gap-2" aria-label="Страницы блога">
+          {page > 1 ? (
+            <Link
+              href={page === 2 ? '/blog' : `/blog?page=${page - 1}`}
+              rel="prev"
+              className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] transition-colors hover:border-plum/40 hover:text-plum"
+            >
+              Назад
+            </Link>
+          ) : null}
+
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+            <Link
+              key={n}
+              href={n === 1 ? '/blog' : `/blog?page=${n}`}
+              aria-current={n === page ? 'page' : undefined}
+              className={
+                n === page
+                  ? 'rounded-lg border border-plum bg-plum/10 px-4 py-2 text-sm font-medium text-plum'
+                  : 'rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] transition-colors hover:border-plum/40 hover:text-plum'
+              }
+            >
+              {n}
+            </Link>
+          ))}
+
+          {page < totalPages ? (
+            <Link
+              href={`/blog?page=${page + 1}`}
+              rel="next"
+              className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] transition-colors hover:border-plum/40 hover:text-plum"
+            >
+              Вперёд
+            </Link>
+          ) : null}
+        </nav>
+      ) : null}
+
+      <p className="mt-6 text-center text-sm text-[var(--text-soft)]">
+        Всего статей: {allPosts.length}
+        {totalPages > 1 ? ` · страница ${page} из ${totalPages}` : ''}
+      </p>
 
       <div className="mt-10">
         <CourseCheckoutCTA />
