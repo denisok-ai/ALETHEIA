@@ -5,12 +5,17 @@ import { BRAND_LOGO_URL } from '@/lib/brand';
 import { jsonLdString } from '@/lib/json-ld';
 import { SOCIAL_LINKS } from '@/lib/social-links';
 
+export type OrgOffer = { name: string; price: number; slug: string };
+
 export function JsonLdOrganization({
   siteUrl,
   phone,
+  offers,
 }: {
   siteUrl: string;
   phone?: string | null;
+  /** Продуктовая линейка из витрины — для hasOfferCatalog */
+  offers?: OrgOffer[];
 }) {
   const url = siteUrl.replace(/\/$/, '');
   const data = {
@@ -39,6 +44,25 @@ export function JsonLdOrganization({
       name: 'Татьяна Стрельцова',
       url: `${url}/about`,
     },
+    // Продуктовая линейка с ценами: поисковики и ИИ-ассистенты видят,
+    // что именно продаёт школа, без обхода отдельных страниц
+    ...(offers && offers.length
+      ? {
+          hasOfferCatalog: {
+            '@type': 'OfferCatalog',
+            name: 'Обучение мышечному тестированию',
+            itemListElement: offers.map((o) => ({
+              '@type': 'Offer',
+              name: o.name,
+              price: o.price,
+              priceCurrency: 'RUB',
+              url: `${url}/services/${o.slug}`,
+              availability: 'https://schema.org/InStock',
+              category: o.price > 0 ? 'Paid' : 'Free',
+            })),
+          },
+        }
+      : {}),
     ...(phone?.trim()
       ? {
           telephone: phone.trim(),

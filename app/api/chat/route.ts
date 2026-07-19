@@ -17,6 +17,7 @@ import {
   sanitizeLlmInput,
   wrapUntrusted,
 } from '@/lib/llm-guard';
+import { buildLiveCatalogBlock } from '@/lib/ai/live-catalog';
 import { logLlmRequest } from '@/lib/llm-request-log';
 import { applyPublicChatPlaceholders } from '@/lib/ai-placeholders';
 import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
@@ -107,11 +108,13 @@ export async function POST(request: NextRequest) {
       activeTemplateId = activeTemplate.id;
     }
 
-    const fullSystemContent = applyPublicChatPlaceholders(systemPrompt + knowledgeBase, {
-      siteBase,
-      courseUrl,
-      supportEmail,
-    });
+    // Живые тарифы из витрины: иначе бот отвечает «такой тариф не описан»,
+    // потому что в статичной базе знаний цен и составов нет.
+    const liveCatalog = await buildLiveCatalogBlock(siteBase);
+    const fullSystemContent = applyPublicChatPlaceholders(
+      systemPrompt + knowledgeBase + (liveCatalog ? `\n\n---\n\n${liveCatalog}` : ''),
+      { siteBase, courseUrl, supportEmail }
+    );
     const startMs = Date.now();
     const effectiveModel = resolveEffectiveChatModel(provider, model);
 

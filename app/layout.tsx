@@ -15,6 +15,7 @@ import { JsonLdWebSite } from '@/components/JsonLdWebSite';
 import { RootMain } from '@/components/RootMain';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { BRAND_LOGO_URL, BRAND_SITE_NAME } from '@/lib/brand';
+import { getPublicProducts } from '@/lib/shop/public-products';
 
 export const dynamic = 'force-dynamic';
 
@@ -109,10 +110,20 @@ export default async function RootLayout({
 }>) {
   const settings = await getSystemSettings();
   const siteUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
+  // Продуктовая линейка для hasOfferCatalog в разметке организации
+  const orgOffers = (await getPublicProducts()).map((p) => ({
+    name: p.name,
+    price: p.price,
+    slug: p.slug,
+  }));
   return (
     <html lang="ru">
       <body className="min-h-screen font-body antialiased">
-        <JsonLdOrganization siteUrl={siteUrl} phone={settings.contact_phone} />
+        <JsonLdOrganization
+          siteUrl={siteUrl}
+          phone={settings.contact_phone}
+          offers={orgOffers.length ? orgOffers : undefined}
+        />
         <JsonLdWebSite siteUrl={siteUrl} name={BRAND_SITE_NAME} />
         <AnalyticsConsentLoader />
         <CookieConsentBanner />
