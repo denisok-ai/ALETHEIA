@@ -23,6 +23,8 @@ export const CRON_EXPECTED_INTERVAL_MIN: Record<string, number> = {
   'installment-payments': 60,
   'reconcile-enrollments': 10,
   'paykeeper-health': 5,
+  // Раз в сутки; сторож поднимет тревогу, если пропущено двое суток подряд.
+  'blog-telegram-sync': 1440,
 };
 
 /** Отметить успешное выполнение. Сбой отметки не должен ронять саму задачу. */

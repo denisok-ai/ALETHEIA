@@ -43,6 +43,10 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # Интервал выбран так, чтобы клиент ждал доступ минуты, а не часы.
 */10 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh reconcile-enrollments
 
+# Перенос новых постов Telegram-канала в блог — раз в сутки, 09:20 МСК.
+# Чаще не нужно: канал пополняется реже, а поисковики не любят всплесков.
+20 9 * * * root /opt/ALETHEIA/scripts/cron-http-call.sh blog-telegram-sync
+
 # Сторож фоновых задач — каждые 30 мин.
 # Сообщает, если задача перестала ВЫПОЛНЯТЬСЯ вообще (пропал файл cron,
 # рестарт-луп демона). Живёт вне приложения: механизм внутри не может

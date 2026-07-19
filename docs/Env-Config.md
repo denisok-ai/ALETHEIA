@@ -113,6 +113,7 @@
 | `GET /api/cron/mailings-send` | Запланированные рассылки |
 | `GET /api/cron/inmail-sync` | Синхронизация IMAP-ящиков (**Входящие**) |
 | `GET /api/cron/installment-payments` | Рассрочка: напоминания, автосписание, overdue |
+| `GET /api/cron/blog-telegram-sync` | Перенос новых постов Telegram-канала в блог (канал — настройка `blog_telegram_channel`, пусто = выключено) |
 | `GET /api/cron/reconcile-enrollments` | Сверка «оплачено, но доступа нет»: восстановление зачислений (`?repair=0` — только отчёт, без изменений) |
 
 На Vercel добавьте вызовы в [Cron Jobs](https://vercel.com/docs/cron-jobs); на VPS — `scripts/install-aletheia-http-cron.sh` (файл `/etc/cron.d/aletheia-http-cron`) или `crontab` + `scripts/cron-http-call.sh`.
