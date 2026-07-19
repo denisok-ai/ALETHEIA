@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
+import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { sendTransactionalEmail } from '@/lib/email-service';
 import {
@@ -20,21 +21,41 @@ import { checkRateLimit } from '@/lib/rate-limit';
 
 /** Найти первый оплаченный заказ по email, по которому у пользователя нет доступа к курсу. */
 async function findPaidOrderWithoutAccess(userId: string, emailNorm: string): Promise<string | null> {
-  const paidOrders = await prisma.order.findMany({
-    where: { status: 'paid' },
+  // Отбор по почте делает БД. Раньше сюда грузились ВСЕ оплаченные заказы школы
+  // со всеми колонками, а фильтр применялся уже в памяти — на каждое создание
+  // тикета. При росте числа заказов это десятки мегабайт в куче ради поиска по
+  // одному адресу. Сравнение регистронезависимое, поэтому отбираем в SQL по
+  // lower(trim(email)) — обычный where по clientEmail этого не даёт.
+  const rows = await prisma.$queryRaw<{ orderNumber: string; tariffId: string | null }[]>(
+    Prisma.sql`SELECT orderNumber, tariffId FROM "Order"
+               WHERE status = 'paid' AND lower(trim(clientEmail)) = ${emailNorm}
+               ORDER BY id DESC`
+  );
+  if (rows.length === 0) return null;
+
+  // Товары и зачисления — двумя запросами на всё, а не по одному на заказ.
+  const tariffIds = rows.map((r) => r.tariffId).filter((t): t is string => !!t);
+  if (tariffIds.length === 0) return null;
+
+  const services = await prisma.service.findMany({
+    where: { paykeeperTariffId: { in: tariffIds }, isActive: true },
+    select: { paykeeperTariffId: true, courseId: true },
   });
-  const byEmail = paidOrders.filter((o) => o.clientEmail.trim().toLowerCase() === emailNorm);
-  for (const order of byEmail) {
-    const service = await prisma.service.findFirst({
-      where: { paykeeperTariffId: order.tariffId, isActive: true },
-      select: { courseId: true },
-    });
-    const courseId = service?.courseId;
+  const courseByTariff = new Map(
+    services.filter((s) => s.courseId).map((s) => [s.paykeeperTariffId!, s.courseId!])
+  );
+  if (courseByTariff.size === 0) return null;
+
+  const enrollments = await prisma.enrollment.findMany({
+    where: { userId, courseId: { in: [...courseByTariff.values()] } },
+    select: { courseId: true },
+  });
+  const enrolled = new Set(enrollments.map((e) => e.courseId));
+
+  for (const order of rows) {
+    const courseId = order.tariffId ? courseByTariff.get(order.tariffId) : undefined;
     if (!courseId) continue;
-    const enrollment = await prisma.enrollment.findUnique({
-      where: { userId_courseId: { userId, courseId } },
-    });
-    if (!enrollment) return order.orderNumber;
+    if (!enrolled.has(courseId)) return order.orderNumber;
   }
   return null;
 }

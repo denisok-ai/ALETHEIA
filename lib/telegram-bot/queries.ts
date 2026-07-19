@@ -287,18 +287,25 @@ export async function fetchUserCourseProgress(userId: string): Promise<CoursePro
     orderBy: { enrolledAt: 'desc' },
   });
 
+  // Один groupBy на все курсы вместо запроса внутри цикла. Раньше это был N+1:
+  // отдельное обращение к БД на каждый курс студента, и так на КАЖДЫЙ показ
+  // «мои курсы» в боте. Плюс запрашивались строки целиком там, где нужен был
+  // только их счётчик.
+  const counts = await prisma.scormProgress.groupBy({
+    by: ['courseId'],
+    where: {
+      userId,
+      courseId: { in: enrollments.map((e) => e.courseId) },
+      completionStatus: { in: ['completed', 'passed'] },
+    },
+    _count: { _all: true },
+  });
+  const completedByCourse = new Map(counts.map((c) => [c.courseId, c._count._all]));
+
   const result: CourseProgressRow[] = [];
   for (const e of enrollments) {
     const totalLessons = parseScormLessonCount(e.course.scormManifest);
-    const progress = await prisma.scormProgress.findMany({
-      where: {
-        userId,
-        courseId: e.courseId,
-        completionStatus: { in: ['completed', 'passed'] },
-      },
-      select: { lessonId: true },
-    });
-    const completedLessons = progress.length;
+    const completedLessons = completedByCourse.get(e.courseId) ?? 0;
     const percent = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
     result.push({
       courseTitle: e.course.title,

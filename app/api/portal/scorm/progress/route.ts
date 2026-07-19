@@ -94,7 +94,11 @@ async function maybeIssueCertificate(userId: string, courseId: string, lessonId:
     requiredLessonIds.push(lessonId);
   }
 
-  const completed = await prisma.scormProgress.findMany({
+  // count, а не findMany: нужен только счётчик, а findMany без select тянул все
+  // колонки, включая cmiData — JSON-блоб состояния SCORM, который у длинных
+  // уроков весит десятки килобайт. Этот запрос выполняется на КАЖДОЕ сохранение
+  // прогресса, то есть постоянно, пока студент проходит курс.
+  const completed = await prisma.scormProgress.count({
     where: {
       userId,
       courseId,
@@ -102,7 +106,7 @@ async function maybeIssueCertificate(userId: string, courseId: string, lessonId:
       completionStatus: { in: ['completed', 'passed'] },
     },
   });
-  if (completed.length < requiredLessonIds.length) return;
+  if (completed < requiredLessonIds.length) return;
 
   const { getVerificationLessonIds } = await import('@/lib/verification-lessons');
   const verificationRequiredIds = getVerificationLessonIds(course.verificationRequiredLessonIds);
