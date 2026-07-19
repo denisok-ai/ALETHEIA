@@ -3,6 +3,7 @@
  */
 import { prisma } from '@/lib/db';
 import { generateImageForItem } from '@/lib/image-gen';
+import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { getContentConfig } from '../config';
 import { generateTextForItem } from '../generator/text-generator';
 
@@ -32,9 +33,36 @@ export async function prepareDueItemsForDate(date: Date) {
     },
   });
 
-  const results = [];
+  // Каждый пост готовится независимо. Раньше исключение на одном (например 500
+  // от LLM) прерывало весь прогон: посты, до которых очередь не дошла, в этот
+  // день не готовились вообще, а задача запускается раз в сутки в 11:00 — к
+  // следующему запуску их publishDate уже истекала. Канал оставался пустым, и
+  // ни одной ошибки в интерфейсе при этом не появлялось.
+  const results: { id: string; ok: boolean; status: string; text?: string }[] = [];
+  const failures: string[] = [];
   for (const item of items) {
-    results.push({ id: item.id, ...(await prepareContentItem(item.id)) });
+    try {
+      const r = await prepareContentItem(item.id);
+      results.push({ id: item.id, ok: r.ok, status: r.status, text: r.text });
+      if (!r.ok) failures.push(`${item.id.slice(0, 8)} — ${r.status}`);
+    } catch (e) {
+      const detail = e instanceof Error ? e.message : String(e);
+      console.error(`[content] подготовка поста ${item.id} упала:`, e);
+      results.push({ id: item.id, ok: false, status: 'error' });
+      failures.push(`${item.id.slice(0, 8)} — ${detail.slice(0, 80)}`);
+      await prisma.contentItem
+        .update({ where: { id: item.id }, data: { status: 'quality_failed' } })
+        .catch(() => undefined);
+    }
   }
+
+  if (failures.length > 0) {
+    notifyAdminsTelegramAsync('contact_lead', [
+      `Подготовка контента: не удалось подготовить ${failures.length} из ${items.length}.`,
+      ...failures.slice(0, 5).map((f) => `· ${f}`),
+      'Очередь: /quality в боте.',
+    ]);
+  }
+
   return results;
 }

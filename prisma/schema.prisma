@@ -139,6 +139,16 @@ model Profile {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
+  // Уникальность telegramId проверялась только в коде — тремя независимыми
+  // «прочитал, потом записал» без транзакции (профиль пользователя, админка,
+  // привязка через бота). Два параллельных запроса проходили проверку оба, и
+  // один Telegram-аккаунт оказывался привязан к двум профилям: поиск по
+  // telegramId возвращал произвольный из них, то есть бот мог показать чужие
+  // курсы и уведомления. Индекс заодно убирает скан Profile на каждое
+  // входящее сообщение бота.
+  // Проверено на проде: дублей нет (привязок всего 2), применяется чисто.
+  // NULL в SQLite между собой не конфликтуют — непривязанные профили не задеты.
+  @@unique([telegramId])
   @@index([role])
   @@index([status])
 }
@@ -953,32 +963,38 @@ model ContentPlan {
 }
 
 model ContentItem {
-  id             String       @id @default(cuid())
-  planId         String?
-  plan           ContentPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
-  publishDate    DateTime
-  postType       String
-  topic          String
-  objective      String?
-  outline        String?
-  cta            String?
-  themeId        String?
-  theme          ThemePool?   @relation(fields: [themeId], references: [id], onDelete: SetNull)
-  audience       String?
-  rubric         String?
-  generatedText  String?
-  finalText      String?
-  imageUrl       String?
-  imageUrlBackup String?
+  id              String       @id @default(cuid())
+  planId          String?
+  plan            ContentPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  publishDate     DateTime
+  postType        String
+  topic           String
+  objective       String?
+  outline         String?
+  cta             String?
+  themeId         String?
+  theme           ThemePool?   @relation(fields: [themeId], references: [id], onDelete: SetNull)
+  audience        String?
+  rubric          String?
+  generatedText   String?
+  finalText       String?
+  imageUrl        String?
+  imageUrlBackup  String?
   /// planned | generating | quality_failed | dedup_blocked | ready | approved | published | rejected
-  status         String       @default("planned")
-  qualityIssues  String? // JSON
-  dedupSignature String? // base64 MinHash
-  dedupKeywords  String? // JSON string[]
-  telegramMsgId  Int?
-  publishedAt    DateTime?
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  status          String       @default("planned")
+  qualityIssues   String? // JSON
+  dedupSignature  String? // base64 MinHash
+  dedupKeywords   String? // JSON string[]
+  telegramMsgId   Int?
+  publishedAt     DateTime?
+  /// Отправлено ли фото поста в канал. Публикация идёт несколькими сообщениями
+  /// (фото + части текста), и при обрыве на середине повтор слал бы в канал
+  /// начало поста второй раз — подписчики видели дубль.
+  publishedPhoto  Boolean      @default(false)
+  /// Сколько частей текста уже ушло в канал: повтор продолжает с этого места.
+  publishedChunks Int          @default(0)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
   postStats PostStat[]
 

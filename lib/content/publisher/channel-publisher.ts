@@ -2,7 +2,7 @@
  * Публикация постов в Telegram-канал (dry_run / auto).
  */
 import { prisma } from '@/lib/db';
-import { getTelegramAdminChatIds } from '@/lib/telegram-admin-notify';
+import { getTelegramAdminChatIds, notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { sendTelegramMessageWithResult, sendTelegramPhotoWithResult } from '@/lib/telegram';
 import { getContentConfig, isEffectiveDryRun, setContentSetting } from '../config';
 import { normalizePostLexicon, scanPublishBlockers } from '../quality-gates';
@@ -67,19 +67,49 @@ export async function publishContentItem(itemId: string, force = false) {
   const channelId = config.contentChannelId;
   if (!channelId) return { ok: false, error: 'no_channel' };
 
-  if (item.imageUrl) {
+  // Публикация идёт несколькими сообщениями, и раньше сбой на любом из них
+  // приводил к раннему выходу без записи прогресса: пост оставался в статусе
+  // 'approved', а повторная публикация слала фото и первые части заново —
+  // подписчики видели дубль начала. Теперь отправленное фиксируется, и повтор
+  // продолжает с места обрыва.
+  const failPartial = async (error: string, sentChunks: number) => {
+    await prisma.contentItem
+      .update({
+        where: { id: itemId },
+        data: { publishedChunks: sentChunks, status: 'approved' },
+      })
+      .catch(() => undefined);
+    notifyAdminsTelegramAsync('contact_lead', [
+      `Публикация поста ${itemId.slice(0, 8)} прервалась: ${error}`,
+      `Отправлено частей: ${sentChunks}. Повтор продолжит с этого места, дубля не будет.`,
+      `Повторить: /publish ${itemId.slice(0, 8)}`,
+    ]);
+    return { ok: false as const, error };
+  };
+
+  if (item.imageUrl && !item.publishedPhoto) {
     const photo = await sendTelegramPhotoWithResult(channelId, item.imageUrl);
-    if (!photo.ok) return { ok: false, error: photo.error };
+    if (!photo.ok) return failPartial(photo.error ?? 'photo failed', item.publishedChunks);
+    await prisma.contentItem
+      .update({ where: { id: itemId }, data: { publishedPhoto: true } })
+      .catch(() => undefined);
   }
 
-  for (const chunk of splitText(text)) {
-    const r = await sendTelegramMessageWithResult(channelId, chunk);
-    if (!r.ok) return { ok: false, error: r.error };
+  const chunks = splitText(text);
+  let sentChunks = item.publishedChunks;
+  for (let i = sentChunks; i < chunks.length; i++) {
+    const r = await sendTelegramMessageWithResult(channelId, chunks[i]!);
+    if (!r.ok) return failPartial(r.error ?? 'chunk failed', sentChunks);
+    sentChunks = i + 1;
   }
 
   await prisma.contentItem.update({
     where: { id: itemId },
-    data: { status: 'published', publishedAt: new Date() },
+    data: {
+      status: 'published',
+      publishedAt: new Date(),
+      publishedChunks: sentChunks,
+    },
   });
 
   if (item.themeId) {
