@@ -131,7 +131,14 @@ echo ""
 echo "=== rsync .next (полная замена), public, prisma, lib, app, components, конфиги ==="
 rsync -avz --delete -e "$RSYNC_RSH" ./.next/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/.next/"
 # SCORM на проде живёт только на сервере (импорт ZIP); не затирать public/uploads/scorm при --delete.
-rsync -avz --delete --exclude 'uploads/scorm/' -e "$RSYNC_RSH" ./public/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/public/"
+# Исключается ВЕСЬ uploads/, а не только scorm. В public/ синхронизация идёт с
+# --delete, то есть файлы, которых нет локально, на проде удаляются. А uploads —
+# это пользовательские данные, живущие только на сервере: видео-верификации
+# студентов, файлы медиатеки, картинки товаров. Стоило студенту загрузить видео
+# на прод — и следующий деплой с машины разработчика, где этого файла нет, стёр
+# бы его безвозвратно. Раньше исключён был только scorm, остальное держалось на
+# случайном совпадении: локальная копия содержала те же файлы.
+rsync -avz --delete --exclude 'uploads/' -e "$RSYNC_RSH" ./public/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/public/"
 # Исходники бота и API (раньше lib/ не синкался — на проде оставался старый код).
 rsync -avz --delete -e "$RSYNC_RSH" ./lib/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/lib/"
 rsync -avz --delete -e "$RSYNC_RSH" ./app/ "${DEPLOY_SSH}:${DEPLOY_ROOT}/app/"
