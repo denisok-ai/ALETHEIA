@@ -4,6 +4,7 @@
  */
 import type { NextRequest } from 'next/server';
 import { prisma } from './db';
+import { clientIpFromHeaders } from '@/lib/client-ip';
 
 /** Таймаут «онлайн» в минутах: сессия активна, если lastActivityAt в пределах этого интервала. */
 export const ONLINE_TIMEOUT_MINUTES = 15;
@@ -16,10 +17,9 @@ export interface ClientInfo {
 /** Извлечь IP и User-Agent из запроса (учёт прокси). */
 export function getClientInfo(req: NextRequest | Request): ClientInfo {
   const headers = req.headers;
-  const forwarded = headers.get('x-forwarded-for');
+  // Первый элемент X-Forwarded-For подделывается клиентом — см. lib/client-ip.ts
   const ip =
-    (typeof forwarded === 'string' ? forwarded.split(',')[0]?.trim() : null) ||
-    headers.get('x-real-ip') ||
+    clientIpFromHeaders((n) => headers.get(n)) ||
     (req as NextRequest & { socket?: { remoteAddress?: string } }).socket?.remoteAddress ||
     null;
   const userAgent = headers.get('user-agent') || null;

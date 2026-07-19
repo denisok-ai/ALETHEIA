@@ -2,6 +2,7 @@
  * In-memory rate limiter for API routes (IP-based).
  * For multi-instance deploy, replace with Redis or similar.
  */
+import { clientIpFromHeaders } from '@/lib/client-ip';
 
 const windowMs = 60 * 1000; // 1 minute
 const store = new Map<string, { count: number; resetAt: number }>();
@@ -17,12 +18,9 @@ function getKey(prefix: string, ip: string): string {
   return `${prefix}:${ip}`;
 }
 
+/** IP клиента (общая логика — см. lib/client-ip.ts). */
 function getClientIp(request: Request): string {
-  const xff = request.headers.get('x-forwarded-for');
-  if (xff) return xff.split(',')[0].trim();
-  const xri = request.headers.get('x-real-ip');
-  if (xri) return xri.trim();
-  return 'unknown';
+  return clientIpFromHeaders((n) => request.headers.get(n)) ?? 'unknown';
 }
 
 /**
