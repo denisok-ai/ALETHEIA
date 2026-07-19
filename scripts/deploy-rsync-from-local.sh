@@ -169,6 +169,21 @@ ssh "${SSH_OPTS[@]}" "$DEPLOY_SSH" "DEPLOY_ROOT='$DEPLOY_ROOT' RESET_AND_SEED='$
 set -euo pipefail
 cd "$DEPLOY_ROOT"
 export NODE_ENV=production
+
+# Аварийная страховка: при ЛЮБОМ обрыве дальше по скрипту приложение и воркеры
+# должны подняться. 19.07.2026 деплой упал на `prisma migrate deploy`
+# («database is locked»), из-за set -e не дошёл до старта — и сайт лежал, пока
+# не подняли руками. Успешный путь снимает эту ловушку сам.
+deploy_emergency_start() {
+  code=$?
+  echo "(!) Деплой оборван (код $code) — аварийно поднимаем сервисы"
+  systemctl start aletheia 2>/dev/null || true
+  systemctl start aletheia-jobs 2>/dev/null || true
+  systemctl start aletheia-telegram-poll 2>/dev/null || true
+  exit "$code"
+}
+trap deploy_emergency_start ERR
+
 rm -rf node_modules
 if [[ "${RESET_AND_SEED:-0}" = "1" ]]; then
   echo "RESET_AND_SEED=1 — полный npm ci и prisma migrate reset (данные БД удаляются)"
@@ -176,9 +191,28 @@ if [[ "${RESET_AND_SEED:-0}" = "1" ]]; then
   npx prisma migrate reset --force
 else
   npm ci --omit=dev
+  # Воркеры держат соединение с SQLite, и `migrate deploy` не может взять
+  # блокировку: 19.07.2026 деплой упал на этом шаге с «database is locked», а
+  # из-за set -e не дошёл до старта приложения — сайт лежал, пока не подняли
+  # руками. Останавливаем воркеров на время миграции и поднимаем обратно
+  # безусловно (trap), даже если миграция упадёт.
+  STOPPED_WORKERS=""
+  for svc in aletheia-jobs aletheia-telegram-poll; do
+    if systemctl is-active --quiet "$svc" 2>/dev/null; then
+      systemctl stop "$svc" && STOPPED_WORKERS="$STOPPED_WORKERS $svc"
+    fi
+  done
+  restore_workers() {
+    for svc in $STOPPED_WORKERS; do systemctl start "$svc" || true; done
+  }
+  trap restore_workers EXIT
+
   # Раньше ошибки migrate скрывались — страницы с новыми таблицами (Почта и др.) давали 500 на проде.
   npx prisma migrate deploy
   npx prisma generate
+
+  trap - EXIT
+  restore_workers
 fi
 CACHE_CLEARED=0
 if [[ -d /var/cache/nginx ]] && [[ -n "$(ls -A /var/cache/nginx 2>/dev/null)" ]]; then
@@ -218,6 +252,8 @@ if ! systemctl list-unit-files 2>/dev/null | grep -q '^aletheia.service'; then
 fi
 sudo systemctl restart aletheia.service
 sudo systemctl is-active aletheia.service
+# Приложение поднято штатно — аварийная страховка больше не нужна.
+trap - ERR
 # Деплой дошёл до штатного рестарта — снимаем флаг (сторож проснётся и ничего не сделает).
 rm -f /run/aletheia-deploy.active
 
