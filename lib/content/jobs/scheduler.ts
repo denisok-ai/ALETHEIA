@@ -10,13 +10,31 @@ import { getContentConfig } from '@/lib/content/config';
 
 let started = false;
 
+/**
+ * Задачи, выполняющиеся прямо сейчас.
+ *
+ * node-cron не ждёт завершения предыдущего запуска: если цикл Site Radar
+ * затянулся дольше 6 часов (обход всего sitemap с таймаутом 15 с на страницу),
+ * поверх него стартовал второй. Оба видели одну и ту же изменённую страницу до
+ * записи версии — и создавали дублирующиеся сигналы и темы контент-плана,
+ * а админам уходили задвоенные оповещения.
+ */
+const running = new Set<string>();
+
 async function safeRun(label: string, fn: () => Promise<unknown>) {
+  if (running.has(label)) {
+    console.warn(`[jobs] skip ${label} — предыдущий запуск ещё идёт`);
+    return;
+  }
+  running.add(label);
   try {
     console.log(`[jobs] start ${label}`);
     await fn();
     console.log(`[jobs] done ${label}`);
   } catch (e) {
     console.error(`[jobs] failed ${label}`, e);
+  } finally {
+    running.delete(label);
   }
 }
 

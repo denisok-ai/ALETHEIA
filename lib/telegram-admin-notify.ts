@@ -69,12 +69,16 @@ export async function notifyAdminsTelegram(
   event: AdminTelegramEvent,
   lines: string[]
 ): Promise<{ sent: number; failed: number; skipped: boolean }> {
-  const chatIds = await getTelegramAdminChatIds();
-  if (chatIds.length === 0) {
-    return { sent: 0, failed: 0, skipped: true };
-  }
-  const text = formatAdminTelegramMessage(event, lines);
+  // Чтение chat ID — тоже внутри try: это обращение к БД, и раньше его отказ
+  // ронял промис наружу. Через notifyAdminsTelegramAsync (void, без catch) это
+  // становилось unhandled rejection, то есть тревога о поломке платежей могла
+  // потеряться ровно тогда, когда она нужнее всего.
   try {
+    const chatIds = await getTelegramAdminChatIds();
+    if (chatIds.length === 0) {
+      return { sent: 0, failed: 0, skipped: true };
+    }
+    const text = formatAdminTelegramMessage(event, lines);
     const { sent, failed } = await sendTelegramBroadcast(chatIds, text);
     if (failed > 0) {
       console.warn(`[telegram-admin] ${event}: sent=${sent} failed=${failed}`);
@@ -82,13 +86,19 @@ export async function notifyAdminsTelegram(
     return { sent, failed, skipped: false };
   } catch (e) {
     console.error(`[telegram-admin] ${event}:`, e);
-    return { sent: 0, failed: chatIds.length, skipped: false };
+    return { sent: 0, failed: 0, skipped: false };
   }
 }
 
-/** Fire-and-forget обёртка для вызова из API routes. */
+/**
+ * Fire-and-forget обёртка для вызова из API routes.
+ * catch обязателен: без него отказ уходит в unhandledRejection и виден только
+ * в логе процесса — а это единственный активный канал связи с админами.
+ */
 export function notifyAdminsTelegramAsync(event: AdminTelegramEvent, lines: string[]): void {
-  void notifyAdminsTelegram(event, lines);
+  void notifyAdminsTelegram(event, lines).catch((e) => {
+    console.error(`[telegram-admin] ${event}: оповещение не отправлено:`, e);
+  });
 }
 
 /** Тестовое сообщение одному chat ID (админка). */

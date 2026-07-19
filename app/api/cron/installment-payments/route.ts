@@ -8,6 +8,7 @@ import {
   notifyInstallmentReminder,
 } from '@/lib/installment-notify';
 import { requireCronAuth } from '@/lib/cron-auth';
+import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
 export async function GET(req: NextRequest) {
   const authError = await requireCronAuth(req);
@@ -131,7 +132,14 @@ export async function GET(req: NextRequest) {
         },
       });
       const ctx = await buildInstallmentContext(payment.id);
-      if (ctx) notifyInstallmentPaymentFailed(ctx, msg);
+      // await + catch: это уведомление «требуется ручное вмешательство», и как
+      // плавающий промис оно уходило в unhandledRejection — админ не узнавал,
+      // что клиент не заплатил очередную часть.
+      if (ctx) {
+        await notifyInstallmentPaymentFailed(ctx, msg).catch((e) =>
+          console.error('[installments] уведомление о неудачном списании не отправлено:', e)
+        );
+      }
       results.push({ action: 'charge', paymentId: payment.id, status: 'error', detail: msg });
     }
   }
@@ -153,11 +161,25 @@ export async function GET(req: NextRequest) {
     results.push({ action: 'mark_overdue', paymentId: payment.id, status: 'done' });
   }
 
-  return NextResponse.json({
+  // Ошибки считаем отдельно и отражаем в HTTP-коде. Раньше маршрут отвечал 200
+  // всегда, а `charges` считал и успехи, и провалы: при отказе PayKeeper на всех
+  // счетах внешний монитор (scripts/cron-http-call.sh проверяет только код 200)
+  // записывал задачу как успешную, хотя не выставлено ни одного платежа.
+  const errors = results.filter((r) => r.status === 'error');
+  const payload = {
     reminders_3d: results.filter((r) => r.action === 'reminder_3d').length,
     reminders_1d: results.filter((r) => r.action === 'reminder_1d').length,
-    charges: results.filter((r) => r.action === 'charge').length,
+    charges: results.filter((r) => r.action === 'charge' && r.status !== 'error').length,
     overdue: results.filter((r) => r.action === 'mark_overdue').length,
+    errors: errors.length,
     results,
-  });
+  };
+  if (errors.length > 0) {
+    notifyAdminsTelegramAsync('installment_payment_failed', [
+      `Задача по рассрочкам завершилась с ошибками: ${errors.length}`,
+      ...errors.slice(0, 5).map((e) => `· ${e.action} ${e.paymentId ?? ''}: ${e.detail ?? ''}`),
+    ]);
+    return NextResponse.json(payload, { status: 500 });
+  }
+  return NextResponse.json(payload);
 }

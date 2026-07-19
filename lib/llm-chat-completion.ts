@@ -16,6 +16,16 @@ const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
  */
 export const DEFAULT_ANTHROPIC_MODEL = 'claude-haiku-4-5';
 
+/**
+ * Предел ожидания ответа LLM.
+ *
+ * Без него зависшее соединение вешает вызов навсегда. Больнее всего это в
+ * фоновых задачах: ежедневная подготовка контента идёт последовательно, и один
+ * повисший запрос означал, что в этот день не публикуется ничего — при этом в
+ * логе только «start» без «done», и никто об этом не узнаёт.
+ */
+const LLM_TIMEOUT_MS = 60_000;
+
 export type ChatTurn = { role: 'system' | 'user' | 'assistant'; content: string };
 
 export type LlmChatCompletionResult =
@@ -131,6 +141,7 @@ async function completeAnthropic(
       // отвечают 400). Haiku 4.5 и модели постарше его ещё принимают.
       ...(anthropicAcceptsTemperature(model) ? { temperature } : {}),
     }),
+    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
   });
 
   if (!res.ok) {
@@ -171,6 +182,7 @@ async function completeOpenAiCompatible(
       max_tokens: maxTokens,
       temperature,
     }),
+    signal: AbortSignal.timeout(LLM_TIMEOUT_MS),
   });
 
   if (!res.ok) {
