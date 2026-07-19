@@ -81,6 +81,15 @@ export async function GET(req: NextRequest) {
     where: {
       status: 'scheduled',
       scheduledAt: { lte: now },
+      // Счёт ещё не выставлен. Без этого условия крон (ежечасный) выставлял новый
+      // счёт на ОДИН и тот же платёж каждый час, пока платёж не станет overdue —
+      // до ~72 живых счетов с одинаковым orderid за трое суток. Клиент мог
+      // оплатить два из них: деньги списывались дважды, а вебхук на второй
+      // отвечал OK и следа в БД не оставлял.
+      paykeeperPaymentId: null,
+      // Ретраи не бесконечные: при недоступности PayKeeper клиент иначе получал
+      // уведомление «платёж не прошёл» каждый час.
+      retryCount: { lt: 5 },
     },
     include: { plan: { include: { order: true } } },
     orderBy: { scheduledAt: 'asc' },
