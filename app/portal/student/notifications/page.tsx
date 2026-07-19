@@ -23,9 +23,15 @@ export default async function StudentNotificationsPage() {
     );
   }
 
+  // Лимит обязателен: без него на страницу уходила ВСЯ история уведомлений с
+  // момента регистрации — у активного студента за пару лет это тысячи записей
+  // в ответе на каждое открытие раздела. Соседние экраны сделаны так же
+  // (дашборд берёт 4, карточка пользователя в админке — 25).
+  const NOTIFICATIONS_LIMIT = 50;
   const notifications = await prisma.notification.findMany({
     where: { userId },
     orderBy: { createdAt: 'desc' },
+    take: NOTIFICATIONS_LIMIT,
   });
 
   const initialItems = notifications.map((n) => ({
@@ -43,7 +49,7 @@ export default async function StudentNotificationsPage() {
         title="Уведомления"
         description="Все уведомления"
       />
-      <NotificationsList initialItems={initialItems} />
+      <NotificationsList initialItems={initialItems} truncated={notifications.length === NOTIFICATIONS_LIMIT} />
     </div>
   );
 }

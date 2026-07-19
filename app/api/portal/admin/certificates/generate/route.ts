@@ -13,7 +13,7 @@ import {
   isInterrupted,
   removeTask,
 } from '@/lib/background-tasks';
-import { checkCertificateEligibility } from '@/lib/certificates/eligibility';
+import { checkCertificateEligibility, findCertificateTemplate } from '@/lib/certificates/eligibility';
 import { nanoid } from 'nanoid';
 import { addDays } from 'date-fns';
 
@@ -117,6 +117,9 @@ export async function POST(request: NextRequest) {
     });
   }
 
+  // Шаблон курса один на весь прогон — ищем до цикла, а не на каждого студента.
+  const courseTemplate = await findCertificateTemplate(courseId);
+
   const created: string[] = [];
   for (let i = 0; i < toIssue.length; i++) {
     if (total > 0 && isInterrupted(taskId)) {
@@ -128,7 +131,7 @@ export async function POST(request: NextRequest) {
       });
     }
     const userId = toIssue[i];
-    const eligibility = await checkCertificateEligibility(userId, courseId, 100, 'completed');
+    const eligibility = await checkCertificateEligibility(userId, courseId, 100, 'completed', courseTemplate);
     if (!eligibility.eligible) continue;
 
     const validityDays = eligibility.template?.validityDays ?? undefined;

@@ -292,6 +292,10 @@ model CertificateTemplate {
   updatedAt          DateTime @updatedAt
 
   certificates Certificate[]
+
+  // Шаблон ищется по courseId (выдача сертификатов, одиночная и массовая), а
+  // внешний ключ индексом не покрыт — каждый поиск был полным сканом таблицы.
+  @@index([courseId])
 }
 
 model Certificate {

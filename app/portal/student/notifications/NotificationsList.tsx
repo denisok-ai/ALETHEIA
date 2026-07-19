@@ -18,7 +18,14 @@ interface Notif {
   created_at: string;
 }
 
-export function NotificationsList({ initialItems }: { initialItems: Notif[] }) {
+export function NotificationsList({
+  initialItems,
+  truncated = false,
+}: {
+  initialItems: Notif[];
+  /** Показан не весь список — сервер отдал только последние N уведомлений. */
+  truncated?: boolean;
+}) {
   const [items, setItems] = useState(initialItems);
   const [markingId, setMarkingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -109,6 +116,12 @@ export function NotificationsList({ initialItems }: { initialItems: Notif[] }) {
           </div>
         </li>
       ))}
+      {/* Обрезка списка не должна выглядеть как пропажа уведомлений. */}
+      {truncated && (
+        <li className="py-3 text-center text-sm text-[var(--portal-text-muted)]">
+          Показаны последние {items.length} уведомлений. Более старые скрыты.
+        </li>
+      )}
     </ul>
   );
 }

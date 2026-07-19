@@ -60,14 +60,19 @@ export async function POST(
   const existingUserIds = new Set(existing.map((e) => e.userId));
   const toEnroll = userIds.filter((id) => !existingUserIds.has(id));
 
+  // Существование пользователей проверяем одним запросом на всех: раньше на
+  // каждого шёл отдельный findUnique, и при импорте списка на тысячи адресов
+  // это тысячи лишних обращений к БД.
+  const existingUsers = await prisma.user.findMany({
+    where: { id: { in: toEnroll } },
+    select: { id: true },
+  });
+  const knownUserIds = new Set(existingUsers.map((u) => u.id));
+
   let enrolled = 0;
   const notFound: string[] = [];
   for (const userId of toEnroll) {
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
-    if (!user) {
+    if (!knownUserIds.has(userId)) {
       notFound.push(userId);
       continue;
     }

@@ -19,16 +19,27 @@ export interface EligibilityResult {
  * courseScore: 0–100 (например, от прогресса SCORM или 100 при «все уроки завершены»).
  * courseStatus: например "completed".
  */
+export async function findCertificateTemplate(courseId: string) {
+  return prisma.certificateTemplate.findFirst({
+    where: { courseId },
+    orderBy: { createdAt: 'asc' },
+  });
+}
+
 export async function checkCertificateEligibility(
   userId: string,
   courseId: string,
   courseScore?: number,
-  courseStatus?: string
+  courseStatus?: string,
+  /**
+   * Готовый шаблон курса. Нужен для массовой выдачи: courseId там один на весь
+   * прогон, и без этого параметра одинаковый запрос к шаблону повторялся на
+   * каждого студента — при выдаче на пару тысяч человек это тысячи лишних
+   * обращений к БД. Не передан — ищем сами (одиночная выдача).
+   */
+  presetTemplate?: Awaited<ReturnType<typeof findCertificateTemplate>>
 ): Promise<EligibilityResult> {
-  const template = await prisma.certificateTemplate.findFirst({
-    where: { courseId },
-    orderBy: { createdAt: 'asc' },
-  });
+  const template = presetTemplate !== undefined ? presetTemplate : await findCertificateTemplate(courseId);
   if (!template) {
     return { eligible: true, templateId: null };
   }
