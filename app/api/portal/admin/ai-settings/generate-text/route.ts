@@ -9,10 +9,14 @@ import { completeLlmChat, resolveChatbotProvider } from '@/lib/llm-chat-completi
 import { getEnvOverrides } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 import { logLlmRequest } from '@/lib/llm-request-log';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 const DEFAULT_SYSTEM = 'Ты помощник для контента школы AVATERRA. Отвечай только запрошенным текстом, без пояснений и кавычек вокруг ответа.';
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = checkRateLimit(request, 'llm-admin-generate', 20);
+  if (rateLimitRes) return rateLimitRes;
+
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 

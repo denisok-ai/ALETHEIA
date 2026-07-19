@@ -8,8 +8,12 @@ import { completeLlmChat, resolveChatbotProvider } from '@/lib/llm-chat-completi
 import { getEnvOverrides } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 import { logLlmRequest } from '@/lib/llm-request-log';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request: NextRequest) {
+  const rateLimitRes = checkRateLimit(request, 'llm-admin-prompt-tpl', 20);
+  if (rateLimitRes) return rateLimitRes;
+
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 

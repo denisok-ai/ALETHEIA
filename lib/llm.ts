@@ -12,14 +12,29 @@ export async function getLlmApiKey(llmKey: string): Promise<string | null> {
     select: { apiKeyEncrypted: true, apiKeyId: true, apiKey: { select: { apiKeyEncrypted: true } } },
   });
 
-  const envFallback = async (): Promise<string | null> => {
+  /**
+   * Запасной ключ из настроек/env. Опасен молчаливостью: если выбранный в админке
+   * ключ не расшифровался, сюда попадает СТАРЫЙ ключ, и провайдер отвечает 401 —
+   * выглядит как «сломался чат», хотя причина в ключе (реальный инцидент 19.07.2026,
+   * потерян час на диагностику). Поэтому логируем факт отката явно.
+   */
+  const envFallback = async (reason: string): Promise<string | null> => {
     const overrides = await getEnvOverrides();
     const ds = overrides.deepseek_api_key?.trim();
     const oai = overrides.openai_api_key?.trim();
-    return ds || oai || null;
+    const key = ds || oai || null;
+    if (key) {
+      console.warn(
+        `[getLlmApiKey] «${llmKey}»: используется ЗАПАСНОЙ ключ из настроек/env (${reason}). ` +
+          'Если провайдер отвечает 401 — привяжите действующий ключ в Портал → Настройки AI.'
+      );
+    } else {
+      console.warn(`[getLlmApiKey] «${llmKey}»: ключ не найден (${reason}) и запасного нет.`);
+    }
+    return key;
   };
 
-  if (!row) return envFallback();
+  if (!row) return envFallback('настройка LLM не заведена');
 
   if (row.apiKeyId && row.apiKey?.apiKeyEncrypted) {
     try {
@@ -45,5 +60,5 @@ export async function getLlmApiKey(llmKey: string): Promise<string | null> {
     }
   }
 
-  return envFallback();
+  return envFallback('ключ из админки отсутствует или не расшифровался');
 }

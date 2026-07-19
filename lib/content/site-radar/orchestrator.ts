@@ -43,10 +43,20 @@ async function fetchText(url: string, timeoutMs = 15000): Promise<string | null>
   }
 }
 
+/**
+ * Разбор сохранённых блоков страницы. Раньше был слепой каст `as ContentBlock[]`:
+ * любой не-массив или мусор из БД уезжал дальше и падал уже при использовании.
+ */
 function parseBlocks(json: string | null): ContentBlock[] | null {
   if (!json) return null;
   try {
-    return JSON.parse(json) as ContentBlock[];
+    const parsed: unknown = JSON.parse(json);
+    if (!Array.isArray(parsed)) return null;
+    const blocks = parsed.filter(
+      (b): b is ContentBlock =>
+        !!b && typeof b === 'object' && typeof (b as { text?: unknown }).text === 'string'
+    );
+    return blocks.length ? blocks : null;
   } catch {
     return null;
   }
