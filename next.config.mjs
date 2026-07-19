@@ -54,6 +54,7 @@ const nextConfig = {
   reactStrictMode: true,
   compress: true,
   async headers() {
+    const isDev = process.env.NODE_ENV !== 'production';
     const securityHeaders = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
@@ -67,7 +68,12 @@ const nextConfig = {
         key: 'Content-Security-Policy',
         value: [
           "default-src 'self'",
-          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          // 'unsafe-eval' нужен только dev-режиму (горячая перезагрузка).
+          // В проде проверено: ни в одном из собранных клиентских бандлов нет
+          // eval()/new Function() — значит директива лишняя и снята.
+          isDev
+            ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+            : "script-src 'self' 'unsafe-inline'",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data:",
@@ -79,6 +85,32 @@ const nextConfig = {
         ].join('; '),
       },
     ];
+
+    /**
+     * Строгая политика в режиме «только отчёты»: ничего не блокирует, но браузеры
+     * присылают на /api/csp-report всё, что нарушило бы запрет 'unsafe-inline'.
+     * Это безопасный способ собрать на реальном трафике список инлайн-скриптов
+     * перед переходом на nonce — вслепую такую миграцию катить нельзя (16 блоков
+     * JSON-LD и аналитика; ошибка молча убила бы разметку или счётчик).
+     */
+    if (!isDev) {
+      securityHeaders.push({
+        key: 'Content-Security-Policy-Report-Only',
+        value: [
+          "default-src 'self'",
+          "script-src 'self'",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob: https:",
+          "font-src 'self' data:",
+          "connect-src 'self' https:",
+          "frame-src 'self'",
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+          'report-uri /api/csp-report',
+        ].join('; '),
+      });
+    }
     return [{ source: '/:path*', headers: securityHeaders }];
   },
   async redirects() {
