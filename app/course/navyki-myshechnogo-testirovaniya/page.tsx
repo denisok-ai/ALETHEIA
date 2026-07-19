@@ -39,7 +39,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const path = `/course/${COURSE_SLUG}`;
   const canonical = `${base}${path}`;
   // Бренд добавляет шаблон в layout — вручную не дублируем
-  const title = 'Курс мышечного тестирования онлайн: научиться за 6 модулей';
+  const title = 'Курс мышечного тестирования онлайн';
   const ogImageAbs = `${base}${OG_IMAGE_PATH}`;
   return {
     title,
