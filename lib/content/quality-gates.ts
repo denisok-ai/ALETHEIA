@@ -169,23 +169,46 @@ function allowedUrls(brand: BrandNorm): Set<string> {
   return allowed;
 }
 
-function checkUrls(text: string, brand: BrandNorm): QualityIssue | null {
-  const allowed = allowedUrls(brand);
-  if (!allowed.size) return null;
-  const hosts = new Set(Array.from(allowed).map((e) => e.split('/')[0]));
-  const bad: string[] = [];
-  const seen = new Set<string>();
-  for (const host of hosts) {
-    const pattern = new RegExp(`(?<![A-Za-z0-9.@\\-])${host.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?:/[^\\s)\\]}>,;]*)?`, 'gi');
-    for (const match of text.matchAll(pattern)) {
-      const cleaned = stripScheme(match[0]);
-      if (allowed.has(cleaned) || seen.has(cleaned)) continue;
-      seen.add(cleaned);
-      bad.push(match[0]);
+/** Домены, разрешённые в постах всегда (свой сайт и свой Telegram). */
+const ALWAYS_ALLOWED_HOSTS = ['avaterra.pro', 't.me'];
+
+/** Хосты всех ссылок, встречающихся в тексте (с http(s):// и вида «домен.зона/…»). */
+function extractHosts(text: string): { host: string; raw: string }[] {
+  const out: { host: string; raw: string }[] = [];
+  const pattern = /(?:https?:\/\/)?((?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,})(?:\/[^\s)\]}>,;]*)?/gi;
+  for (const m of text.matchAll(pattern)) {
+    const host = (m[1] ?? '').toLowerCase().replace(/^www\./, '');
+    if (host) out.push({ host, raw: m[0] });
+  }
+  return out;
+}
+
+/**
+ * Ловит ссылки на ЧУЖИЕ домены.
+ * Раньше логика была инвертирована: регэкспы строились из разрешённых хостов, поэтому
+ * произвольный чужой домен не находился никогда, а пустой whitelist пропускал всё.
+ * Теперь: извлекаем все домены из текста и блокируем те, которых нет в whitelist —
+ * это важно, т.к. тема поста может прийти с внешней страницы (Site Radar).
+ */
+function checkUrls(text: string, brand?: BrandNorm): QualityIssue | null {
+  const allowedHosts = new Set(ALWAYS_ALLOWED_HOSTS);
+  if (brand) {
+    for (const entry of allowedUrls(brand)) {
+      const host = entry.split('/')[0]?.toLowerCase().replace(/^www\./, '');
+      if (host) allowedHosts.add(host);
     }
   }
+  const bad: string[] = [];
+  const seen = new Set<string>();
+  for (const { host, raw } of extractHosts(text)) {
+    const permitted =
+      allowedHosts.has(host) || Array.from(allowedHosts).some((a) => host.endsWith(`.${a}`));
+    if (permitted || seen.has(host)) continue;
+    seen.add(host);
+    bad.push(raw.slice(0, 60));
+  }
   if (!bad.length) return null;
-  return { code: 'url_not_whitelisted', message: `ссылки вне whitelist: ${bad.slice(0, 3).join(', ')}` };
+  return { code: 'url_not_whitelisted', message: `ссылки на чужие домены: ${bad.slice(0, 3).join(', ')}` };
 }
 
 const LEXICON_REPLACEMENTS: Array<[RegExp, string]> = [
@@ -223,6 +246,10 @@ export function scanPublishBlockers(text: string): QualityIssue[] {
     const r = fn(text);
     if (r) issues.push(r);
   }
+  // Ссылка на чужой домен — стоп-фактор для публикации: пост мог быть сгенерирован
+  // по теме с внешней страницы, ссылку туда подписчикам отдавать нельзя.
+  const urlIssue = checkUrls(text);
+  if (urlIssue) issues.push(urlIssue);
   return issues;
 }
 

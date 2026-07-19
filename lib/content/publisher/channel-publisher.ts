@@ -54,13 +54,13 @@ export async function publishContentItem(itemId: string, force = false) {
   const adminIds = await getTelegramAdminChatIds();
 
   if (dryRun) {
-    const preview = `<b>📝 Превью поста</b> (${item.postType})\n<b>Тема:</b> ${item.topic.slice(0, 100)}\n\n${text.slice(0, 3500)}${text.length > 3500 ? '…' : ''}\n\n<i>dry_run — /approve ${item.id.slice(0, 8)} или /auto</i>`;
+    const preview = `<b>📝 Превью поста</b> (${item.postType})\n<b>Тема:</b> ${item.topic.slice(0, 100)}\n\n${text.slice(0, 3500)}${text.length > 3500 ? '…' : ''}\n\n<i>ожидает одобрения — /approve ${item.id.slice(0, 8)}</i>`;
     let sent = 0;
     for (const chatId of adminIds) {
       const r = await sendTelegramMessageWithResult(chatId, preview);
       if (r.ok) sent += 1;
     }
-    await prisma.contentItem.update({ where: { id: itemId }, data: { status: 'ready' } });
+    await prisma.contentItem.update({ where: { id: itemId }, data: { status: 'pending_review' } });
     return { ok: true, dryRun: true, sent };
   }
 
@@ -100,7 +100,8 @@ export async function publishDueToday(force = false) {
   const items = await prisma.contentItem.findMany({
     where: {
       publishDate: { gte: start, lte: end },
-      status: { in: ['ready', 'approved'] },
+      // Только одобренное человеком: 'pending_review'/'ready' в канал сами не уходят
+      status: 'approved',
     },
     orderBy: { publishDate: 'asc' },
   });
@@ -117,7 +118,7 @@ export async function publishDueToday(force = false) {
 
 export async function approveItem(partialId: string) {
   const item = await prisma.contentItem.findFirst({
-    where: { id: { startsWith: partialId }, status: { in: ['ready', 'quality_failed', 'dedup_blocked'] } },
+    where: { id: { startsWith: partialId }, status: { in: ['pending_review', 'ready', 'quality_failed', 'dedup_blocked'] } },
   });
   if (!item) return { ok: false, error: 'not_found' };
   await prisma.contentItem.update({ where: { id: item.id }, data: { status: 'approved' } });
@@ -153,7 +154,7 @@ export async function formatPublishMode(): Promise<string> {
 
 export async function previewNextItem(): Promise<string> {
   const item = await prisma.contentItem.findFirst({
-    where: { status: { in: ['ready', 'approved', 'planned'] } },
+    where: { status: { in: ['pending_review', 'ready', 'approved', 'planned'] } },
     orderBy: { publishDate: 'asc' },
   });
   if (!item) return 'Нет постов для превью.';

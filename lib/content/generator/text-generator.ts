@@ -25,7 +25,7 @@ export type TextGenOutcome = {
 
 async function loadDedupHistory(limit: number) {
   const rows = await prisma.contentItem.findMany({
-    where: { status: { in: ['ready', 'approved', 'published'] } },
+    where: { status: { in: ['pending_review', 'ready', 'approved', 'published'] } },
     orderBy: { updatedAt: 'desc' },
     take: limit,
     select: { id: true, generatedText: true, finalText: true, dedupSignature: true, dedupKeywords: true },
@@ -135,7 +135,9 @@ export async function generateTextForItem(itemId: string, feedback?: string): Pr
       data: {
         generatedText: text,
         finalText: text,
-        status: 'ready',
+        // Не 'ready': пост, сгенерированный по теме из внешнего источника (Site Radar),
+        // не должен уходить подписчикам без одобрения человека (/approve).
+        status: 'pending_review',
         qualityIssues: null,
         dedupSignature: serializeMinhash(fp.minhash),
         dedupKeywords: JSON.stringify(fp.keywords),
@@ -156,9 +158,20 @@ export async function listQualityQueue(): Promise<string> {
   if (!rows.length) return 'Очередь quality пуста.';
   return rows
     .map((r, i) => {
-      const issues = r.qualityIssues
-        ? (JSON.parse(r.qualityIssues) as { code: string }[]).map((x) => x.code).join(', ')
-        : '—';
+      // Битый JSON в qualityIssues не должен ронять весь список очереди
+      let issues = '—';
+      if (r.qualityIssues) {
+        try {
+          const parsed: unknown = JSON.parse(r.qualityIssues);
+          issues = Array.isArray(parsed)
+            ? parsed
+                .map((x) => (x && typeof x === 'object' ? String((x as { code?: unknown }).code ?? '?') : '?'))
+                .join(', ')
+            : '—';
+        } catch {
+          issues = '(не удалось прочитать)';
+        }
+      }
       return `${i + 1}. <code>${r.id.slice(0, 8)}</code> · ${r.status} · ${r.postType}\n   ${r.topic.slice(0, 60)}\n   issues: ${issues}`;
     })
     .join('\n\n');

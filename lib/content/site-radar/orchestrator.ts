@@ -52,10 +52,16 @@ function parseBlocks(json: string | null): ContentBlock[] | null {
   }
 }
 
+/** Краулёный текст уходит в Telegram с parse_mode=HTML — экранируем, иначе
+ *  разметка с чужой страницы ломает или подделывает сообщение админам. */
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 async function notifyHighSignals(signals: ScoredSignal[]): Promise<void> {
   const high = signals.filter((s) => s.severity === 'high').slice(0, 5);
   if (!high.length) return;
-  const lines = high.map((s) => `· [${s.severity}] ${s.score} — ${s.summary.slice(0, 120)}`);
+  const lines = high.map((s) => `· [${s.severity}] ${s.score} — ${escapeHtml(s.summary.slice(0, 120))}`);
   await notifyAdminsTelegram('contact_lead', ['Site Radar — значимые изменения:', ...lines]);
 }
 
@@ -238,7 +244,7 @@ export async function formatRecentSignals(limit = 10): Promise<string> {
   return rows
     .map(
       (r, i) =>
-        `${i + 1}. [${r.severity}/${r.score}] ${r.summary.slice(0, 80)}\n   ${r.page?.url ?? '—'} · ${r.createdAt.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
+        `${i + 1}. [${r.severity}/${r.score}] ${escapeHtml(r.summary.slice(0, 80))}\n   ${escapeHtml(r.page?.url ?? '—')} · ${r.createdAt.toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' })}`
     )
     .join('\n\n');
 }
