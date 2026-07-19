@@ -140,17 +140,19 @@ export async function POST(request: NextRequest) {
         llmResult.status,
         llmResult.bodySnippet
       );
+      // Диагностика про ключи/провайдеров — только в лог: этот эндпоинт публичный,
+      // посетителю сайта нельзя показывать внутреннюю конфигурацию.
       const apiHint = parseLlmErrorHint(llmResult.status, llmResult.bodySnippet);
-      let error =
-        'Сервис ответов временно недоступен. Проверьте ключ и что для чат-бота выбран ключ того же провайдера (DeepSeek / OpenAI / Anthropic), что и в списке «Ключи моделей».';
-      if (llmResult.status === 401 || llmResult.status === 403) {
-        error =
-          'Провайдер не принял API-ключ (ошибка авторизации). Частая причина: выбран ключ OpenAI, а в настройках чат-бота указан провайдер DeepSeek — выберите в списке ключей тот, который соответствует вашему ключу, или вставьте верный ключ DeepSeek.';
-      }
       if (apiHint) {
-        error = `${error} Детали: ${apiHint}`;
+        console.error('LLM chat API hint (admin):', apiHint);
       }
-      return NextResponse.json({ error }, { status: 502 });
+      return NextResponse.json(
+        {
+          error:
+            'Чат временно недоступен. Напишите нам на почту или через страницу контактов — обязательно поможем.',
+        },
+        { status: 502 }
+      );
     }
 
     const answer =
