@@ -1187,3 +1187,38 @@ model InstallmentPayment {
   @@index([status])
   @@index([scheduledAt])
 }
+
+/// Статья блога сайта.
+///
+/// До этого статьи жили в файле кода (lib/content/course-lynda-teaser.ts), и
+/// добавить новую можно было только правкой исходников с последующим деплоем —
+/// то есть блог не мог пополняться без разработчика. Это и было главным
+/// ограничением роста поискового трафика.
+model BlogPost {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  /// Заголовок для поисковой выдачи и вкладки браузера
+  title       String
+  /// Заголовок на самой странице (может отличаться от title)
+  h1          String
+  /// Мета-описание для выдачи
+  description String
+  /// Тело статьи. Формат задаётся полем bodyFormat.
+  body        String
+  /// paragraphs — JSON-массив абзацев; markdown — текст с разметкой.
+  /// Оба поддерживаются намеренно: страница рисует их по-разному, и сведение
+  /// к одному формату незаметно изменило бы вид уже опубликованных статей.
+  bodyFormat  String    @default("markdown")
+  ogImage     String?
+  /// draft — черновик, виден только в админке; published — на сайте
+  status      String    @default("draft")
+  publishedAt DateTime?
+  /// Откуда взята статья: manual | telegram
+  source      String    @default("manual")
+  /// Ссылка на исходный пост канала — чтобы не импортировать его дважды
+  sourceUrl   String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, publishedAt])
+}
