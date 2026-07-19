@@ -9,6 +9,7 @@ import {
   parseLlmErrorHint,
   resolveChatbotProvider,
   resolveEffectiveChatModel,
+  DEFAULT_ANTHROPIC_MODEL,
 } from '@/lib/llm-chat-completion';
 import { checkRateLimit } from '@/lib/rate-limit';
 import {
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       }
     } else {
       if (provider === 'openai') model = 'gpt-4o-mini';
-      else if (provider === 'anthropic') model = 'claude-3-5-haiku-20240307';
+      else if (provider === 'anthropic') model = DEFAULT_ANTHROPIC_MODEL;
     }
 
     const activeTemplate = await prisma.promptTemplate.findFirst({

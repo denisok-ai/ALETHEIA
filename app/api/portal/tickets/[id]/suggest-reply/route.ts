@@ -9,7 +9,11 @@ import { prisma } from '@/lib/db';
 import { applyPublicChatPlaceholders } from '@/lib/ai-placeholders';
 import { absoluteCourseCheckoutUrl } from '@/lib/content/course-lynda-teaser';
 import { getLlmApiKey } from '@/lib/llm';
-import { completeLlmChat, resolveChatbotProvider } from '@/lib/llm-chat-completion';
+import {
+  DEFAULT_ANTHROPIC_MODEL,
+  completeLlmChat,
+  resolveChatbotProvider,
+} from '@/lib/llm-chat-completion';
 import { getEnvOverrides, getKnowledgeBase, getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { logLlmRequest } from '@/lib/llm-request-log';
@@ -113,7 +117,7 @@ export async function POST(
   let model = settings?.model ?? 'deepseek-chat';
   if (!settings) {
     if (provider === 'openai') model = 'gpt-4o-mini';
-    else if (provider === 'anthropic') model = 'claude-3-5-haiku-20240307';
+    else if (provider === 'anthropic') model = DEFAULT_ANTHROPIC_MODEL;
   }
   const startMs = Date.now();
 

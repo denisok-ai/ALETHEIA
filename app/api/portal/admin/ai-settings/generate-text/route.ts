@@ -5,7 +5,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { getLlmApiKey } from '@/lib/llm';
-import { completeLlmChat, resolveChatbotProvider } from '@/lib/llm-chat-completion';
+import {
+  DEFAULT_ANTHROPIC_MODEL,
+  completeLlmChat,
+  resolveChatbotProvider,
+} from '@/lib/llm-chat-completion';
 import { getEnvOverrides } from '@/lib/settings';
 import { prisma } from '@/lib/db';
 import { logLlmRequest } from '@/lib/llm-request-log';
@@ -46,7 +50,7 @@ export async function POST(request: NextRequest) {
   let model = settings?.model ?? 'deepseek-chat';
   if (!settings) {
     if (provider === 'openai') model = 'gpt-4o-mini';
-    else if (provider === 'anthropic') model = 'claude-3-5-haiku-20240307';
+    else if (provider === 'anthropic') model = DEFAULT_ANTHROPIC_MODEL;
   }
   const system = typeof body.systemPrompt === 'string' && body.systemPrompt.trim()
     ? body.systemPrompt.trim()

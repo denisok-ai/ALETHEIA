@@ -7,6 +7,15 @@ const OPENAI_CHAT_URL = 'https://api.openai.com/v1/chat/completions';
 const DEEPSEEK_CHAT_URL = 'https://api.deepseek.com/v1/chat/completions';
 const ANTHROPIC_MESSAGES_URL = 'https://api.anthropic.com/v1/messages';
 
+/**
+ * Модель Anthropic по умолчанию.
+ *
+ * Была захардкожена в 7 местах как `claude-3-5-haiku-20240307` — такой модели не
+ * существует (смесь имён `claude-3-5-haiku` и даты от `claude-3-haiku`), запрос
+ * отдавал 404. Держим один экспорт, чтобы ID не расползался копиями снова.
+ */
+export const DEFAULT_ANTHROPIC_MODEL = 'claude-haiku-4-5';
+
 export type ChatTurn = { role: 'system' | 'user' | 'assistant'; content: string };
 
 export type LlmChatCompletionResult =
@@ -56,8 +65,8 @@ export function resolveEffectiveChatModel(provider: string, configuredModel: str
     return (configuredModel ?? '').trim() || 'gpt-4o-mini';
   }
   if (p === 'anthropic') {
-    if (!m || m.includes('deepseek') || m.includes('gpt-')) return 'claude-3-5-haiku-20240307';
-    return (configuredModel ?? '').trim() || 'claude-3-5-haiku-20240307';
+    if (!m || m.includes('deepseek') || m.includes('gpt-')) return DEFAULT_ANTHROPIC_MODEL;
+    return (configuredModel ?? '').trim() || DEFAULT_ANTHROPIC_MODEL;
   }
   // deepseek и прочие OpenAI-compatible
   if (m.includes('gpt-') || m.startsWith('claude')) return 'deepseek-chat';
@@ -70,6 +79,22 @@ function openAiCompatibleUrl(provider: string): string {
   if (p === 'deepseek') return DEEPSEEK_CHAT_URL;
   // «Другой» / неизвестный — часто OpenAI-совместимый шлюз
   return OPENAI_CHAT_URL;
+}
+
+/**
+ * Принимает ли модель Anthropic параметр `temperature`.
+ *
+ * Начиная с Opus 4.7 семплирующие параметры (temperature/top_p/top_k) удалены —
+ * запрос с ними отдаёт 400. Haiku 4.5, Sonnet 4.6/4.5 и Claude 3.x их принимают.
+ */
+function anthropicAcceptsTemperature(model: string): boolean {
+  const m = (model || '').trim().toLowerCase();
+  if (/^claude-(fable|mythos)-/.test(m)) return false;
+  if (/^claude-sonnet-5/.test(m)) return false;
+  // Opus 4.7 и новее; Opus 4.6 и старше — принимают
+  const opus = m.match(/^claude-opus-4-(\d+)/);
+  if (opus && Number(opus[1]) >= 7) return false;
+  return true;
 }
 
 async function completeAnthropic(
@@ -102,7 +127,9 @@ async function completeAnthropic(
       max_tokens: maxTokens,
       system,
       messages: anthroMessages,
-      temperature,
+      // temperature удалён из API начиная с Opus 4.7 (Sonnet 5, Opus 4.8, Fable 5
+      // отвечают 400). Haiku 4.5 и модели постарше его ещё принимают.
+      ...(anthropicAcceptsTemperature(model) ? { temperature } : {}),
     }),
   });
 

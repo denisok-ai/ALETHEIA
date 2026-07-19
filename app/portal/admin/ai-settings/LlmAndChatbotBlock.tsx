@@ -42,7 +42,9 @@ const PROVIDERS = [
 const MODELS_BY_PROVIDER: Record<string, string[]> = {
   deepseek: ['deepseek-chat', 'deepseek-coder', 'deepseek-reasoner', 'deepseek-r1'],
   openai: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo', 'gpt-4', 'o1-mini'],
-  anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-opus-20240229', 'claude-3-haiku-20240307'],
+  // Все модели Claude 3.x выведены из эксплуатации (Sonnet 3.5 — окт 2025,
+  // Opus 3 — янв 2026, Haiku 3 — апр 2026): выбор любой из них давал 404.
+  anthropic: ['claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-4-8'],
   other: [],
 };
 
