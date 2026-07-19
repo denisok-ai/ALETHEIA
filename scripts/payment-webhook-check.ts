@@ -87,16 +87,32 @@ async function main() {
     r2.alreadyPaid === true && (await accessCount('a@example.com')) === 1
   );
 
-  // 3. Самолечение — главный сценарий
+  // 3. Самолечение — главный сценарий.
+  //    Воспроизводим именно поломку: поток оборвался между записью `paid` и
+  //    созданием зачисления, поэтому Order.userId так и остался пустым.
   const user1 = await db.user.findFirstOrThrow({ where: { email: 'a@example.com' } });
   await db.enrollment.deleteMany({ where: { userId: user1.id, courseId: 'c-1' } });
-  check('подготовка: доступ удалён', (await accessCount('a@example.com')) === 0);
+  await db.order.update({ where: { orderNumber: 'N-1' }, data: { userId: null } });
+  check('подготовка: доступ пропал, поток не доработал', (await accessCount('a@example.com')) === 0);
 
   const r3 = await processPaidOrder('N-1');
   check(
     'повторный вебхук восстанавливает пропавший доступ',
     r3.enrollmentCreated === true && (await accessCount('a@example.com')) === 1,
     'раньше ветка «уже оплачен» просто выходила и доступ не выдавал никто'
+  );
+
+  // 3b. А намеренный отзыв доступа повторный вебхук НЕ откатывает.
+  //     Здесь Order.userId заполнен — значит зачисление было и его удалили.
+  await db.enrollment.deleteMany({ where: { userId: user1.id, courseId: 'c-1' } });
+  const o1b = await db.order.findUnique({ where: { orderNumber: 'N-1' } });
+  check('подготовка: userId заполнен (признак отзыва)', o1b?.userId === user1.id);
+
+  const r3b = await processPaidOrder('N-1');
+  check(
+    'отозванный доступ повторным вебхуком не возвращается',
+    r3b.enrollmentCreated !== true && (await accessCount('a@example.com')) === 0,
+    'иначе отозвать доступ было бы невозможно — любой ретрай его возвращал бы'
   );
 
   // 4. Возвращённый заказ

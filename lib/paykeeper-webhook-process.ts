@@ -169,9 +169,9 @@ export async function processPaidOrder(
   // Атомарный захват заказа. Раньше проверка `status === 'paid'` и запись шли
   // двумя отдельными запросами: два вебхука, пришедшие одновременно (штатное
   // поведение PayKeeper при таймауте ответа), оба читали `pending`, оба
-  // проходили гейт и оба выполняли обработку. Клиент получал два письма — в том
-  // числе два разных токена установки пароля, из которых рабочим оставался
-  // только последний. Условие в самом updateMany делает гейт неделимым.
+  // проходили гейт и оба выполняли обработку — клиент получал два письма,
+  // дважды срабатывали уведомления и синхронизация лидов. Условие в самом
+  // updateMany делает гейт неделимым.
   const claimed = await prisma.order.updateMany({
     where: { orderNumber, status: order.status },
     data: {
@@ -187,16 +187,40 @@ export async function processPaidOrder(
     },
   });
   if (claimed.count === 0) {
-    // Заказ перехватила параллельная обработка — она же отправит письма.
-    console.info('[PayKeeper webhook] concurrent_claim_skipped', { orderNumber });
+    // Захват не удался — статус изменился между чтением и записью. Причины
+    // разные, и молча считать это успехом нельзя: если заказ отменили в админке
+    // в этот момент, деньги получены, писем нет, доступа нет.
+    const current = await prisma.order.findUnique({
+      where: { orderNumber },
+      select: { status: true },
+    });
+    if (current?.status === 'paid') {
+      // Реальная гонка: заказ перехватила параллельная обработка, она же
+      // отправит письма и выдаст доступ.
+      console.info('[PayKeeper webhook] concurrent_claim_skipped', { orderNumber });
+      await writePaykeeperIntegrationLog({
+        direction: 'inbound',
+        event: 'process_paid_order.concurrent_skip',
+        status: 'success',
+        orderNumber,
+        message: 'Заказ одновременно обрабатывался другим вызовом — дубль пропущен',
+      });
+      return { success: true, alreadyPaid: true };
+    }
+    const msg = `Заказ ${orderNumber}: во время обработки оплаты статус сменился на «${current?.status ?? 'заказ исчез'}» — оплата не проведена.`;
+    console.error(`[PayKeeper] ${msg}`);
     await writePaykeeperIntegrationLog({
       direction: 'inbound',
-      event: 'process_paid_order.concurrent_skip',
-      status: 'success',
+      event: 'process_paid_order.claim_lost',
+      status: 'error',
       orderNumber,
-      message: 'Заказ одновременно обрабатывался другим вызовом — дубль пропущен',
+      message: msg,
     });
-    return { success: true, alreadyPaid: true };
+    notifyAdminsTelegramAsync('paykeeper_webhook_error', [
+      msg,
+      'Деньги могли быть получены — требуется ручная проверка.',
+    ]);
+    return { success: false, error: msg };
   }
 
   const service = order.tariffId
@@ -261,8 +285,12 @@ export async function processPaidOrder(
     // создания — достраиваем профиль, раз он всё равно был запрошен выше.
     if (user && !user.profile) {
       try {
-        await prisma.profile.create({
-          data: {
+        // upsert, а не create: при двух параллельных обработках второй вызов
+        // получал бы P2002 и добавлял в warnings ложное «вход может быть
+        // недоступен» — при том, что профиль уже создан первым.
+        await prisma.profile.upsert({
+          where: { userId: user.id },
+          create: {
             id: `p-${user.id}`,
             userId: user.id,
             role: 'user',
@@ -270,6 +298,7 @@ export async function processPaidOrder(
             email: order.clientEmail.trim(),
             emailVerifiedAt: new Date(),
           },
+          update: {},
         });
         console.warn(`[PayKeeper] Заказ ${orderNumber}: восстановлен отсутствовавший профиль пользователя.`);
       } catch (e) {

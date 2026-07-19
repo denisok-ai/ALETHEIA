@@ -8,11 +8,23 @@
  * заходила — состояние консервировалось навсегда.
  *
  * Эта сверка работает снаружи запроса и ловит расхождение независимо от
- * причины, включая уже накопленные случаи. Её ценность в том, что она не
- * зависит от того, повторит ли PayKeeper доставку.
+ * причины. Её ценность в том, что она не зависит от того, повторит ли
+ * PayKeeper доставку.
  *
- * Безопасность: возвращённые и отменённые заказы исключаются явно — по ним
- * доступ закрывают намеренно, и автоматическая выдача была бы ошибкой.
+ * Охват: окно из `limit` новейших оплаченных заказов (по умолчанию 1000).
+ * Когда оплаченных заказов станет больше, старый хвост в окно перестанет
+ * попадать — тогда понадобится курсорный обход.
+ *
+ * Безопасность. Автоматически выдаётся доступ только там, где видно, что поток
+ * оплаты не доработал: `Order.userId` пуст. Этот признак надёжен, потому что
+ * userId проставляется исключительно вместе с созданием зачисления — и в
+ * processPaidOrder, и в claim-orders. Обратный случай (userId заполнен, а
+ * зачисления нет) означает, что зачисление БЫЛО и его удалили: так админ
+ * отзывает доступ при чарджбэке или злоупотреблении. Такие заказы автоматика
+ * не трогает и выносит админам — иначе отозвать доступ стало бы невозможно,
+ * сверка возвращала бы его в течение десяти минут.
+ *
+ * Возвращённые и отменённые заказы исключаются отдельно.
  */
 import { prisma } from '@/lib/db';
 import { findActiveServiceForOrderTariff } from '@/lib/order-service';
@@ -27,6 +39,11 @@ export type MissingEnrollment = {
   paidAt: Date | null;
   /** Сумма заказа: по ней админ отличает тестовые оплаты от настоящих. */
   amount: number;
+  /**
+   * Зачисление, судя по заполненному Order.userId, существовало и было удалено —
+   * то есть доступ отозвали намеренно. Автоматике такие заказы не отдаём.
+   */
+  looksRevoked: boolean;
 };
 
 export type ReconcileResult = {
@@ -43,7 +60,7 @@ export type ReconcileResult = {
  * Товар без курса (персональные товары по платёжным ссылкам) расхождением не
  * считается: там зачисление не предусмотрено замыслом.
  */
-export async function findMissingEnrollments(limit = 500): Promise<{
+export async function findMissingEnrollments(limit = 1000): Promise<{
   scanned: number;
   missing: MissingEnrollment[];
 }> {
@@ -62,6 +79,7 @@ export async function findMissingEnrollments(limit = 500): Promise<{
       paidAt: true,
       refundedAmountRub: true,
       amount: true,
+      userId: true,
     },
   });
 
@@ -101,6 +119,7 @@ export async function findMissingEnrollments(limit = 500): Promise<{
       needsUser: !user,
       paidAt: order.paidAt,
       amount: order.amount,
+      looksRevoked: order.userId != null,
     });
   }
 
@@ -120,10 +139,19 @@ export async function findMissingEnrollments(limit = 500): Promise<{
 export async function repairEnrollmentForOrder(orderNumber: string): Promise<boolean> {
   const order = await prisma.order.findUnique({
     where: { orderNumber },
-    select: { tariffId: true, clientEmail: true, refundedAmountRub: true, status: true },
+    select: {
+      tariffId: true,
+      clientEmail: true,
+      refundedAmountRub: true,
+      status: true,
+      userId: true,
+    },
   });
   if (!order || order.status !== 'paid') return false;
   if ((order.refundedAmountRub ?? 0) > 0) return false;
+  // Заполненный userId означает, что зачисление уже создавалось и было удалено —
+  // то есть доступ отозвали намеренно. Восстанавливать его нельзя.
+  if (order.userId != null) return false;
 
   const email = order.clientEmail?.trim();
   if (!email || !order.tariffId) return false;
@@ -163,13 +191,15 @@ export async function repairEnrollmentForOrder(orderNumber: string): Promise<boo
 export async function reconcileEnrollments(
   options: { repair: boolean; limit?: number } = { repair: false }
 ): Promise<ReconcileResult> {
-  const { scanned, missing } = await findMissingEnrollments(options.limit ?? 500);
+  const { scanned, missing } = await findMissingEnrollments(options.limit ?? 1000);
   const repaired: string[] = [];
-  const needsAttention = missing.filter((m) => m.needsUser);
+  // Автоматике отдаём только доказанно оборвавшийся поток. Всё остальное —
+  // нет аккаунта или похоже на намеренный отзыв доступа — идёт админам.
+  const needsAttention = missing.filter((m) => m.needsUser || m.looksRevoked);
 
   if (options.repair) {
     for (const item of missing) {
-      if (!item.userId) continue;
+      if (!item.userId || item.looksRevoked) continue;
       try {
         await prisma.$transaction(async (tx) => {
           await tx.enrollment.upsert({

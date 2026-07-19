@@ -31,16 +31,20 @@ export async function GET(request: NextRequest) {
           return `· ${n}${m ? ` — ${m.amount.toLocaleString('ru-RU')} ₽` : ''}`;
         }),
         'Заказ был оплачен, но зачисление не создалось — сверка это исправила.',
+        'Проверьте, может ли клиент войти: если сбой случился до отправки письма, ' +
+          'у него нет пароля, и доступ в БД сам по себе ему не поможет.',
       ]);
     }
 
     if (result.needsAttention.length > 0) {
       notifyAdminsTelegramAsync('paykeeper_webhook_error', [
-        `Оплачено, но доступ выдать некому: ${result.needsAttention.length}`,
-        ...result.needsAttention
-          .slice(0, 10)
-          .map((m) => `· ${m.orderNumber} — нет аккаунта для ${m.clientEmail}`),
-        'Требуется ручная проверка: создать аккаунт или связаться с клиентом.',
+        `Оплачено без доступа, автоматически не чинится: ${result.needsAttention.length}`,
+        ...result.needsAttention.slice(0, 10).map((m) =>
+          m.needsUser
+            ? `· ${m.orderNumber} — нет аккаунта для ${m.clientEmail}`
+            : `· ${m.orderNumber} — похоже на намеренный отзыв доступа, не трогаем`
+        ),
+        'Заказы с отозванным доступом оставлены как есть. Остальным нужна ручная проверка.',
       ]);
     }
 

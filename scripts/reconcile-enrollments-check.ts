@@ -127,6 +127,44 @@ async function main() {
   // 7. Сумма попадает в отчёт (админ отличает тестовые оплаты)
   check('сумма заказа есть в отчёте', found?.amount === 1000);
 
+  // 8. Намеренный отзыв доступа не откатывается автоматикой.
+  //    Признак: Order.userId заполнен (значит зачисление было и его удалили),
+  //    в отличие от оборвавшегося потока, где userId так и остался пустым.
+  const revoked = await mkOrder({ clientEmail: 'revoked@example.com' });
+  const revokedUser = await db.user.create({
+    data: { id: 'u-rev', email: 'revoked@example.com', passwordHash: 'x' },
+  });
+  await db.order.update({
+    where: { orderNumber: revoked.orderNumber },
+    data: { userId: revokedUser.id },
+  });
+  const { reconcileEnrollments } = await import('../lib/payments/reconcile-enrollments');
+  const res = await reconcileEnrollments({ repair: true });
+  const stillNoAccess = await db.enrollment.count({
+    where: { userId: revokedUser.id, courseId: course.id },
+  });
+  check(
+    'отозванный доступ не восстанавливается автоматически',
+    stillNoAccess === 0 && !res.repaired.includes(revoked.orderNumber),
+    'иначе админ не смог бы отозвать доступ: сверка возвращала бы его каждые 10 минут'
+  );
+  check(
+    'отозванный заказ вынесен админам',
+    res.needsAttention.some((m) => m.orderNumber === revoked.orderNumber && m.looksRevoked)
+  );
+
+  // 9. А оборвавшийся поток (userId пуст) — чинится
+  const brokenFlow = await mkOrder({ clientEmail: 'client@example.com' });
+  await db.enrollment.deleteMany({ where: { userId: user.id, courseId: course.id } });
+  const res2 = await reconcileEnrollments({ repair: true });
+  const restored = await db.enrollment.count({
+    where: { userId: user.id, courseId: course.id },
+  });
+  check(
+    'оборвавшийся поток восстанавливается',
+    restored === 1 && res2.repaired.includes(brokenFlow.orderNumber)
+  );
+
   await db.$disconnect();
   fs.rmSync(tmpDir, { recursive: true, force: true });
 
