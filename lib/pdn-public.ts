@@ -31,10 +31,21 @@ export function getPdnOperatorPublic(): PdnOperatorPublic {
   if (inn) parts.push(`ИНН ${inn}`);
   if (ogrnip) parts.push(`ОГРНИП ${ogrnip}`);
 
-  const footerLine =
-    inn && ogrnip
-      ? `© АВАТЕРРА. ${parts.join(', ')}.`
-      : `© АВАТЕРРА. ${name}. Реквизиты: укажите NEXT_PUBLIC_PDN_OPERATOR_INN и NEXT_PUBLIC_PDN_OPERATOR_OGRNIP в .env (чеклист: docs/Personal-Data-RKN-Checklist.md).`;
+  // Пока реквизиты не заданы — просто короткая строка без них.
+  //
+  // Раньше в этой ветке стоял текст «укажите NEXT_PUBLIC_PDN_OPERATOR_INN
+  // и OGRNIP в .env (чеклист: docs/…)» — напоминание разработчику, которое
+  // полгода висело в подвале КАЖДОЙ страницы боевого сайта и попадало в
+  // поисковую выдачу. Подсказки о незаполненной конфигурации место в логах
+  // сборки, а не в интерфейсе для клиентов.
+  const footerLine = inn && ogrnip ? `© АВАТЕРРА. ${parts.join(', ')}.` : `© АВАТЕРРА. ${name}.`;
+
+  if (process.env.NODE_ENV !== 'production' && !(inn && ogrnip)) {
+    console.warn(
+      '[pdn] Не заданы NEXT_PUBLIC_PDN_OPERATOR_INN / _OGRNIP — реквизиты оператора ПДн не показываются. ' +
+        'См. docs/Personal-Data-RKN-Checklist.md'
+    );
+  }
 
   return { name, inn, ogrnip, address, dpoEmail, footerLine };
 }
