@@ -47,6 +47,24 @@ async function main() {
     add(`SEO: ${name}`, (await head(path)) === 200);
   }
 
+  // 3a. СОДЕРЖИМОЕ robots.txt, а не только код ответа.
+  // Проверка «отдаётся ли файл» пропустила реальную поломку: в robots.txt
+  // стояло `Sitemap: http://localhost:3000/sitemap.xml` (файл запекался на
+  // сборке с локальной базой), и поисковики не могли найти карту сайта.
+  try {
+    const txt = await fetch(`${BASE}/robots.txt`).then((r) => r.text());
+    const bad = /localhost|127\.0\.0\.1|:3000/i.test(txt);
+    const hasSitemap = /^Sitemap:\s*https?:\/\/[^\s]+\/sitemap\.xml/im.test(txt);
+    const pointsToSite = txt.includes(`${BASE}/sitemap.xml`);
+    add(
+      'robots.txt: карта сайта указывает на боевой домен',
+      hasSitemap && pointsToSite && !bad,
+      bad ? 'найден localhost' : hasSitemap ? '' : 'нет строки Sitemap'
+    );
+  } catch (e) {
+    add('robots.txt: карта сайта указывает на боевой домен', false, String(e));
+  }
+
   // 3b. Несуществующие адреса не должны попадать в индекс.
   // Из-за стриминга Next 14 статус на /blog/[slug] и /services/[slug] остаётся
   // 200, поэтому единственный сигнал поисковику — мета-тег noindex. Без него

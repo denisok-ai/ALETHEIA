@@ -5,7 +5,16 @@ import { normalizeSiteUrl, siteUrlHostForRobots } from '@/lib/site-url';
 /**
  * Генерирует robots.txt. Разрешена индексация публичных страниц.
  * Базовый URL из БД (Портал → Настройки). Настройки вынесены в админку.
+ *
+ * force-dynamic ОБЯЗАТЕЛЕН. Без него Next запекает robots.txt на этапе сборки —
+ * а сборка идёт на машине разработчика, где в локальной базе site_url равен
+ * http://localhost:3000. Именно это и произошло: на прод уехал robots.txt со
+ * строкой `Sitemap: http://localhost:3000/sitemap.xml`, и поисковики не могли
+ * найти карту сайта. По логам за две недели Google не запросил её НИ РАЗУ.
+ * У app/sitemap.ts эта пометка была, у robots.ts — нет.
  */
+export const dynamic = 'force-dynamic';
+
 export default async function robots(): Promise<MetadataRoute.Robots> {
   const settings = await getSystemSettings();
   const baseUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
@@ -35,7 +44,8 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
         'YandexAdditional',
       ].map((userAgent) => ({ userAgent, allow: '/', disallow })),
     ],
-    host: siteUrlHostForRobots(settings.site_url || 'https://avaterra.pro'),
+    // Директива Host отменена Яндексом в 2018 году — главное зеркало
+    // определяется редиректом и canonical, а не этой строкой.
     sitemap: `${baseUrl}/sitemap.xml`,
   };
 }
