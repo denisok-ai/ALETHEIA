@@ -75,7 +75,37 @@ export default async function BlogArticlePage({ params }: Props) {
     year: 'numeric',
   });
 
-  const related = (await getPublishedBlogPosts()).filter((p) => p.slug !== slug).slice(0, 3);
+  /**
+   * «Читайте также»: соседи по ленте, а не три самые свежие статьи.
+   *
+   * Раньше здесь стоял `.slice(0, 3)` по списку, отсортированному от новых к
+   * старым, — то есть КАЖДАЯ статья ссылалась на одни и те же три последние.
+   * Из 16 статей 13 не получали ни одной входящей ссылки, и с ежедневной
+   * публикацией разрыв только рос: свежая статья мгновенно вытесняла
+   * предыдущую из всех блоков сразу.
+   *
+   * Берём соседей по дате публикации — предыдущую и следующую. Тогда статьи
+   * связаны в цепочку: у каждой есть входящие ссылки, и робот, зайдя на любую,
+   * может обойти весь раздел. Третьей добавляем статью со сдвигом по слагу,
+   * чтобы цепочка не была строго линейной и глубина обхода не росла с числом
+   * публикаций.
+   */
+  const all = await getPublishedBlogPosts();
+  const idx = all.findIndex((p) => p.slug === slug);
+  const others = all.filter((p) => p.slug !== slug);
+
+  const neighbours = [all[idx - 1], all[idx + 1]].filter(Boolean).filter((p) => p.slug !== slug);
+  const picked = new Map(neighbours.map((p) => [p.slug, p]));
+
+  if (others.length > 0) {
+    const shift = [...slug].reduce((a, c) => a + c.charCodeAt(0), 0) % others.length;
+    for (let i = 0; i < others.length && picked.size < 3; i++) {
+      const candidate = others[(shift + i) % others.length];
+      picked.set(candidate.slug, candidate);
+    }
+  }
+
+  const related = [...picked.values()].slice(0, 3);
 
   return (
     <>

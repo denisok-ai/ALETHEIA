@@ -6,6 +6,7 @@ import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { writeAuditLog } from '@/lib/audit';
 import { blogPostInputSchema, normalizeBlogBody } from '@/lib/validations/blog-post';
+import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
 
 type Params = { params: { id: string } };
 
@@ -96,6 +97,19 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     },
   });
 
+  /**
+   * Сообщаем поисковикам и о снятии с публикации, и о смене адреса.
+   *
+   * Пингуем не только новый URL: если статью убрали из блога или переименовали,
+   * старый адрес остаётся в индексе и ведёт на страницу с noindex. Явный пинг
+   * заставляет робота перепроверить его сразу, а не через месяцы.
+   */
+  const changedPaths = new Set<string>(['/blog', '/sitemap.xml', `/blog/${post.slug}`]);
+  if (current.slug !== post.slug) changedPaths.add(`/blog/${current.slug}`);
+  if (post.status === 'published' || current.status === 'published') {
+    pingIndexNowForPathsAsync([...changedPaths]);
+  }
+
   await writeAuditLog({
     actorId: auth.userId,
     action: 'blog.update',
@@ -115,6 +129,12 @@ export async function DELETE(_request: NextRequest, { params }: Params) {
   if (!post) return NextResponse.json({ error: 'Статья не найдена' }, { status: 404 });
 
   await prisma.blogPost.delete({ where: { id: params.id } });
+
+  // Удалённый адрес тоже нужно перепроверить: иначе он висит в выдаче,
+  // ведя на 404, пока робот не дойдёт до него сам.
+  if (post.status === 'published') {
+    pingIndexNowForPathsAsync([`/blog/${post.slug}`, '/blog', '/sitemap.xml']);
+  }
 
   await writeAuditLog({
     actorId: auth.userId,

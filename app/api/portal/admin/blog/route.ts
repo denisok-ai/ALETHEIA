@@ -6,6 +6,7 @@ import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { writeAuditLog } from '@/lib/audit';
 import { blogPostInputSchema, normalizeBlogBody } from '@/lib/validations/blog-post';
+import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
 
 export async function GET() {
   const auth = await requireAdminSession();
@@ -81,6 +82,11 @@ export async function POST(request: NextRequest) {
       source: 'manual',
     },
   });
+
+  // Черновик не анонсируем — он закрыт от индексации и робот получил бы 404.
+  if (post.status === 'published') {
+    pingIndexNowForPathsAsync([`/blog/${post.slug}`, '/blog', '/sitemap.xml']);
+  }
 
   await writeAuditLog({
     actorId: auth.userId,

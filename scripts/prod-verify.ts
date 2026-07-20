@@ -65,6 +65,35 @@ async function main() {
     add('robots.txt: карта сайта указывает на боевой домен', false, String(e));
   }
 
+  // 3c. Яндекс: Clean-param склеивает utm-метки с чистым адресом, иначе одна
+  // и та же статья из рассылки и из рекламы попадает в индекс трижды.
+  // Проверяем заодно, что в список НЕ попал `page` — постраничная навигация
+  // блога это разные статьи, и склейка выбросила бы всё после первой страницы.
+  try {
+    const txt = await fetch(`${BASE}/robots.txt`).then((r) => r.text());
+    const line = txt.match(/^Clean-param:\s*(.+)$/im)?.[1] ?? '';
+    const hasUtm = /utm_source/.test(line) && /yclid/.test(line);
+    const cleansPage = /(^|&)page(&|\s|$)/.test(line);
+    add(
+      'robots.txt: Clean-param для Яндекса',
+      hasUtm && !cleansPage,
+      cleansPage ? 'ОШИБКА: склеивает page — пагинация выпадет из индекса' : hasUtm ? '' : 'директивы нет'
+    );
+  } catch (e) {
+    add('robots.txt: Clean-param для Яндекса', false, String(e));
+  }
+
+  // 3d. Свежие статьи должны быть в карте сайта: блог пополняется ежедневно,
+  // и если sitemap отстаёт, робот узнаёт о статье через недели.
+  try {
+    const xml = await fetch(`${BASE}/sitemap.xml`).then((r) => r.text());
+    const blogUrls = (xml.match(/<loc>[^<]*\/blog\/[^<]*<\/loc>/g) ?? []).length;
+    const hasLastmod = /<loc>[^<]*\/blog\/[^<]*<\/loc>\s*<lastmod>/.test(xml);
+    add('sitemap: статьи блога с датами', blogUrls > 0 && hasLastmod, `${blogUrls} статей`);
+  } catch (e) {
+    add('sitemap: статьи блога с датами', false, String(e));
+  }
+
   // 3b. Несуществующие адреса не должны попадать в индекс.
   // Из-за стриминга Next 14 статус на /blog/[slug] и /services/[slug] остаётся
   // 200, поэтому единственный сигнал поисковику — мета-тег noindex. Без него

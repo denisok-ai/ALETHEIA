@@ -14,6 +14,7 @@ import { prisma } from '@/lib/db';
 import { importChannelPosts } from '@/lib/content/telegram-channel-import';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { markCronOk } from '@/lib/cron-heartbeat';
+import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -55,9 +56,13 @@ export async function GET(request: NextRequest) {
 
     const tooShort: string[] = [];
     const toPublish: string[] = [];
+    const publishedSlugs: string[] = [];
     for (const p of fresh) {
       if (p.body.trim().length < MIN_PUBLISH_LENGTH) tooShort.push(p.slug);
-      else toPublish.push(p.id);
+      else {
+        toPublish.push(p.id);
+        publishedSlugs.push(p.slug);
+      }
     }
 
     if (toPublish.length > 0) {
@@ -65,6 +70,24 @@ export async function GET(request: NextRequest) {
         where: { id: { in: toPublish } },
         data: { status: 'published', publishedAt: new Date() },
       });
+
+      /**
+       * Сразу сообщаем поисковикам о новых статьях.
+       *
+       * Без этого свежая статья ждала планового обхода — для нового раздела
+       * это недели, и ежедневная публикация теряла смысл: к моменту, когда
+       * робот доходил до статьи, она была уже не новой. IndexNow — протокол
+       * Яндекса и Bing, обычно они забирают URL в течение часов.
+       *
+       * Кроме самих статей пингуем список блога и карту сайта: на них
+       * изменились ссылки и lastmod, иначе робот увидит новый URL, но не
+       * поймёт, что раздел обновился.
+       */
+      pingIndexNowForPathsAsync([
+        ...publishedSlugs.map((s) => `/blog/${s}`),
+        '/blog',
+        '/sitemap.xml',
+      ]);
     }
 
     if (imported.created > 0 || imported.errors.length > 0) {
