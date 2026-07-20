@@ -49,8 +49,9 @@ export default function PdConsentPage() {
           Настоящим я, пользователь сайта <strong>{site}</strong>, действуя свободно, своей волей и в своём интересе,
           даю согласие <strong>{op.name}</strong>
           {op.inn ? ` (ИНН ${op.inn})` : ''}
-          {op.ogrnip ? `, ОГРНИП ${op.ogrnip}` : ''}, зарегистрированному по адресу: {op.address} (далее — Оператор),
-          на обработку моих персональных данных на следующих условиях.
+          {op.ogrnip ? `, ОГРНИП ${op.ogrnip}` : ''}
+          {op.address ? `, зарегистрированному по адресу: ${op.address}` : ''} (далее — Оператор), на обработку моих
+          персональных данных на следующих условиях.
         </p>
 
         <section>
@@ -98,8 +99,9 @@ export default function PdConsentPage() {
             Я вправе отозвать согласие, направив Оператору обращение на email{' '}
             <a href={`mailto:${op.dpoEmail}`} className="text-plum underline hover:opacity-90">
               {op.dpoEmail}
-            </a>{' '}
-            или по почтовому адресу {op.address}. Отзыв не влияет на законность обработки до момента отзыва.
+            </a>
+            {op.address ? ` или по почтовому адресу ${op.address}` : ''}. Отзыв не влияет на законность обработки до
+            момента отзыва.
           </p>
         </section>
 

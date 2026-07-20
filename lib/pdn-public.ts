@@ -6,7 +6,8 @@ export type PdnOperatorPublic = {
   name: string;
   inn: string | null;
   ogrnip: string | null;
-  address: string;
+  /** Пусто, пока реальный адрес не задан: выдуманный в правовом документе хуже отсутствующего. */
+  address: string | null;
   dpoEmail: string;
   /** Одна строка для футера */
   footerLine: string;
@@ -18,9 +19,11 @@ export function getPdnOperatorPublic(): PdnOperatorPublic {
     'Индивидуальный предприниматель Стрельцова Татьяна';
   const inn = process.env.NEXT_PUBLIC_PDN_OPERATOR_INN?.trim() || null;
   const ogrnip = process.env.NEXT_PUBLIC_PDN_OPERATOR_OGRNIP?.trim() || null;
-  const address =
-    process.env.NEXT_PUBLIC_PDN_OPERATOR_ADDRESS?.trim() ||
-    '125167, г. Москва, ул. Здоровья, д. 10';
+  // Адрес оператора ПДн — обязательный реквизит политики. Заглушка
+  // «125167, г. Москва, ул. Здоровья, д. 10» делала документ формально
+  // заполненным и юридически недостоверным одновременно, и тот же адрес
+  // уходил в schema.org. Пусто — значит видно, что реквизит нужно заполнить.
+  const address = process.env.NEXT_PUBLIC_PDN_OPERATOR_ADDRESS?.trim() || null;
   const dpoEmail =
     process.env.NEXT_PUBLIC_PDN_DPO_EMAIL?.trim() || 'support@avaterra.pro';
 

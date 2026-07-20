@@ -26,12 +26,16 @@ export default async function ContactsPage() {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const pageUrl = `${base}/contacts`;
-  const phone = settings.contact_phone?.trim() || '+7 (495) 123-45-67';
-  const phoneHref = phone.replace(/\D/g, '').length >= 10 ? `tel:${phone.replace(/\D/g, '')}` : '#';
+  // Только реальные данные из настроек: заглушки уходили в schema.org и
+  // выдавали поисковикам несуществующие телефон и адрес. См. Footer.tsx.
+  const phone = settings.contact_phone?.trim() || null;
+  const phoneHref =
+    phone && phone.replace(/\D/g, '').length >= 10 ? `tel:${phone.replace(/\D/g, '')}` : null;
   const notifyEmail = settings.resend_notify_email?.trim() || 'support@avaterra.pro';
-  const legal = settings.company_legal_address?.trim();
-  const streetAddress = legal || 'ул. Здоровья, д. 10';
-  const addressLocality = 'Москва';
+  const streetAddress = settings.company_legal_address?.trim() || null;
+  // Город указываем только вместе с адресом — иначе в разметке остаётся
+  // «Москва» без улицы, что для ContactPoint бесполезно.
+  const addressLocality = streetAddress ? 'Москва' : null;
 
   return (
     <>
@@ -50,7 +54,7 @@ export default async function ContactsPage() {
           { name: 'Контакты', url: pageUrl },
         ]}
       />
-      <ContactsPageContent phone={phone} phoneHref={phoneHref} />
+      <ContactsPageContent phone={phone} phoneHref={phoneHref} address={streetAddress} />
     </>
   );
 }

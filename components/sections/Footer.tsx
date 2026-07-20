@@ -11,13 +11,22 @@ import { courseIntro } from '@/lib/content/course-lynda-teaser';
 import { getPdnOperatorPublic } from '@/lib/pdn-public';
 
 interface FooterProps {
-  /** Из настроек портала (БД). Если не задан — показывается заглушка. */
+  /** Из настроек портала (БД). Если не задан — блок телефона не показывается. */
   contactPhone?: string | null;
 }
 
+/**
+ * Выдуманных контактов быть не должно.
+ *
+ * Раньше здесь стояли заглушки «+7 (495) 123-45-67» и «Москва, ул. Здоровья,
+ * д. 10» — они уходили и в разметку schema.org. Несуществующие NAP-данные
+ * поисковики считают признаком недостоверного бизнеса, а посетитель по такому
+ * телефону просто не дозвонится. Лучше не показать контакт, чем показать
+ * ложный: пустое место видно владельцу, а фальшивый номер выглядит настоящим.
+ */
 export function Footer({ contactPhone }: FooterProps) {
-  const phone = contactPhone?.trim() || '+7 (495) 123-45-67';
-  const phoneHref = phone.replace(/\D/g, '').length >= 10 ? `tel:${phone.replace(/\D/g, '')}` : '#';
+  const phone = contactPhone?.trim() || null;
+  const phoneHref = phone && phone.replace(/\D/g, '').length >= 10 ? `tel:${phone.replace(/\D/g, '')}` : null;
   const op = getPdnOperatorPublic();
   return (
     <footer id="footer" className="border-t border-[var(--border)] bg-[var(--lavender-light)] py-16 md:py-20">
@@ -37,14 +46,16 @@ export function Footer({ contactPhone }: FooterProps) {
           <div>
             <p className="text-sm font-semibold text-[var(--text)] mb-2">Контакты</p>
             <ul className="space-y-1 text-sm text-[var(--text-muted)]">
-              <li>
-                <a
-                  href={phoneHref}
-                  className="flex items-center justify-center gap-2 md:justify-start hover:text-plum transition-colors"
-                >
-                  <Phone className="h-4 w-4" /> {phone}
-                </a>
-              </li>
+              {phone && phoneHref ? (
+                <li>
+                  <a
+                    href={phoneHref}
+                    className="flex items-center justify-center gap-2 md:justify-start hover:text-plum transition-colors"
+                  >
+                    <Phone className="h-4 w-4" /> {phone}
+                  </a>
+                </li>
+              ) : null}
               <li>
                 <a
                   href="mailto:support@avaterra.pro"
@@ -53,9 +64,11 @@ export function Footer({ contactPhone }: FooterProps) {
                   <Mail className="h-4 w-4" /> support@avaterra.pro
                 </a>
               </li>
-              <li className="flex items-center justify-center gap-2 md:justify-start">
-                <MapPin className="h-4 w-4" /> Москва, ул. Здоровья, д. 10
-              </li>
+              {op.address ? (
+                <li className="flex items-center justify-center gap-2 md:justify-start">
+                  <MapPin className="h-4 w-4" /> {op.address}
+                </li>
+              ) : null}
             </ul>
           </div>
           <div>

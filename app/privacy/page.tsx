@@ -54,7 +54,12 @@ export default function PrivacyPage() {
             <strong>Оператор персональных данных:</strong> {op.name}
             {op.inn ? `, ИНН ${op.inn}` : ''}
             {op.ogrnip ? `, ОГРНИП ${op.ogrnip}` : ''}.{' '}
-            <strong>Адрес:</strong> {op.address}. <strong>Email для обращений по ПДн:</strong>{' '}
+            {op.address ? (
+              <>
+                <strong>Адрес:</strong> {op.address}.{' '}
+              </>
+            ) : null}
+            <strong>Email для обращений по ПДн:</strong>{' '}
             <a href={`mailto:${op.dpoEmail}`} className="text-plum underline hover:opacity-90">
               {op.dpoEmail}
             </a>
@@ -256,8 +261,9 @@ export default function PrivacyPage() {
             Запросы направляйте на email{' '}
             <a href={`mailto:${op.dpoEmail}`} className="text-plum underline hover:opacity-90">
               {op.dpoEmail}
-            </a>{' '}
-            или по почтовому адресу: {op.address}. Укажите тему «Персональные данные», ФИО и контакты для ответа.
+            </a>
+            {op.address ? ` или по почтовому адресу: ${op.address}` : ''}. Укажите тему «Персональные данные», ФИО и
+            контакты для ответа.
           </p>
         </section>
 

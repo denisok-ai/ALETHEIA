@@ -850,7 +850,9 @@ async function main() {
   const systemSettings: { key: string; value: string; category: string | null }[] = [
     { key: 'site_url', value: 'http://localhost:3000', category: 'general' },
     { key: 'portal_title', value: 'AVATERRA', category: 'general' },
-    { key: 'contact_phone', value: '+7 (999) 123-45-67', category: 'general' },
+    // Пусто, а не выдуманный номер: заглушка доезжала до прода и попадала
+    // в schema.org как настоящий телефон школы.
+    { key: 'contact_phone', value: '', category: 'general' },
     { key: 'scorm_max_size_mb', value: '200', category: 'general' },
     { key: 'resend_from', value: 'notifications@avaterra.pro', category: 'email' },
     { key: 'resend_notify_email', value: 'admin@test.local', category: 'email' },
