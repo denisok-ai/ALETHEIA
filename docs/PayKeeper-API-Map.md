@@ -7,7 +7,7 @@
 | Что | Как |
 |-----|-----|
 | Все запросы | `Authorization: Basic base64(login:password)` |
-| POST с изменением данных | В теле `application/x-www-form-urlencoded` обязателен `token` (см. [токен безопасности](https://docs.paykeeper.ru/dokumentatsiya-json-api/token-bezopasnosti/)) |
+| POST с изменением данных | В теле `application/x-www-form-urlencoded` обязателен `token` (см. [токен безопасности](https://docs.paykeeper.ru/dokumentatsiya-json-api/token-bezopasnosti/)). Токен получают через GET `/info/settings/token/` **непосредственно перед** mutating POST; PayKeeper ротирует его **раз в 24 ч** по своему расписанию — **между операциями не кэшируем** (см. `lib/paykeeper/http.ts`) |
 | Ошибки протокола | JSON `{ "result": "fail", "msg": "..." }` при HTTP 200 |
 | Ошибка входа | Часто HTML вместо JSON — клиент должен это распознавать |
 
@@ -23,7 +23,7 @@
 
 | Метод | Путь | Назначение в AVATERRA |
 |-------|------|------------------------|
-| GET | `/info/settings/token/` | Получение `token` для POST (кэш ~23 ч в приложении). |
+| GET | `/info/settings/token/` | Получение `token` для POST. Вызывается **перед каждым** mutating POST (`acquirePayKeeperToken` в `lib/paykeeper/http.ts`). Токен **ротируется раз в 24 ч по расписанию PayKeeper** (не от момента нашего GET). Между операциями **не кэшируется**; параллельные POST сериализуются на один server+login; один retry при «Токен безопасности не верен» — defense-in-depth. |
 | POST | `/change/invoice/preview/` | Создание счёта, `invoice_url`. |
 | GET | `/info/payments/byid/?id=` | Сверка платежа по id PayKeeper. |
 | GET | `/info/payments/search/?query=&beg_date=&end_date=` | Поиск платежа по подстроке (номер заказа и т.д.). |

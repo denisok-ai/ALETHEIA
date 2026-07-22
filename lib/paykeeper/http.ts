@@ -1,12 +1,31 @@
 /**
- * HTTP-слой PayKeeper: Basic Auth, кэш token (~23 ч), retry по сети, разбор result=fail и «HTML вместо JSON».
+ * HTTP-слой PayKeeper: Basic Auth, токен безопасности, retry по сети,
+ * разбор result=fail и «HTML вместо JSON».
+ *
+ * ## Политика токена безопасности (docs.paykeeper.ru → «Токен безопасности»)
+ *
+ * PayKeeper требует: перед каждым POST, изменяющим данные, получить токен через
+ * GET /info/settings/token/ и **сразу** передать его в теле запроса. Токен
+ * ротируется раз в 24 ч по расписанию PayKeeper (не привязано к нашему GET).
+ *
+ * Мы **не кэшируем** токен между операциями — никакого TTL (ни 23 ч, ни 5 мин):
+ * каждый POST-with-token выполняет свежий GET непосредственно перед отправкой.
+ *
+ * Конкурентный контроль (не «угадывание срока жизни»):
+ *  1) in-flight dedup (`tokenInflightByKey`) — параллельные GET на один server+login
+ *     делят один HTTP-запрос, чтобы не создавать thundering herd;
+ *  2) сериализация POST-with-token (`postOpTailByKey`) — GET→POST одной операции
+ *     не перемежается с другой: иначе новый GET может инвалидировать только что
+ *     полученный токен соседней операции (инцидент 22.07.2026, 3 счёта за минуту).
+ *
+ * Retry при «токен не верен» — defense-in-depth на случай редкой ротации PayKeeper
+ * между нашим GET и POST; один повтор с forceRefresh, без циклов.
  */
 
 import type { PayKeeperConfig } from '@/lib/paykeeper/types';
 import { PayKeeperApiError, formatPayKeeperConnectionError } from '@/lib/paykeeper/errors';
 import { parsePayKeeperToken } from '@/lib/paykeeper/token';
 
-const TOKEN_TTL_MS = 23 * 60 * 60 * 1000;
 /**
  * Бюджет на весь цикл (таймаут × попытки + паузы) должен укладываться в
  * proxy_read_timeout nginx (60s): иначе клиент видит вечное «создание платежа»
@@ -16,11 +35,14 @@ const TOKEN_TTL_MS = 23 * 60 * 60 * 1000;
 const FETCH_TIMEOUT_MS = 12_000;
 const MAX_NETWORK_RETRIES = 1;
 
-type TokenEntry = { token: string; at: number };
-const tokenByKey = new Map<string, TokenEntry>();
+/** In-flight GET /info/settings/token/ по ключу server+login. */
+const tokenInflightByKey = new Map<string, Promise<string>>();
+/** Очередь POST-with-token: сериализация GET→POST на один server+login. */
+const postOpTailByKey = new Map<string, Promise<unknown>>();
 
 export function clearTokenCache(): void {
-  tokenByKey.clear();
+  tokenInflightByKey.clear();
+  postOpTailByKey.clear();
 }
 
 function cacheKey(cfg: PayKeeperConfig): string {
@@ -102,14 +124,7 @@ async function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
 
-export async function fetchPayKeeperToken(cfg: PayKeeperConfig): Promise<string> {
-  const key = cacheKey(cfg);
-  const hit = tokenByKey.get(key);
-  const now = Date.now();
-  if (hit && now - hit.at < TOKEN_TTL_MS) {
-    return hit.token;
-  }
-
+async function fetchTokenFromPayKeeper(cfg: PayKeeperConfig): Promise<string> {
   const url = `https://${cfg.server}/info/settings/token/`;
   const { status, text } = await paykeeperRawFetch(cfg, url, { method: 'GET' });
   if (!status || status < 200 || status >= 300) {
@@ -118,15 +133,80 @@ export async function fetchPayKeeperToken(cfg: PayKeeperConfig): Promise<string>
       status
     );
   }
-  const token = parsePayKeeperToken(text);
-  tokenByKey.set(key, { token, at: now });
-  return token;
+  return parsePayKeeperToken(text);
 }
 
-/** Принудительно обновить token (например после смены пароля). */
+export type AcquirePayKeeperTokenOptions = {
+  /** Новый GET, без переиспользования in-flight dedup (после ошибки «токен не верен»). */
+  forceRefresh?: boolean;
+};
+
+/**
+ * Получить токен безопасности PayKeeper для одной mutating-операции.
+ * Всегда обращается к GET /info/settings/token/ (результат не сохраняется между вызовами).
+ * In-flight dedup только для параллельных GET на тот же server+login.
+ */
+export async function acquirePayKeeperToken(
+  cfg: PayKeeperConfig,
+  opts?: AcquirePayKeeperTokenOptions
+): Promise<string> {
+  const key = cacheKey(cfg);
+
+  if (!opts?.forceRefresh) {
+    const inflight = tokenInflightByKey.get(key);
+    if (inflight) return inflight;
+  } else {
+    tokenInflightByKey.delete(key);
+  }
+
+  const p = fetchTokenFromPayKeeper(cfg).finally(() => {
+    if (tokenInflightByKey.get(key) === p) {
+      tokenInflightByKey.delete(key);
+    }
+  });
+
+  tokenInflightByKey.set(key, p);
+  return p;
+}
+
+/** @deprecated Используйте acquirePayKeeperToken — семантика та же (свежий GET, in-flight dedup). */
+export async function fetchPayKeeperToken(cfg: PayKeeperConfig): Promise<string> {
+  return acquirePayKeeperToken(cfg);
+}
+
+/** Принудительный новый GET (например после смены пароля или ошибки «токен не верен»). */
 export async function refreshPayKeeperToken(cfg: PayKeeperConfig): Promise<string> {
-  tokenByKey.delete(cacheKey(cfg));
-  return fetchPayKeeperToken(cfg);
+  return acquirePayKeeperToken(cfg, { forceRefresh: true });
+}
+
+/**
+ * Сериализует POST-with-token на один server+login: GET→POST не перемежается
+ * с другой операцией, чтобы параллельные счета не инвалидировали токены друг друга.
+ */
+function runSerializedPostOp<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  const prev = postOpTailByKey.get(key) ?? Promise.resolve();
+  const run = prev.catch(() => undefined).then(fn);
+  postOpTailByKey.set(key, run);
+  return run.finally(() => {
+    if (postOpTailByKey.get(key) === run) {
+      postOpTailByKey.delete(key);
+    }
+  });
+}
+
+/**
+ * Признак ответа PayKeeper «токен безопасности не верен/устарел».
+ * Матчим устойчиво и без регистра: рус. «Токен … не верен/устарел/недействителен»
+ * и англ. «token invalid/expired/not valid».
+ */
+export function isTokenInvalidFail(json: unknown): boolean {
+  if (!json || typeof json !== 'object' || Array.isArray(json)) return false;
+  const r = json as { result?: unknown; msg?: unknown };
+  if (r.result !== 'fail') return false;
+  const msg = (typeof r.msg === 'string' ? r.msg : '').toLowerCase();
+  const ruToken = /токен/.test(msg) && /(не\s*вер|невер|устар|недейств|неправильн|инвал)/.test(msg);
+  const enToken = /token/.test(msg) && /(invalid|expired|not\s*valid|incorrect|wrong)/.test(msg);
+  return ruToken || enToken;
 }
 
 type RawFetchResult = { status: number; text: string };
@@ -179,24 +259,24 @@ export type PaykeeperHttpOptions = {
   logContext?: string;
 };
 
-/**
- * Унифицированный запрос к API PayKeeper.
- */
-export async function paykeeperHttp(
+async function paykeeperHttpOnce(
   cfg: PayKeeperConfig,
-  opts: PaykeeperHttpOptions
+  opts: PaykeeperHttpOptions,
+  forceFreshToken: boolean
 ): Promise<{ status: number; text: string; json: unknown }> {
   const q = opts.query && opts.query.length ? `?${opts.query}` : '';
   const url = `https://${cfg.server}${opts.path}${q}`;
-  const ctx = opts.logContext || opts.path;
 
   let bodyStr: string | undefined;
-  let headers: Record<string, string> = {};
+  const headers: Record<string, string> = {};
 
   if (opts.method === 'POST') {
     const form = opts.body ? new URLSearchParams(opts.body) : new URLSearchParams();
     if (!opts.skipToken) {
-      const token = await fetchPayKeeperToken(cfg);
+      const token = await acquirePayKeeperToken(
+        cfg,
+        forceFreshToken ? { forceRefresh: true } : undefined
+      );
       form.set('token', token);
     }
     bodyStr = form.toString();
@@ -218,14 +298,40 @@ export async function paykeeperHttp(
       json = null;
     }
   }
-
-  if (!opts.skipFailGuard && json && typeof json === 'object' && !Array.isArray(json)) {
-    const r = json as { result?: unknown; msg?: unknown };
-    if (r.result === 'fail') {
-      const msg = typeof r.msg === 'string' ? r.msg : 'result=fail';
-      throw new PayKeeperApiError(`${msg} (${ctx})`, status);
-    }
-  }
-
   return { status, text, json };
+}
+
+/**
+ * Унифицированный запрос к API PayKeeper.
+ */
+export async function paykeeperHttp(
+  cfg: PayKeeperConfig,
+  opts: PaykeeperHttpOptions
+): Promise<{ status: number; text: string; json: unknown }> {
+  const ctx = opts.logContext || opts.path;
+  const usesToken = opts.method === 'POST' && !opts.skipToken;
+
+  const execute = async (): Promise<{ status: number; text: string; json: unknown }> => {
+    let res = await paykeeperHttpOnce(cfg, opts, false);
+
+    // Defense-in-depth: PayKeeper мог провернуть токен между GET и POST (редко).
+    if (usesToken && isTokenInvalidFail(res.json)) {
+      res = await paykeeperHttpOnce(cfg, opts, true);
+    }
+
+    if (!opts.skipFailGuard && res.json && typeof res.json === 'object' && !Array.isArray(res.json)) {
+      const r = res.json as { result?: unknown; msg?: unknown };
+      if (r.result === 'fail') {
+        const msg = typeof r.msg === 'string' ? r.msg : 'result=fail';
+        throw new PayKeeperApiError(`${msg} (${ctx})`, res.status);
+      }
+    }
+
+    return res;
+  };
+
+  if (usesToken) {
+    return runSerializedPostOp(cacheKey(cfg), execute);
+  }
+  return execute();
 }

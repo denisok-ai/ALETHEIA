@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2026-07-22) — PayKeeper «Токен безопасности не верен» (системное решение)
+
+- **Инцидент:** 3 заказа за минуту не смогли перейти к оплате — PayKeeper отвечал `{result: "fail", msg: "Токен безопасности не верен"}` на `POST /change/invoice/preview/`. Причина — долгий кэш токена (23 ч) и гонка параллельных счетов; промежуточный фикс с TTL 5 мин оставался костылём (угадывание срока жизни).
+- **`lib/paykeeper/http.ts`:** политика по контракту PayKeeper — **свежий GET токена перед каждым mutating POST** (`acquirePayKeeperToken`), **без кэша между операциями**; **сериализация POST-with-token** на server+login (GET→POST не перемежается); in-flight dedup только для параллельных GET; **один retry** при «токен не верен» как defense-in-depth.
+- **Docs:** `docs/PayKeeper-API-Map.md`, `docs/Diary.md`.
+
 ### Added (2026-07-16) — SEO / ИИ-поисковики / витрина
 
 - **Публичные страницы товаров:** `/services` (каталог тарифов) и `/services/[slug]` (SSR из БД: описание, состав, цена, рассрочка, покупка через `PaymentModal`); Product+Offer JSON-LD (`components/JsonLdProduct.tsx`), хлебные крошки, перекрёстные ссылки. Общий источник данных — `lib/shop/public-products.ts` (используется API `/api/shop/products`, главной, sitemap, llms.txt).

@@ -45,6 +45,7 @@ export { validatePayKeeperWebhook, buildPayKeeperWebhookResponse } from '@/lib/p
 export {
   paykeeperHttp,
   clearTokenCache,
+  acquirePayKeeperToken,
   fetchPayKeeperToken,
   refreshPayKeeperToken,
   assertPayKeeperJsonOk,
