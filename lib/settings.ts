@@ -21,6 +21,15 @@ export interface SystemSettings {
   resend_notify_email: string;
   contact_phone: string;
   company_legal_address: string;
+  /**
+   * Токен google-site-verification из Search Console.
+   *
+   * Хранится в БД, а не в .env, намеренно: подтвердить сайт в GSC можно
+   * с телефона — вставить токен в Портал → Настройки, без деплоя и SSH.
+   * Сайта нет в индексе Google вовсе (аудит 23.07.2026), и подключение
+   * Search Console — единственный быстрый способ это изменить.
+   */
+  google_site_verification: string;
 }
 
 /** Значения по умолчанию при отсутствии в БД. Настройки задаются в Портал → Настройки. */
@@ -31,6 +40,7 @@ const ENV_FALLBACK: Record<keyof SystemSettings, string> = {
   resend_notify_email: '',
   contact_phone: '',
   company_legal_address: '',
+  google_site_verification: '',
 };
 
 async function loadSystemSettingsImpl(): Promise<SystemSettings> {
@@ -55,6 +65,7 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
               'resend_notify_email',
               'contact_phone',
               'company_legal_address',
+              'google_site_verification',
             ],
           },
         },
@@ -73,6 +84,10 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
           byKey.resend_notify_email || process.env.RESEND_NOTIFY_EMAIL?.trim() || ENV_FALLBACK.resend_notify_email,
         contact_phone: byKey.contact_phone || ENV_FALLBACK.contact_phone,
         company_legal_address: byKey.company_legal_address || ENV_FALLBACK.company_legal_address,
+        google_site_verification:
+          byKey.google_site_verification ||
+          process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() ||
+          ENV_FALLBACK.google_site_verification,
       };
 
       applyNextAuthUrlToProcessEnv({
@@ -91,6 +106,8 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
         resend_notify_email: process.env.RESEND_NOTIFY_EMAIL?.trim() || ENV_FALLBACK.resend_notify_email,
         contact_phone: ENV_FALLBACK.contact_phone,
         company_legal_address: ENV_FALLBACK.company_legal_address,
+        google_site_verification:
+          process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() || ENV_FALLBACK.google_site_verification,
       };
       try {
         applyNextAuthUrlToProcessEnv({ siteUrl: data.site_url });

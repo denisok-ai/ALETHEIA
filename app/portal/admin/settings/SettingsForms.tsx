@@ -70,6 +70,7 @@ interface SettingsKeys {
   resend_notify_email: string;
   contact_phone: string;
   company_legal_address: string;
+  google_site_verification: string;
   scorm_max_size_mb: string;
   email_payment_course_subject?: string;
   email_payment_course_body?: string;
@@ -111,6 +112,7 @@ export function SettingsForms() {
     portal_title: '',
     contact_phone: '',
     company_legal_address: '',
+    google_site_verification: '',
     scorm_max_size_mb: '200',
   });
   const [paymentEmail, setPaymentEmail] = useState<PaymentEmailSettings>({
@@ -170,6 +172,8 @@ export function SettingsForms() {
           resend_notify_email: k.resend_notify_email ?? '',
           contact_phone: k.contact_phone ?? '',
           company_legal_address: typeof k.company_legal_address === 'string' ? k.company_legal_address : '',
+          google_site_verification:
+            typeof k.google_site_verification === 'string' ? k.google_site_verification : '',
           scorm_max_size_mb: k.scorm_max_size_mb ?? '200',
           email_payment_course_subject: typeof k.email_payment_course_subject === 'string' ? k.email_payment_course_subject : '',
           email_payment_course_body: typeof k.email_payment_course_body === 'string' ? k.email_payment_course_body : '',
@@ -213,6 +217,8 @@ export function SettingsForms() {
           portal_title: k.portal_title ?? '',
           contact_phone: k.contact_phone ?? '',
           company_legal_address: typeof k.company_legal_address === 'string' ? k.company_legal_address : '',
+          google_site_verification:
+            typeof k.google_site_verification === 'string' ? k.google_site_verification : '',
           scorm_max_size_mb: k.scorm_max_size_mb ?? '200',
         });
         const pe = data.settings?.payment_email ?? {};
@@ -247,6 +253,7 @@ export function SettingsForms() {
       portal_title: keys.portal_title,
       contact_phone: keys.contact_phone,
       company_legal_address: keys.company_legal_address ?? '',
+      google_site_verification: keys.google_site_verification ?? '',
       scorm_max_size_mb: keys.scorm_max_size_mb ?? '200',
     });
     setPaymentEmail((p) => ({
@@ -289,6 +296,7 @@ export function SettingsForms() {
         portal_title: general.portal_title,
         contact_phone: general.contact_phone,
         company_legal_address: general.company_legal_address,
+        google_site_verification: general.google_site_verification,
         scorm_max_size_mb: general.scorm_max_size_mb,
       }),
     })
@@ -437,6 +445,20 @@ export function SettingsForms() {
               rows={3}
               className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)]"
             />
+          </div>
+          <div>
+            <Label htmlFor="google_site_verification">Google Search Console: токен подтверждения</Label>
+            <Input
+              id="google_site_verification"
+              value={general.google_site_verification}
+              onChange={(e) => setGeneral((p) => ({ ...p, google_site_verification: e.target.value }))}
+              placeholder="содержимое content из метатега google-site-verification"
+              className="mt-1"
+            />
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+              В Search Console выберите способ «HTML-тег» и вставьте сюда только значение content.
+              Тег появится на сайте в течение минуты — затем нажмите «Подтвердить» в Search Console.
+            </p>
           </div>
           <div>
             <Label htmlFor="scorm_max_size_mb">Макс. размер SCORM-пакета (МБ)</Label>

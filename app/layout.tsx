@@ -29,7 +29,9 @@ export async function generateMetadata(): Promise<Metadata> {
   const siteUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
   const yandexVerification =
     process.env.NEXT_PUBLIC_YANDEX_VERIFICATION || '0dec6f2dc03cbfd9';
-  const googleSiteVerification = process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim();
+  // Из БД (Портал → Настройки → google_site_verification): токен можно
+  // вставить с телефона без деплоя. Env остаётся резервным путём.
+  const googleSiteVerification = settings.google_site_verification?.trim();
   let metadataBase: URL;
   try {
     metadataBase = new URL(siteUrl);
