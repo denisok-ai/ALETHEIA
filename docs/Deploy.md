@@ -417,3 +417,14 @@ bash scripts/deploy-push.sh "Описание изменений"
 ```
 
 Скрипт выполняет: `git add -A` → `git commit` → `git push origin main`.
+
+## Ежедневная самопроверка (добавлена к отпуску 23.07.2026)
+
+`scripts/aletheia-daily-selfcheck.sh` → `/usr/local/bin/` на VPS, запуск из
+`/etc/cron.d/aletheia-http-cron` ежедневно в 08:10 MSK. Проверяет: health+БД,
+главную, robots.txt (Sitemap без localhost), sitemap 200, сервисы стека, диск
+<85%, почтовую очередь, срок SSL, свежесть бэкапа Google Drive. При проблеме —
+тревога в Telegram админам (канал тот же, что у cron-heartbeat-watchdog);
+по понедельникам — короткая сводка «всё в порядке». Ограничение: полное
+выключение сервера скрипт не поймает — от этого защищает только оплаченный
+хостинг (см. инцидент 502 от 20.07.2026).
