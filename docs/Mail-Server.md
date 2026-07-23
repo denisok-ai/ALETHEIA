@@ -6,10 +6,10 @@
 
 | Файл | Содержание |
 |------|------------|
-| [Mail-Current-State.md](Mail-Current-State.md) | Что уже есть в коде приложения |
+| [Mail-Current-State.md](Mail-Current-State.md) | Код приложения + [чеклист DNS/DKIM/dmarc@](Mail-Current-State.md#dns--mailcow-checklist-2026-07-23) (2026-07-23) |
 | [Mail-VPS-Audit-Checklist.md](Mail-VPS-Audit-Checklist.md) | Порты, PTR, ресурсы |
 | [Mail-Stack-Decision.md](Mail-Stack-Decision.md) | Выбор Mailcow vs альтернативы |
-| [Mail-DNS-avaterra.pro.md](Mail-DNS-avaterra.pro.md) | MX, SPF, DKIM, DMARC |
+| [Mail-DNS-avaterra.pro.md](Mail-DNS-avaterra.pro.md) | MX, SPF, DKIM, DMARC (значения + статус публикации) |
 
 ## Рекомендуемый стек: Mailcow
 
