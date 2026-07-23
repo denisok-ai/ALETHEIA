@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-07-22) — SEO / GEO foundation (аудит + системные правки)
+
+- **docs/SEO.md:** стратегия SEO+GEO 2025–26, разбор почему прошлые итерации дали ~0, чеклист live-проверки, ручные шаги GSC/Яндекс Вебмастер.
+- **`lib/seo/entity.ts`:** каноническое определение сущности школы для about / главной / llms.txt / JSON-LD.
+- **Контент:** усилены `/about` (блок «Что такое школа АВАТЕРРА» + перелинковка), секция «О школе» на главной, meta description home/about.
+
+### Fixed (2026-07-22) — SEO technical
+
+- **`app/sitemap.ts`:** защита от Invalid Date / падений БД (раньше возможен HTTP 500); fallback на статический набор URL; в карту добавлен `/news`.
+- **`app/layout.tsx`:** убран корневой `canonical` на homepage — canonical задают только страницы (исключает ложное «склеивание» URL).
+- **`app/robots.txt/route.ts`:** комментарии-указатели на `/llms.txt` и `/llms-full.txt` для ИИ-агентов.
+
 ### Fixed (2026-07-22) — PayKeeper «Токен безопасности не верен» (системное решение)
 
 - **Инцидент:** 3 заказа за минуту не смогли перейти к оплате — PayKeeper отвечал `{result: "fail", msg: "Токен безопасности не верен"}` на `POST /change/invoice/preview/`. Причина — долгий кэш токена (23 ч) и гонка параллельных счетов; промежуточный фикс с TTL 5 мин оставался костылём (угадывание срока жизни).

@@ -8,6 +8,12 @@ import { buttonVariants } from '@/components/ui/button-variants';
 import { cn } from '@/lib/utils';
 import { ABOUT_MASTER } from '@/lib/content/about-master';
 import { getSystemSettings } from '@/lib/settings';
+import {
+  ENTITY_COURSE_AWAKENING,
+  ENTITY_COURSE_MAIN,
+  ENTITY_SCHOOL_DEFINITION,
+  ENTITY_SCHOOL_EXTENDED,
+} from '@/lib/seo/entity';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH, SEO_ABOUT } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
@@ -94,6 +100,54 @@ export default async function AboutPage() {
             </div>
           </div>
         </div>
+
+        <section className="mt-16 max-w-3xl border-t border-[var(--border)] pt-12" aria-labelledby="about-school">
+          <h2 id="about-school" className="font-heading text-2xl font-semibold text-[var(--text)] sm:text-3xl">
+            Что такое школа АВАТЕРРА
+          </h2>
+          <p className="mt-4 leading-relaxed text-[var(--text-muted)]">{ENTITY_SCHOOL_DEFINITION}</p>
+          {ENTITY_SCHOOL_EXTENDED.map((p) => (
+            <p key={p.slice(0, 40)} className="mt-4 leading-relaxed text-[var(--text-muted)]">
+              {p}
+            </p>
+          ))}
+          <ul className="mt-6 list-disc space-y-2 pl-5 text-[var(--text-muted)]">
+            <li>
+              Курс «{ENTITY_COURSE_MAIN}» —{' '}
+              <Link
+                href="/course/navyki-myshechnogo-testirovaniya"
+                className="font-medium text-plum underline-offset-2 hover:underline"
+              >
+                программа и форматы
+              </Link>
+            </li>
+            <li>
+              Курс «{ENTITY_COURSE_AWAKENING}» —{' '}
+              <Link
+                href="/course/probuzhdenie"
+                className="font-medium text-plum underline-offset-2 hover:underline"
+              >
+                3 недели осознанности
+              </Link>
+            </li>
+            <li>
+              Актуальные тарифы —{' '}
+              <Link href="/services" className="font-medium text-plum underline-offset-2 hover:underline">
+                каталог услуг
+              </Link>
+            </li>
+            <li>
+              Частые вопросы —{' '}
+              <Link href="/faq" className="font-medium text-plum underline-offset-2 hover:underline">
+                FAQ
+              </Link>
+              , связь —{' '}
+              <Link href="/contacts" className="font-medium text-plum underline-offset-2 hover:underline">
+                контакты
+              </Link>
+            </li>
+          </ul>
+        </section>
       </main>
     </>
   );

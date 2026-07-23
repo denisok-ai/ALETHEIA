@@ -73,6 +73,8 @@ export async function GET() {
   const baseUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
 
   const body = [
+    `# Карта для ИИ-ассистентов (llmstxt.org): ${baseUrl}/llms.txt`,
+    `# Полное описание школы и курсов: ${baseUrl}/llms-full.txt`,
     block('*'),
     ...AI_AGENTS.map(block),
     // Отдельный блок для Яндекса: Clean-param он читает только в своей секции.

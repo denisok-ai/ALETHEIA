@@ -7,6 +7,7 @@ import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublicProducts } from '@/lib/shop/public-products';
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
+import { ENTITY_SCHOOL_DEFINITION } from '@/lib/seo/entity';
 
 export const dynamic = 'force-dynamic';
 
@@ -26,7 +27,7 @@ export async function GET() {
 
   const text = `# AVATERRA (АВАТЕРРА)
 
-> Онлайн-школа мышечного тестирования и кинезиологии Татьяны Стрельцовой. Обучение методу, который помогает находить причину проблемы через обратную связь тела за 30 секунд. Более 22 лет практики, 15 000+ консультаций. Сайт: ${base}
+> ${ENTITY_SCHOOL_DEFINITION} Сайт: ${base}
 
 ## Курсы и продукты
 - [Курс «Навыки мышечного тестирования и работа с подсознанием»](${base}/course/navyki-myshechnogo-testirovaniya): основной курс школы — программа, форматы, отзывы

@@ -37,7 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase = new URL('https://avaterra.pro');
   }
   const ogDescription =
-    'Ваше тело знает ответ — научитесь его понимать. Курс по обучению мышечному тестированию: как найти причину проблемы за 30 секунд. Онлайн-школа AVATERRA.';
+    'АВАТЕРРА — онлайн-школа мышечного тестирования Татьяны Стрельцовой. Курс «Практик»: как найти причину проблемы через обратную связь тела за 30 секунд.';
   const ogTitle = 'Курс по мышечному тестированию | Школа AVATERRA';
 
   return {
@@ -71,8 +71,10 @@ export async function generateMetadata(): Promise<Metadata> {
       yandex: yandexVerification,
       ...(googleSiteVerification ? { google: googleSiteVerification } : {}),
     },
+    // Canonical задают только страницы (app/page.tsx и публичные page.tsx).
+    // Корневой canonical на главную раньше мог «схлопнуть» URL без своего
+    // generateMetadata в один адрес — это вредно для индексации.
     alternates: {
-      canonical: siteUrl,
       types: {
         'application/rss+xml': `${siteUrl}/feed.xml`,
       },

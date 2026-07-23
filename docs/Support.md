@@ -40,11 +40,14 @@
 
 ## SEO, sitemap, роботы и ИИ-агенты
 
-- **Метаданные:** корневой [`app/layout.tsx`](../app/layout.tsx) (`generateMetadata`), публичные страницы — [`lib/seo/metadata-helpers.ts`](../lib/seo/metadata-helpers.ts), служебные URL (оплата, вход, токены) — [`lib/transactional-metadata.ts`](../lib/transactional-metadata.ts) и сегментные `layout.tsx` рядом со страницами.
-- **Индексация:** в **sitemap** попадают только контентные URL (главная, курс, about, blog, faq, contacts, oferta, privacy, pd-consent, статьи блога, новости). Страницы `/login`, `/register`, `/reset-password` в карту **не** включаются; для них задаётся `noindex, follow` в metadata.
-- **robots.txt:** генерируется [`app/robots.ts`](../app/robots.ts); закрыты префиксы `/portal`, `/portal/`, `/api/`, `/auth/`. Служебные публичные страницы **не** дублируются в `disallow`, чтобы робот мог получить HTML с `noindex`.
-- **Структурированные данные:** [`components/JsonLdOrganization.tsx`](../components/JsonLdOrganization.tsx), [`components/JsonLdWebSite.tsx`](../components/JsonLdWebSite.tsx), курс/блог/FAQ — см. `components/JsonLd*.tsx`.
-- **Файл для LLM:** [`public/llms.txt`](../public/llms.txt) — краткое описание сайта и основные публичные ссылки (при смене домена актуализируйте вручную или держите в синхроне с `site_url` в настройках).
+Полная стратегия и чеклист: **[SEO.md](SEO.md)**.
+
+- **Метаданные:** корневой [`app/layout.tsx`](../app/layout.tsx) (`generateMetadata` без корневого canonical), публичные страницы — [`lib/seo/metadata-helpers.ts`](../lib/seo/metadata-helpers.ts) + `generateMetadata` на page; сущность школы — [`lib/seo/entity.ts`](../lib/seo/entity.ts). Служебные URL — [`lib/transactional-metadata.ts`](../lib/transactional-metadata.ts).
+- **Индексация:** в **sitemap** (`app/sitemap.ts`, force-dynamic, fail-safe) — главная, курсы, services (+slug), about, blog (+статьи), faq, contacts, **news**, oferta, privacy, pd-consent, активные публикации. Login/register/reset — **не** в карте, `noindex`.
+- **robots.txt:** [`app/robots.txt/route.ts`](../app/robots.txt/route.ts) (не MetadataRoute — нужен Clean-param для Яндекса); Disallow `/portal`, `/api/`, `/auth/`; явный Allow для ИИ-ботов; комментарии → `/llms.txt`.
+- **Структурированные данные:** `components/JsonLd*.tsx` (Organization, WebSite, Course, FAQ, Product, Person, Blog…).
+- **LLM:** динамические [`app/llms.txt/route.ts`](../app/llms.txt/route.ts) и [`app/llms-full.txt/route.ts`](../app/llms-full.txt/route.ts).
+- **Вебмастеры:** Yandex meta уже в layout; Google — env `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` (см. SEO.md §5).
 
 ---
 
