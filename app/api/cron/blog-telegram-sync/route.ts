@@ -15,6 +15,7 @@ import { importChannelPosts } from '@/lib/content/telegram-channel-import';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { markCronOk } from '@/lib/cron-heartbeat';
 import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
+import { generateBlogSeoMeta } from '@/lib/content/blog-seo-meta';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
@@ -65,6 +66,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    /**
+     * SEO-заголовок перед публикацией.
+     *
+     * Импорт ставит заголовком первое предложение поста — для Telegram
+     * нормально, для поиска нет: по таким «запросам» никто не ищет (аудит
+     * 23.07.2026 — 9 статей с title до 172 символов). Генерация из текста
+     * статьи; сбой LLM не блокирует публикацию — статья выходит с исходным
+     * заголовком, а поправить его можно в админке. Текст и h1 не меняются:
+     * контент переносится «один в один» по решению владельца.
+     */
+    let seoTitled = 0;
+    for (const p of fresh) {
+      if (!toPublish.includes(p.id)) continue;
+      const meta = await generateBlogSeoMeta(p.body);
+      if (meta) {
+        await prisma.blogPost.update({
+          where: { id: p.id },
+          data: { title: meta.title, description: meta.description },
+        });
+        seoTitled++;
+      }
+    }
+
     if (toPublish.length > 0) {
       await prisma.blogPost.updateMany({
         where: { id: { in: toPublish } },
@@ -93,7 +117,7 @@ export async function GET(request: NextRequest) {
     if (imported.created > 0 || imported.errors.length > 0) {
       notifyAdminsTelegramAsync('contact_lead', [
         `Блог: перенесено из канала @${channel} — ${imported.created}`,
-        `Опубликовано: ${toPublish.length}`,
+        `Опубликовано: ${toPublish.length}${seoTitled ? ` (SEO-заголовков: ${seoTitled})` : ''}`,
         ...(tooShort.length
           ? [`Оставлено черновиками (короткие): ${tooShort.length} — ${tooShort.slice(0, 3).join(', ')}`]
           : []),
