@@ -13,6 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **CSP:** mc.yandex.ru/mc.yandex.com в script-src, `worker-src 'self' blob:` для вебвизора.
 - **По решению владельца** барьер «Принять аналитику» снят: Метрика (108390990, webvisor) грузится всем из `YandexMetrika.tsx`; баннер cookie — информационный («Понятно»); политика ПДн обновлена (разделы 4, 9); `AnalyticsConsentLoader` удалён.
 
+### Added (2026-07-24) — Блог: статьи 30–32 из банка тем
+
+- «Мышечное тестирование на себе», «Лобный обхват» (в общем виде, без платного протокола), «Старые обиды в отношениях» — в блоге 32 статьи, IndexNow уведомлён. Боевой путь LLM-заголовков автоимпорта проверен на проде (валидные title/description).
+
 ### Added (2026-07-23…24) — SEO: независимый аудит и устранение находок
 
 - **Поле «Google Search Console: токен»** в Портал → Настройки (`google_site_verification` в SystemSettings) — подтверждение GSC с телефона без деплоя; метатег в layout читает БД.
