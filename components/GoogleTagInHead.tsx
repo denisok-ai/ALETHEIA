@@ -1,6 +1,6 @@
 /**
  * Google Analytics отключён по умолчанию (снижение рисков трансграничной передачи ПДн, 152-ФЗ).
- * Счётчики не подключаются из корневого layout. См. CookieConsentBanner + AnalyticsConsentLoader (Яндекс.Метрика после согласия).
+ * Google-счётчики не подключаются. Яндекс.Метрика грузится для всех из components/YandexMetrika.tsx (layout).
  */
 export function GoogleTagInHead() {
   return null;

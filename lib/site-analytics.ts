@@ -1,6 +1,6 @@
 /**
  * Идентификаторы аналитики (справочно). Google Analytics и Clarity в layout не подключаются.
- * Яндекс.Метрика — только через AnalyticsConsentLoader после согласия на cookie.
+ * Яндекс.Метрика — безусловно через components/YandexMetrika.tsx (решение владельца от 24.07.2026).
  */
 export function getAnalyticsConfig() {
   const enabled = process.env.NODE_ENV === 'production';

@@ -1,5 +1,5 @@
 /**
- * События аналитики: в layout Google Analytics не подключается; цели Яндекс.Метрики — после согласия на cookie.
+ * События аналитики: Google Analytics не подключается; цели уходят в Яндекс.Метрику, которая грузится для всех (components/YandexMetrika.tsx).
  */
 
 export const ANALYTICS = {

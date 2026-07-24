@@ -1,11 +1,16 @@
 import Script from 'next/script';
 
 /**
- * Устарело: Метрику подключает только AnalyticsConsentLoader после согласия на аналитические cookie.
- * Компонент оставлен для истории; в app/layout.tsx не используется.
+ * Яндекс.Метрика (счётчик 108390990) — грузится для всех посетителей.
  *
- * ID по умолчанию из задачи; переопределение: NEXT_PUBLIC_YANDEX_METRIKA_ID.
- * В next dev не грузится; на production-сборке — да (если импортировать).
+ * История, чтобы не повторить: с 08.06.2026 счётчик грузился только после
+ * кнопки «Принять аналитику» и считал долю посетителей, а с 10.07.2026 CSP
+ * молча заблокировала его полностью — весь июль в отчётах были нули при
+ * живом трафике. 24.07 владелец решил убрать барьер согласия: баннер cookie
+ * остался информационным (см. CookieConsentBanner), а Метрика подключается
+ * безусловно, как на подавляющем большинстве российских сайтов.
+ *
+ * ID переопределяется через NEXT_PUBLIC_YANDEX_METRIKA_ID. В dev не грузится.
  */
 export function YandexMetrika() {
   if (process.env.NODE_ENV !== 'production') return null;
@@ -21,7 +26,7 @@ export function YandexMetrika() {
   k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)
 })(window, document,'script','https://mc.yandex.ru/metrika/tag.js?id=${id}', 'ym');
 
-ym(${id}, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", referrer: document.referrer, url: location.href, accurateTrackBounce:true, trackLinks:true});
+ym(${id}, 'init', {ssr:true, webvisor:true, clickmap:true, ecommerce:"dataLayer", accurateTrackBounce:true, trackLinks:true});
 `.trim();
 
   return (

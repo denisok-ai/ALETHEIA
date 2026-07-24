@@ -84,6 +84,9 @@ const nextConfig = {
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data:",
+          // Вебвизор Метрики работает через blob-worker — без worker-src
+          // default-src 'self' молча блокирует запись сессий.
+          "worker-src 'self' blob:",
           "connect-src 'self' https:",
           "frame-src 'self'",
           "object-src 'none'",
@@ -109,6 +112,9 @@ const nextConfig = {
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data:",
+          // Вебвизор Метрики работает через blob-worker — без worker-src
+          // default-src 'self' молча блокирует запись сессий.
+          "worker-src 'self' blob:",
           "connect-src 'self' https:",
           "frame-src 'self'",
           "object-src 'none'",

@@ -1,12 +1,18 @@
 'use client';
 
 /**
- * Баннер выбора cookie: необходимые или аналитика (после выбора грузится Яндекс.Метрика).
+ * Информационный баннер о cookie — одна кнопка «Понятно».
+ *
+ * Раньше здесь был выбор «Только необходимые / Принять аналитику», и Метрика
+ * грузилась лишь согласившимся — счётчик видел долю посетителей, статистика
+ * получалась «кривой» (решение владельца от 24.07.2026 — барьер убрать).
+ * Теперь баннер только информирует и даёт ссылку на политику; Метрика
+ * подключается для всех в YandexMetrika.
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { COOKIE_CONSENT_EVENT, COOKIE_CONSENT_STORAGE_KEY, type CookieConsentValue } from '@/lib/cookie-consent';
+import { COOKIE_CONSENT_EVENT, COOKIE_CONSENT_STORAGE_KEY } from '@/lib/cookie-consent';
 
 export function CookieConsentBanner() {
   const [visible, setVisible] = useState(false);
@@ -20,9 +26,12 @@ export function CookieConsentBanner() {
     }
   }, []);
 
-  function persist(value: CookieConsentValue) {
+  function acknowledge() {
     try {
-      localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, value);
+      // То же значение, что раньше означало полное согласие: посетители со
+      // старым 'essential' в localStorage баннер повторно не увидят, а новые
+      // получают единый маркер «уведомлён».
+      localStorage.setItem(COOKIE_CONSENT_STORAGE_KEY, 'analytics');
     } catch {
       /* ignore */
     }
@@ -41,20 +50,17 @@ export function CookieConsentBanner() {
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <p className="text-sm leading-relaxed text-[var(--text)]">
-          Сайт использует необходимые cookie для работы (сессия, безопасность), а при вашем согласии — аналитические
-          cookie (Яндекс.Метрика) для улучшения сайта. Иностранные счётчики (Google Analytics, Microsoft Clarity) на
-          сайте не подключаются. Подробнее — в{' '}
+          Сайт использует cookie: необходимые для работы (сессия, безопасность) и аналитические (Яндекс.Метрика) для
+          улучшения сайта. Иностранные счётчики (Google Analytics, Microsoft Clarity) не подключаются. Продолжая
+          пользоваться сайтом, вы соглашаетесь с{' '}
           <Link href="/privacy" className="font-medium text-plum underline hover:opacity-90">
-            Политике обработки персональных данных
+            Политикой обработки персональных данных
           </Link>
           .
         </p>
-        <div className="flex shrink-0 flex-wrap gap-2">
-          <Button type="button" variant="secondary" size="sm" onClick={() => persist('essential')} className="text-sm">
-            Только необходимые
-          </Button>
-          <Button type="button" variant="landingPlum" size="sm" onClick={() => persist('analytics')} className="text-sm">
-            Принять аналитику
+        <div className="flex shrink-0">
+          <Button type="button" variant="landingPlum" size="sm" onClick={acknowledge} className="text-sm">
+            Понятно
           </Button>
         </div>
       </div>

@@ -10,7 +10,7 @@ import { SessionProvider } from '@/components/providers/SessionProvider';
 import { getSystemSettings } from '@/lib/settings';
 import { JsonLdOrganization } from '@/components/JsonLdOrganization';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner';
-import { AnalyticsConsentLoader } from '@/components/AnalyticsConsentLoader';
+import { YandexMetrika } from '@/components/YandexMetrika';
 import { JsonLdWebSite } from '@/components/JsonLdWebSite';
 import { RootMain } from '@/components/RootMain';
 import { normalizeSiteUrl } from '@/lib/site-url';
@@ -129,7 +129,7 @@ export default async function RootLayout({
           offers={orgOffers.length ? orgOffers : undefined}
         />
         <JsonLdWebSite siteUrl={siteUrl} name={BRAND_SITE_NAME} />
-        <AnalyticsConsentLoader />
+        <YandexMetrika />
         <CookieConsentBanner />
         <ChunkLoadRecovery />
         <SessionProvider>
