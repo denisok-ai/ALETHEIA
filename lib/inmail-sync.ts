@@ -12,6 +12,8 @@ import { mailImapTlsRejectUnauthorized } from '@/lib/mail-stack-env';
 const FIRST_SYNC_UID_WINDOW = 100;
 const MAX_MESSAGES_PER_RUN = 200;
 const SYNC_ERROR_MAX_LEN = 500;
+/** Транзиентный сетевой чих (DNS/таймаут) не должен ронять ящик — 2 повтора с бэкоффом. */
+const MAX_CONNECT_RETRIES = 2;
 
 /** Санитизация HTML входящих писем перед сохранением и показом в админке. */
 export function sanitizeInboundHtml(html: string): string {
@@ -138,6 +140,55 @@ function snippetFromParsed(parsed: ParsedMail): string | null {
   return null;
 }
 
+/**
+ * Транзиентные ошибки коннекта, которые лечатся повтором: временный сбой DNS
+ * (EAI_AGAIN), таймаут, сброс соединения. Аутентификация (истёкший пароль) сюда
+ * НЕ попадает — её надо показывать сразу, а не маскировать ретраями. См. образец
+ * в lib/paykeeper/http.ts.
+ */
+function isRetryableNetworkError(e: unknown): boolean {
+  if (!(e instanceof Error)) return false;
+  const cause = (e as { cause?: { code?: string } }).cause;
+  const code = cause?.code || (e as { code?: string }).code;
+  return (
+    code === 'EAI_AGAIN' ||
+    code === 'ETIMEDOUT' ||
+    code === 'ECONNRESET' ||
+    code === 'ECONNREFUSED' ||
+    e.name === 'AbortError'
+  );
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+/**
+ * Подключается к IMAP с повтором на транзиентных сетевых ошибках. Клиент
+ * пересоздаётся на каждой попытке: после неудачного connect() внутреннее
+ * состояние ImapFlow переиспользовать нельзя.
+ */
+async function connectWithRetry(
+  options: ConstructorParameters<typeof ImapFlow>[0]
+): Promise<ImapFlow> {
+  let lastErr: unknown;
+  for (let attempt = 0; attempt <= MAX_CONNECT_RETRIES; attempt++) {
+    const client = new ImapFlow(options);
+    try {
+      await client.connect();
+      return client;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < MAX_CONNECT_RETRIES && isRetryableNetworkError(e)) {
+        await sleep(400 * (attempt + 1));
+        continue;
+      }
+      throw e;
+    }
+  }
+  throw lastErr;
+}
+
 export type SyncMailboxResult = {
   ok: boolean;
   imported: number;
@@ -163,21 +214,22 @@ export async function syncInboundMailbox(mailboxId: string): Promise<SyncMailbox
   }
 
   const tlsStrict = mailImapTlsRejectUnauthorized();
-  const client = new ImapFlow({
+  const clientOptions: ConstructorParameters<typeof ImapFlow>[0] = {
     host: mb.imapHost,
     port: mb.imapPort,
     secure: mb.imapTls,
     auth: { user: normalizeMailboxUser(mb.username), pass: password },
     logger: false,
     ...(tlsStrict ? {} : { tls: { rejectUnauthorized: false } }),
-  });
+  };
 
   let imported = 0;
   /** Максимальный UID из выборки — обновляем checkpoint, чтобы не зациклиться на битых письмах. */
   let lastSeenUid = mb.lastUid ?? 0;
 
+  let client: ImapFlow | undefined;
   try {
-    await client.connect();
+    client = await connectWithRetry(clientOptions);
     const open = await client.mailboxOpen(mb.folder);
     if (!open) {
       const err = `Не удалось открыть папку «${mb.folder}»`;
@@ -294,7 +346,7 @@ export async function syncInboundMailbox(mailboxId: string): Promise<SyncMailbox
     return { ok: false, imported, error: msg };
   } finally {
     try {
-      await client.logout();
+      await client?.logout();
     } catch {
       /* ignore */
     }
