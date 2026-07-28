@@ -14,7 +14,7 @@
  *   (module='onboarding', entityId=Enrollment.id, status='sent').
  */
 import { prisma } from '@/lib/db';
-import { sendTransactionalEmail } from '@/lib/email-service';
+import { sendTransactionalEmail, quoteTitle } from '@/lib/email-service';
 import { getSystemSettings } from '@/lib/settings';
 
 const NUDGE_MIN_AGE_MS = 24 * 60 * 60 * 1000;
@@ -120,12 +120,13 @@ export async function nudgeInactiveEnrollees(opts: {
 
     if (sent >= NUDGE_MAX_PER_RUN) break;
 
-    const subject = `${portalTitle}: как открыть ваш курс «${courseTitle}»`;
+    const courseLabel = quoteTitle(courseTitle);
+    const subject = `${portalTitle}: как открыть ваш курс ${courseLabel}`;
     const supportLine = supportEmail
       ? `<p style="font-size:14px;color:#5c5854;">Если что-то не открывается — просто ответьте на это письмо или напишите: <a href="mailto:${supportEmail}">${supportEmail}</a>.</p>`
       : '';
     const html = `<p>${personalGreeting(e.user?.displayName)}</p>
-<p>Вы записаны на курс «${courseTitle}», доступ открыт — но, похоже, вы ещё не открывали его. Помогаем начать.</p>
+<p>Вы записаны на курс ${courseLabel}, доступ открыт — но, похоже, вы ещё не открывали его. Помогаем начать.</p>
 <p>Шаг 1. Войдите в личный кабинет: <a href="${loginUrl}">${loginUrl || 'страница входа'}</a> (тот же email, что и при записи).</p>
 <p>Шаг 2. Откройте раздел «Мои курсы» и нажмите на курс — там будет кнопка «Начать».</p>
 <p style="font-size:14px;color:#5c5854;">Забыли пароль? На странице входа нажмите «Забыли пароль» и укажите этот email — придёт ссылка для входа.</p>

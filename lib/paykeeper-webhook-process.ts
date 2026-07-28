@@ -9,7 +9,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { getSystemSettings, getPaymentEmailTemplates, renderPaymentEmailTemplate } from '@/lib/settings';
 import { wrapEmailHtml } from '@/lib/email-templates';
-import { sendTransactionalEmail } from '@/lib/email-service';
+import { sendTransactionalEmail, quoteTitle } from '@/lib/email-service';
 import { triggerNotification } from '@/lib/notifications';
 import { createPasswordToken } from '@/lib/password-token';
 import { findActiveServiceForOrderTariff, findPersonalProductForOrderTariff } from '@/lib/order-service';
@@ -403,11 +403,11 @@ export async function processPaidOrder(
         : `/set-password?token=${encodeURIComponent(token)}`;
       const subject = `${portalTitle}: доступ к курсу открыт — установите пароль`;
       const body = `<p>Здравствуйте!</p>
-<p>Оплата по заказу ${orderNumber} получена, доступ к курсу «${courseTitle}» открыт. Для вас создан личный кабинет.</p>
+<p>Оплата по заказу ${orderNumber} получена, доступ к курсу ${quoteTitle(courseTitle)} открыт. Для вас создан личный кабинет.</p>
 <p>Шаг 1. Установите пароль (ссылка действует 48 часов):</p>
 <p><a href="${setPasswordUrl}" style="display:inline-block;padding:12px 22px;background:#7a5c3e;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Установить пароль и войти</a></p>
 <p style="font-size:14px;color:#5c5854;">Если кнопка не открывается — скопируйте ссылку в браузер:<br>${setPasswordUrl}</p>
-<p>Шаг 2. После входа откройте раздел «Мои курсы» — курс «${courseTitle}» будет там.</p>
+<p>Шаг 2. После входа откройте раздел «Мои курсы» — курс ${quoteTitle(courseTitle)} будет там.</p>
 <p style="font-size:14px;color:#5c5854;">Не пришла или потерялась ссылка? Откройте страницу входа, нажмите «Забыли пароль» и укажите этот email — придёт новая ссылка для входа.</p>
 <p>— ${portalTitle}</p>`;
       const mailRes = await sendPaymentEmail({ order, subject, html: body, userId });

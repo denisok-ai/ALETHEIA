@@ -21,6 +21,15 @@ export type EmailModule =
   // служит ключом идемпотентности (одно напоминание на зачисление).
   | 'onboarding';
 
+/**
+ * Название курса в «ёлочках» — но без задвоения, если кавычки уже есть
+ * (напр. «Аватера»: Практик). Иначе в письме выходит ««Аватера»: Практик».
+ */
+export function quoteTitle(title: string): string {
+  const t = title.trim();
+  return /^[«"„]/.test(t) ? t : `«${t}»`;
+}
+
 export interface EmailDeliveryContext {
   module: EmailModule;
   entityId?: string | null;
