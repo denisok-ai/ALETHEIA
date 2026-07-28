@@ -9,6 +9,9 @@ import assert from 'node:assert';
 import { auditAnswerAgainstCatalog } from '../lib/ai/answer-audit';
 import type { PublicProduct } from '../lib/shop/public-products';
 
+// courseTitle совпадает с полным именем тарифа — как на проде: «Аватера»: Практик,
+// а НЕ голое «Аватера». Прежняя фикстура с courseTitle:'Аватера' маскировала
+// ложную тревогу на упоминание линейки (инцидент 2026-07-28).
 const product = (over: Partial<PublicProduct>): PublicProduct => ({
   slug: 'praktik',
   name: 'Аватера: Практик',
@@ -18,7 +21,7 @@ const product = (over: Partial<PublicProduct>): PublicProduct => ({
   features: [],
   imageUrl: null,
   courseId: 'c1',
-  courseTitle: 'Аватера',
+  courseTitle: 'Аватера: Практик',
   courseDescription: null,
   installmentEnabled: false,
   maxInstallments: 1,
@@ -32,6 +35,7 @@ const CATALOG: PublicProduct[] = [
     slug: 'master',
     name: 'Аватера: Мастер',
     price: 60000,
+    courseTitle: 'Аватера: Мастер',
     installmentEnabled: true,
     maxInstallments: 4,
   }),
@@ -90,6 +94,22 @@ check('верный платёж по рассрочке', () => {
 
 check('рассрочка на 3 месяца (60000/3 = 20000)', () => {
   assert.deepStrictEqual(auditAnswerAgainstCatalog('Можно платить 20 000 ₽ ×3.', CATALOG), []);
+});
+
+check('голая линейка «Аватера» в контексте тарифа — не ложная тревога', () => {
+  // Реальные тарифы — «Аватера: Практик»/«Аватера: Мастер»; «Аватера» это линейка.
+  assert.deepStrictEqual(
+    auditAnswerAgainstCatalog('Тариф «Аватера» — это линейка: есть «Аватера: Практик» и «Аватера: Мастер».', CATALOG),
+    []
+  );
+});
+
+check('ведущий сегмент до разделителя — не тариф даже при слове «стоимость»', () => {
+  const withDash = product({ slug: 'grp', name: 'Пробуждение — групповой формат', courseTitle: 'Пробуждение', price: 22000 });
+  assert.deepStrictEqual(
+    auditAnswerAgainstCatalog('Стоимость тарифа «Пробуждение» — уточните на сайте.', [...CATALOG, withDash]),
+    []
+  );
 });
 
 check('название курса в кавычках — не тариф', () => {

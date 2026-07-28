@@ -47,6 +47,25 @@ function allowedPrices(products: PublicProduct[]): Set<number> {
   return set;
 }
 
+/** Разделители «линейка: вариант» и «линейка — формат» в названиях тарифов. */
+const NAME_SEGMENT_SEP_RE = /[:—–]| - /;
+
+/**
+ * Допустимые псевдонимы названия: само имя и его ведущий сегмент до разделителя.
+ * Реальные тарифы — «Аватера»: Практик и «Аватера»: Мастер, но бот законно
+ * упоминает и голую линейку «Аватера»; без псевдонима это давало ложную тревогу
+ * (прод, 2026-07-28). Аналогично «Пробуждение» — групповой формат → «Пробуждение».
+ * Короткие сегменты (< 3 символов) не добавляем — слишком широкое совпадение.
+ */
+function nameAliases(name: string): string[] {
+  const full = normalizeName(name);
+  if (!full) return [];
+  const aliases = [full];
+  const head = full.split(NAME_SEGMENT_SEP_RE)[0]?.trim();
+  if (head && head.length >= 3 && head !== full) aliases.push(head);
+  return aliases;
+}
+
 /**
  * Расхождения ответа с каталогом.
  *
@@ -74,8 +93,8 @@ export function auditAnswerAgainstCatalog(
 
   const known = new Set<string>();
   for (const p of products) {
-    known.add(normalizeName(p.name));
-    known.add(normalizeName(p.courseTitle));
+    for (const a of nameAliases(p.name)) known.add(a);
+    for (const a of nameAliases(p.courseTitle)) known.add(a);
   }
 
   for (const m of answer.matchAll(QUOTED_RE)) {
