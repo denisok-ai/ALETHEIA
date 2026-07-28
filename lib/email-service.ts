@@ -16,7 +16,10 @@ export type EmailModule =
   | 'payments'
   | 'settings'
   | 'inmail'
-  | 'installment';
+  | 'installment'
+  // Онбординг-напоминания: «записались, но курс не открыли». entityId = Enrollment.id
+  // служит ключом идемпотентности (одно напоминание на зачисление).
+  | 'onboarding';
 
 export interface EmailDeliveryContext {
   module: EmailModule;
