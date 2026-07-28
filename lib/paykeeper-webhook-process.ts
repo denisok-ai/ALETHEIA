@@ -401,13 +401,14 @@ export async function processPaidOrder(
       const setPasswordUrl = siteUrl
         ? `${siteUrl}/set-password?token=${encodeURIComponent(token)}`
         : `/set-password?token=${encodeURIComponent(token)}`;
-      const subject = `${portalTitle}: установите пароль для доступа к курсу`;
+      const subject = `${portalTitle}: доступ к курсу открыт — установите пароль`;
       const body = `<p>Здравствуйте!</p>
-<p>Оплата по заказу ${orderNumber} получена. Для вас создан аккаунт в личном кабинете.</p>
-<p>Установите пароль по ссылке (действует 48 часов), чтобы войти и получить доступ к курсу «${courseTitle}»:</p>
-<p><a href="${setPasswordUrl}">Установить пароль</a></p>
-<p>Если ссылка не открывается, скопируйте в браузер: ${setPasswordUrl}</p>
-<p>После установки пароля войдите на сайт и откройте раздел «Мои курсы».</p>
+<p>Оплата по заказу ${orderNumber} получена, доступ к курсу «${courseTitle}» открыт. Для вас создан личный кабинет.</p>
+<p>Шаг 1. Установите пароль (ссылка действует 48 часов):</p>
+<p><a href="${setPasswordUrl}" style="display:inline-block;padding:12px 22px;background:#7a5c3e;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Установить пароль и войти</a></p>
+<p style="font-size:14px;color:#5c5854;">Если кнопка не открывается — скопируйте ссылку в браузер:<br>${setPasswordUrl}</p>
+<p>Шаг 2. После входа откройте раздел «Мои курсы» — курс «${courseTitle}» будет там.</p>
+<p style="font-size:14px;color:#5c5854;">Не пришла или потерялась ссылка? Откройте страницу входа, нажмите «Забыли пароль» и укажите этот email — придёт новая ссылка для входа.</p>
 <p>— ${portalTitle}</p>`;
       const mailRes = await sendPaymentEmail({ order, subject, html: body, userId });
       if (!mailRes.ok) {
