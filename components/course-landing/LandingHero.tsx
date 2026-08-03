@@ -22,6 +22,8 @@ type Props = {
   ctaSecondary?: { label: string; href: string };
   /** Расположение картинки: справа (по умолчанию) или фоном за текстом. */
   variant?: 'card' | 'background';
+  /** Пропорции карточки-картинки: вертикальный портрет (по умолчанию) или квадрат под тайл с текстом. */
+  imageAspect?: 'portrait' | 'square';
 };
 
 /** Hero-секция продающего лендинга курса. Дизайн совпадает с главной (`Hero.tsx`). */
@@ -37,6 +39,7 @@ export function LandingHero({
   ctaPrimary,
   ctaSecondary,
   variant = 'card',
+  imageAspect = 'portrait',
 }: Props) {
   const reduceMotion = useReducedMotion();
   const t = (duration: number, delay = 0) =>
@@ -155,7 +158,12 @@ export function LandingHero({
             transition={t(0.5, 0.08)}
             className="relative w-full max-w-[min(100%,420px)] shrink-0 sm:max-w-[460px] lg:max-w-[480px]"
           >
-            <div className="relative aspect-[4/5] w-full overflow-hidden rounded-2xl border-2 border-periwinkle/50 bg-[var(--surface)] shadow-[var(--shadow-card)]">
+            <div
+              className={cn(
+                'relative w-full overflow-hidden rounded-2xl border-2 border-periwinkle/50 bg-[var(--surface)] shadow-[var(--shadow-card)]',
+                imageAspect === 'square' ? 'aspect-square' : 'aspect-[4/5]',
+              )}
+            >
               <Image
                 src={imageSrc}
                 alt={imageAlt}
