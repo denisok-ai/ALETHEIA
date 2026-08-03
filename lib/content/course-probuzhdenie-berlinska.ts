@@ -89,6 +89,8 @@ export const BERLINSKA_PAINS: ProbuzhdenieVisualBlock[] = [
   },
   {
     id: 'search',
+    /** cover-touch: 736×998 (портрет), не обрезать под 4:3 */
+    imageAspectClass: 'aspect-[736/998]',
     imageSrc: '/images/probuzhdenie/cover-touch.png',
     imageAlt: 'Поиск себя и тишина внутри',
     title: 'Духовные поиски',
@@ -129,6 +131,8 @@ export const BERLINSKA_WHAT_DO: ProbuzhdenieVisualBlock = {
 
 export const BERLINSKA_COURSE_KEY: ProbuzhdenieVisualBlock = {
   id: 'course',
+  /** card-cover: 1536×1024 (3:2), не обрезать под 4:3 */
+  imageAspectClass: 'aspect-[3/2]',
   imageSrc: '/images/probuzhdenie/card-cover.png',
   imageAlt: 'Ключ к пробуждению',
   eyebrow: 'Курс практик',
@@ -185,8 +189,8 @@ export const BERLINSKA_WEEKS: ProbuzhdenieVisualBlock[] = [
     id: 'week-3',
     /** Картинка слева, текст справа (явный порядок колонок). */
     imageOnLeftOverride: true,
-    /** week3-bird-shadow: 682×1024 */
-    imageAspectClass: 'aspect-[682/1024]',
+    /** week3-bird-shadow: 736×998 (портрет) */
+    imageAspectClass: 'aspect-[736/998]',
     imageSrc: '/images/probuzhdenie/week3-bird-shadow.png',
     imageAlt: 'Неделя 3 — я новая',
     eyebrow: 'Неделя 3',

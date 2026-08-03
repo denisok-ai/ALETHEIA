@@ -54,8 +54,8 @@ export async function GET() {
       [
         '<item>',
         `<title>${escapeXml(p.title)}</title>`,
-        `<link>${p.link}</link>`,
-        `<guid isPermaLink="true">${p.link}</guid>`,
+        `<link>${escapeXml(p.link)}</link>`,
+        `<guid isPermaLink="true">${escapeXml(p.link)}</guid>`,
         `<pubDate>${p.date.toUTCString()}</pubDate>`,
         `<description>${escapeXml(p.description)}</description>`,
         '</item>',
@@ -67,7 +67,7 @@ export async function GET() {
 <rss version="2.0">
 <channel>
 <title>${escapeXml('АВАТЕРРА — блог')}</title>
-<link>${channelLink}</link>
+<link>${escapeXml(channelLink)}</link>
 <description>${escapeXml('Статьи о мышечном тестировании, теле и подсознании — школа АВАТЕРРА.')}</description>
 <language>ru-ru</language>
 ${itemsXml}
