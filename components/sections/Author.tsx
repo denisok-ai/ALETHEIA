@@ -35,10 +35,10 @@ export function Author() {
             <TiltCard maxTilt={10} className="w-full max-w-sm">
               <div className="relative overflow-hidden rounded-2xl border-2 border-periwinkle/50 shadow-[var(--shadow-card)]">
                 <Image
-                  src={ABOUT_MASTER.imageSrc}
-                  alt={ABOUT_MASTER.imageAlt}
-                  width={480}
-                  height={640}
+                  src="/images/tatiana/tatiana-master-podsoznaniya.png"
+                  alt="Татьяна Стрельцова — мастер подсознания, основательница школы кинезиологии АВАТЕРРА"
+                  width={1024}
+                  height={1024}
                   className="relative h-auto w-full object-cover"
                   onError={(e) => {
                     const target = e.target as HTMLImageElement;

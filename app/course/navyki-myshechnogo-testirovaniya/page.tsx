@@ -104,9 +104,8 @@ export default async function CourseNavykiPage() {
           description={MT_HERO.description}
           badges={MT_HERO.badges}
           trust={MT_HERO.trust}
-          imageSrc="/images/tatiana/tatiana-master-podsoznaniya.png"
-          imageAlt="Татьяна Стрельцова — мастер подсознания, основательница школы кинезиологии АВАТЕРРА"
-          imageAspect="square"
+          imageSrc="/images/tatiana/tatiana-hero.png"
+          imageAlt="Татьяна Стрельцова — основательница школы кинезиологии АВАТЕРРА"
           ctaPrimary={{ label: 'Выбрать тариф', href: '/#pricing' }}
           ctaSecondary={{ label: 'Программа курса', href: '#program' }}
         />
