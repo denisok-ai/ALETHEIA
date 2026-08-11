@@ -47,10 +47,19 @@ export function startContentJobScheduler() {
     timezone: 'Europe/Moscow',
   });
 
-  // Недельный план: воскресенье 19:00 МСК
-  cron.schedule('0 19 * * 0', () => safeRun('weekly-plan', () => buildWeekPlan()), {
-    timezone: 'Europe/Moscow',
-  });
+  // Недельный план: воскресенье 19:00 МСК — на СЛЕДУЮЩУЮ неделю.
+  // Якорь «завтра» обязателен: в воскресенье startOfWeek(new Date()) — это
+  // понедельник УХОДЯЩЕЙ недели, и до 10.08.2026 планировщик 8 недель подряд
+  // создавал посты с датами в прошлом — ежедневная подготовка их не видела,
+  // канал не получил ни одного поста, ошибок при этом не было нигде.
+  cron.schedule(
+    '0 19 * * 0',
+    () =>
+      safeRun('weekly-plan', () => buildWeekPlan(new Date(Date.now() + 24 * 60 * 60 * 1000))),
+    {
+      timezone: 'Europe/Moscow',
+    }
+  );
 
   // Ежедневная подготовка + публикация 11:00 МСК
   cron.schedule('0 11 * * *', async () => {

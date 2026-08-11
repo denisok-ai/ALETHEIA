@@ -228,18 +228,26 @@ export async function runSiteRadarCycle(priorityOnly = false): Promise<RadarCycl
       select: { topic: true },
     });
     if (isDuplicateTopic(theme.topic, recent.map((r) => r.topic))) return;
-    await prisma.themePool.create({
-      data: {
-        topic: theme.topic,
-        postType: theme.postType,
-        audience: theme.audience,
-        rubric: theme.rubric,
-        priority: theme.priority,
-        status: 'pending',
-        source: 'radar',
-        payload: JSON.stringify({ ...theme.payload, angle: theme.angle }),
-      },
-    });
+    // Точная тема могла попасть в пул раньше 40 последних (unique source+topic):
+    // словарная проверка выше это не ловит, а P2002 обрывал весь цикл радара —
+    // темы после упавшей не добавлялись. Дубль — норма, просто пропускаем.
+    try {
+      await prisma.themePool.create({
+        data: {
+          topic: theme.topic,
+          postType: theme.postType,
+          audience: theme.audience,
+          rubric: theme.rubric,
+          priority: theme.priority,
+          status: 'pending',
+          source: 'radar',
+          payload: JSON.stringify({ ...theme.payload, angle: theme.angle }),
+        },
+      });
+    } catch (e) {
+      if ((e as { code?: string })?.code === 'P2002') return;
+      throw e;
+    }
     stats.themesAdded += 1;
   }
 }
