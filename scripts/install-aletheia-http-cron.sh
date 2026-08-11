@@ -53,11 +53,24 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # выбрано, чтобы записавшихся днём накрывало на следующий вечер (24–48ч).
 30 20 * * * root /opt/ALETHEIA/scripts/cron-http-call.sh nudge-inactive-enrollees
 
+# Целостность контента курсов — раз в сутки, 08:40 МСК.
+# После инцидента 11.08.2026: во всех платных курсах 2,5 месяца стоял demo-SCORM,
+# витрина/оплата/доступ выглядели исправными — узнали от студентки, дошедшей до
+# финала демо. Проверяет: платный тариф привязан к курсу, файл входа SCORM на
+# диске, в платном курсе не demo/trial-пакет.
+40 8 * * * root /opt/ALETHEIA/scripts/cron-http-call.sh content-integrity
+
 # Сторож фоновых задач — каждые 30 мин.
 # Сообщает, если задача перестала ВЫПОЛНЯТЬСЯ вообще (пропал файл cron,
 # рестарт-луп демона). Живёт вне приложения: механизм внутри не может
 # сообщить о собственной смерти.
 */30 * * * * root /opt/ALETHEIA/scripts/cron-heartbeat-watchdog.sh
+
+# Суточный self-check сервера (живёт в /usr/local/bin, ставится отдельно).
+# ВАЖНО: этот установщик перезаписывает файл целиком — записи, добавленные на
+# сервере вручную, обязаны быть продублированы здесь, иначе потеряются при
+# следующем запуске (так в июле терялся paykeeper-health).
+10 8 * * * root /usr/local/bin/aletheia-daily-selfcheck.sh >> /var/log/aletheia-selfcheck.log 2>&1
 CRONEOF
 
 chmod 644 /etc/cron.d/aletheia-http-cron
