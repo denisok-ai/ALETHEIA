@@ -38,6 +38,30 @@ const OG_IMAGE_PATH = '/images/probuzhdenie/hero-berlinska-key.png' as const;
 const ZIGZAG_TAIL: ProbuzhdenieVisualBlock[] = [BERLINSKA_WHY, BERLINSKA_WHAT_DO, BERLINSKA_COURSE_KEY, ...BERLINSKA_WEEKS];
 
 /** Сторона фото у рядов **с иллюстрацией** (как на проде: первый блок — фото справа). */
+/** Статьи кластера «состояние/осознанность» — перелинковка с денежной страницы. */
+const PROB_BLOG_HIGHLIGHTS = [
+  {
+    slug: 'zhizn-na-avtopilote',
+    title: 'Жизнь на автопилоте: как выйти и вернуться к себе',
+    description: 'Дни сливаются, эмоции приглушены — почему мозг включает автопилот и как вернуть контакт с собой.',
+  },
+  {
+    slug: 'praktiki-osoznannosti-s-chego-nachat',
+    title: 'Практики осознанности для начинающих: с чего начать',
+    description: 'Почему эффект от практик быстро исчезает и что помогает дойти до устойчивого результата.',
+  },
+  {
+    slug: 'ustalost-ne-prohodit-posle-otdyha',
+    title: 'Усталость не проходит даже после отдыха: почему так бывает',
+    description: 'Когда усталость держится не расписанием, а незавершённым стрессом, и что с этим делать.',
+  },
+  {
+    slug: 'kak-vybrat-kurs-avaterra',
+    title: 'Как выбрать курс: «Тело не врёт» или «Пробуждение»',
+    description: 'Два курса решают разные задачи: освоить навык или вернуть контакт с собой. Разбираем, что выбрать.',
+  },
+] as const;
+
 function imageOnLeftForImageRow(imageRowIndex: number, block: ProbuzhdenieVisualBlock): boolean {
   if (block.imageOnLeftOverride !== undefined) return block.imageOnLeftOverride;
   return imageRowIndex % 2 === 1;
@@ -265,6 +289,22 @@ export default async function ProbuzhdeniePage() {
 
         <LandingSection id="faq" eyebrow="Вопросы" title="Что спрашивают перед стартом" tone="bg">
           <FaqBlock items={PROB_FAQ} />
+        </LandingSection>
+
+        {/* Перелинковка со статьями блога: у «Тела не врёт» такой блок есть,
+            у «Пробуждения» не было — статьи кластера оставались без ссылок
+            с денежной страницы. */}
+        <LandingSection eyebrow="Блог" title="По теме в блоге" tone="lavender">
+          <ul className="space-y-4">
+            {PROB_BLOG_HIGHLIGHTS.map((post) => (
+              <li key={post.slug}>
+                <Link href={`/blog/${post.slug}`} className="text-plum hover:underline">
+                  {post.title}
+                </Link>
+                <p className="mt-1 text-sm text-[var(--text-muted)]">{post.description}</p>
+              </li>
+            ))}
+          </ul>
         </LandingSection>
 
         <FinalCTA

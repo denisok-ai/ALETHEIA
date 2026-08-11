@@ -81,7 +81,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      */
     const CONTENT_REVISED: Record<string, string> = {
       '/course/navyki-myshechnogo-testirovaniya': '2026-06-08',
-      '/course/probuzhdenie': '2026-06-08',
+      '/course/probuzhdenie': '2026-08-11',
       '/about': '2026-07-22',
       '/faq': '2026-07-16',
       '/contacts': '2026-06-08',
