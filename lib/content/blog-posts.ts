@@ -90,7 +90,10 @@ export async function getPublishedBlogPosts(): Promise<BlogPostView[]> {
       h1: r.h1,
       description: r.description,
       body: parseBody(r.body, r.bodyFormat),
-      ogImage: r.ogImage ?? BLOG_DEFAULT_OG_IMAGE,
+      // Без собственной картинки — динамическая карточка с заголовком
+      // (/api/og/blog/[slug], lib/og/blog-card.tsx). Статический fallback ниже
+      // остаётся на общей заглушке: при недоступной БД не отрендерится и карточка.
+      ogImage: r.ogImage ?? `/api/og/blog/${r.slug}`,
       coverImage: r.coverImage,
       publishedAt: (r.publishedAt ?? r.createdAt).toISOString(),
     }));
