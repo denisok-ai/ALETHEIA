@@ -1,7 +1,9 @@
 'use client';
 
 /**
- * Таблица сессий пользователя: IP, время входа, время выхода, User-Agent.
+ * Таблица сессий пользователя: IP, время входа/выхода и системное окружение
+ * (браузер, ОС, устройство из User-Agent — lib/ua-parse). Полный User-Agent
+ * доступен в тултипе колонки «Браузер».
  */
 import { useState, useCallback, useEffect } from 'react';
 import { Card } from '@/components/portal/Card';
@@ -19,6 +21,7 @@ import { RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { toast } from 'sonner';
+import { parseUserAgent } from '@/lib/ua-parse';
 
 interface SessionRow {
   id: string;
@@ -134,21 +137,28 @@ export function VisitDetailClient({ userId }: { userId: string }) {
               <TableHead>Последняя активность</TableHead>
               <TableHead>Выход</TableHead>
               <TableHead>IP</TableHead>
-              <TableHead>User-Agent</TableHead>
+              <TableHead>Браузер</TableHead>
+              <TableHead>ОС</TableHead>
+              <TableHead>Устройство</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {data.items.map((row) => (
-              <TableRow key={row.id}>
-                <TableCell>{safeFormat(row.loginAt)}</TableCell>
-                <TableCell>{safeFormat(row.lastActivityAt)}</TableCell>
-                <TableCell>{row.logoutAt ? safeFormat(row.logoutAt) : '—'}</TableCell>
-                <TableCell className="font-mono text-xs">{row.ipAddress ?? '—'}</TableCell>
-                <TableCell className="max-w-[200px] truncate text-xs text-[var(--portal-text-muted)]" title={row.userAgent ?? undefined}>
-                  {row.userAgent ?? '—'}
-                </TableCell>
-              </TableRow>
-            ))}
+            {data.items.map((row) => {
+              const env = parseUserAgent(row.userAgent);
+              return (
+                <TableRow key={row.id}>
+                  <TableCell>{safeFormat(row.loginAt)}</TableCell>
+                  <TableCell>{safeFormat(row.lastActivityAt)}</TableCell>
+                  <TableCell>{row.logoutAt ? safeFormat(row.logoutAt) : '—'}</TableCell>
+                  <TableCell className="font-mono text-xs">{row.ipAddress ?? '—'}</TableCell>
+                  <TableCell className="text-sm" title={row.userAgent ?? undefined}>
+                    {env.browser}
+                  </TableCell>
+                  <TableCell className="text-sm text-[var(--portal-text-muted)]">{env.os}</TableCell>
+                  <TableCell className="text-sm text-[var(--portal-text-muted)]">{env.device}</TableCell>
+                </TableRow>
+              );
+            })}
           </TableBody>
         </Table>
       )}
