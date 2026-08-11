@@ -11,7 +11,11 @@ export function pickScormEntryPath(
   parsed: ParsedManifest | null
 ): string {
   const keys = Object.keys(zip.files).filter((k) => !zip.files[k].dir);
-  const norm = (p: string) => p.replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+/g, '/');
+  // iSpring пишет в href query-параметр (driver/index.html?id=…) — файла с таким
+  // именем в пакете нет, и без среза query выбор падал на случайный index.html
+  // (зависел от порядка обхода файлов; так корень пакета попадал вместо driver/).
+  const norm = (p: string) =>
+    p.replace(/[?#].*$/, '').replace(/\\/g, '/').replace(/^\/+/, '').replace(/\/+/g, '/');
   const has = (p: string) => {
     const n = norm(p);
     return keys.some((k) => norm(k) === n);
