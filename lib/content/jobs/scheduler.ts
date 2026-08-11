@@ -42,10 +42,19 @@ export function startContentJobScheduler() {
   if (started) return;
   started = true;
 
-  // Site Radar каждые 6 часов
-  cron.schedule('0 */6 * * *', () => safeRun('site-radar', () => runSiteRadarCycle(false)), {
-    timezone: 'Europe/Moscow',
-  });
+  // Site Radar каждые 6 часов (при паузе конвейера тоже молчит: его темы
+  // некому потреблять, а оповещения о сигналах — шум для владельца)
+  cron.schedule(
+    '0 */6 * * *',
+    async () => {
+      const config = await getContentConfig();
+      if (config.paused) return;
+      await safeRun('site-radar', () => runSiteRadarCycle(false));
+    },
+    {
+      timezone: 'Europe/Moscow',
+    }
+  );
 
   // Недельный план: воскресенье 19:00 МСК — на СЛЕДУЮЩУЮ неделю.
   // Якорь «завтра» обязателен: в воскресенье startOfWeek(new Date()) — это
@@ -54,8 +63,18 @@ export function startContentJobScheduler() {
   // канал не получил ни одного поста, ошибок при этом не было нигде.
   cron.schedule(
     '0 19 * * 0',
-    () =>
-      safeRun('weekly-plan', () => buildWeekPlan(new Date(Date.now() + 24 * 60 * 60 * 1000))),
+    async () => {
+      // Пауза останавливает ВЕСЬ конвейер, не только публикацию: иначе при
+      // paused каждое воскресенье строился бы план, а каждый день жглись бы
+      // LLM-токены на генерацию постов, которые никуда не пойдут
+      // (решение владельца 11.08.2026: посты в канал Татьяна ведёт сама).
+      const config = await getContentConfig();
+      if (config.paused) {
+        console.log('[jobs] weekly-plan skipped — paused');
+        return;
+      }
+      await safeRun('weekly-plan', () => buildWeekPlan(new Date(Date.now() + 24 * 60 * 60 * 1000)));
+    },
     {
       timezone: 'Europe/Moscow',
     }
@@ -63,15 +82,15 @@ export function startContentJobScheduler() {
 
   // Ежедневная подготовка + публикация 11:00 МСК
   cron.schedule('0 11 * * *', async () => {
+    const config = await getContentConfig();
+    if (config.paused) {
+      console.log('[jobs] daily prepare/publish skipped — paused');
+      return;
+    }
     await safeRun('daily-prepare', async () => {
       await prepareDueItemsForDate(new Date());
     });
     await safeRun('daily-publish', async () => {
-      const config = await getContentConfig();
-      if (config.paused) {
-        console.log('[jobs] publish skipped — paused');
-        return;
-      }
       await publishDueToday(false);
     });
   }, { timezone: 'Europe/Moscow' });
