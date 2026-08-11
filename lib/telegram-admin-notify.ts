@@ -19,7 +19,8 @@ export type AdminTelegramEvent =
   | 'installment_completed'
   | 'installment_payment_failed'
   | 'installment_reminder'
-  | 'content_integrity';
+  | 'content_integrity'
+  | 'blog_announced';
 
 const EVENT_LABELS: Record<AdminTelegramEvent, string> = {
   contact_lead: 'Новая заявка с сайта',
@@ -34,6 +35,7 @@ const EVENT_LABELS: Record<AdminTelegramEvent, string> = {
   installment_payment_failed: 'Ошибка списания рассрочки',
   installment_reminder: 'Напоминание о рассрочке',
   content_integrity: 'Целостность контента курсов',
+  blog_announced: 'Анонс статьи в канал',
 };
 
 /** Разбор списка chat ID из настроек (через запятую). */

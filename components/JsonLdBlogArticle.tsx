@@ -43,6 +43,8 @@ export function JsonLdBlogArticle({
     author: {
       '@type': 'Person',
       name: authorName,
+      // Сущностная связка E-E-A-T: у автора есть собственная страница на сайте.
+      ...(origin ? { url: `${origin}/blog/tatyana-streltsova` } : {}),
     },
     publisher: {
       '@type': 'Organization',

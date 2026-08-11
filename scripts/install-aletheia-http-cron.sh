@@ -60,6 +60,10 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # диске, в платном курсе не demo/trial-пакет.
 40 8 * * * root /opt/ALETHEIA/scripts/cron-http-call.sh content-integrity
 
+# Авто-анонс статьи блога в Telegram-канал — раз в сутки, 10:30 МСК.
+# No-op, пока не задан канал (content_channel_id) — см. lib/content/blog-announce.ts.
+30 10 * * * root /opt/ALETHEIA/scripts/cron-http-call.sh blog-announce
+
 # Сторож фоновых задач — каждые 30 мин.
 # Сообщает, если задача перестала ВЫПОЛНЯТЬСЯ вообще (пропал файл cron,
 # рестарт-луп демона). Живёт вне приложения: механизм внутри не может

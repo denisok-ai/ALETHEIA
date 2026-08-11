@@ -19,6 +19,14 @@ export const dynamic = 'force-dynamic';
 const DISALLOW = ['/portal', '/portal/', '/api/', '/auth/'];
 
 /**
+ * Исключения из Disallow. `/api/og/` — OG-карточки статей (og:image указывает
+ * на /api/og/blog/<slug>): без явного Allow запрет /api/ не давал роботам
+ * забирать картинки статей — терялись превью в поисковой выдаче и Дзене.
+ * Более длинное правило Allow побеждает Disallow и у Google, и у Яндекса.
+ */
+const ALLOW_EXCEPTIONS = ['/api/og/'];
+
+/**
  * ИИ-поисковики и ассистенты: явно разрешаем публичный контент, чтобы школа
  * попадала в ответы (ChatGPT, Claude, Perplexity, Яндекс Нейро и другие).
  */
@@ -65,7 +73,12 @@ const CLEAN_PARAMS = [
 ];
 
 function block(userAgent: string): string {
-  return [`User-Agent: ${userAgent}`, 'Allow: /', ...DISALLOW.map((p) => `Disallow: ${p}`)].join('\n');
+  return [
+    `User-Agent: ${userAgent}`,
+    'Allow: /',
+    ...ALLOW_EXCEPTIONS.map((p) => `Allow: ${p}`),
+    ...DISALLOW.map((p) => `Disallow: ${p}`),
+  ].join('\n');
 }
 
 export async function GET() {

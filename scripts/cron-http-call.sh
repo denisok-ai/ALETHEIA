@@ -1,7 +1,7 @@
 #!/bin/bash
 # Вызов защищённого HTTP cron-маршрута Next.js с Bearer CRON_SECRET из .env.
 # Использование: cron-http-call.sh <endpoint>
-#   endpoint: mailings-send | inmail-sync | installment-payments | reconcile-enrollments | blog-telegram-sync | paykeeper-health | nudge-inactive-enrollees | content-integrity
+#   endpoint: mailings-send | inmail-sync | installment-payments | reconcile-enrollments | blog-telegram-sync | paykeeper-health | nudge-inactive-enrollees | content-integrity | blog-announce
 set -euo pipefail
 
 ENDPOINT="${1:-}"
