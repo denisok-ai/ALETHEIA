@@ -9,6 +9,15 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { BRAND_SCHOOL_LINE, BRAND_SITE_NAME } from '@/lib/brand';
 import { courseIntro } from '@/lib/content/course-lynda-teaser';
 import { getPdnOperatorPublic } from '@/lib/pdn-public';
+import { TELEGRAM_BOT_URL, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
+
+function FooterTelegramIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M21.94 4.66a1.28 1.28 0 0 0-1.32-.18L2.93 11.3a1.2 1.2 0 0 0 .09 2.23l4.74 1.58 1.82 5.52a1.2 1.2 0 0 0 1.87.5l2.6-2.28 4.83 3.56a1.2 1.2 0 0 0 1.9-.78l2.14-15.47ZM9.28 13.87l8.11-5.05-6.2 6.72-.28 2.98 2.37-4.65Z" />
+    </svg>
+  );
+}
 
 interface FooterProps {
   /** Из настроек портала (БД). Если не задан — блок телефона не показывается. */
@@ -62,6 +71,16 @@ export function Footer({ contactPhone }: FooterProps) {
                   className="flex items-center justify-center gap-2 md:justify-start hover:text-plum transition-colors"
                 >
                   <Mail className="h-4 w-4" /> support@avaterra.pro
+                </a>
+              </li>
+              <li>
+                <a
+                  href={TELEGRAM_BOT_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 md:justify-start hover:text-plum transition-colors"
+                >
+                  <FooterTelegramIcon className="h-4 w-4" /> Бот {TELEGRAM_BOT_USERNAME}
                 </a>
               </li>
               {op.address ? (

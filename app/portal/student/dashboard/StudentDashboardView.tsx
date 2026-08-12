@@ -11,6 +11,37 @@ import { ChargeBatteryGauge } from '@/components/portal/ChargeBatteryGauge';
 import { StudentOnboardingHint } from '@/components/portal/StudentOnboardingHint';
 import { formatNotificationContent, formatNotificationType } from '@/lib/notification-content';
 import { pluralize } from '@/lib/pluralize';
+import { TELEGRAM_BOT_URL, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
+
+function DashboardTelegramIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M21.94 4.66a1.28 1.28 0 0 0-1.32-.18L2.93 11.3a1.2 1.2 0 0 0 .09 2.23l4.74 1.58 1.82 5.52a1.2 1.2 0 0 0 1.87.5l2.6-2.28 4.83 3.56a1.2 1.2 0 0 0 1.9-.78l2.14-15.47ZM9.28 13.87l8.11-5.05-6.2 6.72-.28 2.98 2.37-4.65Z" />
+    </svg>
+  );
+}
+
+function TelegramBotCard() {
+  return (
+    <a
+      href={TELEGRAM_BOT_URL}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="portal-card flex items-center gap-4 p-5 transition-colors hover:border-[var(--portal-accent)]"
+    >
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--portal-accent-soft)] text-[var(--portal-accent-dark)]">
+        <DashboardTelegramIcon className="h-5 w-5" />
+      </span>
+      <div className="min-w-0">
+        <p className="text-sm font-semibold text-[var(--portal-text)]">Telegram-бот школы</p>
+        <p className="text-sm text-[var(--portal-text-muted)]">
+          Прогресс, сертификат и ответы под рукой — откройте {TELEGRAM_BOT_USERNAME}
+        </p>
+      </div>
+      <ChevronRight className="ml-auto h-5 w-5 shrink-0 text-[var(--portal-text-soft)]" />
+    </a>
+  );
+}
 
 export type EarnedBadgeItem = { minXp: number; emoji: string; label: string };
 
@@ -318,6 +349,8 @@ export function StudentDashboardView({
           </div>
         </div>
       )}
+
+      <TelegramBotCard />
     </div>
   );
 }
