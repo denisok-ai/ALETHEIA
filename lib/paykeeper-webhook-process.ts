@@ -32,6 +32,9 @@ async function sendPaymentEmail(params: {
       module: 'payments',
       entityId: String(params.order.id),
       userId: params.userId,
+      // Письмо после оплаты несёт доступ к курсу и установку пароля —
+      // если оно не уйдёт, клиент останется без входа (инцидент Руденко).
+      critical: true,
     },
   });
 }

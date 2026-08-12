@@ -35,6 +35,14 @@ export interface EmailDeliveryContext {
   entityId?: string | null;
   userId?: string | null;
   sentBy?: string | null;
+  /**
+   * Критичное письмо (пароль, доступ к курсу): если отправка НЕ удалась
+   * синхронно, шлём Telegram-алерт админам сразу. Асинхронные отлупы (Gmail
+   * отбил уже принятое письмо) ловит отдельно scripts/mail-bounce-watch.sh.
+   * Вместе они закрывают инцидент Руденко: клиент не получил доступ, а мы
+   * узнали через 3 недели от него самого.
+   */
+  critical?: boolean;
 }
 
 export interface SendTransactionalEmailInput {
@@ -93,5 +101,18 @@ export async function sendTransactionalEmail(input: SendTransactionalEmailInput)
     attachments: input.attachments,
   });
   await writeEmailDeliveryLog({ input: { ...input, to }, result });
+
+  if (!result.ok && input.context.critical) {
+    // Ленивая загрузка, чтобы обычная отправка не тянула Telegram-модуль.
+    const { notifyAdminsTelegramAsync } = await import('@/lib/telegram-admin-notify');
+    notifyAdminsTelegramAsync('email_delivery_failed', [
+      `Не удалось отправить критичное письмо (${input.context.module}).`,
+      `Кому: ${to}`,
+      `Тема: ${input.subject}`,
+      `Причина: ${result.error.slice(0, 200)}`,
+      'Клиент мог не получить доступ/пароль — свяжитесь или задайте пароль вручную (scripts/admin-set-user-password.ts).',
+    ]);
+  }
+
   return result;
 }

@@ -99,6 +99,8 @@ export async function POST(request: NextRequest) {
         entityId: String(leadId),
         userId: user.id,
         sentBy: auth.userId,
+        // Письмо установки пароля — без него у нового пользователя нет входа.
+        critical: true,
       },
     });
   } catch (mailErr) {

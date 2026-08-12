@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       to: email,
       subject: passwordEmail.subject,
       html: passwordEmail.html,
-      context: { module: 'auth', entityId: user.id, userId: user.id },
+      context: { module: 'auth', entityId: user.id, userId: user.id, critical: true },
     });
 
     return NextResponse.json({ success: true });
