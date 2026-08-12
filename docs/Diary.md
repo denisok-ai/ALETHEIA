@@ -2,6 +2,13 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-08-12 (день, позже) — GA + Clarity включены (риск 152-ФЗ принят владельцем)
+
+- Владелец решил подключить иностранные счётчики (ранее выключены под 152-ФЗ). ID нашлись в истории git (искал `git log --all -p | grep`): GA `G-7CQ48S3CFF`, Clarity `w4v3ss4ro9` — те же, что стояли до отключения. `components/SiteAnalytics.tsx` (gtag + Clarity, рендерится только при заданных `NEXT_PUBLIC_GA_MEASUREMENT_ID`/`NEXT_PUBLIC_CLARITY_PROJECT_ID` в production). NEXT_PUBLIC_* вшиваются при СБОРКЕ — ID добавлены в build-env worktree И в server `.env` (бэкап `.env.bak-analytics-*`).
+- CSP-грабли (проверка живым браузером, не по HTML!): (1) добавил `googletagmanager.com` + `www.clarity.ms` в script-src — GA заработал сразу; (2) Clarity подгружает основной скрипт с **`scripts.clarity.ms`**, а не www — боевая CSP резала его молча, запись сессий не шла; добавил `scripts.clarity.ms` — стало 200, `z.clarity.ms/collect` 204 (сессии пишутся). img-src/connect-src уже были `https:`, так что биконы проходили. Report-Only политика по-прежнему сыплет «inline script violates» — это by design, не блок.
+- Политика ПДн (разделы 4,7,9) и cookie-баннер обновлены: честно раскрыты GA/Clarity и трансграничная передача в США (раскрытие снижает риск, но не отменяет — окончательная оценка за владельцем/юристом).
+- GitHub: владелец прислал classic PAT в чат (засветился!) — сохранён в scratchpad/.ghtoken (вне git, chmod 600), для gh не хватает scope read:org, но API работает (Actions читаются). НАДО: владельцу отозвать токен и выпустить fine-grained только на репозиторий ALETHEIA.
+
 ## 2026-08-12 (день) — Telegram переведён на постоянный VPN (OpenConnect)
 
 - Владелец прислал реквизиты нового VPN: OpenConnect/AnyConnect (SSL VPN), `nodevonly.freemyip.com:443` (= фиксированный IP `89.110.127.47`), логин Avaterra. Заменил временный домашний мост на постоянный серверный канал.

@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-08-12) — GA + Clarity включены и активированы
+
+- ID восстановлены из истории проекта: GA `G-7CQ48S3CFF`, Clarity `w4v3ss4ro9` (вписаны в build-env и server `.env`). Живая браузерная проверка: `gtag` шлёт `google-analytics.com/g/collect`, Clarity грузит `tag`→`scripts.clarity.ms/clarity.js`→`z.clarity.ms/collect` (запись сессий работает), Метрика — как прежде. CSP script-src потребовала `scripts.clarity.ms` (Clarity грузит основной скрипт оттуда, не с www.clarity.ms) — иначе запись сессий молча резалась. Все три счётчика раскрыты в Политике и cookie-баннере.
+
 ### Added (2026-08-12) — Промо Telegram-бота на сайте
 
 - Компонент `TelegramPromo` (бот @AvaterraProBot + ссылка на канал): честный оффер — бот отвечает о методе, помогает выбрать курс, студентам показывает прогресс/сертификат. Размещён в трёх местах: конец каждой статьи блога (тёплая аудитория), секция на главной (между блогом и FAQ, `#telegram`), карточка на странице «Контакты». `TELEGRAM_BOT_URL` в `lib/social-links.ts`.
