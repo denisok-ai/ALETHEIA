@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-08-12) — Почтовый дублёр алертов и проба Telegram-связности
+
+- `notifyAdminsTelegram`: если ни один алерт не доставился в Telegram — письмо на `resend_notify_email` (не чаще раза в час). Закрывает системную дыру «алерт о падении Telegram шёл в Telegram».
+- Суточный монитор `content-integrity` дополнен пробой `getMe` тем же путём, что боевые вызовы (через HTTPS_PROXY): падение egress теперь видно максимум через сутки, а не через 9 дней.
+
 ### Fixed (2026-08-12) — Прод 9 дней без Telegram (бот, алерты, автоимпорт)
 
 - С 03.08 у VPS не было выхода к Telegram: умерли оба канала владельца (VLESS отвергает рукопожатие, outline-домен удалён из DNS — истёкшая VPN-подписка). Молчали студенческий бот, все Telegram-алерты и автоимпорт канала в блог; обнаружено по heartbeat `blog-telegram-sync`. Tor и WARP с VPS душатся DPI — временный мост: CONNECT-прокси на машине владельца (белый список Telegram-доменов) + обратный SSH-туннель (`scripts/telegram-connect-proxy.mjs`, `scripts/telegram-egress-home.sh`); `scripts/restore-telegram-egress.sh` — быстрый возврат на штатный VPN, когда владелец продлит подписку. Проверено сквозно: getMe ok, синк блога 200, контрольное сообщение доставлено.

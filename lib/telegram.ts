@@ -64,6 +64,16 @@ async function telegramBotApi<T = unknown>(
   }
 }
 
+/**
+ * Проба связности с Telegram API (getMe тем же путём, что и боевые вызовы —
+ * через прокси из HTTPS_PROXY). Для мониторинга: инцидент 03–12.08.2026 —
+ * egress умер, и 9 дней об этом не знал никто.
+ */
+export async function probeTelegramApi(): Promise<{ ok: boolean; error?: string }> {
+  const r = await telegramBotApi('getMe', {});
+  return r.ok ? { ok: true } : { ok: false, error: r.error };
+}
+
 export async function sendTelegramMessageWithResult(
   chatId: string | number,
   text: string,

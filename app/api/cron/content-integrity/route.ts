@@ -23,6 +23,7 @@ import { prisma } from '@/lib/db';
 import { requireCronAuth } from '@/lib/cron-auth';
 import { markCronOk } from '@/lib/cron-heartbeat';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
+import { probeTelegramApi } from '@/lib/telegram';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -106,6 +107,17 @@ async function collectProblems(): Promise<string[]> {
       }
     }
   }
+
+  // Связность с Telegram: egress умирал молча (03–12.08.2026 — 9 дней без
+  // бота и алертов). Алерт об этой проблеме уйдёт почтовым дублёром
+  // (notifyAdminsTelegram при полном отказе Telegram шлёт email).
+  const tg = await probeTelegramApi();
+  if (!tg.ok) {
+    problems.push(
+      `Telegram недоступен с сервера (${tg.error ?? 'ошибка'}): бот, алерты и автоимпорт канала не работают — проверьте мост/VPN (HTTPS_PROXY)`
+    );
+  }
+
   return problems;
 }
 

@@ -89,10 +89,60 @@ export async function notifyAdminsTelegram(
     if (failed > 0) {
       console.warn(`[telegram-admin] ${event}: sent=${sent} failed=${failed}`);
     }
+    if (sent === 0) {
+      // Ни одно сообщение не ушло — вероятно, лежит сам Telegram-канал сервера
+      // (инцидент 03–12.08.2026: 9 дней молчали ВСЕ алерты, потому что алерт
+      // о падении Telegram слался в Telegram). Дублируем на почту.
+      await sendAdminAlertEmailFallback(event, lines).catch((e) =>
+        console.error('[telegram-admin] email fallback:', e)
+      );
+    }
     return { sent, failed, skipped: false };
   } catch (e) {
     console.error(`[telegram-admin] ${event}:`, e);
     return { sent: 0, failed: 0, skipped: false };
+  }
+}
+
+const EMAIL_FALLBACK_LAST_KEY = 'admin_alert_email_fallback_last_at';
+/** Не чаще раза в час: при лежащем Telegram алертов может быть много. */
+const EMAIL_FALLBACK_MIN_INTERVAL_MS = 60 * 60 * 1000;
+
+/**
+ * Почтовый дублёр: когда Telegram не доставил НИ одного алерта — шлём письмо
+ * на resend_notify_email (админская почта). Почта не зависит от Telegram-egress.
+ */
+async function sendAdminAlertEmailFallback(
+  event: AdminTelegramEvent,
+  lines: string[]
+): Promise<void> {
+  const last = await prisma.systemSetting.findUnique({ where: { key: EMAIL_FALLBACK_LAST_KEY } });
+  if (last?.value && Date.now() - new Date(last.value).getTime() < EMAIL_FALLBACK_MIN_INTERVAL_MS) {
+    return;
+  }
+  // Ленивая загрузка: обычный путь алертов не должен тянуть почтовый модуль.
+  const [{ sendEmail }, { getSystemSettings }] = await Promise.all([
+    import('./email'),
+    import('./settings'),
+  ]);
+  const settings = await getSystemSettings();
+  const to = settings.resend_notify_email;
+  if (!to) return;
+
+  const label = EVENT_LABELS[event] ?? event;
+  const html = [
+    `<p><strong>Telegram-оповещения не доставляются</strong> — это почтовый дублёр алерта.</p>`,
+    `<p><strong>${escapeHtml(label)}</strong></p>`,
+    ...lines.map((l) => `<p>${escapeHtml(l)}</p>`),
+    `<p style="color:#64748B">Проверьте Telegram-канал сервера (HTTPS_PROXY, мост/VPN). Повторные письма — не чаще раза в час.</p>`,
+  ].join('\n');
+  const ok = await sendEmail(to, `AVATERRA алерт (Telegram недоступен): ${label}`, html);
+  if (ok) {
+    await prisma.systemSetting.upsert({
+      where: { key: EMAIL_FALLBACK_LAST_KEY },
+      update: { value: new Date().toISOString() },
+      create: { key: EMAIL_FALLBACK_LAST_KEY, value: new Date().toISOString(), category: 'monitoring' },
+    });
   }
 }
 
