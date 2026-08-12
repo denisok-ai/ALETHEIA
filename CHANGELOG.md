@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-08-12) — Telegram-egress переведён на постоянный OpenConnect VPN
+
+- Временный мост через домашний комп заменён серверным каналом: `scripts/setup-openconnect-telegram.sh` поднимает openconnect в user-space (`--script-tun` + `ocproxy`, SOCKS 127.0.0.1:1091) — таблица маршрутов сервера НЕ меняется, через VPN уходит только Telegram (gost 18080 → ocproxy). Почта и сайт остаются на прямом маршруте. Реквизиты — `/etc/openconnect-telegram.env` (root-only), пин сертификата вычисляется автоматически. Домашний мост отключён.
+
 ### Added (2026-08-12) — Почтовый дублёр алертов и проба Telegram-связности
 
 - `notifyAdminsTelegram`: если ни один алерт не доставился в Telegram — письмо на `resend_notify_email` (не чаще раза в час). Закрывает системную дыру «алерт о падении Telegram шёл в Telegram».

@@ -2,6 +2,14 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-08-12 (день) — Telegram переведён на постоянный VPN (OpenConnect)
+
+- Владелец прислал реквизиты нового VPN: OpenConnect/AnyConnect (SSL VPN), `nodevonly.freemyip.com:443` (= фиксированный IP `89.110.127.47`), логин Avaterra. Заменил временный домашний мост на постоянный серверный канал.
+- **Ключевое — не сломать почту:** openconnect в режиме `--script-tun` + `ocproxy` работает в user-space и НЕ трогает таблицу маршрутов (default route по-прежнему eth0 напрямую). Через VPN уходит ТОЛЬКО Telegram: `openconnect-telegram.service` → SOCKS 127.0.0.1:1091 → gost 18080 (drop-in) → приложение `HTTPS_PROXY=http://127.0.0.1:18080`. Проверено: `ip route get 8.8.8.8` = eth0, gmail/сайт напрямую.
+- **Грабли по пути:** (1) DNS сервера не резолвит `freemyip.com` (тот же фильтр, что убил прежний outline) — прописал IP в `/etc/hosts`; при этом append без `\n` склеил строку и снёс `95.181.224.70 p941004.kvmvps` — восстановил. (2) `--servercert=ACCEPT` не работает, нужен реальный пин: `pin-sha256:sLVQf3c4564oXsDaTgfU3iplWsUoxa6J3irkvrmpri8=` (скрипт вычисляет сам через openssl). (3) DTLS/UDP VPN-сервером закрыт — работает по SSL (TCP), для Telegram достаточно.
+- Установка одной командой: `scripts/setup-openconnect-telegram.sh` (реквизиты в `/etc/openconnect-telegram.env`, root-only). Стабильность: ~0.2 c на запрос (стабильнее моста). Домашний мост (tmux tg-egress + crontab @reboot) снят. Контрольное сообщение владельцу ушло через новый канал.
+- `scripts/restore-telegram-egress.sh` (WARP) и `telegram-egress-home.sh` (мост) оставлены в репо как запасные варианты.
+
 ## 2026-08-12 — Прод 9 дней был без Telegram: умерла VPN-подписка
 
 ### Наблюдения
