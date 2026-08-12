@@ -35,8 +35,14 @@ EP_HOST="${ENDPOINT%:*}"
 EP_PORT="${ENDPOINT##*:}"
 ADDR4=$(grep -m1 '^Address' "$PROFILE" | cut -d= -f2- | tr -d ' ' | tr ',' '\n' | grep '\.' | head -1)
 ADDR6=$(grep -m1 '^Address' "$PROFILE" | cut -d= -f2- | tr -d ' ' | tr ',' '\n' | grep ':' | head -1 || true)
-CLIENT_ID=$(grep -m1 'client_id' "$ACCOUNT" | cut -d"'" -f2)
-RESERVED=$(python3 -c "import base64;print(list(base64.b64decode('$CLIENT_ID')))")
+# client_id пишут не все версии wgcf; для wgcf-аккаунтов reserved-байты не
+# обязательны (профиль работает с обычным WireGuard) — тогда [0,0,0].
+CLIENT_ID=$(grep -m1 'client_id' "$ACCOUNT" | cut -d"'" -f2 || true)
+if [[ -n "$CLIENT_ID" ]]; then
+  RESERVED=$(python3 -c "import base64;print(list(base64.b64decode('$CLIENT_ID')))")
+else
+  RESERVED="[0, 0, 0]"
+fi
 
 echo "Endpoint: $EP_HOST:$EP_PORT; addr4=$ADDR4; reserved=$RESERVED"
 [[ -n "$PRIV" && -n "$ADDR4" && -n "$RESERVED" ]] || { echo "Не удалось разобрать профиль"; exit 1; }
