@@ -78,9 +78,12 @@ const nextConfig = {
           // поисковый трафик (135 визитов за апрель–июнь). Блокировку никто
           // не заметил, потому что для посетителя сайт выглядел исправным.
           // mc.yandex.com — зеркало, на которое tag.js может переключаться.
+          // GA (googletagmanager.com) и Clarity (clarity.ms) — «иностранные»
+          // счётчики, включены 12.08.2026. Без этих доменов в script-src CSP
+          // молча заблокирует скрипты, как это было с mc.yandex.ru.
           isDev
-            ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru https://mc.yandex.com"
-            : "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com",
+            ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms"
+            : "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data:",
@@ -108,7 +111,7 @@ const nextConfig = {
         key: 'Content-Security-Policy-Report-Only',
         value: [
           "default-src 'self'",
-          "script-src 'self' https://mc.yandex.ru https://mc.yandex.com",
+          "script-src 'self' https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data:",

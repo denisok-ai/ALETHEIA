@@ -50,9 +50,8 @@ export function CookieConsentBanner() {
     >
       <div className="mx-auto flex max-w-4xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <p className="text-sm leading-relaxed text-[var(--text)]">
-          Сайт использует cookie: необходимые для работы (сессия, безопасность) и аналитические (Яндекс.Метрика) для
-          улучшения сайта. Иностранные счётчики (Google Analytics, Microsoft Clarity) не подключаются. Продолжая
-          пользоваться сайтом, вы соглашаетесь с{' '}
+          Сайт использует cookie: необходимые для работы (сессия, безопасность) и аналитические — Яндекс.Метрика, Google
+          Analytics и Microsoft Clarity — для улучшения сайта. Продолжая пользоваться сайтом, вы соглашаетесь с{' '}
           <Link href="/privacy" className="font-medium text-plum underline hover:opacity-90">
             Политикой обработки персональных данных
           </Link>

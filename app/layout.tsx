@@ -11,6 +11,7 @@ import { getSystemSettings } from '@/lib/settings';
 import { JsonLdOrganization } from '@/components/JsonLdOrganization';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner';
 import { YandexMetrika } from '@/components/YandexMetrika';
+import { SiteAnalytics } from '@/components/SiteAnalytics';
 import { JsonLdWebSite } from '@/components/JsonLdWebSite';
 import { RootMain } from '@/components/RootMain';
 import { normalizeSiteUrl } from '@/lib/site-url';
@@ -130,6 +131,7 @@ export default async function RootLayout({
         />
         <JsonLdWebSite siteUrl={siteUrl} name={BRAND_SITE_NAME} />
         <YandexMetrika />
+        <SiteAnalytics />
         <CookieConsentBanner />
         <ChunkLoadRecovery />
         <SessionProvider>

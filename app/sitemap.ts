@@ -87,7 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       '/contacts': '2026-08-12',
       '/news': '2026-07-16',
       '/oferta': '2026-04-27',
-      '/privacy': '2026-06-08',
+      '/privacy': '2026-08-12',
       '/pd-consent': '2026-06-08',
     };
 
