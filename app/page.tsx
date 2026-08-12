@@ -6,6 +6,7 @@ import { JsonLdCourse } from '@/components/JsonLdCourse';
 import { JsonLdLandingFaq } from '@/components/JsonLdLandingFaq';
 import { LandingBlog } from '@/components/sections/LandingBlog';
 import { LandingFAQ } from '@/components/sections/LandingFAQ';
+import { TelegramPromo } from '@/components/TelegramPromo';
 import { getSystemSettings } from '@/lib/settings';
 import { DEFAULT_OG_IMAGE_PATH, SEO_HOME } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
@@ -83,6 +84,7 @@ export default async function HomePage() {
       <Author />
       <Testimonials />
       <LandingBlog />
+      <TelegramPromo variant="section" />
       <LandingFAQ />
       <Pricing initialProducts={tariffs.length ? tariffs : undefined} />
       <FAQ />

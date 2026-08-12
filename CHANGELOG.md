@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-08-12) — Промо Telegram-бота на сайте
+
+- Компонент `TelegramPromo` (бот @AvaterraProBot + ссылка на канал): честный оффер — бот отвечает о методе, помогает выбрать курс, студентам показывает прогресс/сертификат. Размещён в трёх местах: конец каждой статьи блога (тёплая аудитория), секция на главной (между блогом и FAQ, `#telegram`), карточка на странице «Контакты». `TELEGRAM_BOT_URL` в `lib/social-links.ts`.
+
 ### Changed (2026-08-12) — Telegram-egress переведён на постоянный OpenConnect VPN
 
 - Временный мост через домашний комп заменён серверным каналом: `scripts/setup-openconnect-telegram.sh` поднимает openconnect в user-space (`--script-tun` + `ocproxy`, SOCKS 127.0.0.1:1091) — таблица маршрутов сервера НЕ меняется, через VPN уходит только Telegram (gost 18080 → ocproxy). Почта и сайт остаются на прямом маршруте. Реквизиты — `/etc/openconnect-telegram.env` (root-only), пин сертификата вычисляется автоматически. Домашний мост отключён.

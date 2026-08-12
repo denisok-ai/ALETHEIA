@@ -84,7 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       '/course/probuzhdenie': '2026-08-11',
       '/about': '2026-07-22',
       '/faq': '2026-07-16',
-      '/contacts': '2026-06-08',
+      '/contacts': '2026-08-12',
       '/news': '2026-07-16',
       '/oferta': '2026-04-27',
       '/privacy': '2026-06-08',

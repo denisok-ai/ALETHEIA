@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { BlogArticleCourseLinks } from '@/components/BlogArticleCourseLinks';
 import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
+import { TelegramPromo } from '@/components/TelegramPromo';
 import { JsonLdBlogArticle } from '@/components/JsonLdBlogArticle';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { getBlogPostBySlug, getPublishedBlogPosts } from '@/lib/content/blog-posts';
@@ -212,6 +213,10 @@ export default async function BlogArticlePage({ params }: Props) {
             </ul>
           </aside>
         ) : null}
+
+        <div className="mt-10">
+          <TelegramPromo variant="card" />
+        </div>
 
         <div className="mt-10">
           <CourseCheckoutCTA />

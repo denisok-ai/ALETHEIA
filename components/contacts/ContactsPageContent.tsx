@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
+import { TelegramPromo } from '@/components/TelegramPromo';
 
 type Props = {
   /** null, если реальный контакт не задан в настройках — см. app/contacts/page.tsx */
@@ -50,6 +51,10 @@ export function ContactsPageContent({ phone, phoneHref, address }: Props) {
           </li>
         ) : null}
       </ul>
+
+      <div className="mt-8">
+        <TelegramPromo variant="card" />
+      </div>
 
       <p className="mt-10 text-center text-sm text-[var(--text-muted)]">
         <Link href="/#pricing" className="font-medium text-plum hover:underline">
