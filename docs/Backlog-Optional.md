@@ -8,7 +8,7 @@
 | Уведомления | ~~Очистка журнала: API + выбор срока в UI (7–365 дн.)~~ (обнаружено готовым 11.08: `NotificationLogsClient` + `/api/.../notification-logs/purge`); опционально позже — лимит по числу записей | [Notifications-Plan.md](Notifications-Plan.md) |
 | Отчётность | ~~Графики/тренды по периоду~~ (обнаружено готовым 11.08: LineChart в `ReportsClient`, вкладка «По периоду») | [Reports-Plan.md](Reports-Plan.md) |
 | Мониторинг | ~~Экран «системное окружение» (разбор User-Agent)~~ (сделано 11.08: `lib/ua-parse.ts`, колонки Браузер/ОС/Устройство в детализации посещений) | [Monitoring-Plan.md](Monitoring-Plan.md) |
-| Верификация | Связь задания с прогрессом/сертификатом | [Verification-Module.md](Verification-Module.md) |
+| Верификация | ~~Связь задания с прогрессом/сертификатом~~ (обнаружено готовым 12.08: `verificationRequiredLessonIds` гейтит авто- и массовую выдачу сертификатов) | [Verification-Module.md](Verification-Module.md) |
 | Медиатека | ~~Рейтинг/просмотры в UI~~ (в таблице уже были; в **сетке** карточек — просмотры + средняя оценка) | [Mediateka-Plan.md](Mediateka-Plan.md) |
 | Продукт | Мультиязычность, масштаб каталога курсов | [qa.md](qa.md) |
 | SEO / контент | ~~Динамические OG-изображения статей~~ (сделано 11.08: `/api/og/blog/[slug]`, next/og); правки семантики в [Content.md](Content.md) | — |

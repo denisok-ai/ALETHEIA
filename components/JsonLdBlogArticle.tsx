@@ -42,6 +42,9 @@ export function JsonLdBlogArticle({
     dateModified: dateModified ?? datePublished,
     author: {
       '@type': 'Person',
+      // Тот же @id, что у Person на /about (personId) — все статьи ссылаются
+      // на одну сущность автора, и Google склеивает E-E-A-T-сигналы.
+      ...(origin ? { '@id': `${origin}/about#person` } : {}),
       name: authorName,
       // Сущностная связка E-E-A-T: у автора есть собственная страница на сайте.
       ...(origin ? { url: `${origin}/blog/tatyana-streltsova` } : {}),
