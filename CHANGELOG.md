@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2026-08-13) — GSC: shippingDetails в Product-разметке тарифов
+
+- Google Search Console нашёл в Product/Offer (`/services/[slug]`) отсутствие `shippingDetails` (некритичная рекомендация). Добавлен `OfferShippingDetails` с нулевой стоимостью и мгновенной «доставкой» — курсы цифровые, физической доставки нет. `hasMerchantReturnPolicy`, `aggregateRating`, `review` СОЗНАТЕЛЬНО не добавлены: политика возврата в блоге (7 дней) и оферте (для цифрового контента ограничена) противоречат друг другу — нужна правда от владельца; отзывы/рейтинг фабриковать нельзя (правила Google о self-serving reviews).
+
 ### Added (2026-08-12) — Контроль доставки критичных писем (после инцидента Руденко)
 
 - **Детектор bounce** (`scripts/mail-bounce-watch.sh`, cron каждые 15 мин): сканирует логи Postfix на `status=bounced` исходящих писем, шлёт Telegram-алерт админам с получателем и причиной, дедуп по queue-id. Закрывает корень инцидента: приложение помечает письмо «sent», как только локальный Postfix принял его, а асинхронный отлуп Gmail (`550 unauthenticated / no PTR`) в приложении не виден — клиент 3 недели не мог войти, узнали от него.
