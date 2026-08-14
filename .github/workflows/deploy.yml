@@ -20,6 +20,11 @@ name: CI and deploy
 
 on:
   push:
+    # Правки документации не влияют на приложение — не пересобираем и не
+    # рестартим прод из-за них (иначе каждый docs-коммит = короткое окно 502).
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   pull_request:
   workflow_dispatch:
 
