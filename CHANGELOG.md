@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-08-15) — Near-zero-downtime деплой
+
+- `deploy-rsync-from-local.sh` переструктурирован: rsync (источники + `.next` в staging) при работающем приложении; окно простоя = только swap `.next` + рестарт. `npm ci` только при смене package-lock, `migrate` только при неприменённых миграциях. Замер live-монитором: обычный деплой **~0.6с** простоя (было ~40с), CI-автодеплой ≤2с. Вся защита сохранена (deadman, WAL, исключения, откат `.next.old`).
+
 ### Fixed (2026-08-14) — Прод лёг после двух CI-деплоев подряд (start-limit-hit)
 
 - Два push в main подряд → два последовательных CI-деплоя → суммарно ~5 stop/start aletheia за <5 мин превысили `StartLimitBurst=5/300с`, systemd отказался стартовать (`start-limit-hit`), прод 502 ~6 мин. Приложение не крашилось (`Ready in 529ms`). Фикс: `StartLimitIntervalSec=0` (drop-in на сервере + `scripts/systemd/aletheia.service.example`) — деплой всегда поднимает сервис; реальные сбои ловят Restart=always + deadman + мониторинг.
