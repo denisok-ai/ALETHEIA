@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-08-14) — Telegram-уведомление о новых письмах в ящиках
+
+- `scripts/mail-inbox-notify.py` (cron 10 мин): сообщает в Telegram о новых входящих в ящиках avaterra.pro (admin/info/support/tatyana/yarik), КРОМЕ служебных (DMARC-отчёты, mailer-daemon, no-reply, свой домен). Отслеживает по UID (state.json), декодирует темы. Повод: письмо клиента (Елизавета, жалоба на демо-курс) висело непрочитанным в admin@ — теперь живая почта видна сразу. Ответ Елизавете отправлен (демо→полный курс исправлен 11.08).
+
 ### Changed (2026-08-14) — CI-деплой: сборка в Actions + rsync артефактов (без серверной сборки)
 
 - Единый безопасный пайплайн в `.github/workflows/deploy.yml`: GitHub Actions собирает `.next` и rsync'ит артефакты на сервер через проверенный `scripts/deploy-rsync-from-local.sh` (`SKIP_LOCAL_BUILD=1`) — с исключением `uploads/` и `dev.db*`, deadman-страховкой, WAL-checkpoint, `npm ci --omit=dev`, migrate, рестартом. Прежний server-build (`deploy-pull.sh`: git pull + next build на сервере) убран — он клал прод в даунтайм и рисковал OOM.
