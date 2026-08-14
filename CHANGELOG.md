@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2026-08-14) — Прод лёг после двух CI-деплоев подряд (start-limit-hit)
+
+- Два push в main подряд → два последовательных CI-деплоя → суммарно ~5 stop/start aletheia за <5 мин превысили `StartLimitBurst=5/300с`, systemd отказался стартовать (`start-limit-hit`), прод 502 ~6 мин. Приложение не крашилось (`Ready in 529ms`). Фикс: `StartLimitIntervalSec=0` (drop-in на сервере + `scripts/systemd/aletheia.service.example`) — деплой всегда поднимает сервис; реальные сбои ловят Restart=always + deadman + мониторинг.
+
 ### Changed (2026-08-14) — CI: docs-коммиты не рестартят прод + черновики VC.ru
 
 - `deploy.yml`: `paths-ignore` для `docs/**` и `*.md` — правки документации больше не запускают пересборку/деплой (раньше любой docs-коммит давал короткое окно 502 при рестарте aletheia).

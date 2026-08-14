@@ -10,10 +10,12 @@
 [Unit]
 Description=AVATERRA Next.js (ALETHEIA)
 After=network.target
-# Лимит рестартов принадлежит секции [Unit] (в [Service] systemd их игнорирует):
-# при серии быстрых крашей не «сдаваться» — 5 попыток за 300с.
-StartLimitIntervalSec=300
-StartLimitBurst=5
+# Лимит рестартов ОТКЛЮЧЁН (14.08.2026): при CI-автодеплое приложение
+# останавливается/стартует несколько раз, а два деплоя подряд превысили прежний
+# лимит 5/300с → systemd отказался стартовать (start-limit-hit) и прод лёг.
+# Деплой обязан всегда поднимать сервис; реальные краши ловят Restart=always,
+# deadman-таймер деплоя (deploy-rsync-from-local.sh) и мониторинг.
+StartLimitIntervalSec=0
 
 [Service]
 Type=simple

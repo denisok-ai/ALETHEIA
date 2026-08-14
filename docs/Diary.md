@@ -2,6 +2,20 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-08-14 (ночь) — Прод лёг после двух CI-деплоев подряд (start-limit-hit)
+
+### Что случилось
+- Включив CI-автодеплой, запушил в main два коммита почти подряд (87b7b86 mail-notify, затем 6cdaa56 paths-ignore+VC-drafts). Concurrency `cancel-in-progress: false` → деплои прошли последовательно, каждый через `deploy-rsync-from-local.sh` (stop aletheia → rsync → npm ci → migrate → restart). Суммарно ~5 stop/start за <5 мин превысили `StartLimitBurst=5/StartLimitIntervalSec=300` → systemd отказался стартовать (`start-limit-hit`), прод отдавал 502 ~6 минут, пока не поднял deadman-таймер/руки.
+- Приложение НЕ крашилось: в логах `Ready in 529ms`, затем systemd `Stopping` через 2с и `Start request repeated too quickly`. Классический перебор лимита рестартов, не баг кода.
+
+### Фиксы
+- Боевой: drop-in `/etc/systemd/system/aletheia.service.d/no-start-limit.conf` → `[Unit] StartLimitIntervalSec=0` (лимит стартов снят). Реальные краши по-прежнему ловят `Restart=always` + deadman деплоя + мониторинг.
+- В репо: `scripts/systemd/aletheia.service.example` тоже переведён на `StartLimitIntervalSec=0`.
+- `deploy.yml`: `paths-ignore` (docs/**, *.md) — docs-коммиты больше не деплоят/рестартят прод (та же серия правок).
+
+### Урок
+- CI-автодеплой + Restart-лимит systemd несовместимы при частых пушах. Осторожнее с быстрыми сериями коммитов в main (каждый = деплой + рестарт). Идея на будущее: в CI дебаунс/склейка близких пушей, либо один деплой на серию.
+
 ## 2026-08-12 (вечер) — Разбор инцидента Руденко + контроль доставки почты
 
 ### Первопричина (по логам Postfix, не догадки)
