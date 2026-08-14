@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-08-14) — CI-деплой: сборка в Actions + rsync артефактов (без серверной сборки)
+
+- Единый безопасный пайплайн в `.github/workflows/deploy.yml`: GitHub Actions собирает `.next` и rsync'ит артефакты на сервер через проверенный `scripts/deploy-rsync-from-local.sh` (`SKIP_LOCAL_BUILD=1`) — с исключением `uploads/` и `dev.db*`, deadman-страховкой, WAL-checkpoint, `npm ci --omit=dev`, migrate, рестартом. Прежний server-build (`deploy-pull.sh`: git pull + next build на сервере) убран — он клал прод в даунтайм и рисковал OOM.
+- **Удалён `build.yml`** — его job `deploy-vps` был опасен и конфликтовал: rsync `public/` без `--exclude uploads/` (стёр бы медиа/видео студентов) и `prisma/` без исключения `dev.db*` (затёр бы боевую БД пустой CI-базой). Был выключен (`vars.VPS_DEPLOY`), но оставался миной; вместе с deploy.yml это были «два конкурирующих пайплайна». Теперь один.
+- Активация авто-деплоя из main: владельцу задать секреты `DEPLOY_HOST`, `DEPLOY_SSH_KEY` (ключ `avaterra_deploy_nopass`). Пока не заданы — шаг деплоя пропускается, сборка проверяется.
+
 ### Fixed (2026-08-13) — GSC: shippingDetails в Product-разметке тарифов
 
 - Google Search Console нашёл в Product/Offer (`/services/[slug]`) отсутствие `shippingDetails` (некритичная рекомендация). Добавлен `OfferShippingDetails` с нулевой стоимостью и мгновенной «доставкой» — курсы цифровые, физической доставки нет. `hasMerchantReturnPolicy`, `aggregateRating`, `review` СОЗНАТЕЛЬНО не добавлены: политика возврата в блоге (7 дней) и оферте (для цифрового контента ограничена) противоречат друг другу — нужна правда от владельца; отзывы/рейтинг фабриковать нельзя (правила Google о self-serving reviews).

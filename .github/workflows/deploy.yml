@@ -1,6 +1,21 @@
-# 1) Сборка + проверка, что Яндекс.Метрика попала в production-бандл; файл верификации Яндекса на месте.
-# 2) С main: деплой по SSH (нужны secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY).
-# Продакшен с этой машины не обновляется — только после push в GitHub и успешного workflow.
+# CI: сборка + проверки, затем на push в main — деплой готовых АРТЕФАКТОВ на
+# сервер (rsync), БЕЗ сборки на сервере и без длительного простоя.
+#
+# Почему так (14.08.2026). Прежний деплой (deploy-pull.sh: git pull + npm ci +
+# СТОП прода + next build на сервере + рестарт) на каждый push клал прод в
+# многоминутный даунтайм и рисковал OOM: сборка Next рядом с mailcow на 8ГБ VPS.
+# Теперь сборка идёт в GitHub Actions (7ГБ runner), на сервер едут только
+# артефакты, а разворачивает их тот же проверенный scripts/deploy-rsync-from-local.sh
+# (deadman-страховка, WAL-checkpoint БД, npm ci --omit=dev, migrate, рестарт) с
+# SKIP_LOCAL_BUILD=1. Простой — только на короткий свап артефактов, как при
+# ручном npm run deploy:rsync с машины разработчика.
+#
+# Секреты репозитория (Settings → Secrets and variables → Actions):
+#   DEPLOY_HOST     — 95.181.224.70
+#   DEPLOY_SSH_KEY  — приватный ключ ~/.ssh/avaterra_deploy_nopass (весь файл)
+#   DEPLOY_USER     — необязательно (по умолчанию root)
+# Пока секреты не заданы — шаг деплоя аккуратно пропускается, сборка всё равно
+# проверяется (workflow зелёный).
 name: CI and deploy
 
 on:
@@ -8,16 +23,27 @@ on:
   pull_request:
   workflow_dispatch:
 
+# Деплой НЕ отменяем на середине: новый push ждёт завершения предыдущего,
+# иначе прерванный rsync/рестарт мог бы оставить прод в промежуточном состоянии
+# (страховку добивает deadman-таймер внутри deploy-rsync-from-local.sh).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  build-and-verify:
+  build-and-deploy:
     runs-on: ubuntu-latest
     env:
       DATABASE_URL: 'file:./ci-build.db'
       NEXTAUTH_SECRET: 'ci-build-placeholder-secret-32chars-min!!'
+      # next-auth вшивает parseUrl(NEXTAUTH_URL) при сборке — пустое значение ломает /login.
+      NEXTAUTH_URL: 'https://avaterra.pro'
+      # NEXT_PUBLIC_* вшиваются В СБОРКУ. Это ПУБЛИЧНЫЕ идентификаторы (видны в
+      # HTML), не секреты. Меняются редко — при смене поправить здесь.
+      NEXT_PUBLIC_YANDEX_METRIKA_ID: '108390990'
+      NEXT_PUBLIC_YANDEX_VERIFICATION: '0dec6f2dc03cbfd9'
+      NEXT_PUBLIC_GA_MEASUREMENT_ID: 'G-7CQ48S3CFF'
+      NEXT_PUBLIC_CLARITY_PROJECT_ID: 'w4v3ss4ro9'
     steps:
       - uses: actions/checkout@v4
 
@@ -30,11 +56,11 @@ jobs:
 
       - run: npx prisma generate
 
-      - name: Apply migrations (SQLite for CI)
+      - name: Apply migrations (SQLite for CI build)
         run: npx prisma migrate deploy
 
-      - name: Production build
-        run: npm run build
+      - name: Production build (artifacts)
+        run: npm run build:server
 
       - name: Verify Yandex verification file
         run: test -f public/yandex_0dec6f2dc03cbfd9.html && grep -q '0dec6f2dc03cbfd9' public/yandex_0dec6f2dc03cbfd9.html
@@ -48,23 +74,26 @@ jobs:
           fi
           echo "OK: Яндекс.Метрика в production-сборке"
 
-  deploy:
-    needs: build-and-verify
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - name: SSH deploy
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.DEPLOY_HOST }}
-          username: ${{ secrets.DEPLOY_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script_stop: true
-          script: |
-            set -e
-            APP_DIR="${{ vars.DEPLOY_APP_DIR }}"
-            if [ -z "$APP_DIR" ]; then APP_DIR="/opt/ALETHEIA"; fi
-            cd "$APP_DIR"
-            export DEPLOY_ROOT="$APP_DIR"
-            export GIT_BRANCH=main
-            bash scripts/deploy-pull.sh
+      - name: Verify GA + Clarity in client bundle
+        run: |
+          grep -rq "G-7CQ48S3CFF" .next --include='*.js' && echo "OK: GA в сборке" || echo "::warning::GA не найден в сборке"
+          grep -rq "clarity.ms/tag" .next --include='*.js' && echo "OK: Clarity в сборке" || echo "::warning::Clarity не найден в сборке"
+
+      - name: Deploy artifacts to prod (rsync, no server build)
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          if [ -z "$DEPLOY_HOST" ] || [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "::notice::Секреты DEPLOY_HOST/DEPLOY_SSH_KEY не заданы — авто-деплой пропущен (сборка проверена). Задайте их в Settings → Secrets, чтобы включить."
+            exit 0
+          fi
+          mkdir -p ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          export DEPLOY_SSH="${DEPLOY_USER:-root}@${DEPLOY_HOST}"
+          export DEPLOY_SSH_IDENTITY="$HOME/.ssh/deploy_key"
+          export SKIP_LOCAL_BUILD=1
+          bash scripts/deploy-rsync-from-local.sh
