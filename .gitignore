@@ -18,6 +18,8 @@ build/
 
 # Env (секреты не коммитить)
 .env
+AvaterraPro.env
+*.env
 scripts/.deploy.env
 .telegram-proxy/
 .env.local
