@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2026-08-15) — sitemap: свежий lastmod для страниц тарифов (Яндекс/Google)
+
+- `/services/*` и `/services` брали lastmod из `Service.updatedAt` (27.05), но правка ШАБЛОНА (`shippingDetails` в JsonLdProduct, 13.08) дату в БД не меняла → краулеры не переобходили обновление. Добавлен «этаж» `PRODUCT_TEMPLATE_REVISED` = max(дата данных, дата правки шаблона). Плюс полная переподача 58 URL в IndexNow (Яндекс/Bing быстрый переобход).
+
 ### Added (2026-08-15) — fail2ban-jail против сканеров секретов
 
 - Замечен сканер (`8.235.60.24`, маскируется под Googlebot), щупающий `/.git/config`, `/.aws/config`, `/.env`. Проверено: ничего не утекло (все секретные пути 404). Новый jail `nginx-secretscan` (+ фильтр) банит пробы секретных путей (≥2/час → сутки); фильтр протестирован (только сканеры, Googlebot/Яндекс не задеты), enforce через nftables. Idempotent-установка в `scripts/security-hardening-prod.sh`.

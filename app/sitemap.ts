@@ -109,8 +109,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const products = await getPublicProducts();
     const blogPosts = await getPublishedBlogPosts();
 
+    // «Этаж» lastmod для страниц тарифов: их дата берётся из Service.updatedAt
+    // (последнее редактирование в админке), но при правке ШАБЛОНА разметки
+    // (напр. 13.08 добавлен shippingDetails в JsonLdProduct) дата в БД не
+    // меняется — и краулеры не переобходят обновление. Обновлять при каждой
+    // правке шаблона страниц /services/*.
+    const PRODUCT_TEMPLATE_REVISED = safeDate('2026-08-13');
+
     const newestPost = newestOf(blogPosts.map((p) => safeDate(p.publishedAt)));
-    const newestProduct = newestOf(products.map((p) => safeDate(p.updatedAt)));
+    const newestProduct = newestOf([
+      ...products.map((p) => safeDate(p.updatedAt)),
+      PRODUCT_TEMPLATE_REVISED,
+    ]);
     const derived: Record<string, Date | undefined> = {
       '/blog': newestPost,
       '/services': newestProduct,
@@ -140,7 +150,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ];
 
     const serviceEntries: MetadataRoute.Sitemap = products.map((p) => {
-      const lastModified = safeDate(p.updatedAt);
+      const lastModified = newestOf([safeDate(p.updatedAt), PRODUCT_TEMPLATE_REVISED]);
       return {
         url: `${base}/services/${p.slug}`,
         ...(lastModified ? { lastModified } : {}),
