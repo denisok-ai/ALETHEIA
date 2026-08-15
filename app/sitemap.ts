@@ -80,15 +80,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      * не узнает об изменении.
      */
     const CONTENT_REVISED: Record<string, string> = {
-      '/course/navyki-myshechnogo-testirovaniya': '2026-06-08',
+      '/course/navyki-myshechnogo-testirovaniya': '2026-08-04',
       '/course/probuzhdenie': '2026-08-11',
-      '/about': '2026-07-22',
+      '/about': '2026-07-23',
       '/faq': '2026-07-16',
       '/contacts': '2026-08-12',
-      '/news': '2026-07-16',
+      '/news': '2026-07-19',
       '/oferta': '2026-04-27',
       '/privacy': '2026-08-12',
-      '/pd-consent': '2026-06-08',
+      '/pd-consent': '2026-07-20',
     };
 
     const publicPaths = [
