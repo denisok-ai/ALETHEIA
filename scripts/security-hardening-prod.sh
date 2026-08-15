@@ -89,6 +89,35 @@ else
   echo "nginx example not in $PROD_ROOT — skip nginx patch"
 fi
 
+echo "=== fail2ban: jail nginx-secretscan (сканеры /.git /.env /.aws и т.п.) ==="
+# Идемпотентно: фильтр + jail на пробы секретных путей. Легитимные боты
+# (Googlebot/Яндекс) такие пути не запрашивают — ложных банов нет (15.08.2026).
+if [ -d /etc/fail2ban/filter.d ]; then
+  cat > /etc/fail2ban/filter.d/nginx-secretscan.conf <<'F2BFILTER'
+[Definition]
+failregex = ^<HOST> -[^"]*"(GET|POST|HEAD) /(?:\.(?:git|env|aws|svn|ssh|htpasswd|htaccess|DS_Store|vscode|idea)\b|\.git/|\.env|\.aws/|\.svn/|wp-admin|wp-login\.php|xmlrpc\.php|phpmyadmin|phpMyAdmin|administrator/|vendor/|credentials\b|\.well-known/(?!acme-challenge|security\.txt))[^"]* HTTP/[0-9.]+"
+datepattern = \[%%d/%%b/%%Y:%%H:%%M:%%S
+ignoreregex =
+F2BFILTER
+  if ! grep -q '^\[nginx-secretscan\]' /etc/fail2ban/jail.local 2>/dev/null; then
+    cat >> /etc/fail2ban/jail.local <<'F2BJAIL'
+
+[nginx-secretscan]
+enabled = true
+filter = nginx-secretscan
+logpath = /var/log/nginx/access.log
+maxretry = 2
+findtime = 1h
+bantime = 1d
+ignoreip = 127.0.0.1/8 ::1 95.181.224.70
+F2BJAIL
+    echo "jail nginx-secretscan добавлен в jail.local"
+  else
+    echo "jail nginx-secretscan уже есть"
+  fi
+  fail2ban-client reload >/dev/null 2>&1 || systemctl reload fail2ban 2>/dev/null || true
+fi
+
 echo "=== fail2ban status ==="
 if systemctl is-active fail2ban >/dev/null 2>&1; then
   fail2ban-client status || true

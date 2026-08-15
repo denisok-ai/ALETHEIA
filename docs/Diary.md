@@ -2,6 +2,13 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-08-15 (утро) — fail2ban-jail на сканеров секретов
+
+- Утренний обход: прод/сервисы/кроны здоровы, Telegram-проба в content-integrity ок. В логах nginx «318 Googlebot-хитов», но 303 из них — IP `8.235.60.24`, маскирующийся под Googlebot и щупающий `/.git/config`, `/.aws/config`, `/.env` (сканер секретов). Настоящий Google — 66.249.79.x (~15 хитов, индексация идёт спокойно).
+- Проверено: все чувствительные пути (.git/.env/.aws/dev.db/package.json) отдают 404, 200 сканер получил только на публичных (/, /login, /api/health, sw.js) — ничего не утекло. fail2ban был активен (auth/limit-req/sshd), но сканеры секретов НЕ ловил.
+- Добавлен jail `nginx-secretscan` (фильтр `filter.d/nginx-secretscan.conf`): бан IP, щупающих секретные пути ≥2 раз/час, на сутки. Фильтр протестирован `fail2ban-regex` (74 матча из 2158 строк — только сканеры, Googlebot/Яндекс не задеты). banaction — nftables (`f2b-table`, сервер на nft, не iptables). Сканер `8.235.60.24` забанен. Idempotent-установка добавлена в `scripts/security-hardening-prod.sh` (воспроизводимость).
+- Руденко всё ещё не входила (0 в VisitLog) — на её стороне.
+
 ## 2026-08-15 (ночь) — Near-zero-downtime деплой
 
 - После инцидента start-limit-hit переделан `deploy-rsync-from-local.sh` (используется и вручную, и CI): тяжёлое (rsync источников + `.next` в STAGING `.next.incoming`) идёт при РАБОТАЮЩЕМ приложении; окно простоя = только стоп → атомарный swap `.next.incoming`→`.next` → рестарт. `npm ci` — лишь при смене package-lock (хэш-маркер `.deploy-lock-hash`), `migrate deploy` — лишь при неприменённых миграциях (`prisma migrate status`); `prisma generate` заранее, если npm ci не нужен. Решения всегда в сторону безопасности (сомнение → делать). Защита сохранена: deadman, WAL-checkpoint, исключения uploads/dev.db*, аварийный trap с откатом `.next.old`.

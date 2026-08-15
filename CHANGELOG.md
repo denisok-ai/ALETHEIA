@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-08-15) — fail2ban-jail против сканеров секретов
+
+- Замечен сканер (`8.235.60.24`, маскируется под Googlebot), щупающий `/.git/config`, `/.aws/config`, `/.env`. Проверено: ничего не утекло (все секретные пути 404). Новый jail `nginx-secretscan` (+ фильтр) банит пробы секретных путей (≥2/час → сутки); фильтр протестирован (только сканеры, Googlebot/Яндекс не задеты), enforce через nftables. Idempotent-установка в `scripts/security-hardening-prod.sh`.
+
 ### Changed (2026-08-15) — Near-zero-downtime деплой
 
 - `deploy-rsync-from-local.sh` переструктурирован: rsync (источники + `.next` в staging) при работающем приложении; окно простоя = только swap `.next` + рестарт. `npm ci` только при смене package-lock, `migrate` только при неприменённых миграциях. Замер live-монитором: обычный деплой **~0.6с** простоя (было ~40с), CI-автодеплой ≤2с. Вся защита сохранена (deadman, WAL, исключения, откат `.next.old`).
