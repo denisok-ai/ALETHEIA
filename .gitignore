@@ -111,3 +111,4 @@ scripts/lineedit.py
 # Generated prod audit reports
 prod-system-health-report.txt
 mail-dns-report.txt
+tsconfig.tsbuildinfo
