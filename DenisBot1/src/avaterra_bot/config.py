@@ -112,6 +112,13 @@ class AppSettings(BaseSettings):
         default=Path("/app/runtime/images"), alias="IMAGE_BACKUP_DIR"
     )
 
+    # Лид-воронка отключена: весь входящий трафик уходит в бота портала
+    # (@AvaterraProBot), который заводит лидов в CRM ALETHEIA.
+    funnel_enabled: bool = Field(default=False, alias="FUNNEL_ENABLED")
+    portal_bot_username: str = Field(
+        default="AvaterraProBot", alias="PORTAL_BOT_USERNAME"
+    )
+
     @property
     def admin_ids(self) -> set[int]:
         if not self.admin_telegram_ids:

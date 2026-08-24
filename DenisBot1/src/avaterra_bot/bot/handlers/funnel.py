@@ -1,6 +1,8 @@
 """
 @file: funnel.py
-@description: Handlers лид-воронки: /start, выбор кнопки, free-form ответы
+@description: Handlers лид-воронки: /start, выбор кнопки, free-form ответы.
+При FUNNEL_ENABLED=false (по умолчанию) воронка не работает — пользователь
+получает редирект в бота портала @AvaterraProBot, который заводит лидов в CRM.
 @dependencies: aiogram, asyncpg
 @created: 2026-05-07
 """
@@ -98,6 +100,43 @@ def _is_admin(user_id: Optional[int]) -> bool:
     return user_id in get_settings().admin_ids
 
 
+def _funnel_enabled() -> bool:
+    return get_settings().funnel_enabled
+
+
+def _portal_bot_url() -> str:
+    return f"https://t.me/{get_settings().portal_bot_username}"
+
+
+REDIRECT_TEXT = (
+    "Здравствуйте! Школа <b>«Аватэрра»</b> переехала в основной бот — "
+    "там курсы, материалы, поддержка и личный кабинет.\n\n"
+    "Нажмите кнопку ниже, напишите там /start — и я помогу с вопросами по курсам."
+)
+
+
+def _build_redirect_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [
+                InlineKeyboardButton(
+                    text="Перейти в бот школы",
+                    url=_portal_bot_url(),
+                )
+            ]
+        ]
+    )
+
+
+async def _send_redirect(message: Message) -> None:
+    """Воронка выключена: уводим человека в бота портала."""
+    await message.answer(
+        REDIRECT_TEXT,
+        reply_markup=_build_redirect_keyboard(),
+        disable_web_page_preview=True,
+    )
+
+
 @router.message(Command("start"))
 async def cmd_start(message: Message) -> None:
     user = message.from_user
@@ -109,6 +148,9 @@ async def cmd_start(message: Message) -> None:
             f"Версия: {__version__}\n"
             "Используйте /admin_help для списка команд."
         )
+        return
+    if not _funnel_enabled():
+        await _send_redirect(message)
         return
     if _pool is None:
         await message.answer("Бот ещё запускается, попробуйте через минуту.")
@@ -133,6 +175,15 @@ async def cmd_start(message: Message) -> None:
 async def on_funnel_choice(query: CallbackQuery, bot: Bot) -> None:
     user = query.from_user
     if user is None or query.data is None:
+        return
+    if not _funnel_enabled():
+        if query.message is not None:
+            try:
+                await query.message.edit_reply_markup(reply_markup=None)
+            except Exception:
+                pass
+            await _send_redirect(query.message)
+        await query.answer()
         return
     if _pool is None:
         await query.answer("Бот ещё запускается.", show_alert=False)
@@ -178,6 +229,9 @@ async def on_funnel_choice(query: CallbackQuery, bot: Bot) -> None:
 async def on_freeform_message(message: Message, bot: Bot) -> None:
     user = message.from_user
     if user is None or _is_admin(user.id):
+        return
+    if not _funnel_enabled():
+        await _send_redirect(message)
         return
     if _pool is None:
         return
