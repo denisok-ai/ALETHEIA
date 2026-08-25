@@ -433,6 +433,12 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
     return;
   }
 
+  // Вопрос не узнан — фиксируем: по этому журналу видно, чего не хватает в FAQ.
+  if (!isAdmin) {
+    const { logFaqMiss } = await import('./faq-miss-log');
+    void logFaqMiss(ctx.chatId, text);
+  }
+
   await safeReply(
     ctx.chatId,
     'Используйте /menu для главного меню или /help для справки.'

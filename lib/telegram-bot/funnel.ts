@@ -11,6 +11,7 @@ import { backToMainKeyboard } from './keyboards';
 import { getBotSiteSettings } from './settings-cache';
 import { upsertBotLead, type FunnelSegment as LeadSegment } from './lead-service';
 import { matchFaqAnswer } from './faq-match';
+import { logFaqMiss } from './faq-miss-log';
 
 export type FunnelChoice = 'learn' | 'thinking' | 'ready';
 export type FunnelSegment = 'info' | 'warm' | 'hot';
@@ -175,6 +176,7 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
 
   // Узнали вопрос — отвечаем сразу, иначе честное «передал команде».
   const faq = matchFaqAnswer(trimmed);
+  if (!faq) void logFaqMiss(ctx.chatId, trimmed);
   await botReply(
     ctx,
     faq ? formatFaqAutoAnswer(faq.question, faq.answer) : FUNNEL_THANKS_AFTER_FREEFORM,

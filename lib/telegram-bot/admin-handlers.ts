@@ -81,7 +81,12 @@ export async function handleAdminStats(ctx: BotContext): Promise<void> {
 }
 
 export async function handleAdminDigest(ctx: BotContext): Promise<void> {
-  const [d, siteUrl] = await Promise.all([fetchDigestStats(), adminSiteUrl()]);
+  const { fetchFaqMisses } = await import('./faq-miss-log');
+  const [d, siteUrl, faqMisses] = await Promise.all([
+    fetchDigestStats(),
+    adminSiteUrl(),
+    fetchFaqMisses(24, 5),
+  ]);
   const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
   const text = [
     `<b>📰 Дайджест</b> <i>${now}</i>`,
@@ -98,6 +103,14 @@ export async function handleAdminDigest(ctx: BotContext): Promise<void> {
     '',
     '<b>За 7 дней</b>',
     `· Регистраций: <b>${d.registrationsWeek}</b>`,
+    // Чего не хватает в базе знаний: бот не смог ответить сам.
+    ...(faqMisses.count
+      ? [
+          '',
+          `<b>Вопросы без ответа за сутки: ${faqMisses.count}</b>`,
+          ...faqMisses.recent.map((q) => `· <i>${escapeHtml(q.slice(0, 120))}</i>`),
+        ]
+      : []),
     siteUrl ? `\n<a href="${siteUrl}/portal/admin">Портал администратора</a>` : '',
   ].join('\n');
   await reply(ctx, text);
