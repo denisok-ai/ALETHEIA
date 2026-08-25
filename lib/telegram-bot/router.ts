@@ -421,12 +421,22 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
   }
 
   const handled = await handleTextInSession(ctx, text);
-  if (!handled) {
-    await safeReply(
-      ctx.chatId,
-      'Используйте /menu для главного меню или /help для справки.'
-    );
+  if (handled) return;
+
+  // Вне сценария человек чаще всего просто задаёт вопрос — пробуем ответить
+  // готовым текстом из FAQ, и только если не узнали, отправляем в меню.
+  const { matchFaqAnswer } = await import('./faq-match');
+  const faq = matchFaqAnswer(text);
+  if (faq) {
+    const { formatFaqAutoAnswer } = await import('./funnel');
+    await safeReply(ctx.chatId, formatFaqAutoAnswer(faq.question, faq.answer));
+    return;
   }
+
+  await safeReply(
+    ctx.chatId,
+    'Используйте /menu для главного меню или /help для справки.'
+  );
 }
 
 /** Обработать одно входящее обновление Telegram (с логом и ответом при сбое). */

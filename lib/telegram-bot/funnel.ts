@@ -10,6 +10,7 @@ import { setSessionState, clearBotSession } from './session';
 import { backToMainKeyboard } from './keyboards';
 import { getBotSiteSettings } from './settings-cache';
 import { upsertBotLead, type FunnelSegment as LeadSegment } from './lead-service';
+import { matchFaqAnswer } from './faq-match';
 
 export type FunnelChoice = 'learn' | 'thinking' | 'ready';
 export type FunnelSegment = 'info' | 'warm' | 'hot';
@@ -82,6 +83,24 @@ async function leadCrmLink(leadId: number | null): Promise<string[]> {
 export const FUNNEL_THANKS_AFTER_FREEFORM =
   'Спасибо! Сообщение передано команде AVATERRA. С вами свяжется специалист в ближайшее время.';
 
+/**
+ * Ответ по существу сразу, если вопрос узнан по базе FAQ школы.
+ * Тексты только выверенные (никакой генерации), поэтому ответить можно
+ * не дожидаясь менеджера — а он всё равно получит уведомление и напишет.
+ */
+export function formatFaqAutoAnswer(question: string, answer: string): string {
+  // Тексты FAQ пишут люди: любая «<» или «&» в них сломала бы HTML-разметку
+  // сообщения, поэтому экранируем — свои теги добавляем уже после.
+  const escape = (t: string) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return [
+    `<b>${escape(question)}</b>`,
+    '',
+    escape(answer),
+    '',
+    '<i>Это ответ из нашей базы вопросов. Сообщение я передал команде — если нужен живой разбор, специалист напишет.</i>',
+  ].join('\n');
+}
+
 export const FUNNEL_UNKNOWN_INPUT =
   'Чтобы я не запутался — выберите один из вариантов кнопками или напишите /start, чтобы начать сначала.';
 
@@ -153,7 +172,14 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
   const segment = (session.data?.segment as FunnelSegment | undefined) ?? 'warm';
 
   await clearBotSession(ctx.chatId);
-  await botReply(ctx, FUNNEL_THANKS_AFTER_FREEFORM, { replyMarkup: backToMainKeyboard(), forceNew: true });
+
+  // Узнали вопрос — отвечаем сразу, иначе честное «передал команде».
+  const faq = matchFaqAnswer(trimmed);
+  await botReply(
+    ctx,
+    faq ? formatFaqAutoAnswer(faq.question, faq.answer) : FUNNEL_THANKS_AFTER_FREEFORM,
+    { replyMarkup: backToMainKeyboard(), forceNew: true }
+  );
 
   const leadId = await upsertBotLead(ctx, { segment: segment as LeadSegment, freeform: trimmed });
 
@@ -162,6 +188,7 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
     `От: ${ctx.displayName}${ctx.telegramUsername ? ` (@${ctx.telegramUsername})` : ''}`,
     `Chat ID: ${ctx.chatId}`,
     ...(await leadCrmLink(leadId)),
+    ...(faq ? [`Бот ответил из FAQ: «${faq.question}»`] : ['Готового ответа в FAQ не нашлось — нужен ответ человека.']),
     '',
     trimmed.slice(0, 500),
   ]);
