@@ -34,6 +34,8 @@ export const CRON_EXPECTED_INTERVAL_MIN: Record<string, number> = {
   'content-integrity': 1440,
   // Авто-анонс статьи блога в Telegram-канал — раз в сутки.
   'blog-announce': 1440,
+  // Догоны лидов Telegram-бота — раз в час (окна касаний считаются внутри задачи).
+  'telegram-lead-followup': 60,
 };
 
 /** Отметить успешное выполнение. Сбой отметки не должен ронять саму задачу. */

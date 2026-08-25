@@ -11,6 +11,11 @@ import { requireCronAuth } from '@/lib/cron-auth';
 import { markCronOk } from '@/lib/cron-heartbeat';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 
+// Как и остальные cron-роуты: без этого Next пытается пререндерить маршрут
+// на сборке, лезет в БД и валит билд, если база на машине сборки недоступна.
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
+
 export async function GET(req: NextRequest) {
   const authError = await requireCronAuth(req);
   if (authError) return authError;

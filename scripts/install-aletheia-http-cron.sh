@@ -53,6 +53,10 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # выбрано, чтобы записавшихся днём накрывало на следующий вечер (24–48ч).
 30 20 * * * root /opt/ALETHEIA/scripts/cron-http-call.sh nudge-inactive-enrollees
 
+# Догоны лидов Telegram-бота: два касания (через 2 часа тишины и через сутки).
+# Раз в час — сами окна и идемпотентность внутри lib/telegram-lead-followup.ts.
+15 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh telegram-lead-followup
+
 # Целостность контента курсов — раз в сутки, 08:40 МСК.
 # После инцидента 11.08.2026: во всех платных курсах 2,5 месяца стоял demo-SCORM,
 # витрина/оплата/доступ выглядели исправными — узнали от студентки, дошедшей до

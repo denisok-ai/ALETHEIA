@@ -40,6 +40,8 @@ import {
   handleSchedule,
 } from './support-handlers';
 import { handleFunnelChoice, handleFunnelWelcome, shouldShowFunnelOnStart } from './funnel';
+import { hasStartPayload, parseStartPayload } from './deep-link';
+import { markLeadResponded, upsertBotLead } from './lead-service';
 import { handleContentCallback, handleContentCommand } from './content-handlers';
 
 const CONTENT_COMMANDS = new Set([
@@ -165,7 +167,17 @@ async function handleCommand(ctx: BotContext): Promise<void> {
         await handleSupportInfo(ctx);
         break;
       }
-      if (cmd === '/start' && !arg0 && (await shouldShowFunnelOnStart(ctx))) {
+      // Deep link `?start=s-<источник>_l-<лид>`: человек сам открыл диалог —
+      // фиксируем источник и привязываем чат к заявке с сайта, если она была.
+      const payload = cmd === '/start' ? parseStartPayload(arg0) : {};
+      if (cmd === '/start' && hasStartPayload(payload)) {
+        await upsertBotLead(ctx, {
+          entrySource: payload.entrySource,
+          bindLeadId: payload.leadId,
+          botMessaged: true,
+        });
+      }
+      if (cmd === '/start' && (await shouldShowFunnelOnStart(ctx))) {
         await handleFunnelWelcome(ctx);
         break;
       }
@@ -399,6 +411,9 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
 
   const isAdmin = await isTelegramAdmin(chatId, message.from?.id);
   const ctx = buildContextFromMessage(message, isAdmin);
+
+  // Человек написал сам — автодогоны по нему прекращаются (не ждём cron).
+  if (!isAdmin) void markLeadResponded(chatId);
 
   if (text.startsWith('/')) {
     await handleCommand(ctx);

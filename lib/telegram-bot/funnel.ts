@@ -2,7 +2,6 @@
  * Лид-воронка Telegram-бота AVATERRA (адаптация DenisBot1 funnel_flow + knowledge base).
  * Для непривязанных пользователей на /start; warm/hot сегменты уведомляют админов.
  */
-import { prisma } from '@/lib/db';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import type { BotContext } from './types';
 import { findUserByTelegramId } from './auth';
@@ -10,6 +9,7 @@ import { botReply } from './messaging';
 import { setSessionState, clearBotSession } from './session';
 import { backToMainKeyboard } from './keyboards';
 import { getBotSiteSettings } from './settings-cache';
+import { upsertBotLead, type FunnelSegment as LeadSegment } from './lead-service';
 
 export type FunnelChoice = 'learn' | 'thinking' | 'ready';
 export type FunnelSegment = 'info' | 'warm' | 'hot';
@@ -66,65 +66,6 @@ const FUNNEL_RESPONSES: Record<FunnelChoice, { text: string; notifyAdmin: boolea
     segment: 'hot',
   },
 };
-
-/** Источник лида в CRM — по нему фильтруется таблица «Лиды». */
-const LEAD_SOURCE = 'telegram_bot';
-
-const SEGMENT_LABEL: Record<FunnelSegment, string> = {
-  info: 'холодный',
-  warm: 'тёплый',
-  hot: 'горячий',
-};
-
-/** Контакт для CRM: username, по которому менеджер напишет в Telegram; иначе chat ID. */
-function funnelContact(ctx: BotContext): string {
-  return ctx.telegramUsername ? `@${ctx.telegramUsername}` : `tg:${ctx.chatId}`;
-}
-
-/**
- * Лид воронки в CRM — один лид на Telegram-чат.
- * Повторный /start и свободное сообщение дополняют существующую запись (новое сверху),
- * а не плодят дубли. Ошибки БД не должны ломать диалог — логируем и возвращаем null.
- */
-async function upsertFunnelLead(
-  ctx: BotContext,
-  params: { segment: FunnelSegment; choiceLabel?: string; freeform?: string }
-): Promise<number | null> {
-  try {
-    const contact = funnelContact(ctx);
-    const block = [
-      `Воронка Telegram-бота (${SEGMENT_LABEL[params.segment]} лид).`,
-      ...(params.choiceLabel ? [`Выбор: ${params.choiceLabel}`] : []),
-      ...(params.freeform ? [`Сообщение: ${params.freeform.slice(0, 1000)}`] : []),
-      `Chat ID: ${ctx.chatId}`,
-    ].join('\n');
-
-    const existing = await prisma.lead.findFirst({
-      where: { source: LEAD_SOURCE, phone: contact },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    if (existing) {
-      const message = (existing.message ? `${block}\n\n— ранее —\n${existing.message}` : block).slice(0, 2000);
-      await prisma.lead.update({ where: { id: existing.id }, data: { message } });
-      return existing.id;
-    }
-
-    const lead = await prisma.lead.create({
-      data: {
-        name: ctx.displayName.slice(0, 200),
-        phone: contact.slice(0, 50),
-        message: block.slice(0, 2000),
-        status: 'new',
-        source: LEAD_SOURCE,
-      },
-    });
-    return lead.id;
-  } catch (e) {
-    console.error('Funnel lead upsert:', e);
-    return null;
-  }
-}
 
 /** Ссылка на карточку лида в админке — чтобы из уведомления сразу открыть CRM. */
 async function leadCrmLink(leadId: number | null): Promise<string[]> {
@@ -184,9 +125,10 @@ export async function handleFunnelChoice(ctx: BotContext, choice: string): Promi
     forceNew: true,
   });
 
-  const leadId = await upsertFunnelLead(ctx, {
-    segment: step.segment,
+  const leadId = await upsertBotLead(ctx, {
+    segment: step.segment as LeadSegment,
     choiceLabel: FUNNEL_CHOICE_LABELS[key],
+    botMessaged: true,
   });
 
   if (step.notifyAdmin) {
@@ -213,7 +155,7 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
   await clearBotSession(ctx.chatId);
   await botReply(ctx, FUNNEL_THANKS_AFTER_FREEFORM, { replyMarkup: backToMainKeyboard(), forceNew: true });
 
-  const leadId = await upsertFunnelLead(ctx, { segment, freeform: trimmed });
+  const leadId = await upsertBotLead(ctx, { segment: segment as LeadSegment, freeform: trimmed });
 
   notifyAdminsTelegramAsync('contact_lead', [
     `Сообщение из воронки Telegram (${segment === 'hot' ? 'горячий' : 'тёплый'} лид).`,

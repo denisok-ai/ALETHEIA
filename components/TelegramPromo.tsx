@@ -6,7 +6,7 @@
  * Что честно обещаем: бот отвечает на вопросы о методе и школе, помогает выбрать
  * курс, а записавшимся показывает прогресс и сертификат. Без выдуманных функций.
  */
-import { SOCIAL_LINKS, TELEGRAM_BOT_URL, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
+import { SOCIAL_LINKS, botDeepLink, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
 
 function TelegramGlyph({ className }: { className?: string }) {
   return (
@@ -51,7 +51,7 @@ export function TelegramPromo({ variant = 'card' }: { variant?: Variant }) {
         </div>
         <div className="flex shrink-0 flex-col items-stretch gap-3 md:w-56">
           <a
-            href={TELEGRAM_BOT_URL}
+            href={botDeepLink('site-promo')}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-plum px-5 py-3 font-semibold text-white transition-colors hover:bg-plum/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-plum"

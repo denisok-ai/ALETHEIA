@@ -11,7 +11,7 @@ import { ChargeBatteryGauge } from '@/components/portal/ChargeBatteryGauge';
 import { StudentOnboardingHint } from '@/components/portal/StudentOnboardingHint';
 import { formatNotificationContent, formatNotificationType } from '@/lib/notification-content';
 import { pluralize } from '@/lib/pluralize';
-import { TELEGRAM_BOT_URL, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
+import { botDeepLink, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
 
 function DashboardTelegramIcon({ className }: { className?: string }) {
   return (
@@ -24,7 +24,7 @@ function DashboardTelegramIcon({ className }: { className?: string }) {
 function TelegramBotCard() {
   return (
     <a
-      href={TELEGRAM_BOT_URL}
+      href={botDeepLink('portal-student')}
       target="_blank"
       rel="noopener noreferrer"
       className="portal-card flex items-center gap-4 p-5 transition-colors hover:border-[var(--portal-accent)]"

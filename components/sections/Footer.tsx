@@ -9,7 +9,7 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { BRAND_SCHOOL_LINE, BRAND_SITE_NAME } from '@/lib/brand';
 import { courseIntro } from '@/lib/content/course-lynda-teaser';
 import { getPdnOperatorPublic } from '@/lib/pdn-public';
-import { TELEGRAM_BOT_URL, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
+import { botDeepLink, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
 
 function FooterTelegramIcon({ className }: { className?: string }) {
   return (
@@ -75,7 +75,7 @@ export function Footer({ contactPhone }: FooterProps) {
               </li>
               <li>
                 <a
-                  href={TELEGRAM_BOT_URL}
+                  href={botDeepLink('site-footer')}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 md:justify-start hover:text-plum transition-colors"

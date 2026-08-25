@@ -727,14 +727,29 @@ model Lead {
   message           String?
   notes             String? // admin notes
   status            String   @default("new")
-  source            String? // form, landing, manual
+  source            String? // form, landing, manual, telegram_bot
   convertedToUserId String?
   lastOrderNumber   String? // при оплате заказа с email лида — для аналитики (1.3)
+  /// Диалог в Telegram: заполняется, когда человек сам нажал /start у бота.
+  /// Только с ним бот имеет право писать первым — на этом держатся автодогоны.
+  telegramChatId    Int?
+  telegramUsername  String?
+  /// Сегмент воронки бота: info | warm | hot
+  funnelSegment     String?
+  /// Метка источника из deep link (?start=s-<source>): site-footer, blog, channel…
+  entrySource       String?
+  /// Сколько догоняющих сообщений уже отправлено (0 — ни одного)
+  followupStage     Int      @default(0)
+  lastBotMessageAt  DateTime?
+  /// Человек ответил боту — догоны прекращаются
+  respondedAt       DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   @@index([status])
   @@index([createdAt])
+  @@index([telegramChatId])
+  @@index([followupStage])
 }
 
 model Order {
