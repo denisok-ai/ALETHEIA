@@ -29,8 +29,22 @@ export type CrmLeadDetail = {
   source?: string | null;
   converted_to_user_id: string | null;
   last_order_number?: string | null;
+  telegram_chat_id?: number | null;
+  telegram_username?: string | null;
+  funnel_segment?: string | null;
+  entry_source?: string | null;
+  followup_stage?: number;
+  last_bot_message_at?: string | null;
+  responded_at?: string | null;
   created_at: string;
   updated_at: string;
+};
+
+/** Подписи сегментов воронки бота (значения в БД — info | warm | hot). */
+const SEGMENT_LABEL: Record<string, string> = {
+  info: 'холодный (за информацией)',
+  warm: 'тёплый (есть вопросы)',
+  hot: 'горячий (готов обсуждать участие)',
 };
 
 export type LeadEmailDeliveryLogItem = {
@@ -289,6 +303,49 @@ export function CrmLeadDetailClient({
               ))}
             </ul>
           )}
+        </Card>
+      )}
+
+      {lead.telegram_chat_id && (
+        <Card
+          title="Диалог в Telegram"
+          description="Человек сам начал диалог с ботом — только поэтому боту можно писать ему"
+        >
+          <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Chat ID</dt>
+              <dd className="text-[var(--portal-text)]">{lead.telegram_chat_id}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Ник</dt>
+              <dd className="text-[var(--portal-text)]">
+                {lead.telegram_username ? `@${lead.telegram_username}` : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Сегмент воронки</dt>
+              <dd className="text-[var(--portal-text)]">{SEGMENT_LABEL[lead.funnel_segment ?? ''] ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Точка входа</dt>
+              <dd className="text-[var(--portal-text)]">{lead.entry_source ?? '—'}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Догонов отправлено</dt>
+              <dd className="text-[var(--portal-text)]">
+                {lead.followup_stage ?? 0} из 2
+                {lead.last_bot_message_at
+                  ? ` · последнее ${format(new Date(lead.last_bot_message_at), 'dd.MM HH:mm')}`
+                  : ''}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Ответил</dt>
+              <dd className="text-[var(--portal-text)]">
+                {lead.responded_at ? format(new Date(lead.responded_at), 'dd.MM.yyyy HH:mm') : 'ещё нет'}
+              </dd>
+            </div>
+          </dl>
         </Card>
       )}
 

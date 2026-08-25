@@ -86,6 +86,13 @@ export default async function CrmLeadDetailPage({ params }: PageProps) {
     source: lead.source,
     converted_to_user_id: lead.convertedToUserId,
     last_order_number: lead.lastOrderNumber ?? null,
+    telegram_chat_id: lead.telegramChatId,
+    telegram_username: lead.telegramUsername,
+    funnel_segment: lead.funnelSegment,
+    entry_source: lead.entrySource,
+    followup_stage: lead.followupStage,
+    last_bot_message_at: lead.lastBotMessageAt?.toISOString() ?? null,
+    responded_at: lead.respondedAt?.toISOString() ?? null,
     created_at: lead.createdAt.toISOString(),
     updated_at: lead.updatedAt.toISOString(),
   };
