@@ -9,7 +9,7 @@
  * редкие слова весят больше частых (idf). Плюс два порога: минимальный балл
  * и отрыв от второго кандидата, чтобы не отвечать наугад на похожие темы.
  */
-import { FAQ_CATEGORIES } from './faq';
+import { FAQ_CATEGORIES, FAQ_MATCH_ALIASES } from './faq';
 
 export type FaqMatch = {
   question: string;
@@ -38,13 +38,38 @@ function stem(word: string): string {
   return w;
 }
 
+/**
+ * Смысловые синонимы: люди спрашивают одними словами, а FAQ написан другими.
+ * Держим список коротким и предметным — это не общий тезаурус, а заплатки
+ * на конкретные расхождения, найденные на реальных формулировках.
+ */
+const SYNONYMS: Record<string, string> = {
+  медицин: 'лечен',
+  лечит: 'лечен',
+  лечен: 'лечен',
+  вылечит: 'лечен',
+  доктор: 'врач',
+  стоим: 'цен',
+  стоит: 'цен',
+  цена: 'цен',
+  прайс: 'цен',
+  рассрочк: 'оплат',
+  оплатит: 'оплат',
+  платеж: 'оплат',
+  диплом: 'сертификат',
+  удостоверен: 'сертификат',
+  дистанцион: 'онлайн',
+  удален: 'онлайн',
+};
+
 function tokenize(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[^a-zа-яё0-9\s-]/gi, ' ')
     .split(/\s+/)
     .filter((w) => w.length > 2 && !STOPWORDS.has(w))
-    .map(stem);
+    .map(stem)
+    .map((w) => SYNONYMS[w] ?? w);
 }
 
 type IndexedItem = {
@@ -62,7 +87,11 @@ let indexCache: { items: IndexedItem[]; idf: Map<string, number> } | null = null
 function buildIndex() {
   if (indexCache) return indexCache;
   const items: IndexedItem[] = [];
-  for (const category of FAQ_CATEGORIES) {
+  const sources: { title: string; items: { q: string; a: string }[] }[] = [
+    ...FAQ_CATEGORIES.map((c) => ({ title: c.title, items: [...c.items] })),
+    { title: 'Частые формулировки', items: FAQ_MATCH_ALIASES },
+  ];
+  for (const category of sources) {
     for (const item of category.items) {
       items.push({
         question: item.q,
@@ -96,6 +125,19 @@ const MIN_COVERAGE = 0.4; // какая доля значимых слов во�
 const RARE_HIT_IDF = 2.2;
 const RARE_HIT_COVERAGE = 0.5;
 const RARE_HIT_SCORE = 6;
+
+/**
+ * Темы, по которым выверенного ответа нет: скидки, промокоды, бесплатный доступ.
+ * Здесь ответить «примерно похожим» хуже, чем промолчать — цена ошибки в деньгах
+ * и в ощущении, что бот не услышал вопрос.
+ */
+const NO_ANSWER_TERMS = ['бесплатн', 'скидк', 'промокод', 'халяв'];
+
+function touchesUnanswerableTopic(text: string, matchedQuestion: string): boolean {
+  const q = text.toLowerCase();
+  const matched = matchedQuestion.toLowerCase();
+  return NO_ANSWER_TERMS.some((term) => q.includes(term) && !matched.includes(term));
+}
 
 /**
  * Найти ответ на свободный вопрос. Возвращает null, если уверенности нет —
@@ -141,6 +183,7 @@ export function matchFaqAnswer(text: string): FaqMatch | null {
     best.score >= RARE_HIT_SCORE;
   if (!solidMatch && !rareMatch) return null;
   if (second && second.score > 0 && best.score < second.score * MIN_MARGIN) return null;
+  if (touchesUnanswerableTopic(text, best.item.question)) return null;
 
   return {
     question: best.item.question,
