@@ -84,7 +84,7 @@ export default async function HomePage() {
       <Author />
       <Testimonials />
       <LandingBlog />
-      <TelegramPromo variant="section" />
+      <TelegramPromo variant="section" source="landing" />
       <LandingFAQ />
       <Pricing initialProducts={tariffs.length ? tariffs : undefined} />
       <FAQ />

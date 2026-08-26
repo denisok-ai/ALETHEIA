@@ -7,9 +7,9 @@ import type { BotContext } from './types';
 import { findUserByTelegramId } from './auth';
 import { botReply } from './messaging';
 import { setSessionState, clearBotSession } from './session';
-import { backToMainKeyboard } from './keyboards';
+import { backToMainKeyboard, sharePhoneKeyboard } from './keyboards';
 import { getBotSiteSettings } from './settings-cache';
-import { upsertBotLead, type FunnelSegment as LeadSegment } from './lead-service';
+import { leadHasRealPhone, upsertBotLead, type FunnelSegment as LeadSegment } from './lead-service';
 import { matchFaqAnswer } from './faq-match';
 import { logFaqMiss } from './faq-miss-log';
 
@@ -79,6 +79,25 @@ async function leadCrmLink(leadId: number | null): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Предложить оставить телефон — отдельным сообщением: Telegram не разрешает
+ * держать inline-кнопки и клавиатуру запроса контакта в одном сообщении.
+ * Просим один раз: если номер уже есть, молчим.
+ */
+async function offerPhoneShare(ctx: BotContext, segment: FunnelSegment): Promise<void> {
+  if (segment === 'info') return;
+  if (await leadHasRealPhone(ctx.chatId)) return;
+
+  const text =
+    segment === 'hot'
+      ? 'Если удобнее обсудить голосом — оставьте номер, специалист школы позвонит в удобное время. ' +
+        'Не хотите звонка — просто продолжайте писать здесь, отвечу в переписке.'
+      : 'Если хотите, чтобы специалист связался с вами напрямую, — оставьте номер кнопкой ниже. ' +
+        'Это не обязательно: могу отвечать прямо здесь.';
+
+  await botReply(ctx, text, { replyMarkup: sharePhoneKeyboard(), forceNew: true });
 }
 
 export const FUNNEL_THANKS_AFTER_FREEFORM =
@@ -151,6 +170,9 @@ export async function handleFunnelChoice(ctx: BotContext, choice: string): Promi
     botMessaged: true,
   });
 
+  // Горячему сегменту предлагаем звонок сразу: он уже готов обсуждать участие.
+  if (step.segment === 'hot') await offerPhoneShare(ctx, step.segment);
+
   if (step.notifyAdmin) {
     notifyAdminsTelegramAsync('contact_lead', [
       `Лид из Telegram-бота (${step.segment === 'hot' ? 'горячий' : 'тёплый'}).`,
@@ -184,6 +206,7 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
   );
 
   const leadId = await upsertBotLead(ctx, { segment: segment as LeadSegment, freeform: trimmed });
+  await offerPhoneShare(ctx, segment);
 
   notifyAdminsTelegramAsync('contact_lead', [
     `Сообщение из воронки Telegram (${segment === 'hot' ? 'горячий' : 'тёплый'} лид).`,

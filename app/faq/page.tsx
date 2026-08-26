@@ -8,6 +8,7 @@ import { getSystemSettings } from '@/lib/settings';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH, SEO_FAQ } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
+import { botDeepLink } from '@/lib/social-links';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -90,7 +91,17 @@ export default async function FaqPage() {
           Не нашли ответ?{' '}
           <Link href="/contacts" className="font-medium text-plum hover:underline">
             Напишите нам
-          </Link>{' '}
+          </Link>
+          ,{' '}
+          {/* Бот отвечает на частые вопросы сам и заводит обращение в CRM. */}
+          <a
+            href={botDeepLink('faq')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-plum hover:underline"
+          >
+            спросите бота в Telegram
+          </a>{' '}
           или откройте чат внизу страницы.
         </p>
       </main>

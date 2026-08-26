@@ -215,7 +215,8 @@ export default async function BlogArticlePage({ params }: Props) {
         ) : null}
 
         <div className="mt-10">
-          <TelegramPromo variant="card" />
+          {/* Метка со слагом статьи: в CRM видно, какой текст привёл человека. */}
+          <TelegramPromo variant="card" source={`blog-${slug}`} />
         </div>
 
         <div className="mt-10">

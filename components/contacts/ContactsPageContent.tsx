@@ -53,7 +53,7 @@ export function ContactsPageContent({ phone, phoneHref, address }: Props) {
       </ul>
 
       <div className="mt-8">
-        <TelegramPromo variant="card" />
+        <TelegramPromo variant="card" source="contacts" />
       </div>
 
       <p className="mt-10 text-center text-sm text-[var(--text-muted)]">

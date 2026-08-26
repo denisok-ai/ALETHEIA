@@ -164,3 +164,20 @@ export function adminBackKeyboard(): TelegramReplyMarkup {
     ],
   };
 }
+
+/**
+ * Родная кнопка Telegram: телефон отдаётся одним тапом, вручную набирать не надо.
+ * `one_time_keyboard` убирает её сразу после нажатия, чтобы не мозолила глаза.
+ */
+export function sharePhoneKeyboard() {
+  return {
+    keyboard: [[{ text: '📞 Поделиться телефоном', request_contact: true }]],
+    resize_keyboard: true,
+    one_time_keyboard: true,
+  };
+}
+
+/** Снять reply-клавиатуру после того, как контакт получен. */
+export function removeKeyboard() {
+  return { remove_keyboard: true };
+}

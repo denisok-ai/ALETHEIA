@@ -20,9 +20,12 @@ export type InlineKeyboardButton = {
 
 export type TelegramReplyMarkup = {
   inline_keyboard?: InlineKeyboardButton[][];
-  keyboard?: { text: string }[][];
+  /** `request_contact` — родная кнопка Telegram: телефон отдаётся одним тапом. */
+  keyboard?: { text: string; request_contact?: boolean }[][];
   resize_keyboard?: boolean;
   one_time_keyboard?: boolean;
+  /** Убрать клавиатуру после того, как контакт получен. */
+  remove_keyboard?: boolean;
 };
 
 export type SendTelegramMessageOptions = {

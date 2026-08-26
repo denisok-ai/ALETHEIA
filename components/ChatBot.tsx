@@ -8,6 +8,7 @@ import { ChatMarkdown } from '@/components/ChatMarkdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AVATERRA_OPEN_CHAT_EVENT } from '@/lib/chat-events';
+import { botDeepLink } from '@/lib/social-links';
 import { isMinimalPublicShell } from '@/lib/public-shell-paths';
 
 type Message = { role: 'user' | 'bot'; text: string };
@@ -18,7 +19,43 @@ export function ChatBot() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  // Разговор в чате раньше нигде не оседал: человек спрашивал и уходил без
+  // следа. После второго ответа предлагаем способ продолжить — в боте (там
+  // диалог начинает он сам, и лид заводится автоматически) или контактом.
+  const [contact, setContact] = useState('');
+  const [contactState, setContactState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
+  const [contactError, setContactError] = useState('');
+  const [handoffDismissed, setHandoffDismissed] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
+
+  const botAnswers = messages.filter((m) => m.role === 'bot').length;
+  const showHandoff = botAnswers >= 2 && !handoffDismissed && contactState !== 'sent';
+  const lastQuestion = [...messages].reverse().find((m) => m.role === 'user')?.text ?? '';
+
+  const sendContact = async () => {
+    const value = contact.trim();
+    if (!value || contactState === 'sending') return;
+    setContactState('sending');
+    setContactError('');
+    try {
+      const res = await fetch('/api/chat/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact: value, question: lastQuestion }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setContactState('error');
+        setContactError(data?.error || 'Не удалось отправить. Попробуйте позже.');
+        return;
+      }
+      setContactState('sent');
+      setContact('');
+    } catch {
+      setContactState('error');
+      setContactError('Ошибка соединения. Попробуйте позже.');
+    }
+  };
 
   useEffect(() => {
     if (listRef.current) {
@@ -143,6 +180,68 @@ export function ChatBot() {
               {loading && (
                 <div className="mr-auto rounded-xl px-3 py-2 text-sm bg-[var(--lavender-light)] text-[var(--portal-text-muted)]">
                   Думаю…
+                </div>
+              )}
+              {contactState === 'sent' && (
+                <div className="rounded-xl border border-[#E2E8F0] bg-[var(--lavender-light)] px-4 py-3 text-sm text-[var(--portal-text)]">
+                  Спасибо! Специалист школы свяжется с вами.
+                </div>
+              )}
+              {showHandoff && (
+                <div className="rounded-xl border border-[#E2E8F0] bg-white px-4 py-3 text-sm">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className="font-semibold text-[var(--portal-text)]">
+                      Продолжить с живым специалистом?
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setHandoffDismissed(true)}
+                      className="shrink-0 rounded-full px-2 text-[var(--portal-text-muted)] hover:bg-black/5"
+                      aria-label="Скрыть предложение"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <a
+                    href={botDeepLink('chat')}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-3 flex w-full items-center justify-center rounded-xl bg-plum px-4 py-2.5 font-semibold text-white transition-colors hover:bg-plum/90"
+                  >
+                    Открыть бот в Telegram
+                  </a>
+                  <p className="mt-3 text-xs text-[var(--portal-text-muted)]">
+                    Или оставьте контакт — специалист напишет сам:
+                  </p>
+                  <div className="mt-2 flex gap-2">
+                    <input
+                      type="text"
+                      value={contact}
+                      onChange={(e) => setContact(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && sendContact()}
+                      placeholder="Телефон или e-mail"
+                      className="flex-1 rounded-xl border border-[#E2E8F0] bg-white px-3 py-2 text-sm placeholder:text-[var(--portal-text-soft)] focus:border-[var(--portal-accent)] focus:outline-none focus:ring-2 focus:ring-[var(--portal-accent)]/50"
+                      disabled={contactState === 'sending'}
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="default"
+                      onClick={sendContact}
+                      disabled={contactState === 'sending' || !contact.trim()}
+                      className="shrink-0 rounded-xl"
+                    >
+                      {contactState === 'sending' ? '…' : 'Отправить'}
+                    </Button>
+                  </div>
+                  {contactError && <p className="mt-2 text-xs text-red-600">{contactError}</p>}
+                  <p className="mt-2 text-xs text-[var(--portal-text-muted)]">
+                    Отправляя контакт, вы соглашаетесь с{' '}
+                    <Link href="/privacy" className="text-accent underline hover:opacity-90">
+                      политикой обработки персональных данных
+                    </Link>
+                    .
+                  </p>
                 </div>
               )}
             </div>

@@ -24,7 +24,17 @@ const BENEFITS = [
 
 type Variant = 'section' | 'card';
 
-export function TelegramPromo({ variant = 'card' }: { variant?: Variant }) {
+/**
+ * `source` попадает в deep link и оседает в карточке лида: по нему видно,
+ * с какой страницы человек пришёл в бота (лендинг, статья блога, контакты).
+ */
+export function TelegramPromo({
+  variant = 'card',
+  source = 'site-promo',
+}: {
+  variant?: Variant;
+  source?: string;
+}) {
   const inner = (
     <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)] md:p-8">
       <div
@@ -51,7 +61,7 @@ export function TelegramPromo({ variant = 'card' }: { variant?: Variant }) {
         </div>
         <div className="flex shrink-0 flex-col items-stretch gap-3 md:w-56">
           <a
-            href={botDeepLink('site-promo')}
+            href={botDeepLink(source)}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-plum px-5 py-3 font-semibold text-white transition-colors hover:bg-plum/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-plum"

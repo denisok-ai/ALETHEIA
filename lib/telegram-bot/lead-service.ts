@@ -117,6 +117,80 @@ export async function upsertBotLead(
 }
 
 /**
+ * Телефон, которым человек поделился кнопкой Telegram.
+ *
+ * Это единственный способ получить настоящий номер без ручной переписки:
+ * менеджер сможет позвонить, а не только писать в Telegram. Ник при этом
+ * не теряем — он уходит в текст карточки.
+ */
+export async function saveLeadPhone(
+  ctx: BotContext,
+  phone: string,
+  contactName?: string
+): Promise<number | null> {
+  const clean = phone.replace(/[^\d+]/g, '').slice(0, 50);
+  if (clean.replace(/\D/g, '').length < 10) return null;
+
+  try {
+    const existing = await findLeadForChat(ctx);
+    const note = [
+      `Телефон получен из Telegram: ${clean}`,
+      `Контакт в боте: ${funnelContact(ctx)}`,
+    ].join('\n');
+
+    if (existing) {
+      await prisma.lead.update({
+        where: { id: existing.id },
+        data: {
+          phone: clean,
+          telegramChatId: ctx.chatId,
+          telegramUsername: ctx.telegramUsername ?? null,
+          respondedAt: new Date(),
+          message: `${note}\n\n— ранее —\n${existing.message ?? ''}`.slice(0, 2000),
+        },
+      });
+      return existing.id;
+    }
+
+    const lead = await prisma.lead.create({
+      data: {
+        name: (contactName || ctx.displayName).slice(0, 200),
+        phone: clean,
+        message: note,
+        status: 'new',
+        source: LEAD_SOURCE,
+        telegramChatId: ctx.chatId,
+        telegramUsername: ctx.telegramUsername ?? null,
+        respondedAt: new Date(),
+      },
+    });
+    return lead.id;
+  } catch (e) {
+    console.error('[bot-lead] saveLeadPhone:', e);
+    return null;
+  }
+}
+
+/**
+ * Есть ли у лида настоящий телефон (а не ник/chat id в поле телефона).
+ * По нему решаем, предлагать ли поделиться номером — повторно не просим.
+ */
+export async function leadHasRealPhone(chatId: number): Promise<boolean> {
+  try {
+    const lead = await prisma.lead.findFirst({
+      where: { telegramChatId: chatId },
+      orderBy: { createdAt: 'desc' },
+      select: { phone: true },
+    });
+    if (!lead?.phone) return false;
+    return !lead.phone.startsWith('@') && !lead.phone.startsWith('tg:');
+  } catch (e) {
+    console.error('[bot-lead] leadHasRealPhone:', e);
+    return true; // при сбое лучше не приставать с просьбой
+  }
+}
+
+/**
  * Человек написал боту — догоны прекращаются.
  * Вызывается на любое входящее сообщение, поэтому молча игнорирует отсутствие лида.
  */

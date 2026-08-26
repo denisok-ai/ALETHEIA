@@ -18,11 +18,20 @@ export type TelegramChat = {
   username?: string;
 };
 
+/** Контакт, которым человек поделился кнопкой `request_contact`. */
+export type TelegramContact = {
+  phone_number: string;
+  first_name?: string;
+  last_name?: string;
+  user_id?: number;
+};
+
 export type TelegramMessage = {
   message_id: number;
   chat: TelegramChat;
   from?: TelegramUser;
   text?: string;
+  contact?: TelegramContact;
   date?: number;
 };
 

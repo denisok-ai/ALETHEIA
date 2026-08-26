@@ -41,6 +41,7 @@ import {
 } from './support-handlers';
 import { handleFunnelChoice, handleFunnelWelcome, shouldShowFunnelOnStart } from './funnel';
 import { hasStartPayload, parseStartPayload } from './deep-link';
+import { removeKeyboard } from './keyboards';
 import { markLeadResponded, upsertBotLead } from './lead-service';
 import { handleContentCallback, handleContentCommand } from './content-handlers';
 
@@ -95,6 +96,44 @@ function normalizeBotCommand(raw: string): string {
   if (!lower.startsWith('/')) return lower;
   const body = lower.slice(1).split('@')[0] ?? '';
   return body ? `/${body}` : lower;
+}
+
+/**
+ * Телефон из кнопки «Поделиться телефоном»: пишем в карточку лида и зовём
+ * менеджера. Чужой контакт (переслали чью-то визитку) не принимаем — в CRM
+ * должен попасть номер собеседника, а не третьего лица.
+ */
+async function handleSharedContact(
+  ctx: BotContext,
+  contact: NonNullable<NonNullable<TelegramUpdate['message']>['contact']>
+): Promise<void> {
+  if (!contact.phone_number) return;
+
+  const own = !contact.user_id || contact.user_id === ctx.telegramUserId;
+  if (!own) {
+    await safeReply(ctx.chatId, 'Это чужой контакт — пришлите, пожалуйста, свой номер кнопкой ниже.');
+    return;
+  }
+
+  const { saveLeadPhone } = await import('./lead-service');
+  const name = [contact.first_name, contact.last_name].filter(Boolean).join(' ');
+  const leadId = await saveLeadPhone(ctx, contact.phone_number, name);
+
+  await botReply(
+    ctx,
+    'Спасибо! Записал номер — специалист школы свяжется с вами. ' +
+      'Если удобнее в переписке, просто напишите сюда.',
+    { replyMarkup: removeKeyboard(), forceNew: true }
+  );
+
+  const { notifyAdminsTelegramAsync } = await import('@/lib/telegram-admin-notify');
+  notifyAdminsTelegramAsync('contact_lead', [
+    'Лид оставил телефон в Telegram-боте.',
+    `Имя: ${name || ctx.displayName}`,
+    `Телефон: ${contact.phone_number}`,
+    `Контакт: ${ctx.telegramUsername ? `@${ctx.telegramUsername}` : `chat ${ctx.chatId}`}`,
+    ...(leadId ? [`CRM: лид ${leadId}`] : []),
+  ]);
 }
 
 function buildContextFromMessage(
@@ -404,6 +443,14 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
   if (!message?.chat?.id) return;
 
   const chatId = message.chat.id;
+
+  // Человек нажал «Поделиться телефоном» — это сообщение без текста.
+  if (message.contact?.phone_number) {
+    const isAdminContact = await isTelegramAdmin(chatId, message.from?.id);
+    await handleSharedContact(buildContextFromMessage(message, isAdminContact), message.contact);
+    return;
+  }
+
   const text = message.text?.trim();
   if (!text) return;
 
