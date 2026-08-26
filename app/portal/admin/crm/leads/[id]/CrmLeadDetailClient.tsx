@@ -360,6 +360,12 @@ export function CrmLeadDetailClient({
             {savingSource ? 'Сохранение…' : 'Сохранить'}
           </Button>
         </div>
+        {lead.entry_source && (
+          // Метка из deep link: с какой страницы человек пришёл в бота или чат.
+          <p className="mt-3 text-sm text-[var(--portal-text-muted)]">
+            Точка входа: <span className="text-[var(--portal-text)]">{lead.entry_source}</span>
+          </p>
+        )}
       </Card>
 
       {lead.message && (
