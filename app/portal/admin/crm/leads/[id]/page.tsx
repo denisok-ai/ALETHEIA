@@ -93,6 +93,11 @@ export default async function CrmLeadDetailPage({ params }: PageProps) {
     followup_stage: lead.followupStage,
     last_bot_message_at: lead.lastBotMessageAt?.toISOString() ?? null,
     responded_at: lead.respondedAt?.toISOString() ?? null,
+    qualified_at: lead.qualifiedAt?.toISOString() ?? null,
+    qualify_reason: lead.qualifyReason,
+    buy_intent_at: lead.buyIntentAt?.toISOString() ?? null,
+    offer_sent_at: lead.offerSentAt?.toISOString() ?? null,
+    unsubscribed_at: lead.unsubscribedAt?.toISOString() ?? null,
     created_at: lead.createdAt.toISOString(),
     updated_at: lead.updatedAt.toISOString(),
   };

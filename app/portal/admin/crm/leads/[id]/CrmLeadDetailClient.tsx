@@ -36,6 +36,11 @@ export type CrmLeadDetail = {
   followup_stage?: number;
   last_bot_message_at?: string | null;
   responded_at?: string | null;
+  qualified_at?: string | null;
+  qualify_reason?: string | null;
+  buy_intent_at?: string | null;
+  offer_sent_at?: string | null;
+  unsubscribed_at?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -302,6 +307,45 @@ export function CrmLeadDetailClient({
                 </li>
               ))}
             </ul>
+          )}
+        </Card>
+      )}
+
+      {(lead.qualified_at || lead.buy_intent_at || lead.unsubscribed_at) && (
+        <Card
+          title="Автоквалификация"
+          description="Бот двигает статус по фактам: контакт, интент покупки, оставленный телефон"
+        >
+          <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Квалифицирован</dt>
+              <dd className="text-[var(--portal-text)]">
+                {lead.qualified_at ? format(new Date(lead.qualified_at), 'dd.MM.yyyy HH:mm') : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Интент покупки</dt>
+              <dd className="text-[var(--portal-text)]">
+                {lead.buy_intent_at ? `🔥 ${format(new Date(lead.buy_intent_at), 'dd.MM HH:mm')}` : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Оффер отправлен</dt>
+              <dd className="text-[var(--portal-text)]">
+                {lead.offer_sent_at ? format(new Date(lead.offer_sent_at), 'dd.MM HH:mm') : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-[var(--portal-text-muted)]">Отписался</dt>
+              <dd className="text-[var(--portal-text)]">
+                {lead.unsubscribed_at ? format(new Date(lead.unsubscribed_at), 'dd.MM.yyyy') : 'нет'}
+              </dd>
+            </div>
+          </dl>
+          {lead.qualify_reason && (
+            <p className="mt-3 whitespace-pre-wrap text-xs text-[var(--portal-text-muted)]">
+              {lead.qualify_reason}
+            </p>
           )}
         </Card>
       )}

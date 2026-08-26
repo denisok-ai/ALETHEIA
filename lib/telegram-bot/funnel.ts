@@ -13,6 +13,8 @@ import { leadHasRealPhone, upsertBotLead, type FunnelSegment as LeadSegment } fr
 import { matchFaqAnswer } from './faq-match';
 import { logFaqMiss } from './faq-miss-log';
 import { tryBotAiAnswer } from './ai-answer';
+import { detectBuyIntent, describeBuyIntent } from './buy-intent';
+import { markQualified } from './lead-qualify';
 
 export type FunnelChoice = 'learn' | 'thinking' | 'ready';
 export type FunnelSegment = 'info' | 'warm' | 'hot';
@@ -221,12 +223,21 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
   const leadId = await upsertBotLead(ctx, { segment: segment as LeadSegment, freeform: trimmed });
   await offerPhoneShare(ctx, segment);
 
+  // Автоквалификация: горячий сегмент или явный интент покупки → qualified.
+  const intent = detectBuyIntent(trimmed);
+  if (intent) {
+    await markQualified(ctx.chatId, `интент покупки (${describeBuyIntent(intent)})`, { buyIntent: true });
+  } else if (segment === 'hot') {
+    await markQualified(ctx.chatId, 'сегмент «готов обсудить участие»');
+  }
+
   notifyAdminsTelegramAsync('contact_lead', [
     `Сообщение из воронки Telegram (${segment === 'hot' ? 'горячий' : 'тёплый'} лид).`,
     `От: ${ctx.displayName}${ctx.telegramUsername ? ` (@${ctx.telegramUsername})` : ''}`,
     `Chat ID: ${ctx.chatId}`,
     ...(await leadCrmLink(leadId)),
     answerSource,
+    ...(intent ? [`🔥 Интент покупки: ${describeBuyIntent(intent)}`] : []),
     '',
     trimmed.slice(0, 500),
   ]);

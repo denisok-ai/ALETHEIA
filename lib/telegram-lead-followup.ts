@@ -48,6 +48,8 @@ function followupText(stage: Stage, segment: string | null): string {
     `• <a href="${LINK_FAQ}">Ответы на частые вопросы</a>.`,
     '',
     'Захотите вернуться к разговору — просто напишите сюда, я на связи.',
+    '',
+    '<i>Не хотите напоминаний — напишите «стоп».</i>',
   ].join('\n');
 }
 
@@ -147,6 +149,7 @@ export async function runTelegramLeadFollowup(
     where: {
       telegramChatId: { not: null },
       respondedAt: null,
+      unsubscribedAt: null, // отписавшихся не трогаем
       status: 'new',
       followupStage: { lt: 2 },
       funnelSegment: { in: ['warm', 'hot'] },

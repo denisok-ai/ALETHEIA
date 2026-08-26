@@ -743,6 +743,18 @@ model Lead {
   lastBotMessageAt  DateTime?
   /// Человек ответил боту — догоны прекращаются
   respondedAt       DateTime?
+  /// Автоквалификация: когда и почему бот перевёл лид в qualified
+  qualifiedAt       DateTime?
+  qualifyReason     String?
+  /// Обнаружен интент покупки (спросил цену/оплату/запись) — приоритет и оффер
+  buyIntentAt       DateTime?
+  /// Автономный прогрев: этап сценария (0 — не начат) и время последнего касания
+  nurtureStage      Int      @default(0)
+  lastNurtureAt     DateTime?
+  /// Оффер (тариф + ссылка на оплату) отправлен ботом
+  offerSentAt       DateTime?
+  /// Человек отписался (/stop) — любые авторассылки прекращаются навсегда
+  unsubscribedAt    DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -750,6 +762,7 @@ model Lead {
   @@index([createdAt])
   @@index([telegramChatId])
   @@index([followupStage])
+  @@index([nurtureStage])
 }
 
 model Order {

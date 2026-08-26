@@ -139,6 +139,10 @@ export async function saveLeadPhone(
     ].join('\n');
 
     if (existing) {
+      const qualifyUp =
+        existing.status === 'new' || existing.status === 'contacted'
+          ? { status: 'qualified', qualifiedAt: new Date() }
+          : {};
       await prisma.lead.update({
         where: { id: existing.id },
         data: {
@@ -146,6 +150,8 @@ export async function saveLeadPhone(
           telegramChatId: ctx.chatId,
           telegramUsername: ctx.telegramUsername ?? null,
           respondedAt: new Date(),
+          ...qualifyUp,
+          qualifyReason: `${new Date().toISOString().slice(0, 16).replace('T', ' ')} qualified: оставил телефон${existing.qualifyReason ? `\n${existing.qualifyReason}` : ''}`.slice(0, 2000),
           message: `${note}\n\n— ранее —\n${existing.message ?? ''}`.slice(0, 2000),
         },
       });
@@ -157,7 +163,10 @@ export async function saveLeadPhone(
         name: (contactName || ctx.displayName).slice(0, 200),
         phone: clean,
         message: note,
-        status: 'new',
+        // Оставил телефон — это готовность к разговору о покупке.
+        status: 'qualified',
+        qualifiedAt: new Date(),
+        qualifyReason: `${new Date().toISOString().slice(0, 16).replace('T', ' ')} qualified: оставил телефон`,
         source: LEAD_SOURCE,
         telegramChatId: ctx.chatId,
         telegramUsername: ctx.telegramUsername ?? null,

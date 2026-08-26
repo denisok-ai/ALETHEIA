@@ -506,8 +506,24 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
   // Пересланное уведомление чужой воронки: заводим карточку в CRM.
   if (isAdmin && (await handlePartnerLeadForward(ctx, text, message.entities))) return;
 
+  // Отписка от автосообщений — до всего остального: уважаем «стоп» немедленно.
+  if (!isAdmin) {
+    const { isUnsubscribeCommand } = await import('./unsubscribe');
+    if (isUnsubscribeCommand(text)) {
+      const { markUnsubscribed, UNSUBSCRIBE_CONFIRM } = await import('./unsubscribe');
+      await markUnsubscribed(chatId);
+      await safeReply(ctx.chatId, UNSUBSCRIBE_CONFIRM);
+      return;
+    }
+  }
+
   // Человек написал сам — автодогоны по нему прекращаются (не ждём cron).
-  if (!isAdmin) void markLeadResponded(chatId);
+  // И это факт контакта: лид переходит new → contacted.
+  if (!isAdmin) {
+    void markLeadResponded(chatId);
+    const { markContacted } = await import('./lead-qualify');
+    void markContacted(chatId, 'написал боту');
+  }
 
   if (text.startsWith('/')) {
     await handleCommand(ctx);
@@ -528,6 +544,13 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
   }
 
   if (!isAdmin) {
+    // Интент покупки вне сценария — тоже квалифицируем.
+    const { detectBuyIntent, describeBuyIntent } = await import('./buy-intent');
+    const intent = detectBuyIntent(text);
+    if (intent) {
+      const { markQualified } = await import('./lead-qualify');
+      void markQualified(ctx.chatId, `интент покупки (${describeBuyIntent(intent)})`, { buyIntent: true });
+    }
     const { tryBotAiAnswer } = await import('./ai-answer');
     const ai = await tryBotAiAnswer(ctx.chatId, text);
     if (ai.kind === 'answer') {
