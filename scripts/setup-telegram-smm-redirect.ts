@@ -1,5 +1,5 @@
 /**
- * Перевод старого SMM-бота (@AvaterraSMMBot) в режим «редирект в бота портала».
+ * Перевод старого SMM-бота (@AvaterraBot) в режим «редирект в бота портала».
  *
  * Запуск (токен только через переменную окружения, в аргументы не попадает):
  *   SMM_BOT_TOKEN=... npx tsx scripts/setup-telegram-smm-redirect.ts
@@ -20,7 +20,7 @@ import {
   SMM_WEBHOOK_SECRET_KEY,
 } from '@/lib/telegram-smm-redirect';
 
-const EXPECTED_USERNAME = 'avaterrasmmbot';
+const EXPECTED_USERNAME = 'avaterrabot';
 const WEBHOOK_PATH = '/api/portal/telegram/smm-redirect';
 
 async function api<T>(token: string, method: string, body?: unknown): Promise<T> {
@@ -54,7 +54,7 @@ async function main() {
   const me = await api<{ username?: string; id?: number }>(token, 'getMe');
   console.log(`Бот: @${me.username ?? '—'} (id ${me.id ?? '—'})`);
   if ((me.username ?? '').toLowerCase() !== EXPECTED_USERNAME) {
-    console.error(`СТОП: ожидался @AvaterraSMMBot, токен принадлежит другому боту.`);
+    console.error('СТОП: ожидался @AvaterraBot, токен принадлежит другому боту.');
     process.exit(2);
   }
 

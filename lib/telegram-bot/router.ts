@@ -136,6 +136,50 @@ async function handleSharedContact(
   ]);
 }
 
+/**
+ * Уведомление бота партнёра, пересланное владельцем. Работает только для
+ * админов: это внутренний канал, а не публичная команда.
+ * Возвращает true, если сообщение обработано.
+ */
+async function handlePartnerLeadForward(
+  ctx: BotContext,
+  text: string,
+  entities: NonNullable<TelegramUpdate['message']>['entities']
+): Promise<boolean> {
+  const { looksLikePartnerLead, parsePartnerLead, upsertPartnerLead } = await import('./partner-lead');
+  if (!looksLikePartnerLead(text)) return false;
+
+  const parsed = parsePartnerLead(text, entities);
+  if (!parsed) return false;
+
+  const result = await upsertPartnerLead(parsed);
+  if (!result) {
+    await safeReply(ctx.chatId, '❌ Не удалось записать лид — посмотрите логи приложения.');
+    return true;
+  }
+
+  const { getBotSiteSettings } = await import('./settings-cache');
+  const { siteUrl } = await getBotSiteSettings();
+  const base = siteUrl || 'https://avaterra.pro';
+  const segmentWord = parsed.segment === 'hot' ? 'горячий' : parsed.segment === 'warm' ? 'тёплый' : 'холодный';
+
+  await safeReply(
+    ctx.chatId,
+    [
+      result.created ? '✅ Лид заведён в CRM' : '♻️ Лид дополнен (карточка уже была)',
+      `Имя: ${parsed.name}`,
+      `Сегмент: ${segmentWord}`,
+      parsed.username ? `Ник: @${parsed.username}` : 'Ника нет',
+      parsed.telegramUserId
+        ? `Telegram ID: ${parsed.telegramUserId} — профиль откроется тапом по имени в исходном уведомлении`
+        : 'Telegram ID не считался: перешлите уведомление, а не копируйте текст',
+      '',
+      `${base}/portal/admin/crm/leads/${result.leadId}`,
+    ].join('\n')
+  );
+  return true;
+}
+
 function buildContextFromMessage(
   message: NonNullable<TelegramUpdate['message']>,
   isAdmin: boolean
@@ -458,6 +502,9 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
 
   const isAdmin = await isTelegramAdmin(chatId, message.from?.id);
   const ctx = buildContextFromMessage(message, isAdmin);
+
+  // Пересланное уведомление чужой воронки: заводим карточку в CRM.
+  if (isAdmin && (await handlePartnerLeadForward(ctx, text, message.entities))) return;
 
   // Человек написал сам — автодогоны по нему прекращаются (не ждём cron).
   if (!isAdmin) void markLeadResponded(chatId);

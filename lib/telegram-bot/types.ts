@@ -26,11 +26,24 @@ export type TelegramContact = {
   user_id?: number;
 };
 
+/**
+ * Разметка текста. Нужна ради `text_link` с `tg://user?id=…`: при пересылке
+ * чужого уведомления это единственное место, где сохраняется numeric id лида.
+ */
+export type TelegramMessageEntity = {
+  type: string;
+  offset: number;
+  length: number;
+  url?: string;
+  user?: TelegramUser;
+};
+
 export type TelegramMessage = {
   message_id: number;
   chat: TelegramChat;
   from?: TelegramUser;
   text?: string;
+  entities?: TelegramMessageEntity[];
   contact?: TelegramContact;
   date?: number;
 };
