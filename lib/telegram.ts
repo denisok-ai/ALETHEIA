@@ -43,6 +43,12 @@ async function telegramBotApi<T = unknown>(
   method: string,
   body: Record<string, unknown>
 ): Promise<{ ok: true; result?: T } | { ok: false; error: string }> {
+  // Предохранитель для тестов и сухих прогонов: глушим ЛЮБУЮ реальную отправку.
+  // Токен на проде подхватывается и из process.env, поэтому «удалить токен из
+  // копии БД» не спасает — нужен явный флаг. Ставится тестовыми скриптами.
+  if (process.env.TELEGRAM_DISABLE_OUTBOUND === '1') {
+    return { ok: true, result: undefined as T };
+  }
   const token = await getBotToken();
   if (!token) {
     return { ok: false, error: 'Не настроен токен Telegram-бота' };
