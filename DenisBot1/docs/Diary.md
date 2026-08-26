@@ -10,6 +10,8 @@
 ## [2026-08-26] Бот перенесён с 82.21.117.51 (Amsterdam) на прод Аватэрры 95.181.224.70
 
 ### Что сделано
+- Пост-перенос: старый экземпляр на 82.21.117.51 полностью отключён (`docker compose down` без `-v` — контейнеры удалены, тома `postgres_data`/`redis_data`/логи сохранены для отката). `deploy/deploy.sh`: дефолтный `DEPLOY_HOST` теперь `root@95.181.224.70`, в rsync добавлены исключения `docker-compose.override.yml` и `init-dump.sql` (иначе `--delete` снёс бы серверный оверрайд egress).
+
 - @AvaterraBot (docker compose: bot+postgres+redis) целиком перенесён на 95.181.224.70: код, `.env` (секреты), дамп Postgres (16 таблиц; воронка 1, лид-события 46, контент 119, проект 1). Восстановление начисто (DROP/CREATE SCHEMA поверх пустых таблиц из migrations, затем pg_dump). Данные не потеряны.
 - Старый экземпляр на 82 остановлен ДО запуска нового (`docker compose stop bot`) — один токен, иначе конфликт getUpdates. Postgres/redis на 82 пока живы как страховка для отката.
 - Автозапуск: restart `unless-stopped` + docker enabled в systemd.

@@ -7,7 +7,8 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEPLOY_HOST="${DEPLOY_HOST:?DEPLOY_HOST is required (e.g. user@host)}"
+# Прод Аватэрры (перенесён с 82.21.117.51 26.08.2026). Переопределяется переменной.
+DEPLOY_HOST="${DEPLOY_HOST:-root@95.181.224.70}"
 DEPLOY_DIR="${DEPLOY_DIR:-/opt/avaterra-bot}"
 DEPLOY_BACKUP_DIR="${DEPLOY_BACKUP_DIR:-/var/backups/avaterra-bot}"
 SSH_OPTS="${SSH_OPTS:--o StrictHostKeyChecking=accept-new}"
@@ -39,6 +40,8 @@ sync_repo() {
         --exclude='runtime/' \
         --exclude='backups/' \
         --exclude='.env' \
+        --exclude='docker-compose.override.yml' \
+        --exclude='init-dump.sql' \
         -e "ssh ${SSH_OPTS}" \
         "${REPO_ROOT}/" "${DEPLOY_HOST}:${DEPLOY_DIR}/"
 }
