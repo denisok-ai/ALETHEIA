@@ -18,6 +18,8 @@ export type FunnelStats = {
   converted: number; // оплатили
   unsubscribed: number;
   newLast24h: number;
+  /** A/B оффера: по варианту — отправлено, кликов, оплат. */
+  abTest: Record<'A' | 'B', { sent: number; clicked: number; converted: number }>;
 };
 
 export async function fetchFunnelStats(): Promise<FunnelStats> {
@@ -31,6 +33,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
       offerSentAt: true,
       offerNudgedAt: true,
       offerClickedAt: true,
+      offerVariant: true,
       unsubscribedAt: true,
       createdAt: true,
     },
@@ -45,6 +48,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
   let converted = 0;
   let unsubscribed = 0;
   let newLast24h = 0;
+  const abTest = { A: { sent: 0, clicked: 0, converted: 0 }, B: { sent: 0, clicked: 0, converted: 0 } };
 
   for (const l of leads) {
     byStatus[l.status] = (byStatus[l.status] ?? 0) + 1;
@@ -55,6 +59,12 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
     if (l.offerClickedAt) offerClicked += 1;
     if (l.status === 'converted') converted += 1;
     if (l.unsubscribedAt) unsubscribed += 1;
+    if (l.offerVariant === 'A' || l.offerVariant === 'B') {
+      const v = abTest[l.offerVariant];
+      if (l.offerSentAt) v.sent += 1;
+      if (l.offerClickedAt) v.clicked += 1;
+      if (l.status === 'converted') v.converted += 1;
+    }
     if (l.createdAt >= dayAgo) newLast24h += 1;
   }
 
@@ -69,6 +79,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
     converted,
     unsubscribed,
     newLast24h,
+    abTest,
   };
 }
 
@@ -84,5 +95,15 @@ export function formatFunnelStatsLines(s: FunnelStats): string[] {
     `По статусам: new ${st.new ?? 0} · контакт ${st.contacted ?? 0} · квалиф. ${st.qualified ?? 0} · оплата ${st.converted ?? 0} · потеряно ${st.lost ?? 0}`,
     `🔥 Интент: <b>${s.buyIntent}</b> · офферов: <b>${s.offersSent}</b> · кликов: <b>${s.offerClicked}</b> · дожимов: <b>${s.nudged}</b>`,
     `Конверсия в оплату: <b>${conv}%</b>${s.unsubscribed ? ` · отписалось: ${s.unsubscribed}` : ''}`,
+    ...abLines(s.abTest),
   ];
+}
+
+function abLines(ab: FunnelStats['abTest']): string[] {
+  if (ab.A.sent + ab.B.sent === 0) return [];
+  const row = (label: string, v: { sent: number; clicked: number; converted: number }) => {
+    const cr = v.sent ? Math.round((v.clicked / v.sent) * 100) : 0;
+    return `· ${label}: оффер ${v.sent} → клик ${v.clicked} (${cr}%) → оплата ${v.converted}`;
+  };
+  return ['', '<b>🧪 A/B оффера</b>', row('A (мягкий)', ab.A), row('B (без риска)', ab.B)];
 }

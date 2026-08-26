@@ -28,9 +28,17 @@ function fmtPrice(p: number): string {
  * Собрать сообщение с офером: до двух тарифов, кнопки на страницы оплаты.
  * `intent` влияет только на вступление (цена/рассрочка/сроки — отвечаем на них).
  */
+export type OfferVariant = 'A' | 'B';
+
+/** Устойчивое 50/50 назначение варианта по id лида. */
+export function assignVariant(leadId: number): OfferVariant {
+  return leadId % 2 === 0 ? 'A' : 'B';
+}
+
 async function buildOffer(
   siteBase: string,
   leadId: number,
+  variant: OfferVariant,
   intent?: BuyIntent | null,
   audience?: Audience | null
 ): Promise<{ text: string; keyboard: { inline_keyboard: { text: string; url: string }[][] } } | null> {
@@ -70,14 +78,18 @@ async function buildOffer(
     lines.push(`<b>${escapeHtml(p.name)}</b> — ${fmtPrice(p.price)}${installment}`);
     if (p.cardDescription) lines.push(escapeHtml(p.cardDescription.slice(0, 160)));
     lines.push('');
-    rows.push([{ text: `Оформить: ${p.name.slice(0, 28)}`, url: buildTrackedOfferUrl(base, leadId, p.slug) }]);
+    const cta = variant === 'B' ? 'Начать' : 'Оформить';
+    rows.push([{ text: `${cta}: ${p.name.slice(0, 28)}`, url: buildTrackedOfferUrl(base, leadId, p.slug) }]);
   }
 
-  lines.push(
-    wantsInstallment
-      ? '<i>На странице тарифа можно оформить рассрочку. Это не медицинская услуга — мы работаем со стрессом и телесным откликом.</i>'
-      : '<i>Оплата на странице тарифа. Без давления — если остались вопросы, просто напишите, разберём.</i>'
-  );
+  if (wantsInstallment) {
+    lines.push('<i>На странице тарифа можно оформить рассрочку. Это не медицинская услуга — мы работаем со стрессом и телесным откликом.</i>');
+  } else if (variant === 'B') {
+    // Вариант B: акцент на безопасность решения (доступ сразу, возврат 7 дней — реальные условия).
+    lines.push('<i>Доступ к материалам — сразу после оплаты. Если не подойдёт, действует возврат в течение 7 дней. Решение без риска.</i>');
+  } else {
+    lines.push('<i>Оплата на странице тарифа. Без давления — если остались вопросы, просто напишите, разберём.</i>');
+  }
 
   return { text: lines.join('\n'), keyboard: { inline_keyboard: rows } };
 }
@@ -107,10 +119,12 @@ export async function sendOffer(
       return { sent: false, reason: 'cooldown' };
     }
 
+    const variant = (lead.offerVariant as OfferVariant | null) ?? assignVariant(lead.id);
     const { siteUrl } = await getBotSiteSettings();
     const offer = await buildOffer(
       siteUrl || 'https://avaterra.pro',
       lead.id,
+      variant,
       opts.intent,
       lead.audience as import('./audience').Audience | null
     );
@@ -123,7 +137,7 @@ export async function sendOffer(
     });
     if (!res.ok) return { sent: false, reason: 'error' };
 
-    await prisma.lead.update({ where: { id: lead.id }, data: { offerSentAt: new Date() } });
+    await prisma.lead.update({ where: { id: lead.id }, data: { offerSentAt: new Date(), offerVariant: variant } });
     return { sent: true };
   } catch (e) {
     console.error('[offer] sendOffer:', e);
