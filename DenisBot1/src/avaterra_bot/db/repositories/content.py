@@ -190,6 +190,8 @@ async def update_item_text(
     status: str,
     dedup_status: Optional[str] = None,
     dedup_reason: Optional[str] = None,
+    last_error: Optional[str] = None,
+    clear_last_error: bool = False,
 ) -> None:
     async with pool.acquire() as conn:
         await conn.execute(
@@ -200,6 +202,11 @@ async def update_item_text(
                 status = $4,
                 dedup_status = COALESCE($5, dedup_status),
                 dedup_reason = COALESCE($6, dedup_reason),
+                last_error = CASE
+                    WHEN $8::boolean THEN NULL
+                    WHEN $7::text IS NOT NULL THEN $7::text
+                    ELSE last_error
+                END,
                 updated_at = NOW()
             WHERE id = $1
             """,
@@ -209,6 +216,8 @@ async def update_item_text(
             status,
             dedup_status,
             dedup_reason,
+            last_error,
+            clear_last_error,
         )
 
 
@@ -379,6 +388,39 @@ async def get_current_week_plan(
             week_end=row["week_end"],
             status=row["status"],
         )
+
+
+async def list_items_for_date(
+    pool: asyncpg.Pool,
+    *,
+    project_id: str,
+    publish_date: date,
+) -> list[ContentItemRecord]:
+    """Все item'ы проекта на конкретную дату, независимо от статуса.
+
+    Нужен публикатору для диагностики `publisher_run_empty`:
+    мы видим, какие посты на сегодня есть, но в публикацию не пошли
+    (например, остались в `draft`/`quality_failed`/`dry_run`).
+    """
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """
+            SELECT i.id::text AS id, i.plan_id::text AS plan_id, i.publish_date,
+                   i.post_type, i.topic, i.objective, i.outline, i.cta, i.status,
+                   i.generated_text, i.final_text, i.image_url, i.image_prompt,
+                   i.image_task_id, i.theme_id::text AS theme_id, i.dedup_status,
+                   i.dedup_reason, i.retry_count, i.last_error, i.approved_by,
+                   i.published_at, i.image_url_backup, i.image_backup_status
+            FROM content_items i
+            JOIN content_plans p ON p.id = i.plan_id
+            WHERE p.project_id = $1
+              AND i.publish_date = $2
+            ORDER BY i.post_type ASC
+            """,
+            project_id,
+            publish_date,
+        )
+        return [_row_to_item(row) for row in rows]
 
 
 async def list_items_by_status(

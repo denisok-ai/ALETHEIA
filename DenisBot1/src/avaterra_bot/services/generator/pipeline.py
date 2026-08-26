@@ -106,3 +106,37 @@ async def prepare_item(
         image_url=image_outcome.image_url,
         dedup_status=text_outcome.dedup_status,
     )
+
+
+async def complete_image_for_item(
+    pool: asyncpg.Pool,
+    *,
+    project_id: str,
+    item: ContentItemRecord,
+    settings: AppSettings,
+    kie: KieClient,
+) -> PreparationOutcome:
+    """Догенерировать только картинку для поста, который застрял в `text_ready`.
+
+    Используется в недельном пайплайне на повторном проходе, когда текст
+    уже прошёл quality gates, но генерация изображения упала и item
+    остался без `image_url`.
+    """
+    image_outcome = await generate_image_for_item(
+        pool,
+        project_id=project_id,
+        item=item,
+        settings=settings,
+        kie=kie,
+    )
+    final = await get_item(pool, item.id)
+    text_preview = (item.final_text or item.generated_text or "")[:160]
+    return PreparationOutcome(
+        item_id=item.id,
+        status=final.status if final else "ready",
+        has_text=True,
+        has_image=bool(image_outcome.image_url),
+        text_preview=text_preview,
+        image_url=image_outcome.image_url,
+        dedup_status=item.dedup_status,
+    )

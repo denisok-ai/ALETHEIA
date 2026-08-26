@@ -32,7 +32,7 @@ DEFAULT_PRIORITY_URLS = (
     "https://avaterra.pro/blog",
     "https://avaterra.pro/faq",
     "https://avaterra.pro/course/navyki-myshechnogo-testirovaniya",
-    "https://avaterra.pro/course/probuzhdenie",
+    "https://avaterra.pro/course/probuzhdenie-berlinska",
 )
 
 

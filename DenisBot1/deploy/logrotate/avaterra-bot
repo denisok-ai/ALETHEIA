@@ -2,8 +2,8 @@
 /opt/avaterra-bot/logs/*.log
 {
     daily
-    rotate 14
-    maxage 14
+    rotate 7
+    maxage 7
     missingok
     notifempty
     compress

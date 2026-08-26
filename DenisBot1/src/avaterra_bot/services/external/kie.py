@@ -177,7 +177,7 @@ class KieClient:
 
     def _dry_run_result(self, prompt: str) -> ImageResult:
         return ImageResult(
-            image_url="https://placehold.co/1200x1500/png?text=Avaterra+dry-run",
+            image_url="https://placehold.co/1200x1500/png?text=%D0%90%D0%B2%D0%B0%D1%82%D1%8D%D1%80%D1%80%D0%B0%20dry-run",
             task_id="dry-run",
             raw_response={"dry_run": True, "prompt": prompt[:120]},
             latency_ms=0,

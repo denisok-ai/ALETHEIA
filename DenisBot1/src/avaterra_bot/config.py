@@ -35,6 +35,10 @@ class AppSettings(BaseSettings):
     )
     target_channel_id: str = Field(default="", alias="TARGET_CHANNEL_ID")
     admin_telegram_ids: str = Field(default="", alias="ADMIN_TELEGRAM_IDS")
+    admin_preview_exclude_ids: str = Field(
+        default="8660626182,7679088857",
+        alias="ADMIN_PREVIEW_EXCLUDE_IDS",
+    )
 
     deepseak_api_key: SecretStr = Field(
         default=SecretStr(""), alias="DEEPSEAK_API_KEY"
@@ -43,7 +47,7 @@ class AppSettings(BaseSettings):
         default="https://api.deepseek.com", alias="DEEPSEAK_BASE_URL"
     )
     deepseek_model: str = Field(default="deepseek-chat", alias="DEEPSEEK_MODEL")
-    deepseek_max_tokens: int = Field(default=1200, alias="DEEPSEEK_MAX_TOKENS")
+    deepseek_max_tokens: int = Field(default=2048, alias="DEEPSEEK_MAX_TOKENS")
     deepseek_temperature: float = Field(default=0.7, alias="DEEPSEEK_TEMPERATURE")
 
     kie_api_key: SecretStr = Field(default=SecretStr(""), alias="KIE_API_KEY")
@@ -64,6 +68,10 @@ class AppSettings(BaseSettings):
     )
     enable_auto_publish: bool = Field(default=False, alias="ENABLE_AUTO_PUBLISH")
     dry_run: bool = Field(default=True, alias="DRY_RUN")
+    publish_mode: str = Field(default="channel", alias="PUBLISH_MODE")
+    image_generation_enabled: bool = Field(
+        default=True, alias="IMAGE_GENERATION_ENABLED"
+    )
     weekly_planner_enabled: bool = Field(
         default=True, alias="WEEKLY_PLANNER_ENABLED"
     )
@@ -91,7 +99,7 @@ class AppSettings(BaseSettings):
 
     log_dir: Path = Field(default=Path("logs"), alias="LOG_DIR")
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
-    log_retention_days: int = Field(default=14, alias="LOG_RETENTION_DAYS")
+    log_retention_days: int = Field(default=7, alias="LOG_RETENTION_DAYS")
 
     dedup_lookback_posts: int = Field(default=60, alias="DEDUP_LOOKBACK_POSTS")
     dedup_jaccard_threshold: float = Field(
@@ -107,6 +115,15 @@ class AppSettings(BaseSettings):
     posts_per_week: int = Field(default=7, alias="POSTS_PER_WEEK")
     quality_max_retries: int = Field(default=2, alias="QUALITY_MAX_RETRIES")
     quality_enabled: bool = Field(default=True, alias="QUALITY_ENABLED")
+    weekly_pipeline_extra_passes: int = Field(
+        default=2, alias="WEEKLY_PIPELINE_EXTRA_PASSES"
+    )
+    weekly_pipeline_pass_delay_seconds: float = Field(
+        default=45.0, alias="WEEKLY_PIPELINE_PASS_DELAY_SECONDS"
+    )
+    weekly_pipeline_notify_admins: bool = Field(
+        default=True, alias="WEEKLY_PIPELINE_NOTIFY_ADMINS"
+    )
     image_backup_enabled: bool = Field(default=True, alias="IMAGE_BACKUP_ENABLED")
     image_backup_dir: Path = Field(
         default=Path("/app/runtime/images"), alias="IMAGE_BACKUP_DIR"
@@ -120,15 +137,40 @@ class AppSettings(BaseSettings):
     )
 
     @property
-    def admin_ids(self) -> set[int]:
-        if not self.admin_telegram_ids:
+    def is_admin_preview_mode(self) -> bool:
+        return self.publish_mode.strip().lower() == "admin_preview"
+
+    @staticmethod
+    def _parse_id_list(raw_value: str) -> set[int]:
+        if not raw_value:
             return set()
         result: set[int] = set()
-        for raw in self.admin_telegram_ids.split(","):
+        for raw in raw_value.split(","):
             raw = raw.strip()
             if raw.isdigit():
                 result.add(int(raw))
         return result
+
+    # Лид-воронка отключена: весь входящий трафик уходит в бота портала
+    # (@AvaterraProBot), который заводит лидов в CRM ALETHEIA и ведёт их
+    # (автоответы по FAQ, догоны, приём телефона).
+    funnel_enabled: bool = Field(default=False, alias="FUNNEL_ENABLED")
+    portal_bot_username: str = Field(
+        default="AvaterraProBot", alias="PORTAL_BOT_USERNAME"
+    )
+
+    @property
+    def admin_ids(self) -> set[int]:
+        return self._parse_id_list(self.admin_telegram_ids)
+
+    @property
+    def admin_preview_exclude(self) -> set[int]:
+        return self._parse_id_list(self.admin_preview_exclude_ids)
+
+    @property
+    def admin_preview_recipient_ids(self) -> set[int]:
+        """Получатели предпросмотра постов (без бота и служебных аккаунтов)."""
+        return self.admin_ids - self.admin_preview_exclude
 
 
 @lru_cache(maxsize=1)

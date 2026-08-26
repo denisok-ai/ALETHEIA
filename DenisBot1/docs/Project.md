@@ -1,7 +1,7 @@
 <!--
 @file: Project.md
 @description: Детальное описание Telegram SMM-бота Avaterra, архитектуры, требований и стандартов
-@dependencies: docs/Tasktracker.md, docs/Diary.md, docs/qa.md, docs/Security.md, .cursorrules
+@dependencies: docs/Tasktracker.md, docs/Diary.md, docs/qa.md, docs/Security.md, docs/Session-Handoff-2026-05-22.md, docs/Logging.md, .cursorrules
 @created: 2026-05-07
 -->
 
@@ -90,7 +90,13 @@
 - Сохраняет медиа в S3-совместимое хранилище.
 
 ### 5.5 Publication Module
-- Публикует контент в Telegram-канал по часовому поясу проекта.
+- Публикует контент по расписанию (по умолчанию 11:00 МСК) в одном из режимов:
+  - **`channel`** (боевой): фото + текст в `TARGET_CHANNEL_ID`, статус `published`.
+  - **`admin_preview`** (временный): только текст в личку `admin_preview_recipient_ids` (`ADMIN_TELEGRAM_IDS` минус `ADMIN_PREVIEW_EXCLUDE_IDS`), статус `admin_preview_sent`.
+- Переключение режима: `PUBLISH_MODE=channel|admin_preview` в `.env` (без правок кода).
+- `IMAGE_GENERATION_ENABLED=false` отключает KIE на всём пайплайне.
+- Идемпотентность предпросмотра: не повторять `admin_preview_sent`, слать только `publish_date = сегодня`.
+- Подробный handoff: `docs/Session-Handoff-2026-05-22.md`.
 - Поддерживает отложенные задачи и защиту от дублей.
 - Уведомляет администратора об ошибках.
 
@@ -147,11 +153,20 @@ flowchart TD
 
 ### 7.2 Компоненты и ответственность
 - **Bot Core (aiogram)**: команды, меню, ACL, orchestration.
-- **Planner Service**: weekly pipeline и антидубли.
+- **Planner Service**: многоходовой weekly pipeline, ретраи (`quality_failed` → полный `prepare_item`, `text_ready` → `complete_image_for_item`), сверка плана 7/7, уведомления админам по итогам.
 - **Generator Services**: текст и изображение с retry/fallback.
 - **Scheduler Worker**: публикация, ретраи, идемпотентность.
 - **Analytics Worker**: сбор и расчет KPI.
 - **Storage Layer**: PostgreSQL + Redis + S3.
+
+### 7.2.1 Автономный недельный пайплайн (Sprint 6)
+- Cron `Sun 19:00 MSK` → `_planner_job` → `run_weekly_pipeline(target_monday=upcoming_week_monday(today))`.
+- `WEEKLY_PIPELINE_EXTRA_PASSES` задаёт количество доп. проходов; на каждом из них перечитывается актуальный список постов из БД.
+- Pass 1: `draft` / `failed` / `dedup_blocked` / `quality_failed`. Доп. проходы: те же плюс `text_ready` (картинка). Если `prepare_item` падает исключением — item → `failed` с `last_error`, чтобы следующий проход его подхватил (не оставляем «немой» `draft`).
+- После каждой LLM-попытки `text_generator` вызывает `salvage_text`: детерминированно чинит лексику, CTA, дисклеймер, неизвестные URL и `too_long`. Оставшиеся коды пишутся в `last_error` как `quality:<codes>`.
+- После всех проходов идёт сверка: non-ready items попадают в `problem_items`; `admin_preview_sent` считается готовым; синтетический `missing` — только если на календарный день нет ни одного item. Список приходит админам.
+- Уведомления админам формирует `services/planner/weekly_notify.py`. На любой исход (успех/частично/сбой) к сообщению крепится клавиатура с кнопками «Очередь качества», «План недели», «Перезапустить генерацию».
+- Та же кнопка «Подготовить след. неделю» доступна вручную в `/admin` (callback `adm:genweek`) и работает с защитой от двойного запуска через `asyncio.Lock`.
 
 ### 7.3 Режимы запуска
 - Production: webhook.

@@ -14,6 +14,7 @@ from avaterra_bot.services.planner.content_planner import (
     WEEKDAY_TO_POST_TYPE_DEFAULT,
     _post_types_schedule,
     _publish_dates_in_week,
+    upcoming_week_monday,
     week_bounds,
 )
 
@@ -78,3 +79,29 @@ def test_publish_dates_match_week():
         "course",
         "reflection",
     ]
+
+
+def test_upcoming_week_monday_on_sunday_returns_next_monday():
+    """В воскресенье cron должен планировать на ЗАВТРА (понедельник новой недели)."""
+    sunday = date(2026, 5, 10)
+    assert sunday.weekday() == 6
+    target = upcoming_week_monday(sunday)
+    assert target == date(2026, 5, 11)
+    assert target.weekday() == 0
+
+
+def test_upcoming_week_monday_on_monday_returns_same_day():
+    """Понедельник — это уже начало новой недели; cron планирует на сегодня."""
+    monday = date(2026, 5, 11)
+    assert monday.weekday() == 0
+    target = upcoming_week_monday(monday)
+    assert target == monday
+
+
+def test_upcoming_week_monday_mid_week_returns_next_monday():
+    """В середине недели cron планирует на следующий понедельник."""
+    wednesday = date(2026, 5, 13)
+    assert wednesday.weekday() == 2
+    target = upcoming_week_monday(wednesday)
+    assert target == date(2026, 5, 18)
+    assert target.weekday() == 0

@@ -175,7 +175,7 @@ AVATERRA — phygital-школа прикладного мышечного те�
 
 ## 6. Курс «Пробуждение»
 
-Страница курса: `https://avaterra.pro/course/probuzhdenie`
+Страница курса: `https://avaterra.pro/course/probuzhdenie-berlinska`
 
 Короткое описание:
 
@@ -478,7 +478,7 @@ AVATERRA — phygital-школа прикладного мышечного те�
 >
 > Это не курс по мышечному тестированию. Это сопровождение в практиках осознанности: короткие ежедневные действия, работа в чате и живые эфиры.
 >
-> Страница курса: `https://avaterra.pro/course/probuzhdenie`
+> Страница курса: `https://avaterra.pro/course/probuzhdenie-berlinska`
 
 ---
 
@@ -535,7 +535,7 @@ CTA на курс «Тело не врёт»:
 
 CTA на курс «Пробуждение»:
 
-- Страница курса: `https://avaterra.pro/course/probuzhdenie`
+- Страница курса: `https://avaterra.pro/course/probuzhdenie-berlinska`
 - Если сейчас важнее вернуться к себе и выйти из автопилота, посмотрите программу «Пробуждение».
 
 CTA на FAQ:
@@ -616,7 +616,7 @@ CTA на поддержку:
 
 - Главная: `https://avaterra.pro`
 - Курс «Тело не врёт» / «Навыки мышечного тестирования»: `https://avaterra.pro/course/navyki-myshechnogo-testirovaniya`
-- Курс «Пробуждение»: `https://avaterra.pro/course/probuzhdenie`
+- Курс «Пробуждение»: `https://avaterra.pro/course/probuzhdenie-berlinska`
 - FAQ: `https://avaterra.pro/faq`
 - Каталог: `https://avaterra.pro/store`
 - Поддержка: `support@avaterra.pro`

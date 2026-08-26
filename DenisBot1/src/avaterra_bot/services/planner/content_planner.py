@@ -52,7 +52,7 @@ DEFAULT_OBJECTIVE_BY_TYPE: dict[str, str] = {
     "pain": "откликнуться болью и показать рабочую опору",
     "practice": "дать читателю микро-инструмент самонаблюдения",
     "author": "усилить доверие к автору и школе",
-    "faq": "снять возражение и отвести в FAQ или на курс",
+    "faq": "снять возражение и отвести в раздел «Описание» или на курс",
     "course": "мягко довести до целевого действия",
     "reflection": "закрыть неделю спокойной паузой и диалогом",
 }
@@ -71,7 +71,7 @@ FALLBACK_TOPICS_BY_TYPE: dict[str, list[str]] = {
         "Один простой вопрос, который возвращает в тело",
     ],
     "author": [
-        "Почему AVATERRA построена вокруг практики, а не теории",
+        "Почему школа Аватэрра построена вокруг практики, а не теории",
         "Что значит быть основательницей школы и ведущим мастером",
     ],
     "faq": [
@@ -115,6 +115,12 @@ def week_bounds(today: date) -> tuple[date, date]:
     monday = today - timedelta(days=today.weekday())
     sunday = monday + timedelta(days=6)
     return monday, sunday
+
+
+def upcoming_week_monday(today: date) -> date:
+    """Ближайший понедельник >= today (если today — понедельник, вернуть today)."""
+    days_to_monday = (0 - today.weekday()) % 7
+    return today + timedelta(days=days_to_monday)
 
 
 def _post_types_schedule(brand: BrandProfile, posts_per_week: int) -> dict[int, str]:
@@ -225,9 +231,20 @@ async def build_week_plan(
     today: Optional[date] = None,
     *,
     posts_per_week: int = 7,
+    target_monday: Optional[date] = None,
 ) -> WeekPlan:
-    today = today or date.today()
-    monday, sunday = week_bounds(today)
+    """Создать/дополнить план на конкретную неделю.
+
+    - `target_monday` — явный понедельник целевой недели; перекрывает `today`.
+    - `today` (default `date.today()`) задаёт текущую неделю, если `target_monday`
+      не указан.
+    """
+    if target_monday is not None:
+        monday = target_monday
+        sunday = monday + timedelta(days=6)
+    else:
+        today = today or date.today()
+        monday, sunday = week_bounds(today)
     plan = await upsert_plan(
         pool,
         project_id=project_id,

@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import asyncio
+import json
 import logging
 import time
 from dataclasses import dataclass
@@ -36,6 +38,9 @@ class ChatResult:
 
 class DeepSeekError(Exception):
     """Ошибка работы с DeepSeek API."""
+
+
+_RETRYABLE = (DeepSeekError, aiohttp.ClientError, TimeoutError, asyncio.TimeoutError)
 
 
 class DeepSeekClient:
@@ -96,7 +101,12 @@ class DeepSeekClient:
                         raise DeepSeekError(
                             f"deepseek error {resp.status}: {text_body[:200]}"
                         )
-                    payload = await resp.json(content_type=None)
+                    try:
+                        payload = json.loads(text_body)
+                    except json.JSONDecodeError as exc:
+                        raise DeepSeekError(
+                            f"deepseek invalid json: {text_body[:200]}"
+                        ) from exc
             choice = (payload.get("choices") or [{}])[0]
             message = choice.get("message") or {}
             content = (message.get("content") or "").strip()
@@ -109,14 +119,19 @@ class DeepSeekClient:
                 model=model,
             )
 
-        async for attempt in AsyncRetrying(
-            stop=stop_after_attempt(self._settings.content_generation_retry_max),
-            wait=wait_exponential_jitter(initial=1, max=20),
-            retry=retry_if_exception_type((DeepSeekError, aiohttp.ClientError)),
-            reraise=True,
-        ):
-            with attempt:
-                return await _do_call()
+        try:
+            async for attempt in AsyncRetrying(
+                stop=stop_after_attempt(self._settings.content_generation_retry_max),
+                wait=wait_exponential_jitter(initial=1, max=20),
+                retry=retry_if_exception_type(_RETRYABLE),
+                reraise=True,
+            ):
+                with attempt:
+                    return await _do_call()
+        except DeepSeekError:
+            raise
+        except Exception as exc:
+            raise DeepSeekError(f"deepseek call failed: {exc}") from exc
         raise DeepSeekError("unreachable")
 
     def _dry_run_result(self, user_prompt: str) -> ChatResult:

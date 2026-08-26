@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import date
 from typing import Optional
@@ -52,8 +53,10 @@ from avaterra_bot.services.generator.pipeline import prepare_item
 from avaterra_bot.services.knowledge.loader import apply_kb_to_project
 from avaterra_bot.services.planner.content_planner import (
     build_week_plan,
+    upcoming_week_monday,
     week_bounds,
 )
+from avaterra_bot.services.planner.weekly_notify import format_outcome, notify_admins
 from avaterra_bot.services.planner.weekly_orchestrator import run_weekly_pipeline
 from avaterra_bot.services.publisher.channel_publisher import (
     publish_due_today,
@@ -90,6 +93,51 @@ def bind_scheduler(scheduler: AsyncIOScheduler) -> None:
 def bind_project_id(project_id: str) -> None:
     global _project_id
     _project_id = project_id
+
+
+async def _audit_runtime_toggle(
+    bot: Bot,
+    *,
+    field: str,
+    old_value: object,
+    new_value: object,
+    source: str,
+    actor_id: Optional[int],
+) -> None:
+    """Записать в лог и оповестить админов о переключении runtime-флага.
+
+    Inline-кнопки и команды `/dry_run` / `/auto` / `/pause` / `/resume`
+    меняют состояние процесса безмолвно. После инцидента 15–17.05.2026
+    каждое такое изменение видно в WARNING-логе и приходит уведомление
+    всем `ADMIN_TELEGRAM_IDS`, чтобы случайное включение `dry_run`
+    нельзя было не заметить до следующего слота публикации.
+    """
+    logger.warning(
+        "runtime_toggle",
+        extra={
+            "field": field,
+            "old_value": old_value,
+            "new_value": new_value,
+            "source": source,
+            "actor_id": actor_id,
+        },
+    )
+    settings = get_settings()
+    if not settings.admin_ids:
+        return
+    text = (
+        "<b>⚠️ Изменён runtime-флаг бота</b>\n"
+        f"<code>{field}</code>: <b>{old_value}</b> → <b>{new_value}</b>\n"
+        f"источник: {source}"
+        + (f", admin_id: <code>{actor_id}</code>" if actor_id else "")
+    )
+    try:
+        await notify_admins(bot, settings, text=text, with_actions=False)
+    except Exception:
+        logger.exception(
+            "runtime_toggle_notify_failed",
+            extra={"field": field, "new_value": new_value},
+        )
 
 
 async def _ensure_project_id() -> str:
@@ -181,7 +229,7 @@ async def cmd_kb_show(message: Message) -> None:
     templates = ", ".join(t.get("id", "?") for t in profile.templates) or "-"
     cta_kinds = ", ".join(profile.cta_library.keys()) if profile.cta_library else "-"
     await message.answer(
-        "<b>Avaterra KB</b>\n"
+        "<b>Аватэрра KB</b>\n"
         f"version: <code>{profile.kb_version or '-'}</code>\n"
         f"ToV: {profile.tone_of_voice[:140]}…\n"
         f"audiences: {audiences}\n"
@@ -290,11 +338,7 @@ async def cmd_plan_now(message: Message) -> None:
         message.bot, _pool, project_id=project_id, settings=settings
     )
     await message.answer(
-        "Готово.\n"
-        f"plan_id: {outcome.plan_id}\n"
-        f"всего постов: {outcome.items_total}\n"
-        f"подготовлено: {outcome.items_prepared}\n"
-        f"заблокировано антидублями: {outcome.items_blocked}"
+        format_outcome(outcome), parse_mode="HTML", disable_web_page_preview=True
     )
 
 
@@ -362,7 +406,11 @@ async def cmd_publish_now(message: Message) -> None:
     if not outcomes:
         await message.answer("На сегодня нет постов в статусе approved/ready.")
         return
-    lines = [f"Опубликовано items: {len(outcomes)}"]
+    if settings.is_admin_preview_mode:
+        header = f"Отправлено админам на проверку: {len(outcomes)}"
+    else:
+        header = f"Опубликовано в канал: {len(outcomes)}"
+    lines = [header]
     for o in outcomes:
         lines.append(
             f"- {o.item_id[:8]}…: status={o.status} dry_run={o.dry_run} "
@@ -376,14 +424,25 @@ async def cmd_dry_run(message: Message, command: CommandObject) -> None:
     args = (command.args or "").strip().lower()
     settings = get_settings()
     if args == "on":
-        settings.dry_run = True
+        new_value = True
     elif args == "off":
-        settings.dry_run = False
+        new_value = False
     else:
         await message.answer(
             f"Сейчас dry_run={settings.dry_run}. Использование: /dry_run on|off"
         )
         return
+    old_value = settings.dry_run
+    settings.dry_run = new_value
+    actor_id = message.from_user.id if message.from_user else None
+    await _audit_runtime_toggle(
+        message.bot,
+        field="dry_run",
+        old_value=old_value,
+        new_value=new_value,
+        source="command:/dry_run",
+        actor_id=actor_id,
+    )
     await message.answer(f"dry_run переключён в {settings.dry_run}.")
 
 
@@ -392,15 +451,26 @@ async def cmd_auto(message: Message, command: CommandObject) -> None:
     args = (command.args or "").strip().lower()
     settings = get_settings()
     if args == "on":
-        settings.enable_auto_publish = True
+        new_value = True
     elif args == "off":
-        settings.enable_auto_publish = False
+        new_value = False
     else:
         await message.answer(
             f"Сейчас enable_auto_publish={settings.enable_auto_publish}. "
             "Использование: /auto on|off"
         )
         return
+    old_value = settings.enable_auto_publish
+    settings.enable_auto_publish = new_value
+    actor_id = message.from_user.id if message.from_user else None
+    await _audit_runtime_toggle(
+        message.bot,
+        field="enable_auto_publish",
+        old_value=old_value,
+        new_value=new_value,
+        source="command:/auto",
+        actor_id=actor_id,
+    )
     await message.answer(
         f"enable_auto_publish переключён в {settings.enable_auto_publish}."
     )
@@ -412,6 +482,15 @@ async def cmd_pause(message: Message) -> None:
         await message.answer("Scheduler выключен.")
         return
     _scheduler.pause()
+    actor_id = message.from_user.id if message.from_user else None
+    await _audit_runtime_toggle(
+        message.bot,
+        field="scheduler",
+        old_value="running",
+        new_value="paused",
+        source="command:/pause",
+        actor_id=actor_id,
+    )
     await message.answer("Scheduler поставлен на паузу.")
 
 
@@ -421,6 +500,15 @@ async def cmd_resume(message: Message) -> None:
         await message.answer("Scheduler выключен.")
         return
     _scheduler.resume()
+    actor_id = message.from_user.id if message.from_user else None
+    await _audit_runtime_toggle(
+        message.bot,
+        field="scheduler",
+        old_value="paused",
+        new_value="running",
+        source="command:/resume",
+        actor_id=actor_id,
+    )
     await message.answer("Scheduler возобновлён.")
 
 
@@ -663,6 +751,12 @@ def _admin_menu_markup() -> InlineKeyboardMarkup:
                 ),
             ],
             [
+                InlineKeyboardButton(
+                    text="🚀 Подготовить след. неделю",
+                    callback_data="adm:genweek",
+                ),
+            ],
+            [
                 InlineKeyboardButton(text="📡 Радар", callback_data="adm:rad:high:0"),
                 InlineKeyboardButton(text="📊 Статус", callback_data="adm:status"),
             ],
@@ -677,7 +771,7 @@ def _admin_menu_markup() -> InlineKeyboardMarkup:
 def _admin_menu_text() -> str:
     settings = get_settings()
     return (
-        "<b>Avaterra admin</b>\n"
+        "<b>Аватэрра admin</b>\n"
         f"авто-публикация: {'on' if settings.enable_auto_publish else 'off'}\n"
         f"dry_run: {'on' if settings.dry_run else 'off'}\n"
         f"timezone: {settings.timezone}\n"
@@ -843,10 +937,71 @@ async def cb_quality_action(callback: CallbackQuery) -> None:
         await callback.answer()
 
 
+_genweek_lock = asyncio.Lock()
+
+
+async def _run_manual_weekly_pipeline(bot: Bot, chat_id: int) -> None:
+    """Фоновый запуск недельного пайплайна по нажатию кнопки в меню."""
+    settings = get_settings()
+    project_id = await _ensure_project_id()
+    target_monday = upcoming_week_monday(date.today())
+    try:
+        outcome = await run_weekly_pipeline(
+            bot,
+            _pool,
+            project_id=project_id,
+            settings=settings,
+            target_monday=target_monday,
+        )
+    except Exception as exc:
+        logger.exception(
+            "manual_weekly_pipeline_crashed",
+            extra={"target_monday": target_monday.isoformat()},
+        )
+        await bot.send_message(
+            chat_id,
+            f"🛑 Сбой пайплайна: <code>{type(exc).__name__}: {str(exc)[:200]}</code>",
+            parse_mode="HTML",
+        )
+        return
+    await bot.send_message(
+        chat_id,
+        format_outcome(outcome),
+        parse_mode="HTML",
+        disable_web_page_preview=True,
+    )
+
+
+@router.callback_query(lambda c: c.data == "adm:genweek")
+async def cb_genweek(callback: CallbackQuery) -> None:
+    if _genweek_lock.locked():
+        await callback.answer(
+            "Уже идёт генерация. Подождите завершения.", show_alert=True
+        )
+        return
+    await callback.answer("Запускаю подготовку следующей недели…")
+
+    async def _runner() -> None:
+        async with _genweek_lock:
+            await _run_manual_weekly_pipeline(callback.bot, callback.message.chat.id)
+
+    asyncio.create_task(_runner())
+
+
 @router.callback_query(lambda c: c.data == "adm:auto")
 async def cb_auto_toggle(callback: CallbackQuery) -> None:
     settings = get_settings()
+    old_value = settings.enable_auto_publish
     settings.enable_auto_publish = not settings.enable_auto_publish
+    actor_id = callback.from_user.id if callback.from_user else None
+    await _audit_runtime_toggle(
+        callback.bot,
+        field="enable_auto_publish",
+        old_value=old_value,
+        new_value=settings.enable_auto_publish,
+        source="inline:adm:auto",
+        actor_id=actor_id,
+    )
     await callback.answer(
         f"enable_auto_publish={settings.enable_auto_publish}"
     )
@@ -856,6 +1011,16 @@ async def cb_auto_toggle(callback: CallbackQuery) -> None:
 @router.callback_query(lambda c: c.data == "adm:dry")
 async def cb_dry_toggle(callback: CallbackQuery) -> None:
     settings = get_settings()
+    old_value = settings.dry_run
     settings.dry_run = not settings.dry_run
+    actor_id = callback.from_user.id if callback.from_user else None
+    await _audit_runtime_toggle(
+        callback.bot,
+        field="dry_run",
+        old_value=old_value,
+        new_value=settings.dry_run,
+        source="inline:adm:dry",
+        actor_id=actor_id,
+    )
     await callback.answer(f"dry_run={settings.dry_run}")
     await _safe_edit(callback, _admin_menu_text(), _admin_menu_markup())

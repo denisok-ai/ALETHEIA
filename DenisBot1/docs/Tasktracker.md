@@ -13,6 +13,186 @@
 - **Завершена**
 - **Заблокирована**
 
+## Задача: Hotfix — AmbiguousParameterError $7 (неделя 0/7)
+- **Приоритет**: Высокий
+- **Статус**: В процессе
+- **Описание**: План 24.08–30.08: все посты `failed` из-за NULL `$7` в `update_item_text`.
+- **Шаги выполнения**:
+  - [x] Документация
+  - [x] Касты `$7::text` / `$8::boolean`
+  - [ ] Выкат и повторная генерация
+- **Зависимости**: `db/repositories/content.py`
+
+## Задача: Hotfix — weekly pipeline падает на каждом прогоне
+- **Приоритет**: Высокий
+- **Статус**: Завершена
+- **Описание**: Даже после retry `draft` недельный план регулярно собирается частично (гейты CTA/URL/длина, мало extra passes, пустой `last_error`).
+- **Шаги выполнения**:
+  - [x] Документация: Diary, changelog, Project, qa
+  - [x] `salvage_text` + вызов из `text_generator`
+  - [x] Pass1=`quality_failed`, extra_passes=2, max_tokens=2048, last_error коды
+  - [x] Тесты гейтов и weekly pipeline
+  - [x] Локальный pytest
+  - [x] Прод-выкат + `.env` (`DEEPSEEK_MAX_TOKENS=2048`, `WEEKLY_PIPELINE_EXTRA_PASSES=2`)
+- **Зависимости**: `gates.py`, `text_generator.py`, `weekly_orchestrator.py`, `config.py`
+
+## Задача: Hotfix — weekly pipeline 6/7 (draft без retry)
+- **Приоритет**: Высокий
+- **Статус**: Завершена
+- **Описание**: Прогон 27.07 оставил Tue `[pain]` в `draft` (6/7). Exception в pass1 не менял статус; pass2 не ретраил `draft`.
+- **Шаги выполнения**:
+  - [x] Разбор уведомления и кода `weekly_orchestrator` / `weekly_notify` / DeepSeek
+  - [x] Документация: Diary, changelog, Project, qa
+  - [x] Код: retry `draft`, mark-failed на exception, DeepSeek TimeoutError→DeepSeekError
+  - [x] Тесты `test_weekly_pipeline_passes.py`
+  - [x] Локальный `pytest` — 6 passed
+- **Зависимости**: `weekly_orchestrator.py`, `deepseek.py`
+
+## Задача: Handoff и логи ≤ 7 дней
+- **Приоритет**: Средний
+- **Статус**: Завершена
+- **Описание**: Зафиксировать контекст admin_preview для следующих доработок; сократить хранение файловых логов до 1 недели.
+- **Шаги выполнения**:
+  - [x] `docs/Session-Handoff-2026-05-22.md`
+  - [x] `docs/Logging.md`, `LOG_RETENTION_DAYS=7`, logrotate 7/7
+  - [x] `.cursorrules`, `README.md`, `Project.md`, `changelog.md`, `Diary.md`
+
+## Hotfix - 2026-05-20 (предпросмотр админам вместо канала)
+
+## Задача: Временный режим admin_preview + отключение генерации фото
+- **Приоритет**: Высокий
+- **Статус**: Завершена
+- **Описание**: Посты в 11:00 отправлять администраторам в личку для ручной проверки; генерацию изображений отключить. Откат — сменой env без правок кода.
+- **Шаги выполнения**:
+  - [x] Документация: `Project.md`, `changelog.md`, `Diary.md`, `.env.example`.
+  - [x] `config.py`: `PUBLISH_MODE`, `IMAGE_GENERATION_ENABLED`, `is_admin_preview_mode`.
+  - [x] `image_generator.py`: early exit при отключённой генерации.
+  - [x] `channel_publisher.py`: `_send_admin_preview`, ветвление в `publish_item`.
+  - [x] `content_worker.py`, `admin.py`: логи и текст `/publish_now`.
+  - [x] Тесты `test_image_generation_disabled.py`, `test_publisher_admin_preview.py`.
+  - [x] Прод-выкат 2026-05-20: `deploy/deploy.sh`, `.env` обновлён, `docker compose up -d --force-recreate bot`. В логах `publish_mode=admin_preview`, `admin_ids` — три ID.
+- **Откат**: `PUBLISH_MODE=channel`, `IMAGE_GENERATION_ENABLED=true`, `ENABLE_AUTO_PUBLISH=true`, `DRY_RUN=false`, `TARGET_CHANNEL_ID=<канал>`, `docker compose up -d --force-recreate bot`.
+- **Зависимости**: `config.py`, `channel_publisher.py`, `image_generator.py`, `content_worker.py`, `admin.py`
+
+## Hotfix - 2026-05-18 (слово «метод» во всех падежах)
+
+## Задача: Закрыть лазейку для падежных форм слова «метод» в постах
+- **Приоритет**: Высокий
+- **Статус**: Завершена
+- **Описание**: В опубликованном 18.05 посте (`5a8e95ad…`, `educational`) вышло «**В методе** Аватэрра», хотя гейт `method_word` существует с 09.05. Причина: `\\bметод\\b` ловит только именительный «метод», а падежные формы с окончанием (методе/методу/методом/метода/методы/методов/методам/методами/методах) проходят сквозь границу слова. На 21.05 в БД уже лежал `ready`-пост (`8edb0cb8…`, `author`) с «методы регресса» — он бы тоже вышел.
+- **Шаги выполнения**:
+  - [x] `services/quality/gates.py`: `_METHOD_WORD_PATTERN` расширён до `\\bметод(?:а|у|ом|е|ы|ов|ам|ами|ах)?\\b` (IGNORECASE). Все падежи ловятся, производные `методик-/методическ-/методист-/методолог-` — нет.
+  - [x] `services/quality/gates.py`: новый `scan_publish_blockers(text)` — подмножество «красных» гейтов (FAQ, «калибр…», «метод», латиница Avaterra), без brand profile.
+  - [x] `services/publisher/channel_publisher.py`: в `publish_item` после `normalize_post_lexicon` запускается `scan_publish_blockers`. При находке — `quality_failed`, ERROR `publisher_blocked_by_red_gate`, `integration_logs.status=blocked`, ничего не уходит в канал.
+  - [x] `workers/content_worker.py`: `run_publisher_preflight` дополнительно сканирует `ready/approved` через `scan_publish_blockers`, сбрасывает в `draft` и переподготавливает (`reset_item_for_regeneration` + `prepare_item`); в отчёте — поле `forced_reset`.
+  - [x] `services/generator/prompts.py`: правило для LLM явно перечисляет все запрещённые падежные формы и даёт позитивные подсказки («школа Аватэрра», «по подходу школы»).
+  - [x] Тесты `tests/test_quality_gates.py`: 11 параметризованных кейсов на все падежи «метод», 7 на разрешённые производные, 3 на `scan_publish_blockers`. `PYTHONPATH=src pytest tests/test_quality_gates.py tests/test_publisher_dry_run_reasons.py tests/test_publisher_autonomy.py -q` — 58 passed.
+  - [x] Выкат: файлы скопированы в `/opt/avaterra-bot/...`, образ пересобран, контейнер перезапущен. Сегодняшний `startup_catchup` отработал штатно (`publisher_run_empty` со `status_counts={"published":1}`). Пост 21.05 сброшен в `draft` через SQL.
+  - [x] Live-проверка `scan_publish_blockers` в проде: «методе»/«методы регресса» → `['method_word']`, «школе Аватэрра»/«Методика мышечного тестирования» → `OK`.
+- **Зависимости**: `services/quality/gates.py`, `services/publisher/channel_publisher.py`, `workers/content_worker.py`, `services/generator/prompts.py`, `tests/test_quality_gates.py`
+
+## Hotfix - 2026-05-18 (автономность ежедневной публикации)
+
+## Задача: Автономный публикатор — посты выходят ежедневно в 11:00 МСК без вмешательства
+- **Приоритет**: Критический
+- **Статус**: Завершена
+- **Описание**: Гарантировать ежедневный выход поста в 11:00 МСК без ручных действий. Закрыть три класса сбоев: тихое включение `dry_run` (in-memory toggle), даунтайм >1 ч около слота (`misfire_grace_time=3600`) и застрявшие в `draft/text_ready/quality_failed/...` item'ы (Publisher молча пропускает день).
+- **Шаги выполнения**:
+  - [x] `workers/content_worker.py`: `_reconcile_publisher_flags(settings)` + хелпер `_env_bool` — перед каждым слотом откатываем `dry_run`/`enable_auto_publish` к окружению; drift пишем WARNING `publisher_flags_reverted`.
+  - [x] `workers/content_worker.py`: `run_publisher_preflight(...)` — тянет сегодняшние item'ы `draft/text_ready/quality_failed/failed/dedup_blocked` через `complete_image_for_item`/`reset_item_for_regeneration`+`prepare_item`. Отчёт `publisher_preflight_outcome`/`publisher_preflight_item_failed`.
+  - [x] `workers/content_worker.py`: общий путь `_run_publisher_slot(*, source)` — reconcile → state → preflight → `publish_due_today` → итог; `_publisher_job` — обёртка с `source="cron"`.
+  - [x] `workers/content_worker.py`: `_maybe_schedule_startup_catchup(...)` — `DateTrigger` через 60 с после старта, если уже после `PUBLISH_HOUR:PUBLISH_MINUTE` в `settings.timezone` и сегодня публикационный день.
+  - [x] `workers/content_worker.py`: `misfire_grace_time` для `content_publisher_daily` поднят с 3600 до 21600 (6 часов).
+  - [x] Тесты `tests/test_publisher_autonomy.py` (9 кейсов на `_env_bool` и `_reconcile_publisher_flags`); `PYTHONPATH=src pytest -q` — 139 passed.
+- **Зависимости**: `workers/content_worker.py`, `services/generator/pipeline.py`, `db/repositories/content.py`, APScheduler
+
+## Hotfix - 2026-05-18 (тихий `dry_run` и пустой день)
+
+## Задача: Аудит runtime-флагов и расшифровка причин `publisher_dry_run`
+- **Приоритет**: Критический
+- **Статус**: Завершена
+- **Описание**: 15.05 не вышел `faq`-пост (остался в `draft`), 16.05 и 17.05 посты ушли в `dry_run` без видимой причины. Корень — inline-кнопка `adm:dry` (и аналог для `auto`) меняли `settings` в памяти процесса без лога и без уведомления. По решению заказчика пропущенные посты не публикуем; задача — закрыть «слепые зоны», чтобы повторение было видно сразу.
+- **Шаги выполнения**:
+  - [x] `services/publisher/channel_publisher.py`: чистая функция `_dry_run_reasons(settings)` (`dry_run_flag`, `auto_publish_disabled`, `no_channel`), её результат пишется в `publisher_dry_run` (WARNING) и в `integration_logs.response_meta`.
+  - [x] `services/publisher/channel_publisher.py`: новая функция `today_in_timezone(tz)`, `publish_due_today` использует «сегодня» из `settings.timezone`, а не из локальной TZ контейнера.
+  - [x] `workers/content_worker.py`: `_publisher_job` пишет `publisher_run_state` перед каждым слотом, обёрнут в `try/except` (`publisher_job_crashed`), а при пустой выборке тянет `list_items_for_date` и логирует `status_counts` + превью первых 10 item'ов.
+  - [x] `workers/content_worker.py`: стартовый лог `content_jobs_scheduled` теперь включает `dry_run`/`enable_auto_publish`/`has_channel`/`dry_run_reasons`.
+  - [x] `bot/handlers/admin.py`: общая функция `_audit_runtime_toggle` для всех точек входа (команды `/dry_run`, `/auto`, `/pause`, `/resume` и inline-кнопки `adm:dry`, `adm:auto`) — WARNING `runtime_toggle` + Telegram-уведомление всем `ADMIN_TELEGRAM_IDS`.
+  - [x] `db/repositories/content.py`: новая функция `list_items_for_date(...)`.
+  - [x] Тесты: `tests/test_publisher_dry_run_reasons.py` (8 кейсов); `PYTHONPATH=src pytest -q` — 130 passed.
+- **Зависимости**: `services/publisher/channel_publisher.py`, `workers/content_worker.py`, `bot/handlers/admin.py`, `db/repositories/content.py`
+
+## Sprint 6 - 2026-05-12 (автономный недельный пайплайн)
+
+## Задача: Запрет «калибр…», «метод» и правка уже опубликованных постов в канале
+- **Приоритет**: Высокий
+- **Статус**: Завершена
+- **Описание**: Полностью убрать из лексики постов семейство «калибр…» (правильная замена — «замер через баланс тела» / «сверить ответ с балансом»), запретить целое слово «метод» в текстах постов (вместо — «школа Аватэрра» / «подход школы»), не допускать публикации с такими нарушениями и привести уже опубликованные посты в канале к корректной лексике.
+- **Шаги выполнения**:
+  - [x] `knowledge/avaterra.yaml`: `safe_replacements` со всеми формами калибровки, `brand.goals`, `theme_bank`, `prohibited_phrases` без слова «метод».
+  - [x] `services/generator/prompts.py` `COMMON_RULES_RU`: явный запрет «калибр…» и `\bметод\b`, перечисление допустимых формулировок.
+  - [x] `services/quality/gates.py`: расширенный `_CALIBRATION_PATTERN`, новый гейт `method_word`, чистая функция `normalize_post_lexicon`.
+  - [x] `services/publisher/channel_publisher.py`: страховочная нормализация перед `send_message` + JSON-лог `publisher_lexicon_normalized`.
+  - [x] `scripts/fix_published_lexicon.py` — правка опубликованных через `edit_message_text` (с dry-run и отчётом по multi-chunk).
+  - [x] `scripts/fix_prepared_lexicon.py` — нормализация или сброс на регенерацию для `ready/approved/text_ready`.
+  - [x] Тесты: `tests/test_quality_gates.py`, `tests/test_prompts_templates.py`, новый `tests/test_lexicon_normalization.py`. Полный прогон 122 passed.
+- **Зависимости**: `knowledge/avaterra.yaml`, `services/quality/gates.py`, `services/publisher/channel_publisher.py`, `scripts/`
+
+## Задача: Аватэрра везде, визуалы под сайт и устойчивость к дубликату проекта по URL
+- **Приоритет**: Высокий
+- **Статус**: Завершена
+- **Описание**: Закрепить «Аватэрра» во всех пользовательских строках (KB/код/тесты), переписать промпты картинок в стилистике [avaterra.pro](https://avaterra.pro/) (контакт→вопрос→ответ, O‑кольцо, сессия с руками) и устранить корневую причину пропуска поста 12 мая — два проекта на один сайт с разным `website_url`.
+- **Шаги выполнения**:
+  - [x] `knowledge/avaterra.yaml` (`brand.name = "Аватэрра"`), `content_planner.py` (objective FAQ + author fallback), `brand.py` (`DEFAULT_GOALS`), `funnel_flow.py`, `admin.py`/`funnel.py` (UI), `external/kie.py` (placeholder), `tests/test_deduplication.py`.
+  - [x] `services/generator/prompts.py`: новый `_IMAGE_BASE_STYLE` с сюжетом сайта; сцены `educational/practice/course/faq/author/pain/reflection` под мышечное тестирование с акцентами «контакт-вопрос-ответ» и O‑ring; `_topic_visual_hint` 200 символов.
+  - [x] Тесты промптов: `contact/question/answer` в educational, `o-ring` в course, ban букв/логотипов.
+  - [x] `db/repositories/projects.py`: `normalize_website_url`, `ensure_default_project` с fallback по хосту, warn `projects_duplicate_host`.
+  - [x] `tests/test_projects_url_normalization.py` (11 кейсов).
+  - [x] Полный прогон `PYTHONPATH=src pytest` — 111 passed.
+- **Зависимости**: `knowledge/avaterra.yaml`, `services/generator/prompts.py`, `db/repositories/projects.py`
+
+## Задача: Терминология «Аватэрра», без FAQ/«калибровки» и тематические картинки
+- **Приоритет**: Высокий
+- **Статус**: Завершена
+- **Описание**: Привести тексты постов к требованиям заказчика (школа «Аватэрра», без «метода»/«калибровки»/акронима «FAQ») и сделать визуалы ближе к теме phygital-школы мышечного тестирования.
+- **Шаги выполнения**:
+  - [x] `knowledge/avaterra.yaml`: новая терминология (Аватэрра, школа вместо метода, сверка баланса, «раздел Описание» вместо FAQ), обновлены `author.facts`, `theme_bank`, `cta_library`, `safe_replacements`, `editor_checklist`, `text_whitelist_terms`.
+  - [x] `services/generator/prompts.py`: `COMMON_RULES_RU`, `_quick_links_block`, `system_lines` под новые правила; `build_image_prompt` с тематическими сценами и обрезанным `request.topic`.
+  - [x] `services/quality/gates.py`: убраны `Avaterra/AVATERRA/FAQ` из whitelist, добавлены гейты `faq_acronym`, `calibration_word`, `latin_brand`, обновлена подсказка `missing_cta`.
+  - [x] Тесты: расширены `tests/test_quality_gates.py` и `tests/test_prompts_templates.py`; полный прогон `PYTHONPATH=src pytest` — 98 passed.
+- **Зависимости**: `knowledge/avaterra.yaml`, `services/generator/prompts.py`, `services/quality/gates.py`
+
+## Задача: Автономная подготовка постов на неделю с ретраями и уведомлениями
+- **Приоритет**: Высокий
+- **Статус**: Завершена
+- **Описание**: Бот должен сам собирать план на следующую неделю, генерировать все 7 постов, повторять попытки при сбоях и отчитываться администраторам. Если что-то всё же не получилось — давать админу кнопку для ручного перезапуска в меню.
+- **Шаги выполнения**:
+  - [x] `weekly_orchestrator` переделан в многоходовой: pass1 — `draft/failed/dedup_blocked`, pass2 — `quality_failed` и `text_ready` (только картинка).
+  - [x] В `pipeline.py` добавлена `complete_image_for_item` для дешёвой починки `text_ready`.
+  - [x] `WeeklyOutcome` теперь содержит сводку: `ready_count`, `all_ready`, список `problem_items`, `passes_run`, границы недели.
+  - [x] Финальная сверка плана 7/7 с разбивкой по дням.
+  - [x] Новые настройки: `WEEKLY_PIPELINE_EXTRA_PASSES`, `WEEKLY_PIPELINE_PASS_DELAY_SECONDS`, `WEEKLY_PIPELINE_NOTIFY_ADMINS`.
+  - [x] Модуль `weekly_notify.py`: HTML-отчёт + инлайн-кнопки «Очередь качества», «План недели», «Перезапустить генерацию».
+  - [x] В `_planner_job` обёртка с try/except и автоматический отчёт админам после каждого запуска.
+  - [x] В `/admin` меню добавлена кнопка «Подготовить след. неделю» с защитой от двойного запуска.
+  - [x] Тесты `tests/test_weekly_pipeline_passes.py` (4 кейса).
+- **Зависимости**: `services/generator/pipeline.py`, `workers/content_worker.py`, `bot/handlers/admin.py`
+
+## Hotfix - 2026-05-12 (пропуск дня публикации)
+
+## Задача: Воскресный планер не создавал план новой недели
+- **Приоритет**: Критический
+- **Статус**: Завершена
+- **Описание**: 11 мая (понедельник) поста не было. Cron-планер 10 мая в 19:00 пересчитывал границы недели от `today=Sunday` и видел текущий план Mon–Sun → ничего нового не создавал.
+- **Шаги выполнения**:
+  - [x] Найдена причина: `build_week_plan` без `target_monday` использует `week_bounds(today)`, что в воскресенье даёт прошедшую неделю.
+  - [x] Добавлен параметр `target_monday` в `build_week_plan` и `run_weekly_pipeline`.
+  - [x] В `_planner_job` cron теперь всегда передаёт `upcoming_week_monday(date.today())` — следующая или текущая неделя в зависимости от дня.
+  - [x] Publisher логирует WARNING `publisher_run_empty` при 0 due-постов, чтобы пропуск дня был виден сразу в мониторинге.
+  - [x] Добавлены 3 юнит-теста для `upcoming_week_monday`.
+  - [x] Вручную создан план на 2026-05-11..05-17, посты подготовлены (6 ready, 1 регенерирован).
+- **Зависимости**: APScheduler, `services.planner.content_planner`, `workers.content_worker`
+
 ## Hotfix - 2026-05-07 (надёжность публикации и ссылок)
 
 ## Задача: Антигаллюцинация URL в постах
@@ -421,4 +601,6 @@
   - [ ] A/B вариации CTA и структуры поста.
   - [ ] Коррекция контент-политики.
 - **Зависимости**: Аналитика, минимум 2-4 недели данных
+
+ка, минимум 2-4 недели данных
 

@@ -8,6 +8,7 @@
 - Журнал решений - в `docs/Diary.md`.
 - Открытые вопросы - в `docs/qa.md`.
 - История изменений - в `docs/changelog.md`.
+- Handoff крупных сессий - в `docs/Session-Handoff-*.md` (актуально: `docs/Session-Handoff-2026-05-22.md`).
 
 ## Engineering Principles
 - SOLID, KISS, DRY.
@@ -17,6 +18,6 @@
 
 ## Operational Standards
 - Секреты - только в `.env`/secret storage; см. `docs/Security.md`.
-- Логи - структурный JSON с ротацией 14 дней; см. `docs/Logging.md`.
+- Логи - структурный JSON с ротацией 7 дней (не дольше недели); см. `docs/Logging.md`.
 - Бэкапы перед каждой выкаткой, ротация 7 дней; см. `docs/Deployment.md`.
 - Антидубли - обязательная проверка перед публикацией; см. `docs/Deduplication.md`.

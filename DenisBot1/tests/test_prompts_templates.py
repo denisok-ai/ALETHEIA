@@ -63,7 +63,7 @@ def test_each_template_has_structure(brand: BrandProfile, post_type: str):
     )
     system_prompt, user_prompt = build_text_prompts(brand=brand, request=request)
     assert "Структура поста" in system_prompt
-    assert "Avaterra" in system_prompt or "AVATERRA" in system_prompt
+    assert "Аватэрра" in system_prompt
     assert post_type in user_prompt
     assert "не лечит" in system_prompt
 
@@ -117,6 +117,123 @@ def test_image_prompt_excludes_text_in_image():
     assert "no text" in prompt.lower()
     assert "no logos" in prompt.lower()
     assert "no watermarks" in prompt.lower()
+
+
+def test_image_prompt_includes_school_theme():
+    """Сцены должны намекать на школу мышечного тестирования, а не быть абстрактным still-life."""
+    request = GenerationRequest(
+        post_type="practice",
+        topic="Тема для теста",
+        objective="-",
+        outline="-",
+        cta="-",
+    )
+    prompt = build_image_prompt(request=request).lower()
+    assert "muscle testing" in prompt or "muscle-testing" in prompt
+    assert "no faces" in prompt
+
+
+def test_image_prompt_uses_homepage_three_steps_for_educational():
+    """Educational-сцена должна повторять сюжет 'контакт - вопрос - ответ' с сайта."""
+    request = GenerationRequest(
+        post_type="educational",
+        topic="Как работает мышечный тест",
+        objective="-",
+        outline="-",
+        cta="-",
+    )
+    prompt = build_image_prompt(request=request).lower()
+    assert "contact" in prompt
+    assert "question" in prompt
+    assert "answer" in prompt
+
+
+def test_image_prompt_course_hints_o_ring_gesture():
+    """Course-сцена должна нести намёк на жест O-кольцо со страницы школы."""
+    request = GenerationRequest(
+        post_type="course",
+        topic="Кому подойдёт курс",
+        objective="-",
+        outline="-",
+        cta="-",
+    )
+    prompt = build_image_prompt(request=request).lower()
+    assert "o-ring" in prompt
+    assert "no faces" in prompt
+
+
+def test_image_prompt_bans_text_and_logos_on_canvas():
+    """Никакого текста/букв/логотипов в кадре, даже когда фигурирует ноутбук."""
+    request = GenerationRequest(
+        post_type="educational",
+        topic="Что такое мышечный тест",
+        objective="-",
+        outline="-",
+        cta="-",
+    )
+    prompt = build_image_prompt(request=request).lower()
+    assert "no text" in prompt
+    assert "no letters" in prompt
+    assert "no logos" in prompt
+    assert "no watermarks" in prompt
+
+
+def test_image_prompt_embeds_topic_fragment():
+    """`request.topic` должен попадать в промпт KIE для тематичности."""
+    topic = "Как замечать телесные сигналы в плечах и спине"
+    request = GenerationRequest(
+        post_type="educational",
+        topic=topic,
+        objective="-",
+        outline="-",
+        cta="-",
+    )
+    prompt = build_image_prompt(request=request)
+    assert topic in prompt
+
+
+def test_image_prompt_truncates_long_topic():
+    request = GenerationRequest(
+        post_type="educational",
+        topic="а" * 400,
+        objective="-",
+        outline="-",
+        cta="-",
+    )
+    prompt = build_image_prompt(request=request)
+    assert "…" in prompt
+    assert "а" * 400 not in prompt
+
+
+def test_system_prompt_bans_faq_and_calibration_words(brand: BrandProfile):
+    request = GenerationRequest(
+        post_type="faq",
+        topic="Безопасно ли мышечное тестирование",
+        objective="снять возражение",
+        outline="вопрос -> короткий ответ -> разбор -> CTA",
+        cta="раздел Описание",
+    )
+    system_prompt, _ = build_text_prompts(brand=brand, request=request)
+    lower = system_prompt.lower()
+    assert "faq" in lower
+    assert "описание" in lower
+    assert "калибровка" in lower
+    assert "замер через баланс тела" in lower
+
+
+def test_system_prompt_bans_method_word(brand: BrandProfile):
+    """COMMON_RULES_RU должны запрещать целое слово «метод» в тексте поста."""
+    request = GenerationRequest(
+        post_type="educational",
+        topic="Как работает мышечный тест",
+        objective="доверие",
+        outline="вступление -> разбор -> CTA",
+        cta="Сохраните пост",
+    )
+    system_prompt, _ = build_text_prompts(brand=brand, request=request)
+    lower = system_prompt.lower()
+    assert "«метод»" in lower or "слово «метод»" in lower
+    assert "школе аватэрра" in lower or "школу аватэрра" in lower
 
 
 def test_audience_block_uses_template_default(brand: BrandProfile):

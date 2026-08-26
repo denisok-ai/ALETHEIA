@@ -9,7 +9,8 @@
 
 ## 1. Цели
 - Иметь единый формат логов для быстрой диагностики.
-- Не превышать 14 дней хранения логов.
+- **Не хранить логи дольше 7 дней** (1 неделя) — ни в приложении, ни на диске, ни в Docker.
+- Вести проектный журнал в `docs/Diary.md` и `docs/changelog.md`; для крупных сессий — `docs/Session-Handoff-*.md`.
 - Никогда не писать секреты и токены в логи.
 
 ## 2. Уровни и категории
@@ -39,27 +40,51 @@
   - паттерны `sk-...`, токены вида `12345678:AAA...`, `Bearer ...`.
 - Любые новые секреты добавлять в фильтр немедленно.
 
-## 5. Ротация
+## 5. Ротация (максимум 7 дней)
+
+Единая политика: **`LOG_RETENTION_DAYS=7`** в `.env` управляет `backupCount` в приложении; logrotate и Docker согласованы с тем же сроком.
+
 ### Внутри приложения
-- `TimedRotatingFileHandler`: ежедневно в полночь, `backupCount=14`.
+- `TimedRotatingFileHandler`: ежедневно в полночь, `backupCount=LOG_RETENTION_DAYS` (default **7**).
 - Файлы: `logs/app.log`, `logs/app.log.YYYY-MM-DD`.
+- При старте пишется `logging_initialized` с полем `retention_days`.
 
 ### На уровне ОС
 - `logrotate` (`deploy/logrotate/avaterra-bot`):
-  - daily, rotate 14, compress, copytruncate, maxage 14.
+  - daily, **rotate 7**, compress, copytruncate, **maxage 7**.
   - покрывает `/opt/avaterra-bot/logs/*.log` и docker volume логов.
 
 ### Docker
-- `json-file` driver с `max-size=20m`, `max-file=7` для контейнера бота.
+- `json-file` driver: `max-size=20m`, **`max-file=7`** для контейнера бота (~неделя при ежедневной ротации драйвера).
 - БД и Redis: `max-size=10m`, `max-file=5`.
+
+### Проверка на сервере
+
+```bash
+ls -la /opt/avaterra-bot/logs/
+docker compose -f /opt/avaterra-bot/docker-compose.yml logs --tail=50 bot | grep logging_initialized
+```
 
 ## 6. Анализ
 - Быстрый поиск ошибок: `grep '"level":"ERROR"' logs/app.log`.
 - По провайдеру: `grep '"provider":"deepseek"' logs/app.log | jq '.'`.
 - По заданию публикации: `grep "<idempotency_key>" logs/app.log`.
 
-## 7. Чек-лист дисциплины логов
+## 7. Журналирование проекта (не путать с файлами `logs/`)
+
+| Файл | Когда обновлять |
+|------|-----------------|
+| `docs/changelog.md` | Каждая значимая выкладка / hotfix |
+| `docs/Diary.md` | Решения, инциденты, откат |
+| `docs/Tasktracker.md` | Статус задач и чеклисты |
+| `docs/Session-Handoff-*.md` | Крупная сессия: режимы, env, файлы, команды |
+| `docs/Project.md` | Архитектурные изменения |
+
+Актуальный handoff по режиму `admin_preview`: **`docs/Session-Handoff-2026-05-22.md`**.
+
+## 8. Чек-лист дисциплины логов
 - [ ] Не логировать тело запросов с пользовательскими данными.
 - [ ] Не логировать значения env.
 - [ ] Логировать `request_id` для трассировки.
 - [ ] Использовать `extra={...}` вместо склейки строк.
+- [ ] Ключевые события публикатора: `publisher_due_items`, `admin_preview_sent`, `publisher_run_done`.

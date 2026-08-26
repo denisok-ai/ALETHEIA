@@ -8,6 +8,8 @@
 # Avaterra Telegram SMM Bot - Вопросы для уточнения
 
 ## Подтверждено
+- Weekly pipeline (2026-08-18): после LLM обязателен `salvage_text` (CTA/URL/длина/лексика) до `quality_failed`; pass1 обрабатывает `quality_failed`; `last_error` хранит коды гейтов. `method_word` автозаменой не чиним.
+- Weekly pipeline (2026-07-27): item, оставшийся в `draft` после exception в pass1, должен ретраиться на доп. проходах; exception → `failed` + `last_error`. Синтетический `missing` — только при полном отсутствии item на день.
 - Админ-интерфейс MVP: только Telegram-меню (Спринт 5: расширенное `/admin` меню, очередь `quality_failed`, аудит сигналов Site Radar). Веб-панели и CRM не делаем.
 - Режим публикации на старте: полный автопостинг.
 - Бот уже назначен администратором целевого канала.

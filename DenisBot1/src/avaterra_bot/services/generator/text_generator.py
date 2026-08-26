@@ -36,7 +36,7 @@ from avaterra_bot.services.generator.prompts import (
     GenerationRequest,
     build_text_prompts,
 )
-from avaterra_bot.services.quality.gates import QualityReport, evaluate_text
+from avaterra_bot.services.quality.gates import QualityReport, evaluate_text, salvage_text
 
 logger = logging.getLogger(__name__)
 
@@ -200,6 +200,11 @@ async def generate_text_for_item(
     max_quality_retries = max(0, settings.quality_max_retries)
     quality_enabled = settings.quality_enabled
     feedback: str | None = None
+    if item.last_error and item.last_error.startswith("quality:"):
+        feedback = (
+            "Предыдущая попытка не прошла quality gates "
+            f"({item.last_error}). Исправь замечания полностью."
+        )
     last_text = ""
     last_dry_run = False
     last_report: QualityReport | None = None
@@ -237,6 +242,7 @@ async def generate_text_for_item(
                 generated_text="",
                 final_text=None,
                 status="failed",
+                last_error="deepseek_error",
             )
             raise
 
@@ -252,6 +258,20 @@ async def generate_text_for_item(
             post_type=item.post_type,
             brand=brand,
         )
+        if not report.passed:
+            salvaged, salvage_report = salvage_text(
+                call.text,
+                topic=item.topic,
+                post_type=item.post_type,
+                brand=brand,
+            )
+            last_text = salvaged
+            report = salvage_report
+            if salvage_report.passed:
+                logger.info(
+                    "quality_salvage_passed",
+                    extra={"item_id": item.id, "attempt": attempt_label},
+                )
         last_report = report
         await _log_quality_outcome(
             pool, item=item, report=report, attempt_label=attempt_label
@@ -274,14 +294,15 @@ async def generate_text_for_item(
 
     if decision.is_duplicate:
         await update_item_text(
-            pool,
-            item_id=item.id,
-            generated_text=last_text,
-            final_text=None,
-            status="dedup_blocked",
-            dedup_status="blocked",
-            dedup_reason=decision.reason,
-        )
+                pool,
+                item_id=item.id,
+                generated_text=last_text,
+                final_text=None,
+                status="dedup_blocked",
+                dedup_status="blocked",
+                dedup_reason=decision.reason,
+                last_error=decision.reason,
+            )
         return TextGenerationOutcome(
             item_id=item.id,
             text=last_text,
@@ -303,6 +324,7 @@ async def generate_text_for_item(
             status="quality_failed",
             dedup_status="passed",
             dedup_reason=decision.reason,
+            last_error="quality:" + ",".join(quality_codes),
         )
         return TextGenerationOutcome(
             item_id=item.id,
@@ -322,6 +344,8 @@ async def generate_text_for_item(
         status="text_ready",
         dedup_status="passed",
         dedup_reason=decision.reason,
+        last_error=None,
+        clear_last_error=True,
     )
     return TextGenerationOutcome(
         item_id=item.id,

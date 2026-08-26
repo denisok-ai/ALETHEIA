@@ -19,6 +19,7 @@ Telegram-бот для автоматизации SMM и маркетинга к
 - [docs/Diary.md](docs/Diary.md) — журнал решений.
 - [docs/qa.md](docs/qa.md) — открытые вопросы.
 - [docs/changelog.md](docs/changelog.md) — журнал изменений.
+- [docs/Session-Handoff-2026-05-22.md](docs/Session-Handoff-2026-05-22.md) — режим admin_preview, env, откат, команды.
 
 ## Быстрый старт (локально)
 

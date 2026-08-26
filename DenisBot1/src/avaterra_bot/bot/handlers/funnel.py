@@ -1,8 +1,6 @@
 """
 @file: funnel.py
-@description: Handlers лид-воронки: /start, выбор кнопки, free-form ответы.
-При FUNNEL_ENABLED=false (по умолчанию) воронка не работает — пользователь
-получает редирект в бота портала @AvaterraProBot, который заводит лидов в CRM.
+@description: Handlers лид-воронки: /start, выбор кнопки, free-form ответы
 @dependencies: aiogram, asyncpg
 @created: 2026-05-07
 """
@@ -104,27 +102,18 @@ def _funnel_enabled() -> bool:
     return get_settings().funnel_enabled
 
 
-def _portal_bot_url() -> str:
-    return f"https://t.me/{get_settings().portal_bot_username}"
-
-
 REDIRECT_TEXT = (
     "Здравствуйте! Школа <b>«Аватэрра»</b> переехала в основной бот — "
     "там курсы, материалы, поддержка и личный кабинет.\n\n"
-    "Нажмите кнопку ниже, напишите там /start — и я помогу с вопросами по курсам."
+    "Нажмите кнопку ниже и напишите там /start — помогу с вопросами по курсам, "
+    "отвечу на частые вопросы сразу и передам команде, если нужен живой разбор."
 )
 
 
 def _build_redirect_keyboard() -> InlineKeyboardMarkup:
+    url = f"https://t.me/{get_settings().portal_bot_username}"
     return InlineKeyboardMarkup(
-        inline_keyboard=[
-            [
-                InlineKeyboardButton(
-                    text="Перейти в бот школы",
-                    url=_portal_bot_url(),
-                )
-            ]
-        ]
+        inline_keyboard=[[InlineKeyboardButton(text="Перейти в бот школы", url=url)]]
     )
 
 
@@ -144,7 +133,7 @@ async def cmd_start(message: Message) -> None:
         return
     if _is_admin(user.id):
         await message.answer(
-            "Avaterra SMM Bot готов к работе.\n"
+            "Бот школы Аватэрра готов к работе.\n"
             f"Версия: {__version__}\n"
             "Используйте /admin_help для списка команд."
         )

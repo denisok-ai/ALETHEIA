@@ -21,6 +21,7 @@ from avaterra_bot.db.repositories.content import (
     log_prompt,
     update_item_image,
     update_item_image_backup,
+    update_item_status,
 )
 from avaterra_bot.services.external.kie import KieClient, KieError
 from avaterra_bot.services.generator.prompts import (
@@ -65,6 +66,20 @@ async def generate_image_for_item(
             item_id=item.id,
             image_url=item.image_url or "",
             task_id=item.image_task_id or "",
+            dry_run=False,
+            skipped=True,
+        )
+
+    if not settings.image_generation_enabled:
+        await update_item_status(pool, item_id=item.id, status="ready")
+        logger.info(
+            "image_generation_disabled",
+            extra={"item_id": item.id},
+        )
+        return ImageGenerationOutcome(
+            item_id=item.id,
+            image_url="",
+            task_id="",
             dry_run=False,
             skipped=True,
         )

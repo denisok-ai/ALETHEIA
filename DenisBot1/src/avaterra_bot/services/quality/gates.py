@@ -30,9 +30,6 @@ DEFAULT_LENGTH_WINDOWS: dict[str, tuple[int, int]] = {
 }
 
 DEFAULT_WHITELIST = {
-    "Avaterra",
-    "AVATERRA",
-    "FAQ",
     "CTA",
     "Telegram",
     "VIP",
@@ -113,21 +110,26 @@ def _check_prohibited_phrases(
     return None
 
 
+def _strip_urls_and_emails(text: str) -> str:
+    """Убрать URL и email, чтобы latin/brand гейты не цепляли домены."""
+    stripped = _URL_PATTERN.sub(" ", text)
+    stripped = re.sub(r"\bavaterra\.pro\b\S*", " ", stripped, flags=re.IGNORECASE)
+    stripped = _URL_OR_EMAIL_TOKEN_PATTERN.sub(" ", stripped)
+    return stripped
+
+
 def _check_latin_words(
     text: str, brand: BrandProfile
 ) -> Optional[QualityIssue]:
     whitelist = set(brand.text_whitelist or []) | DEFAULT_WHITELIST
+    haystack = _strip_urls_and_emails(text)
     found: list[str] = []
-    for token in re.findall(r"[A-Za-z][A-Za-z\-]{1,}", text):
+    for token in re.findall(r"[A-Za-z][A-Za-z\-]{1,}", haystack):
         if token in whitelist:
             continue
         if token.lower() in {item.lower() for item in whitelist}:
             continue
         if re.match(r"^https?$", token, flags=re.IGNORECASE):
-            continue
-        if "avaterra.pro" in text.lower() and token.lower() in text.lower().split("/"):
-            continue
-        if any(token.lower() in url.lower() for url in (brand.quick_links or {}).values() if url):
             continue
         found.append(token)
     if not found:
@@ -169,7 +171,83 @@ def _check_cta(text: str) -> Optional[QualityIssue]:
     return QualityIssue(
         code="missing_cta",
         message="не нашёл понятный CTA в конце поста",
-        suggestion="добавь ссылку на курс/FAQ/каталог или мягкий вопрос подписчикам",
+        suggestion=(
+            "добавь ссылку на курс, раздел «Описание» или каталог либо мягкий "
+            "вопрос подписчикам"
+        ),
+    )
+
+
+_FAQ_ACRONYM_PATTERN = re.compile(r"\bFAQ\b")
+_CALIBRATION_PATTERN = re.compile(r"калибр", re.IGNORECASE)
+_METHOD_WORD_PATTERN = re.compile(
+    # Все падежные формы слова «метод» (м.р., 2-е скл.) — ед. и мн. число.
+    # `\b` справа отсекает «методика», «методический», «методолог», «методист»:
+    # после стема + опционального падежного окончания должна быть граница слова,
+    # иначе следующая буква делает совпадение неполным и regex не срабатывает.
+    r"\bметод(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b",
+    re.IGNORECASE,
+)
+_LATIN_BRAND_PATTERN = re.compile(r"\b[Aa][Vv][Aa][Tt][Ee][Rr][Rr][Aa]\b")
+
+
+def _check_no_faq_acronym(text: str) -> Optional[QualityIssue]:
+    """В тексте поста запрещён акроним 'FAQ' — пишем 'Описание'."""
+    if not _FAQ_ACRONYM_PATTERN.search(text):
+        return None
+    return QualityIssue(
+        code="faq_acronym",
+        message="в тексте есть акроним «FAQ»",
+        suggestion=(
+            "замени на «раздел Описание» или «раздел с ответами на частые вопросы»; "
+            "ссылку https://avaterra.pro/faq оставлять можно"
+        ),
+    )
+
+
+def _check_no_calibration(text: str) -> Optional[QualityIssue]:
+    """Любое слово на 'калибр…' запрещено — заменяем на формулировки про баланс."""
+    if not _CALIBRATION_PATTERN.search(text):
+        return None
+    return QualityIssue(
+        code="calibration_word",
+        message="в тексте есть запрещённое слово из семейства «калибр…»",
+        suggestion=(
+            "перепиши через «замер через баланс тела», «сверить ответ с балансом» "
+            "или «проверить ответ через баланс»"
+        ),
+    )
+
+
+def _check_no_method_word(text: str) -> Optional[QualityIssue]:
+    """Целое слово «метод» в тексте поста запрещено. Слово «методика» допустимо."""
+    if not _METHOD_WORD_PATTERN.search(text):
+        return None
+    return QualityIssue(
+        code="method_word",
+        message="в тексте есть запрещённое слово «метод»",
+        suggestion=(
+            "замени на «школу Аватэрра», «подход школы Аватэрра» или «практику школы»;"
+            " слово «методика» использовать можно"
+        ),
+    )
+
+
+def _check_latin_brand(text: str) -> Optional[QualityIssue]:
+    """В теле поста имя школы должно быть кириллицей: 'Аватэрра'.
+
+    Латинская запись допускается только внутри URL/доменов avaterra.pro —
+    URL мы вырезаем перед проверкой, чтобы они не давали ложноположительный
+    срабатывание гейта.
+    """
+    stripped = _URL_PATTERN.sub(" ", text)
+    stripped = re.sub(r"\bavaterra\.pro\b\S*", " ", stripped, flags=re.IGNORECASE)
+    if not _LATIN_BRAND_PATTERN.search(stripped):
+        return None
+    return QualityIssue(
+        code="latin_brand",
+        message="название школы написано латиницей",
+        suggestion="замени «Avaterra»/«AVATERRA» на «Аватэрра»",
     )
 
 
@@ -282,6 +360,78 @@ def _check_urls(text: str, brand: BrandProfile) -> Optional[QualityIssue]:
     )
 
 
+_URL_OR_EMAIL_TOKEN_PATTERN = re.compile(
+    r"(https?://\S+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})",
+    re.IGNORECASE,
+)
+
+
+_DEFAULT_LEXICON_REPLACEMENTS: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"\bAVATERRA\b"), "Аватэрра"),
+    (re.compile(r"\bAvaterra\b"), "Аватэрра"),
+    (re.compile(r"калибровкой", re.IGNORECASE), "замером через баланс тела"),
+    (re.compile(r"калибровке", re.IGNORECASE), "замере через баланс тела"),
+    (re.compile(r"калибровку", re.IGNORECASE), "замер через баланс тела"),
+    (re.compile(r"калибровки", re.IGNORECASE), "замера через баланс тела"),
+    (re.compile(r"калибровка", re.IGNORECASE), "замер через баланс тела"),
+    (re.compile(r"калибровать", re.IGNORECASE), "сверить ответ с балансом"),
+    (re.compile(r"калибруем", re.IGNORECASE), "сверяем с балансом"),
+    (re.compile(r"калибруют", re.IGNORECASE), "сверяют с балансом"),
+    (re.compile(r"калибруется", re.IGNORECASE), "сверяется с балансом"),
+)
+
+
+def normalize_post_lexicon(text: str) -> str:
+    """Безопасные детерминированные замены лексики перед публикацией.
+
+    - Латиница `Avaterra/AVATERRA` → `Аватэрра` (только в обычном тексте, URL и
+      email сохраняем как есть).
+    - Известные формы «калибровка/калибровать» → «замер через баланс тела» /
+      «сверить ответ с балансом» (без согласования падежей — только частые формы).
+
+    Слово «метод» намеренно НЕ нормализуем: без согласования падежей замена
+    звучит коряво. Такие посты должны падать в `method_word` и перегенерироваться.
+    """
+    if not text:
+        return text
+
+    parts = _URL_OR_EMAIL_TOKEN_PATTERN.split(text)
+    out: list[str] = []
+    for chunk in parts:
+        if not chunk:
+            out.append(chunk)
+            continue
+        if _URL_OR_EMAIL_TOKEN_PATTERN.fullmatch(chunk):
+            out.append(chunk)
+            continue
+        normalized = chunk
+        for pattern, replacement in _DEFAULT_LEXICON_REPLACEMENTS:
+            normalized = pattern.sub(replacement, normalized)
+        out.append(normalized)
+    return "".join(out)
+
+
+def scan_publish_blockers(text: str) -> list[QualityIssue]:
+    """Подмножество quality-гейтов, которые НИКОГДА не должны попасть в канал.
+
+    Запускается публикатором уже на этапе отправки — это вторая линия защиты
+    от случая «правила обновились после генерации, в БД лежит ready-пост со
+    старого свода». Brand profile сюда не нужен — все проверки опираются на
+    жёстко зашитые паттерны (FAQ, «калибр…», «метод» во всех падежах,
+    латиница Avaterra вне URL).
+    """
+    issues: list[QualityIssue] = []
+    for check in (
+        _check_no_faq_acronym(text),
+        _check_no_calibration(text),
+        _check_no_method_word(text),
+        _check_latin_brand(text),
+    ):
+        if check is not None:
+            issues.append(check)
+    return issues
+
+
 def evaluate_text(
     *,
     text: str,
@@ -297,6 +447,10 @@ def evaluate_text(
         _check_cta(text),
         _check_disclaimer(text, topic, brand),
         _check_urls(text, brand),
+        _check_no_faq_acronym(text),
+        _check_no_calibration(text),
+        _check_no_method_word(text),
+        _check_latin_brand(text),
     ):
         if check is not None:
             issues.append(check)
@@ -310,3 +464,146 @@ def evaluate_text(
             },
         )
     return report
+
+
+def _preferred_cta(brand: BrandProfile) -> str:
+    library = brand.cta_library or {}
+    options = library.get("soft") or library.get("course_body") or []
+    if options:
+        return str(options[0]).strip()
+    return "Если тема откликнулась, сохраните пост и понаблюдайте за собой сегодня."
+
+
+def _preferred_home_url(brand: BrandProfile) -> str:
+    links = brand.quick_links or {}
+    return (
+        links.get("catalog")
+        or links.get("home")
+        or "https://avaterra.pro"
+    )
+
+
+def _canonical_url_for_path(path: str, brand: BrandProfile) -> str:
+    links = brand.quick_links or {}
+    lowered = path.lower()
+    if "faq" in lowered:
+        return links.get("faq") or "https://avaterra.pro/faq"
+    if "probuzhd" in lowered or "awakening" in lowered:
+        return links.get("course_awakening") or _preferred_home_url(brand)
+    if "course" in lowered or "navyki" in lowered:
+        return links.get("course_body") or _preferred_home_url(brand)
+    return _preferred_home_url(brand)
+
+
+def _rewrite_unknown_urls(text: str, brand: BrandProfile) -> str:
+    """Заменить выдуманные URL бренда на ближайший whitelist."""
+    allowed = _allowed_normalized(brand)
+    hosts = {entry.split("/", 1)[0] for entry in allowed if entry}
+    if not hosts:
+        return text
+    result = text
+    for host in hosts:
+        pattern = re.compile(
+            _LEFT_BOUNDARY + re.escape(host) + _PATH_TAIL,
+            re.IGNORECASE,
+        )
+
+        def _repl(match: re.Match[str], *, _host: str = host) -> str:
+            raw = match.group(0)
+            cleaned = _strip_scheme(raw)
+            if cleaned in allowed:
+                return raw
+            path = cleaned.split("/", 1)[1] if "/" in cleaned else ""
+            return _canonical_url_for_path(path, brand)
+
+        result = pattern.sub(_repl, result)
+    return result
+
+
+def _trim_sentences(text: str, max_len: int) -> str:
+    stripped = text.strip()
+    if len(stripped) <= max_len:
+        return stripped
+    cut = stripped[:max_len]
+    for sep in (". ", "! ", "? ", ".\n", "\n"):
+        idx = cut.rfind(sep)
+        if idx >= max(80, max_len // 3):
+            return cut[: idx + 1].strip()
+    return cut.rstrip()
+
+
+def _trim_to_window(text: str, max_len: int) -> str:
+    """Укоротить текст до max_len, по возможности сохранив последний абзац (CTA)."""
+    stripped = text.strip()
+    if len(stripped) <= max_len:
+        return stripped
+    parts = re.split(r"\n\n+", stripped)
+    if len(parts) >= 2:
+        tail = parts[-1].strip()
+        head = "\n\n".join(parts[:-1]).strip()
+        budget = max_len - len(tail) - 2
+        if budget >= 200 and len(tail) < max_len // 2:
+            return f"{_trim_sentences(head, budget)}\n\n{tail}".strip()
+    return _trim_sentences(stripped, max_len)
+
+
+def _append_block(text: str, block: str) -> str:
+    block = block.strip()
+    if not block:
+        return text
+    if block in text:
+        return text
+    return text.rstrip() + "\n\n" + block
+
+
+def salvage_text(
+    text: str,
+    *,
+    topic: str,
+    post_type: str,
+    brand: BrandProfile,
+) -> tuple[str, QualityReport]:
+    """Детерминированно починить то, что LLM стабильно промахивает.
+
+    Чинит: лексику (Avaterra/калибр), FAQ, неизвестные URL, missing CTA,
+    missing disclaimer, too_long. Не трогает «метод» (нужна перегенерация).
+    """
+    current = normalize_post_lexicon(text or "")
+    current = _FAQ_ACRONYM_PATTERN.sub("раздел Описание", current)
+    report = evaluate_text(
+        text=current, topic=topic, post_type=post_type, brand=brand
+    )
+    for _ in range(3):
+        if report.passed:
+            return current, report
+        codes = set(report.codes)
+        nxt = current
+        if "faq_acronym" in codes:
+            nxt = _FAQ_ACRONYM_PATTERN.sub("раздел Описание", nxt)
+        if "latin_brand" in codes or "calibration_word" in codes:
+            nxt = normalize_post_lexicon(nxt)
+        if "url_not_whitelisted" in codes:
+            nxt = _rewrite_unknown_urls(nxt, brand)
+        if "missing_disclaimer" in codes:
+            disclaimer = ((brand.disclaimer or {}).get("text") or "").strip()
+            if not disclaimer:
+                disclaimer = (
+                    "Это не замена врачу или психотерапевту: при острых "
+                    "симптомах обратитесь к специалисту."
+                )
+            nxt = _append_block(nxt, disclaimer)
+        if "missing_cta" in codes:
+            home = _preferred_home_url(brand)
+            nxt = _append_block(
+                nxt, f"{_preferred_cta(brand)} Подробнее: {home}"
+            )
+        _, max_len = _length_window(brand, post_type)
+        if "too_long" in codes or len(nxt.strip()) > max_len:
+            nxt = _trim_to_window(nxt, max_len)
+        if nxt == current:
+            break
+        current = nxt
+        report = evaluate_text(
+            text=current, topic=topic, post_type=post_type, brand=brand
+        )
+    return current, report
