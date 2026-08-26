@@ -180,6 +180,27 @@ async function handlePartnerLeadForward(
   return true;
 }
 
+/**
+ * Возражение засчитываем только у лида, которому уже показывали оффер/дожим:
+ * до оффера «дорого/подумаю» — это ещё вопрос, а не барьер к покупке.
+ */
+async function recordObjectionIfAfterOffer(chatId: number, text: string): Promise<void> {
+  try {
+    const { prisma } = await import('@/lib/db');
+    const lead = await prisma.lead.findFirst({
+      where: { telegramChatId: chatId },
+      orderBy: { createdAt: 'desc' },
+      select: { offerSentAt: true, offerNudgedAt: true },
+    });
+    if (!lead?.offerSentAt && !lead?.offerNudgedAt) return;
+    const { detectObjection, logObjection } = await import('./objection');
+    const objection = detectObjection(text);
+    if (objection) await logObjection(chatId, objection, text);
+  } catch (e) {
+    console.error('[router] recordObjection:', e);
+  }
+}
+
 function buildContextFromMessage(
   message: NonNullable<TelegramUpdate['message']>,
   isAdmin: boolean
@@ -523,6 +544,8 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
     void markLeadResponded(chatId);
     const { markContacted } = await import('./lead-qualify');
     void markContacted(chatId, 'написал боту');
+    // Если лид уже видел оффер, а теперь возражает — фиксируем барьер для сводки.
+    void recordObjectionIfAfterOffer(chatId, text);
   }
 
   if (text.startsWith('/')) {

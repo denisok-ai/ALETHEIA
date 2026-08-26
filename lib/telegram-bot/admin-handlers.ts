@@ -83,13 +83,23 @@ export async function handleAdminStats(ctx: BotContext): Promise<void> {
 export async function handleAdminDigest(ctx: BotContext): Promise<void> {
   const { fetchFaqMisses } = await import('./faq-miss-log');
   const { fetchFunnelStats, formatFunnelStatsLines } = await import('./funnel-stats');
-  const [d, siteUrl, faqMisses, funnelStats] = await Promise.all([
+  const { fetchObjections, OBJECTION_LABEL } = await import('./objection');
+  const [d, siteUrl, faqMisses, funnelStats, objections] = await Promise.all([
     fetchDigestStats(),
     adminSiteUrl(),
     fetchFaqMisses(24, 5),
     fetchFunnelStats(),
+    fetchObjections(168),
   ]);
   const funnelLines = formatFunnelStatsLines(funnelStats);
+  const objectionLines =
+    objections.total > 0
+      ? [
+          '',
+          `<b>🧱 Барьеры к покупке (7 дней): ${objections.total}</b>`,
+          ...objections.byType.slice(0, 5).map((o) => `· ${OBJECTION_LABEL[o.type]}: ${o.count}`),
+        ]
+      : [];
   const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
   const text = [
     `<b>📰 Дайджест</b> <i>${now}</i>`,
@@ -107,6 +117,7 @@ export async function handleAdminDigest(ctx: BotContext): Promise<void> {
     '<b>За 7 дней</b>',
     `· Регистраций: <b>${d.registrationsWeek}</b>`,
     ...funnelLines,
+    ...objectionLines,
     // Чего не хватает в базе знаний: бот не смог ответить сам.
     ...(faqMisses.count
       ? [

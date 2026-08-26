@@ -13,6 +13,7 @@ export type FunnelStats = {
   withDialog: number; // начали диалог с ботом (есть chat id)
   buyIntent: number; // проявили интент покупки
   offersSent: number; // получили авто-оффер
+  nudged: number; // получили дожим
   converted: number; // оплатили
   unsubscribed: number;
   newLast24h: number;
@@ -27,6 +28,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
       telegramChatId: true,
       buyIntentAt: true,
       offerSentAt: true,
+      offerNudgedAt: true,
       unsubscribedAt: true,
       createdAt: true,
     },
@@ -36,6 +38,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
   let withDialog = 0;
   let buyIntent = 0;
   let offersSent = 0;
+  let nudged = 0;
   let converted = 0;
   let unsubscribed = 0;
   let newLast24h = 0;
@@ -45,6 +48,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
     if (l.telegramChatId) withDialog += 1;
     if (l.buyIntentAt) buyIntent += 1;
     if (l.offerSentAt) offersSent += 1;
+    if (l.offerNudgedAt) nudged += 1;
     if (l.status === 'converted') converted += 1;
     if (l.unsubscribedAt) unsubscribed += 1;
     if (l.createdAt >= dayAgo) newLast24h += 1;
@@ -56,6 +60,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
     withDialog,
     buyIntent,
     offersSent,
+    nudged,
     converted,
     unsubscribed,
     newLast24h,
@@ -72,7 +77,7 @@ export function formatFunnelStatsLines(s: FunnelStats): string[] {
     '<b>🤖 Автоворонка бота</b>',
     `Лидов: <b>${s.total}</b> (+${s.newLast24h} за сутки)`,
     `По статусам: new ${st.new ?? 0} · контакт ${st.contacted ?? 0} · квалиф. ${st.qualified ?? 0} · оплата ${st.converted ?? 0} · потеряно ${st.lost ?? 0}`,
-    `🔥 Интент покупки: <b>${s.buyIntent}</b> · офферов отправлено: <b>${s.offersSent}</b>`,
+    `🔥 Интент покупки: <b>${s.buyIntent}</b> · офферов: <b>${s.offersSent}</b> · дожимов: <b>${s.nudged}</b>`,
     `Конверсия в оплату: <b>${conv}%</b>${s.unsubscribed ? ` · отписалось: ${s.unsubscribed}` : ''}`,
   ];
 }
