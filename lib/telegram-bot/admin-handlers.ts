@@ -82,11 +82,14 @@ export async function handleAdminStats(ctx: BotContext): Promise<void> {
 
 export async function handleAdminDigest(ctx: BotContext): Promise<void> {
   const { fetchFaqMisses } = await import('./faq-miss-log');
-  const [d, siteUrl, faqMisses] = await Promise.all([
+  const { fetchFunnelStats, formatFunnelStatsLines } = await import('./funnel-stats');
+  const [d, siteUrl, faqMisses, funnelStats] = await Promise.all([
     fetchDigestStats(),
     adminSiteUrl(),
     fetchFaqMisses(24, 5),
+    fetchFunnelStats(),
   ]);
+  const funnelLines = formatFunnelStatsLines(funnelStats);
   const now = new Date().toLocaleString('ru-RU', { timeZone: 'Europe/Moscow' });
   const text = [
     `<b>📰 Дайджест</b> <i>${now}</i>`,
@@ -103,6 +106,7 @@ export async function handleAdminDigest(ctx: BotContext): Promise<void> {
     '',
     '<b>За 7 дней</b>',
     `· Регистраций: <b>${d.registrationsWeek}</b>`,
+    ...funnelLines,
     // Чего не хватает в базе знаний: бот не смог ответить сам.
     ...(faqMisses.count
       ? [
