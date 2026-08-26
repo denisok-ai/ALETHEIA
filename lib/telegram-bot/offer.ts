@@ -13,6 +13,7 @@ import { prisma } from '@/lib/db';
 import { getCachedPublicProducts } from '@/lib/ai/live-catalog';
 import { sendTelegramMessageWithResult } from '@/lib/telegram';
 import { getBotSiteSettings } from './settings-cache';
+import { buildTrackedOfferUrl } from './offer-link';
 import type { BuyIntent } from './buy-intent';
 import type { Audience } from './audience';
 
@@ -29,6 +30,7 @@ function fmtPrice(p: number): string {
  */
 async function buildOffer(
   siteBase: string,
+  leadId: number,
   intent?: BuyIntent | null,
   audience?: Audience | null
 ): Promise<{ text: string; keyboard: { inline_keyboard: { text: string; url: string }[][] } } | null> {
@@ -68,7 +70,7 @@ async function buildOffer(
     lines.push(`<b>${escapeHtml(p.name)}</b> — ${fmtPrice(p.price)}${installment}`);
     if (p.cardDescription) lines.push(escapeHtml(p.cardDescription.slice(0, 160)));
     lines.push('');
-    rows.push([{ text: `Оформить: ${p.name.slice(0, 28)}`, url: `${base}/services/${p.slug}` }]);
+    rows.push([{ text: `Оформить: ${p.name.slice(0, 28)}`, url: buildTrackedOfferUrl(base, leadId, p.slug) }]);
   }
 
   lines.push(
@@ -108,6 +110,7 @@ export async function sendOffer(
     const { siteUrl } = await getBotSiteSettings();
     const offer = await buildOffer(
       siteUrl || 'https://avaterra.pro',
+      lead.id,
       opts.intent,
       lead.audience as import('./audience').Audience | null
     );

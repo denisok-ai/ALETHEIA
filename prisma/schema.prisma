@@ -760,6 +760,8 @@ model Lead {
   audience          String?
   /// Дожим после оффера отправлен (одно финальное касание с соц.доказательством)
   offerNudgedAt     DateTime?
+  /// Перешёл по ссылке оффера на страницу оплаты — самый горячий сигнал
+  offerClickedAt    DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

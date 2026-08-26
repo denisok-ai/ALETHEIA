@@ -14,6 +14,7 @@ export type FunnelStats = {
   buyIntent: number; // проявили интент покупки
   offersSent: number; // получили авто-оффер
   nudged: number; // получили дожим
+  offerClicked: number; // кликнули по офферу (пошли платить)
   converted: number; // оплатили
   unsubscribed: number;
   newLast24h: number;
@@ -29,6 +30,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
       buyIntentAt: true,
       offerSentAt: true,
       offerNudgedAt: true,
+      offerClickedAt: true,
       unsubscribedAt: true,
       createdAt: true,
     },
@@ -39,6 +41,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
   let buyIntent = 0;
   let offersSent = 0;
   let nudged = 0;
+  let offerClicked = 0;
   let converted = 0;
   let unsubscribed = 0;
   let newLast24h = 0;
@@ -49,6 +52,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
     if (l.buyIntentAt) buyIntent += 1;
     if (l.offerSentAt) offersSent += 1;
     if (l.offerNudgedAt) nudged += 1;
+    if (l.offerClickedAt) offerClicked += 1;
     if (l.status === 'converted') converted += 1;
     if (l.unsubscribedAt) unsubscribed += 1;
     if (l.createdAt >= dayAgo) newLast24h += 1;
@@ -61,6 +65,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
     buyIntent,
     offersSent,
     nudged,
+    offerClicked,
     converted,
     unsubscribed,
     newLast24h,
@@ -77,7 +82,7 @@ export function formatFunnelStatsLines(s: FunnelStats): string[] {
     '<b>🤖 Автоворонка бота</b>',
     `Лидов: <b>${s.total}</b> (+${s.newLast24h} за сутки)`,
     `По статусам: new ${st.new ?? 0} · контакт ${st.contacted ?? 0} · квалиф. ${st.qualified ?? 0} · оплата ${st.converted ?? 0} · потеряно ${st.lost ?? 0}`,
-    `🔥 Интент покупки: <b>${s.buyIntent}</b> · офферов: <b>${s.offersSent}</b> · дожимов: <b>${s.nudged}</b>`,
+    `🔥 Интент: <b>${s.buyIntent}</b> · офферов: <b>${s.offersSent}</b> · кликов: <b>${s.offerClicked}</b> · дожимов: <b>${s.nudged}</b>`,
     `Конверсия в оплату: <b>${conv}%</b>${s.unsubscribed ? ` · отписалось: ${s.unsubscribed}` : ''}`,
   ];
 }

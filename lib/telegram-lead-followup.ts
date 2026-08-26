@@ -260,6 +260,8 @@ async function runOfferNudgeAndClose(now: Date, dryRun: boolean, result: Followu
       offerSentAt: { not: null, lte: new Date(now.getTime() - NUDGE_AFTER_OFFER_MS) },
       offerNudgedAt: null,
     },
+    // Кликнувшие по офферу (пошли платить, но не завершили) — горячее, дожимаем первыми.
+    orderBy: [{ offerClickedAt: 'desc' }, { offerSentAt: 'asc' }],
     take: 25,
   });
   for (const lead of toNudge) {
