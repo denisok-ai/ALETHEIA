@@ -151,6 +151,11 @@ class AppSettings(BaseSettings):
                 result.add(int(raw))
         return result
 
+    # HTTP(S)-прокси для доступа к api.telegram.org. Нужен на серверах, где
+    # Telegram заблокирован (РФ). Пусто — прямое соединение (напр. Amsterdam).
+    # aiogram/aiohttp не читает системные HTTPS_PROXY сам, поэтому прокидываем явно.
+    telegram_proxy: str = Field(default="", alias="TELEGRAM_PROXY")
+
     # Лид-воронка отключена: весь входящий трафик уходит в бота портала
     # (@AvaterraProBot), который заводит лидов в CRM ALETHEIA и ведёт их
     # (автоответы по FAQ, догоны, приём телефона).

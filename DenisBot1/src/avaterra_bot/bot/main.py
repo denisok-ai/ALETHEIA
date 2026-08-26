@@ -12,6 +12,7 @@ import logging
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
+from aiogram.client.session.aiohttp import AiohttpSession
 from aiogram.enums import ParseMode
 
 from avaterra_bot.bot.handlers import admin as admin_handlers
@@ -45,8 +46,13 @@ def build_bot() -> Bot:
     token = settings.bot_token.get_secret_value()
     if not token:
         raise RuntimeError("BOT_TOKEN is not configured")
+    # На серверах с блокировкой Telegram выходим через HTTP-прокси; иначе — прямо.
+    session = AiohttpSession(proxy=settings.telegram_proxy) if settings.telegram_proxy else None
+    if session is not None:
+        logger.info("telegram_proxy_enabled")
     return Bot(
         token=token,
+        session=session,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML),
     )
 

@@ -7,6 +7,23 @@
 
 # Avaterra Telegram SMM Bot - Project Diary
 
+## [2026-08-26] Бот перенесён с 82.21.117.51 (Amsterdam) на прод Аватэрры 95.181.224.70
+
+### Что сделано
+- @AvaterraBot (docker compose: bot+postgres+redis) целиком перенесён на 95.181.224.70: код, `.env` (секреты), дамп Postgres (16 таблиц; воронка 1, лид-события 46, контент 119, проект 1). Восстановление начисто (DROP/CREATE SCHEMA поверх пустых таблиц из migrations, затем pg_dump). Данные не потеряны.
+- Старый экземпляр на 82 остановлен ДО запуска нового (`docker compose stop bot`) — один токен, иначе конфликт getUpdates. Postgres/redis на 82 пока живы как страховка для отката.
+- Автозапуск: restart `unless-stopped` + docker enabled в systemd.
+
+### Грабли: Telegram заблокирован на РФ-хостинге
+- 82 был в Амстердаме — прямой доступ к api.telegram.org. 95 — РФ, Telegram блокируется; бот падал с `TelegramNetworkError: timeout`.
+- aiogram/aiohttp НЕ читает системный `HTTPS_PROXY` (trust_env=False). Прокси пришлось задать в коде: `AiohttpSession(proxy=...)` из новой настройки `TELEGRAM_PROXY` (`config.py`, `bot/main.py`). Пусто — прямое соединение (совместимо с Amsterdam).
+- `AiohttpSession(proxy=)` требует `aiohttp-socks` даже для http-прокси — добавлен в зависимости.
+- Egress — тот же, что у основного портала: gost на `127.0.0.1:18080` (проверен: getMe→401 = достучались). Контейнер переведён в `network_mode: host` через `docker-compose.override.yml` (только на 95, в репозиторий не входит); postgres/redis опубликованы на 127.0.0.1, их адреса в DATABASE_URL/REDIS_URL — 127.0.0.1.
+
+### Валидация
+- Лог: `telegram_proxy_enabled`, `postgres_pool_initialized`, `Run polling for bot @AvaterraBot id=8660626182`. 0 сетевых ошибок, 0 рестартов, 0 конфликтов getUpdates.
+- Воронка выключена (`FUNNEL_ENABLED=false`), публикация постов активна (`enable_auto_publish=true`, planner sun 19:00, publisher 7/7 11:00).
+
 ## [2026-08-26] Бот забран в проект AVATERRA; воронка выключена на проде
 
 ### Наблюдения
