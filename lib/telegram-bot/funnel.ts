@@ -12,6 +12,7 @@ import { getBotSiteSettings } from './settings-cache';
 import { leadHasRealPhone, upsertBotLead, type FunnelSegment as LeadSegment } from './lead-service';
 import { matchFaqAnswer } from './faq-match';
 import { logFaqMiss } from './faq-miss-log';
+import { tryBotAiAnswer } from './ai-answer';
 
 export type FunnelChoice = 'learn' | 'thinking' | 'ready';
 export type FunnelSegment = 'info' | 'warm' | 'hot';
@@ -196,14 +197,26 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
 
   await clearBotSession(ctx.chatId);
 
-  // Узнали вопрос — отвечаем сразу, иначе честное «передал команде».
+  // Три уровня ответа: точный FAQ → AI по базе знаний → честное «передал команде».
   const faq = matchFaqAnswer(trimmed);
-  if (!faq) void logFaqMiss(ctx.chatId, trimmed);
-  await botReply(
-    ctx,
-    faq ? formatFaqAutoAnswer(faq.question, faq.answer) : FUNNEL_THANKS_AFTER_FREEFORM,
-    { replyMarkup: backToMainKeyboard(), forceNew: true }
-  );
+  let answerSource: string;
+  if (faq) {
+    await botReply(ctx, formatFaqAutoAnswer(faq.question, faq.answer), {
+      replyMarkup: backToMainKeyboard(),
+      forceNew: true,
+    });
+    answerSource = `Бот ответил из FAQ: «${faq.question}»`;
+  } else {
+    const ai = await tryBotAiAnswer(ctx.chatId, trimmed);
+    if (ai.kind === 'answer') {
+      await botReply(ctx, ai.text, { replyMarkup: backToMainKeyboard(), forceNew: true });
+      answerSource = 'Бот ответил AI по базе знаний.';
+    } else {
+      void logFaqMiss(ctx.chatId, trimmed);
+      await botReply(ctx, FUNNEL_THANKS_AFTER_FREEFORM, { replyMarkup: backToMainKeyboard(), forceNew: true });
+      answerSource = 'Готового ответа не нашлось — нужен ответ человека.';
+    }
+  }
 
   const leadId = await upsertBotLead(ctx, { segment: segment as LeadSegment, freeform: trimmed });
   await offerPhoneShare(ctx, segment);
@@ -213,7 +226,7 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
     `От: ${ctx.displayName}${ctx.telegramUsername ? ` (@${ctx.telegramUsername})` : ''}`,
     `Chat ID: ${ctx.chatId}`,
     ...(await leadCrmLink(leadId)),
-    ...(faq ? [`Бот ответил из FAQ: «${faq.question}»`] : ['Готового ответа в FAQ не нашлось — нужен ответ человека.']),
+    answerSource,
     '',
     trimmed.slice(0, 500),
   ]);

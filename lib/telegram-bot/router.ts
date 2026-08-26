@@ -517,8 +517,8 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
   const handled = await handleTextInSession(ctx, text);
   if (handled) return;
 
-  // Вне сценария человек чаще всего просто задаёт вопрос — пробуем ответить
-  // готовым текстом из FAQ, и только если не узнали, отправляем в меню.
+  // Вне сценария человек чаще всего просто задаёт вопрос. Три уровня:
+  // точный FAQ → AI по базе знаний → в меню (и в журнал пробелов).
   const { matchFaqAnswer } = await import('./faq-match');
   const faq = matchFaqAnswer(text);
   if (faq) {
@@ -527,8 +527,14 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
     return;
   }
 
-  // Вопрос не узнан — фиксируем: по этому журналу видно, чего не хватает в FAQ.
   if (!isAdmin) {
+    const { tryBotAiAnswer } = await import('./ai-answer');
+    const ai = await tryBotAiAnswer(ctx.chatId, text);
+    if (ai.kind === 'answer') {
+      await safeReply(ctx.chatId, ai.text);
+      return;
+    }
+    // AI не ответил — фиксируем пробел: по журналу видно, чего не хватает.
     const { logFaqMiss } = await import('./faq-miss-log');
     void logFaqMiss(ctx.chatId, text);
   }
