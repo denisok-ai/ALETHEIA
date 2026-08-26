@@ -19,6 +19,8 @@ import type { Audience } from './audience';
 
 /** Не присылать оффер чаще одного раза в сутки на лид. */
 const OFFER_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+/** Жёсткий пол: даже реактивный (force) оффер не чаще раза в час — от спама. */
+const OFFER_HARD_FLOOR_MS = 60 * 60 * 1000;
 
 function fmtPrice(p: number): string {
   return p <= 0 ? 'бесплатно' : `${p.toLocaleString('ru-RU')} ₽`;
@@ -115,8 +117,12 @@ export async function sendOffer(
     });
     if (!lead) return { sent: false, reason: 'error' };
     if (lead.unsubscribedAt) return { sent: false, reason: 'unsubscribed' };
-    if (!opts.force && lead.offerSentAt && Date.now() - lead.offerSentAt.getTime() < OFFER_COOLDOWN_MS) {
-      return { sent: false, reason: 'cooldown' };
+    if (lead.offerSentAt) {
+      const sinceOffer = Date.now() - lead.offerSentAt.getTime();
+      // force обходит суточный кулдаун, но не жёсткий часовой пол — иначе серия
+      // вопросов про покупку («цена?», «рассрочка?», «старт?») даёт серию офферов.
+      const floor = opts.force ? OFFER_HARD_FLOOR_MS : OFFER_COOLDOWN_MS;
+      if (sinceOffer < floor) return { sent: false, reason: 'cooldown' };
     }
 
     const variant = (lead.offerVariant as OfferVariant | null) ?? assignVariant(lead.id);

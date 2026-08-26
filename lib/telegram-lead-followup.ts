@@ -89,15 +89,21 @@ async function notifyStaleLeads(now: Date): Promise<number> {
     // Напоминание раз в сутки: cron ходит ежечасно, спамить незачем.
     if (now.getTime() - lastAt < STALE_AFTER_MS) return 0;
 
+    const staleBefore = new Date(now.getTime() - STALE_AFTER_MS);
     const stale = await prisma.lead.findMany({
       where: {
-        status: 'new',
-        createdAt: { lt: new Date(now.getTime() - STALE_AFTER_MS) },
-        OR: [{ telegramChatId: null }, { followupStage: { gte: 2 } }],
+        createdAt: { lt: staleBefore },
+        unsubscribedAt: null,
+        OR: [
+          // не начали диалог с ботом, либо исчерпали прогрев
+          { status: 'new', OR: [{ telegramChatId: null }, { followupStage: { gte: 2 } }] },
+          // написали, но оффера не было и затихли — вовлечённые, которых нельзя терять
+          { status: 'contacted', offerSentAt: null, respondedAt: { lt: staleBefore } },
+        ],
       },
       orderBy: { createdAt: 'asc' },
       take: 10,
-      select: { id: true, name: true, phone: true, source: true, createdAt: true },
+      select: { id: true, name: true, phone: true, source: true, status: true, createdAt: true },
     });
     if (stale.length === 0) return 0;
 
@@ -108,7 +114,7 @@ async function notifyStaleLeads(now: Date): Promise<number> {
       '',
       ...stale.map((l) => {
         const days = Math.floor((now.getTime() - l.createdAt.getTime()) / STALE_AFTER_MS);
-        return `· ${l.id} ${l.name} (${l.phone}) — ${l.source ?? 'без источника'}, ${days} дн.`;
+        return `· ${l.id} ${l.name} (${l.phone}) — ${l.status}, ${l.source ?? 'без источника'}, ${days} дн.`;
       }),
     ]);
 
