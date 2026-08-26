@@ -15,6 +15,7 @@ import { logFaqMiss } from './faq-miss-log';
 import { tryBotAiAnswer } from './ai-answer';
 import { detectBuyIntent, describeBuyIntent } from './buy-intent';
 import { markQualified } from './lead-qualify';
+import { sendOffer } from './offer';
 
 export type FunnelChoice = 'learn' | 'thinking' | 'ready';
 export type FunnelSegment = 'info' | 'warm' | 'hot';
@@ -227,6 +228,8 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
   const intent = detectBuyIntent(trimmed);
   if (intent) {
     await markQualified(ctx.chatId, `интент покупки (${describeBuyIntent(intent)})`, { buyIntent: true });
+    // Спросил про покупку — куём железо пока горячо: оффер сразу после ответа.
+    await sendOffer(ctx.chatId, { intent, force: true });
   } else if (segment === 'hot') {
     await markQualified(ctx.chatId, 'сегмент «готов обсудить участие»');
   }

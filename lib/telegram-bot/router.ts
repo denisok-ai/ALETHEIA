@@ -555,6 +555,11 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
     const ai = await tryBotAiAnswer(ctx.chatId, text);
     if (ai.kind === 'answer') {
       await safeReply(ctx.chatId, ai.text);
+      // Спросил про покупку — следом присылаем оффер с тарифом и оплатой.
+      if (intent) {
+        const { sendOffer } = await import('./offer');
+        await sendOffer(ctx.chatId, { intent, force: true });
+      }
       return;
     }
     // AI не ответил — фиксируем пробел: по журналу видно, чего не хватает.

@@ -11,17 +11,20 @@
 import { prisma } from './db';
 import { sendTelegramMessageWithResult } from './telegram';
 import { TELEGRAM_BOT_URL } from './social-links';
+import { sendOffer } from './telegram-bot/offer';
 
-const STAGE1_AFTER_MS = 2 * 60 * 60 * 1000; // 2 часа тишины после ответа бота
-const STAGE2_AFTER_MS = 24 * 60 * 60 * 1000; // сутки после первого догона
-const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000; // старше недели не трогаем
+const STAGE1_AFTER_MS = 2 * 60 * 60 * 1000; // касание 1: 2 часа тишины
+const STAGE2_AFTER_MS = 24 * 60 * 60 * 1000; // касание 2: сутки после касания 1
+const STAGE3_AFTER_MS = 2 * 24 * 60 * 60 * 1000; // касание 3 (оффер): 2 суток после касания 2
+const MAX_AGE_MS = 10 * 24 * 60 * 60 * 1000; // старше 10 дней не греем
 const MAX_PER_RUN = 25;
+const FINAL_STAGE = 3;
 
 const LINK_BODY = 'https://avaterra.pro/course/navyki-myshechnogo-testirovaniya';
 const LINK_AWAKENING = 'https://avaterra.pro/course/probuzhdenie';
 const LINK_FAQ = 'https://avaterra.pro/faq';
 
-type Stage = 1 | 2;
+type Stage = 1 | 2 | 3;
 
 /** Тексты держим мягкими: школа не давит, второе касание — последнее. */
 function followupText(stage: Stage, segment: string | null): string {
@@ -151,7 +154,7 @@ export async function runTelegramLeadFollowup(
       respondedAt: null,
       unsubscribedAt: null, // отписавшихся не трогаем
       status: 'new',
-      followupStage: { lt: 2 },
+      followupStage: { lt: FINAL_STAGE },
       funnelSegment: { in: ['warm', 'hot'] },
       createdAt: { gte: new Date(now.getTime() - MAX_AGE_MS) },
     },
@@ -164,15 +167,31 @@ export async function runTelegramLeadFollowup(
 
     const since = (lead.lastBotMessageAt ?? lead.createdAt).getTime();
     const waited = now.getTime() - since;
-    const stage: Stage = lead.followupStage === 0 ? 1 : 2;
-    const threshold = stage === 1 ? STAGE1_AFTER_MS : STAGE2_AFTER_MS;
+    const stage = (lead.followupStage + 1) as Stage;
+    const threshold = stage === 1 ? STAGE1_AFTER_MS : stage === 2 ? STAGE2_AFTER_MS : STAGE3_AFTER_MS;
     if (waited < threshold) continue;
 
     result.candidates += 1;
     const chatId = lead.telegramChatId as number;
 
     if (dryRun) {
-      result.details.push(`лид ${lead.id} (${lead.name}): догон #${stage} готов`);
+      result.details.push(`лид ${lead.id} (${lead.name}): касание #${stage}${stage === FINAL_STAGE ? ' (оффер)' : ''} готово`);
+      continue;
+    }
+
+    // Финальное касание — оффер с тарифом и оплатой (offer уважает отписку).
+    if (stage === FINAL_STAGE) {
+      const offer = await sendOffer(chatId, {});
+      if (offer.sent) {
+        await prisma.lead.update({ where: { id: lead.id }, data: { followupStage: FINAL_STAGE, lastBotMessageAt: now } });
+        result.sent += 1;
+        result.details.push(`лид ${lead.id}: касание #3 — оффер отправлен`);
+      } else if (offer.reason === 'unsubscribed') {
+        result.details.push(`лид ${lead.id}: отписался — пропуск`);
+      } else {
+        await prisma.lead.update({ where: { id: lead.id }, data: { followupStage: FINAL_STAGE } });
+        result.details.push(`лид ${lead.id}: оффер не отправлен (${offer.reason})`);
+      }
       continue;
     }
 
