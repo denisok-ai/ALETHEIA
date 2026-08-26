@@ -63,12 +63,68 @@ function followupKeyboard(stage: Stage) {
   return { inline_keyboard: rows };
 }
 
+/**
+ * Лиды, до которых бот дотянуться не может: нет диалога в Telegram (пришли из
+ * чата на сайте или из старой воронки) либо оба догона уже израсходованы.
+ * Их разбирает человек — раз в сутки напоминаем, чтобы не залёживались.
+ */
+const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
+const STALE_NOTICE_KEY = 'stale_leads_notified_at';
+
+async function notifyStaleLeads(now: Date): Promise<number> {
+  try {
+    const marker = await prisma.systemSetting.findUnique({ where: { key: STALE_NOTICE_KEY } });
+    const lastAt = marker?.value ? new Date(marker.value).getTime() : 0;
+    // Напоминание раз в сутки: cron ходит ежечасно, спамить незачем.
+    if (now.getTime() - lastAt < STALE_AFTER_MS) return 0;
+
+    const stale = await prisma.lead.findMany({
+      where: {
+        status: 'new',
+        createdAt: { lt: new Date(now.getTime() - STALE_AFTER_MS) },
+        OR: [{ telegramChatId: null }, { followupStage: { gte: 2 } }],
+      },
+      orderBy: { createdAt: 'asc' },
+      take: 10,
+      select: { id: true, name: true, phone: true, source: true, createdAt: true },
+    });
+    if (stale.length === 0) return 0;
+
+    const { notifyAdminsTelegram } = await import('./telegram-admin-notify');
+    const stats = await notifyAdminsTelegram('contact_lead', [
+      `Лиды без ответа дольше суток: ${stale.length}`,
+      'Бот их дальше не ведёт — нужен человек.',
+      '',
+      ...stale.map((l) => {
+        const days = Math.floor((now.getTime() - l.createdAt.getTime()) / STALE_AFTER_MS);
+        return `· ${l.id} ${l.name} (${l.phone}) — ${l.source ?? 'без источника'}, ${days} дн.`;
+      }),
+    ]);
+
+    // Метку суточной паузы ставим, только если напоминание реально ушло:
+    // иначе сбой отправки молча съел бы напоминание на целые сутки.
+    if (stats.sent === 0) return 0;
+
+    await prisma.systemSetting.upsert({
+      where: { key: STALE_NOTICE_KEY },
+      create: { key: STALE_NOTICE_KEY, value: now.toISOString(), category: 'crm' },
+      update: { value: now.toISOString() },
+    });
+    return stale.length;
+  } catch (e) {
+    console.error('[followup] напоминание о залежавшихся лидах:', e);
+    return 0;
+  }
+}
+
 export type FollowupResult = {
   candidates: number;
   sent: number;
   failed: number;
   blocked: number;
   dryRun: boolean;
+  /** Сколько залежавшихся лидов попало в напоминание админам (раз в сутки). */
+  staleNotified: number;
   details: string[];
 };
 
@@ -81,7 +137,11 @@ export async function runTelegramLeadFollowup(
 ): Promise<FollowupResult> {
   const dryRun = options.dryRun ?? false;
   const now = options.now ?? new Date();
-  const result: FollowupResult = { candidates: 0, sent: 0, failed: 0, blocked: 0, dryRun, details: [] };
+  const result: FollowupResult = {
+    candidates: 0, sent: 0, failed: 0, blocked: 0, dryRun, staleNotified: 0, details: [],
+  };
+
+  if (!dryRun) result.staleNotified = await notifyStaleLeads(now);
 
   const leads = await prisma.lead.findMany({
     where: {
