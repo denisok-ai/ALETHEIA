@@ -12,6 +12,12 @@ import { prisma } from './db';
 import { sendTelegramMessageWithResult } from './telegram';
 import { TELEGRAM_BOT_URL } from './social-links';
 import { sendOffer } from './telegram-bot/offer';
+import {
+  sendOfferNudge,
+  NUDGE_AFTER_OFFER_MS,
+  LOST_AFTER_NUDGE_MS,
+} from './telegram-bot/offer-nudge';
+import { markLost } from './telegram-bot/lead-qualify';
 
 const STAGE1_AFTER_MS = 2 * 60 * 60 * 1000; // касание 1: 2 часа тишины
 const STAGE2_AFTER_MS = 24 * 60 * 60 * 1000; // касание 2: сутки после касания 1
@@ -130,6 +136,8 @@ export type FollowupResult = {
   dryRun: boolean;
   /** Сколько залежавшихся лидов попало в напоминание админам (раз в сутки). */
   staleNotified: number;
+  nudged: number;
+  lostClosed: number;
   details: string[];
 };
 
@@ -143,7 +151,7 @@ export async function runTelegramLeadFollowup(
   const dryRun = options.dryRun ?? false;
   const now = options.now ?? new Date();
   const result: FollowupResult = {
-    candidates: 0, sent: 0, failed: 0, blocked: 0, dryRun, staleNotified: 0, details: [],
+    candidates: 0, sent: 0, failed: 0, blocked: 0, dryRun, staleNotified: 0, nudged: 0, lostClosed: 0, details: [],
   };
 
   if (!dryRun) result.staleNotified = await notifyStaleLeads(now);
@@ -233,5 +241,61 @@ export async function runTelegramLeadFollowup(
     result.details.push(`лид ${lead.id}: ошибка отправки — ${sent.error}`);
   }
 
+  await runOfferNudgeAndClose(now, dryRun, result);
   return result;
+}
+
+/**
+ * Дожим после оффера и закрытие «глухих» лидов.
+ * Дожим — одноразовый, через 2 суток после оффера; затем ещё 3 суток тишины → lost.
+ * Всё уважает отписку, ответ и оплату.
+ */
+async function runOfferNudgeAndClose(now: Date, dryRun: boolean, result: FollowupResult): Promise<void> {
+  // 1) Кандидаты на дожим: получили оффер, не дожаты, не ответили после оффера.
+  const toNudge = await prisma.lead.findMany({
+    where: {
+      telegramChatId: { not: null },
+      status: { not: 'converted' },
+      unsubscribedAt: null,
+      offerSentAt: { not: null, lte: new Date(now.getTime() - NUDGE_AFTER_OFFER_MS) },
+      offerNudgedAt: null,
+    },
+    take: 25,
+  });
+  for (const lead of toNudge) {
+    // Ответил уже ПОСЛЕ оффера — значит диалог живой, дожим не нужен (пометим, чтобы не возвращался).
+    const answeredAfterOffer = lead.respondedAt && lead.offerSentAt && lead.respondedAt > lead.offerSentAt;
+    if (answeredAfterOffer) {
+      if (!dryRun) await prisma.lead.update({ where: { id: lead.id }, data: { offerNudgedAt: now } });
+      continue;
+    }
+    if (dryRun) {
+      result.details.push(`лид ${lead.id} (${lead.name}): дожим готов`);
+      continue;
+    }
+    const ok = await sendOfferNudge(lead);
+    if (ok) {
+      result.nudged += 1;
+      result.details.push(`лид ${lead.id}: дожим отправлен`);
+    }
+  }
+
+  // 2) Закрытие: дожали, прошло ещё 3 суток тишины, не оплатил → lost.
+  const toClose = await prisma.lead.findMany({
+    where: {
+      status: { in: ['new', 'contacted', 'qualified'] },
+      offerNudgedAt: { not: null, lte: new Date(now.getTime() - LOST_AFTER_NUDGE_MS) },
+    },
+    take: 50,
+  });
+  for (const lead of toClose) {
+    const answeredAfterNudge = lead.respondedAt && lead.offerNudgedAt && lead.respondedAt > lead.offerNudgedAt;
+    if (answeredAfterNudge) continue; // живой диалог — не хороним
+    if (dryRun) {
+      result.details.push(`лид ${lead.id} (${lead.name}): будет закрыт (lost)`);
+      continue;
+    }
+    await markLost(lead.id, 'нет реакции после дожима');
+    result.lostClosed += 1;
+  }
 }

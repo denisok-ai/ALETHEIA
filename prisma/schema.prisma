@@ -758,6 +758,8 @@ model Lead {
   /// Аудитория (запрос лида): tense_body | personal_crisis | specialist | spiritual | skeptic
   /// По ней персонализируются оффер и ответы. Определяется из свободных сообщений.
   audience          String?
+  /// Дожим после оффера отправлен (одно финальное касание с соц.доказательством)
+  offerNudgedAt     DateTime?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
