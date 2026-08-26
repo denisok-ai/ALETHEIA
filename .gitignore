@@ -112,3 +112,6 @@ scripts/lineedit.py
 prod-system-health-report.txt
 mail-dns-report.txt
 tsconfig.tsbuildinfo
+
+# Файлы доступа к серверам (пароли/ключи) — например 82.21.117.51.env
+[0-9]*.[0-9]*.[0-9]*.[0-9]*.env
