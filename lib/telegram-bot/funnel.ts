@@ -16,6 +16,7 @@ import { tryBotAiAnswer } from './ai-answer';
 import { detectBuyIntent, describeBuyIntent } from './buy-intent';
 import { markQualified } from './lead-qualify';
 import { sendOffer } from './offer';
+import { detectAudience, saveAudienceIfEmpty, AUDIENCE_LABEL } from './audience';
 
 export type FunnelChoice = 'learn' | 'thinking' | 'ready';
 export type FunnelSegment = 'info' | 'warm' | 'hot';
@@ -224,6 +225,10 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
   const leadId = await upsertBotLead(ctx, { segment: segment as LeadSegment, freeform: trimmed });
   await offerPhoneShare(ctx, segment);
 
+  // Аудитория (запрос лида) — для персонализации оффера и сводки.
+  const audience = detectAudience(trimmed);
+  if (audience) await saveAudienceIfEmpty(ctx.chatId, audience);
+
   // Автоквалификация: горячий сегмент или явный интент покупки → qualified.
   const intent = detectBuyIntent(trimmed);
   if (intent) {
@@ -241,6 +246,7 @@ export async function handleFunnelFreeform(ctx: BotContext, text: string): Promi
     ...(await leadCrmLink(leadId)),
     answerSource,
     ...(intent ? [`🔥 Интент покупки: ${describeBuyIntent(intent)}`] : []),
+    ...(audience ? [`Запрос: ${AUDIENCE_LABEL[audience]}`] : []),
     '',
     trimmed.slice(0, 500),
   ]);

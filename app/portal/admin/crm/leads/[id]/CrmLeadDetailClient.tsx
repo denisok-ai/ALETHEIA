@@ -41,8 +41,18 @@ export type CrmLeadDetail = {
   buy_intent_at?: string | null;
   offer_sent_at?: string | null;
   unsubscribed_at?: string | null;
+  audience?: string | null;
   created_at: string;
   updated_at: string;
+};
+
+/** Подписи аудитории лида (значения из детектора audience). */
+const AUDIENCE_LABELS: Record<string, string> = {
+  tense_body: 'Телесное напряжение / усталость',
+  personal_crisis: 'Личная ситуация',
+  specialist: 'Помогающий специалист',
+  spiritual: 'Осознанность / духовный запрос',
+  skeptic: 'Скептик',
 };
 
 /** Подписи сегментов воронки бота (значения в БД — info | warm | hot). */
@@ -341,6 +351,12 @@ export function CrmLeadDetailClient({
                 {lead.unsubscribed_at ? format(new Date(lead.unsubscribed_at), 'dd.MM.yyyy') : 'нет'}
               </dd>
             </div>
+            {lead.audience && (
+              <div className="sm:col-span-2">
+                <dt className="text-[var(--portal-text-muted)]">Запрос лида</dt>
+                <dd className="text-[var(--portal-text)]">{AUDIENCE_LABELS[lead.audience] ?? lead.audience}</dd>
+              </div>
+            )}
           </dl>
           {lead.qualify_reason && (
             <p className="mt-3 whitespace-pre-wrap text-xs text-[var(--portal-text-muted)]">

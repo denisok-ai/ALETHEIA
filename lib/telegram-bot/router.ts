@@ -551,6 +551,9 @@ async function routeTelegramUpdateImpl(update: TelegramUpdate): Promise<void> {
       const { markQualified } = await import('./lead-qualify');
       void markQualified(ctx.chatId, `интент покупки (${describeBuyIntent(intent)})`, { buyIntent: true });
     }
+    const { detectAudience, saveAudienceIfEmpty } = await import('./audience');
+    const aud = detectAudience(text);
+    if (aud) void saveAudienceIfEmpty(ctx.chatId, aud);
     const { tryBotAiAnswer } = await import('./ai-answer');
     const ai = await tryBotAiAnswer(ctx.chatId, text);
     if (ai.kind === 'answer') {

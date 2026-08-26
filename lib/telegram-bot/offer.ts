@@ -14,6 +14,7 @@ import { getCachedPublicProducts } from '@/lib/ai/live-catalog';
 import { sendTelegramMessageWithResult } from '@/lib/telegram';
 import { getBotSiteSettings } from './settings-cache';
 import type { BuyIntent } from './buy-intent';
+import type { Audience } from './audience';
 
 /** Не присылать оффер чаще одного раза в сутки на лид. */
 const OFFER_COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -28,19 +29,33 @@ function fmtPrice(p: number): string {
  */
 async function buildOffer(
   siteBase: string,
-  intent?: BuyIntent | null
+  intent?: BuyIntent | null,
+  audience?: Audience | null
 ): Promise<{ text: string; keyboard: { inline_keyboard: { text: string; url: string }[][] } } | null> {
-  const products = (await getCachedPublicProducts()).filter((p) => p.price > 0).slice(0, 2);
-  if (!products.length) return null;
+  const all = (await getCachedPublicProducts()).filter((p) => p.price > 0);
+  if (!all.length) return null;
+  // Специалисту/скептику ближе продвинутый (дорогой) тариф — покажем его первым;
+  // новичку с телесным/личным запросом — сначала базовый (дешёвый).
+  const wantsAdvanced = audience === 'specialist' || audience === 'spiritual';
+  const sorted = [...all].sort((a, b) => (wantsAdvanced ? b.price - a.price : a.price - b.price));
+  const products = sorted.slice(0, 2);
 
   const base = siteBase.replace(/\/$/, '');
   const wantsInstallment = intent?.topics.includes('installment');
 
-  const intro = intent?.topics.includes('timing')
-    ? 'Ближайший старт и условия — на странице тарифа. Вот удобные варианты:'
-    : intent?.topics.includes('price') || intent?.topics.includes('payment')
-      ? 'Вот актуальные тарифы и способ оплаты:'
-      : 'Если чувствуете, что откликается, — вот удобный способ начать:';
+  const audienceIntro: Record<string, string> = {
+    tense_body: 'Чтобы мягко работать с напряжением и усталостью — вот удобные форматы:',
+    personal_crisis: 'Чтобы найти опору и разобраться с ситуацией — вот с чего можно начать:',
+    specialist: 'Чтобы взять метод в свою практику — вот подходящие форматы:',
+    spiritual: 'Для глубокой осознанной работы — вот форматы:',
+  };
+  const intro =
+    (audience && audienceIntro[audience]) ||
+    (intent?.topics.includes('timing')
+      ? 'Ближайший старт и условия — на странице тарифа. Вот удобные варианты:'
+      : intent?.topics.includes('price') || intent?.topics.includes('payment')
+        ? 'Вот актуальные тарифы и способ оплаты:'
+        : 'Если чувствуете, что откликается, — вот удобный способ начать:');
 
   const lines: string[] = [intro, ''];
   const rows: { text: string; url: string }[][] = [];
@@ -91,7 +106,11 @@ export async function sendOffer(
     }
 
     const { siteUrl } = await getBotSiteSettings();
-    const offer = await buildOffer(siteUrl || 'https://avaterra.pro', opts.intent);
+    const offer = await buildOffer(
+      siteUrl || 'https://avaterra.pro',
+      opts.intent,
+      lead.audience as import('./audience').Audience | null
+    );
     if (!offer) return { sent: false, reason: 'no-products' };
 
     const res = await sendTelegramMessageWithResult(chatId, offer.text, {

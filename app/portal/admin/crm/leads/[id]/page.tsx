@@ -98,6 +98,7 @@ export default async function CrmLeadDetailPage({ params }: PageProps) {
     buy_intent_at: lead.buyIntentAt?.toISOString() ?? null,
     offer_sent_at: lead.offerSentAt?.toISOString() ?? null,
     unsubscribed_at: lead.unsubscribedAt?.toISOString() ?? null,
+    audience: lead.audience,
     created_at: lead.createdAt.toISOString(),
     updated_at: lead.updatedAt.toISOString(),
   };
