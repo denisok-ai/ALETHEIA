@@ -38,12 +38,26 @@ function purge(now: number, ids: Record<string, number>): Record<string, number>
   return next;
 }
 
+// Троттлинг предупреждения о сбое записи: без него при недоступном каталоге
+// warn печатается на КАЖДОЕ сообщение и заваливает лог. In-memory-дедуп при
+// этом продолжает работать в рамках процесса (на проде бот в poll-режиме —
+// единственный потребитель, так что кросс-процессный файл некритичен).
+let lastSaveWarnAt = 0;
+
 function saveFile(ids: Record<string, number>): void {
   try {
     fs.mkdirSync(stateDir(), { recursive: true });
     fs.writeFileSync(stateFile(), JSON.stringify({ ids }, null, 0), 'utf8');
   } catch (e) {
-    console.warn('[telegram-dedup] save failed', e);
+    const now = Date.now();
+    if (now - lastSaveWarnAt >= TTL_MS) {
+      lastSaveWarnAt = now;
+      console.warn(
+        `[telegram-dedup] не удаётся сохранить состояние в ${stateFile()} — ` +
+          'дедупликация работает только в памяти процесса. ' +
+          (e instanceof Error ? e.message : String(e))
+      );
+    }
   }
 }
 
