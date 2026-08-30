@@ -36,6 +36,8 @@ export const CRON_EXPECTED_INTERVAL_MIN: Record<string, number> = {
   'blog-announce': 1440,
   // Догоны лидов Telegram-бота — раз в час (окна касаний считаются внутри задачи).
   'telegram-lead-followup': 60,
+  // SEO-дайджест Яндекс.Вебмастера — раз в неделю (пн 09:00).
+  'yandex-webmaster-digest': 10080,
 };
 
 /** Отметить успешное выполнение. Сбой отметки не должен ронять саму задачу. */

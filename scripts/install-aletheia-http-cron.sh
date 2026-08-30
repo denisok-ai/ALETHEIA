@@ -57,6 +57,10 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # Раз в час — сами окна и идемпотентность внутри lib/telegram-lead-followup.ts.
 15 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh telegram-lead-followup
 
+# SEO-дайджест Яндекс.Вебмастера (ИКС, страницы в поиске, топ запросов,
+# диагностика) + дострел переобхода свежих статей. Понедельник утром.
+0 9 * * 1 root /opt/ALETHEIA/scripts/cron-http-call.sh yandex-webmaster-digest
+
 # Целостность контента курсов — раз в сутки, 08:40 МСК.
 # После инцидента 11.08.2026: во всех платных курсах 2,5 месяца стоял demo-SCORM,
 # витрина/оплата/доступ выглядели исправными — узнали от студентки, дошедшей до

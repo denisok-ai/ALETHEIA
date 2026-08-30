@@ -64,6 +64,13 @@ async function main() {
       const urls = [...created.map((s) => `${base}/blog/${s}`), `${base}/blog`, `${base}/sitemap.xml`];
       const r = await pingIndexNow(base, urls);
       console.log(`IndexNow: ${r.ok ? `принято (HTTP ${r.status})` : 'НЕ доставлено'}`);
+      // IndexNow — лишь сигнал; очередь переобхода Яндекса — гарантированная
+      // заявка в пределах квоты (150/день). Дёргаем обе.
+      let recrawled = 0;
+      for (const slug of created) {
+        if (await recrawlUrl(`${base}/blog/${slug}`)) recrawled += 1;
+      }
+      console.log(`Яндекс.Переобход: принято ${recrawled}/${created.length}`);
     } else {
       console.log('IndexNow: пропущен — site_url не боевой');
     }
