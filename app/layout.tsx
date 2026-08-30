@@ -65,9 +65,16 @@ export async function generateMetadata(): Promise<Metadata> {
     creator: 'АВАТЕРРА',
     publisher: 'АВАТЕРРА',
     icons: {
-      icon: [{ url: BRAND_LOGO_URL, type: 'image/png', sizes: 'any' }],
-      shortcut: BRAND_LOGO_URL,
-      apple: BRAND_LOGO_URL,
+      // Квадратные размеры заданы явно: Яндекс.Вебмастер требует «большую
+      // иконку» ≥120×120 и не засчитывает нессиметричный логотип с sizes:any
+      // (диагностика BIG_FAVICON_ABSENT, 30.08.2026).
+      icon: [
+        { url: '/images/icons/favicon-120.png', type: 'image/png', sizes: '120x120' },
+        { url: '/images/icons/favicon-512.png', type: 'image/png', sizes: '512x512' },
+        { url: BRAND_LOGO_URL, type: 'image/png', sizes: 'any' },
+      ],
+      shortcut: '/images/icons/favicon-120.png',
+      apple: [{ url: '/images/icons/favicon-180.png', type: 'image/png', sizes: '180x180' }],
     },
     formatDetection: { telephone: false },
     verification: {
