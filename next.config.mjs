@@ -53,6 +53,9 @@ const nextConfig = {
   },
   reactStrictMode: true,
   compress: true,
+  // Убирает заголовок `X-Powered-By: Next.js` — не раскрываем стек и версию
+  // фреймворка сканерам (информационное раскрытие, аудит безопасности 31.08.2026).
+  poweredByHeader: false,
   async headers() {
     const isDev = process.env.NODE_ENV !== 'production';
     const securityHeaders = [
