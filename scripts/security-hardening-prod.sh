@@ -118,6 +118,29 @@ F2BJAIL
   fail2ban-client reload >/dev/null 2>&1 || systemctl reload fail2ban 2>/dev/null || true
 fi
 
+echo "=== Docker/ufw bypass: закрыть неиспользуемые почтовые порты наружу ==="
+# mailcow публикует порты на 0.0.0.0 в обход ufw (Docker пишет правила в iptables
+# перед фильтром ufw). На почту заходят только через вебмейл (SOGo, внутренняя
+# docker-сеть) — внешние POP3/IMAP-cleartext/ManageSieve не нужны никому, кроме
+# сканеров (аудит 31.08.2026). Закрываем 110/143/995/4190 наружу, оставляя
+# localhost и docker-подсети; 25/587/465 (приём + отправка приложением по
+# localhost) и 993 (IMAPS, TLS) не трогаем. Правила в цепочке DOCKER-USER,
+# которую Docker не сбрасывает при рестарте контейнеров; персист — через
+# netfilter-persistent (см. ниже). Идемпотентно.
+if command -v iptables >/dev/null 2>&1; then
+  for PORT in 110 143 995 4190; do
+    iptables -C DOCKER-USER -p tcp -s 127.0.0.0/8 --dport "$PORT" -j RETURN 2>/dev/null || iptables -I DOCKER-USER 1 -p tcp -s 127.0.0.0/8 --dport "$PORT" -j RETURN
+    iptables -C DOCKER-USER -p tcp -s 172.16.0.0/12 --dport "$PORT" -j RETURN 2>/dev/null || iptables -I DOCKER-USER 2 -p tcp -s 172.16.0.0/12 --dport "$PORT" -j RETURN
+    iptables -C DOCKER-USER -p tcp --dport "$PORT" -j DROP 2>/dev/null || iptables -A DOCKER-USER -p tcp --dport "$PORT" -j DROP
+  done
+  if command -v netfilter-persistent >/dev/null 2>&1; then
+    netfilter-persistent save >/dev/null 2>&1 && echo "iptables-правила сохранены (netfilter-persistent)"
+  else
+    mkdir -p /etc/iptables && iptables-save > /etc/iptables/rules.v4 2>/dev/null && echo "iptables-правила сохранены в /etc/iptables/rules.v4"
+  fi
+  echo "почтовые порты 110/143/995/4190 закрыты наружу (localhost/docker разрешены)"
+fi
+
 echo "=== fail2ban status ==="
 if systemctl is-active fail2ban >/dev/null 2>&1; then
   fail2ban-client status || true
