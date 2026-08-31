@@ -48,6 +48,27 @@ HTTPS/443. Ни одного использования 143/110/995/4190. Жив
 `inmail-sync` ПОСЛЕ фикса: `processed:5, failed:0, HTTP 200`. POP3 в коде не
 используется вовсе (синхронизация только через `ImapFlow`).
 
+## Исправлено — TLS-сертификат почты (01.09)
+
+Было: dovecot/postfix отдавали **самоподписанный snakeoil** mailcow (issuer `O=mailcow`),
+а приложение обходило проверку `MAIL_IMAP_TLS_REJECT_UNAUTHORIZED=false`.
+
+Причина: mailcow стоит за хостовым nginx (`SKIP_LETS_ENCRYPT=y`, HTTP/HTTPS на 127.0.0.1:8088/8448).
+На хосте уже был валидный Let's Encrypt для `mail.avaterra.pro` (certbot, авто-обновление),
+но в SSL-ассеты mailcow он не копировался — почтовые протоколы (993/587/25) терминируют TLS
+внутри mailcow, а там лежал snakeoil.
+
+Сделано (бэкапы в `/root/backups/`):
+- Deploy-hook `/etc/letsencrypt/renewal-hooks/deploy/mailcow-cert.sh`: копирует LE-сертификат
+  `mail.avaterra.pro` в `mailcow/data/assets/ssl/{cert,key}.pem` и перезапускает dovecot/postfix.
+  Реагирует только на свою линию (`RENEWED_LINEAGE`) — на будущих обновлениях сертификат
+  сам доедет до почты. Прогнан вручную для первичной установки.
+- Приложение переведено на строгую проверку: `MAIL_IMAP_TLS_REJECT_UNAUTHORIZED=true` (IMAP+SMTP),
+  рестарт `aletheia`.
+
+Проверка: 993/587/25 снаружи отдают LE-сертификат, `Verify return code: 0 (ok)`; живой
+`inmail-sync` при строгом TLS — `processed:5, failed:0`.
+
 ## Принятый риск / крупные апгрейды (осознанно не форсировал)
 
 - **CSP `script-src 'unsafe-inline'`** в боевом режиме. Уже работает строгая
