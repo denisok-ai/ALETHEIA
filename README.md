@@ -13,7 +13,7 @@
 - **Resend**, **Telegram** — уведомления (email + оповещения админов в Telegram; см. [docs/Support.md — Telegram](docs/Support.md#telegram-бот-webhook-токен-блокировки))
 - Деплой: **Vercel** или VPS — [docs/Deploy.md](docs/Deploy.md). Продуктив avaterra.pro: [docs/Production-Server.md](docs/Production-Server.md), диагностика `bash scripts/prod-diagnostics.sh`. [docs/Server-Setup.md](docs/Server-Setup.md) — устаревший сценарий `/var/www` + PM2.
 
-## Портал (версия продукта — поле `version` в `package.json`, сейчас 3.6.0)
+## Портал (версия продукта — поле `version` в `package.json`, сейчас 3.7.0)
 
 - **Роли:** user (студент), manager, admin
 - **ЛК студента:** дашборд, курсы (SCORM), сертификаты, медиатека, уведомления, поддержка
