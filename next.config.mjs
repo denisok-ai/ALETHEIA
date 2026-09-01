@@ -71,9 +71,14 @@ const nextConfig = {
         key: 'Content-Security-Policy',
         value: [
           "default-src 'self'",
-          // 'unsafe-eval' нужен только dev-режиму (горячая перезагрузка).
-          // В проде проверено: ни в одном из собранных клиентских бандлов нет
-          // eval()/new Function() — значит директива лишняя и снята.
+          // 'unsafe-eval' нужен И проду: содержимое SCORM-курсов (webpack-сборки
+          // курсов, напр. courses-course-avaterra-praktik) и SCORM-плеер вызывают
+          // eval()/new Function(). 31.08.2026 студент проходил «Практик» — часть
+          // экранов были пустыми, в csp-report на /portal/student/courses/.../play
+          // висело `script-src blocked=eval`. Директиву убирали 30.07 (ac461f1) по
+          // ошибочному выводу «в бандлах нет eval» — это про наш код, но НЕ про
+          // контент курсов. Риск невелик: 'unsafe-inline' и так присутствует, а
+          // SCORM-пакеты загружает только админ (доверенный источник).
           //
           // mc.yandex.ru ОБЯЗАТЕЛЕН: CSP от 10.07.2026 молча заблокировала
           // загрузку скрипта Яндекс.Метрики — счётчик 108390990 показывал
@@ -86,7 +91,7 @@ const nextConfig = {
           // молча заблокирует скрипты, как это было с mc.yandex.ru.
           isDev
             ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms https://scripts.clarity.ms"
-            : "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms https://scripts.clarity.ms",
+            : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms https://scripts.clarity.ms",
           "style-src 'self' 'unsafe-inline'",
           "img-src 'self' data: blob: https:",
           "font-src 'self' data:",
