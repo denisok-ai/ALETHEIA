@@ -57,7 +57,10 @@ const nextConfig = {
   // фреймворка сканерам (информационное раскрытие, аудит безопасности 31.08.2026).
   poweredByHeader: false,
   async headers() {
-    const isDev = process.env.NODE_ENV !== 'production';
+    // CSP вынесена в middleware.ts (lib/csp.ts): политика зависит от маршрута
+    // (unsafe-eval выдаётся ТОЧЕЧНО — только на SCORM-плеере /play и контенте
+    // курсов), а два CSP-заголовка (next.config + middleware) браузер складывает
+    // в пересечение. Здесь — только заголовки, одинаковые на всех путях.
     const securityHeaders = [
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
@@ -67,74 +70,7 @@ const nextConfig = {
         key: 'Permissions-Policy',
         value: 'camera=(), microphone=(), geolocation=(), payment=()',
       },
-      {
-        key: 'Content-Security-Policy',
-        value: [
-          "default-src 'self'",
-          // 'unsafe-eval' нужен И проду: содержимое SCORM-курсов (webpack-сборки
-          // курсов, напр. courses-course-avaterra-praktik) и SCORM-плеер вызывают
-          // eval()/new Function(). 31.08.2026 студент проходил «Практик» — часть
-          // экранов были пустыми, в csp-report на /portal/student/courses/.../play
-          // висело `script-src blocked=eval`. Директиву убирали 30.07 (ac461f1) по
-          // ошибочному выводу «в бандлах нет eval» — это про наш код, но НЕ про
-          // контент курсов. Риск невелик: 'unsafe-inline' и так присутствует, а
-          // SCORM-пакеты загружает только админ (доверенный источник).
-          //
-          // mc.yandex.ru ОБЯЗАТЕЛЕН: CSP от 10.07.2026 молча заблокировала
-          // загрузку скрипта Яндекс.Метрики — счётчик 108390990 показывал
-          // нули весь июль, хотя код Метрики был на сайте и до этого шёл
-          // поисковый трафик (135 визитов за апрель–июнь). Блокировку никто
-          // не заметил, потому что для посетителя сайт выглядел исправным.
-          // mc.yandex.com — зеркало, на которое tag.js может переключаться.
-          // GA (googletagmanager.com) и Clarity (clarity.ms) — «иностранные»
-          // счётчики, включены 12.08.2026. Без этих доменов в script-src CSP
-          // молча заблокирует скрипты, как это было с mc.yandex.ru.
-          isDev
-            ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms https://scripts.clarity.ms"
-            : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms https://scripts.clarity.ms",
-          "style-src 'self' 'unsafe-inline'",
-          "img-src 'self' data: blob: https:",
-          "font-src 'self' data:",
-          // Вебвизор Метрики работает через blob-worker — без worker-src
-          // default-src 'self' молча блокирует запись сессий.
-          "worker-src 'self' blob:",
-          "connect-src 'self' https:",
-          "frame-src 'self'",
-          "object-src 'none'",
-          "base-uri 'self'",
-          "form-action 'self'",
-        ].join('; '),
-      },
     ];
-
-    /**
-     * Строгая политика в режиме «только отчёты»: ничего не блокирует, но браузеры
-     * присылают на /api/csp-report всё, что нарушило бы запрет 'unsafe-inline'.
-     * Это безопасный способ собрать на реальном трафике список инлайн-скриптов
-     * перед переходом на nonce — вслепую такую миграцию катить нельзя (16 блоков
-     * JSON-LD и аналитика; ошибка молча убила бы разметку или счётчик).
-     */
-    if (!isDev) {
-      securityHeaders.push({
-        key: 'Content-Security-Policy-Report-Only',
-        value: [
-          "default-src 'self'",
-          "script-src 'self' https://mc.yandex.ru https://mc.yandex.com https://www.googletagmanager.com https://www.clarity.ms https://c.clarity.ms https://scripts.clarity.ms",
-          "style-src 'self' 'unsafe-inline'",
-          "img-src 'self' data: blob: https:",
-          "font-src 'self' data:",
-          // Вебвизор Метрики работает через blob-worker — без worker-src
-          // default-src 'self' молча блокирует запись сессий.
-          "worker-src 'self' blob:",
-          "connect-src 'self' https:",
-          "frame-src 'self'",
-          "object-src 'none'",
-          "base-uri 'self'",
-          "form-action 'self'",
-          'report-uri /api/csp-report',
-        ].join('; '),
-      });
-    }
     return [{ source: '/:path*', headers: securityHeaders }];
   },
   async redirects() {

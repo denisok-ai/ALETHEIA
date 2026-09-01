@@ -5,6 +5,10 @@
 import { getToken } from 'next-auth/jwt';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPortalHomeForRole } from '@/lib/portal-role-home';
+import {
+  buildContentSecurityPolicy,
+  buildContentSecurityPolicyReportOnly,
+} from '@/lib/csp';
 
 const PORTAL_PREFIX = '/portal';
 const LOGIN_PATH = '/login';
@@ -30,12 +34,31 @@ export async function middleware(request: NextRequest) {
   const token = await getToken({ req: request, secret });
   const role = (token?.role as string) ?? 'user';
   const path = request.nextUrl.pathname;
+  const isDev = process.env.NODE_ENV !== 'production';
+
+  /**
+   * Единый источник CSP: политика зависит от маршрута (unsafe-eval — только на
+   * SCORM-плеере и контенте курсов, см. lib/csp.ts), поэтому ставится здесь, а не
+   * в next.config — иначе два CSP-заголовка сложились бы в пересечение. Вешаем на
+   * КАЖДЫЙ ответ middleware (включая редиректы), чтобы политика зависела строго от
+   * запрошенного пути.
+   */
+  const withCsp = (response: NextResponse): NextResponse => {
+    response.headers.set('Content-Security-Policy', buildContentSecurityPolicy(path, isDev));
+    if (!isDev) {
+      response.headers.set(
+        'Content-Security-Policy-Report-Only',
+        buildContentSecurityPolicyReportOnly(),
+      );
+    }
+    return response;
+  };
 
   if (PROTECTED_UPLOAD_PREFIXES.some((p) => path.startsWith(p))) {
     if (!token) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
-    return NextResponse.next();
+    return withCsp(NextResponse.next());
   }
 
   if (token && AUTH_PAGES.includes(path)) {
@@ -44,18 +67,18 @@ export async function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = home;
     url.search = '';
-    return NextResponse.redirect(url);
+    return withCsp(NextResponse.redirect(url));
   }
 
   if (!path.startsWith(PORTAL_PREFIX)) {
-    return NextResponse.next();
+    return withCsp(NextResponse.next());
   }
 
   if (!token) {
     const url = request.nextUrl.clone();
     url.pathname = LOGIN_PATH;
     url.searchParams.set('redirect', path);
-    return NextResponse.redirect(url);
+    return withCsp(NextResponse.redirect(url));
   }
 
   if (path.startsWith(`${PORTAL_PREFIX}/admin`)) {
@@ -63,7 +86,7 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/portal/access-denied';
       url.searchParams.set('section', 'admin');
-      return NextResponse.redirect(url);
+      return withCsp(NextResponse.redirect(url));
     }
   }
 
@@ -72,11 +95,11 @@ export async function middleware(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/portal/access-denied';
       url.searchParams.set('section', 'manager');
-      return NextResponse.redirect(url);
+      return withCsp(NextResponse.redirect(url));
     }
   }
 
-  return NextResponse.next();
+  return withCsp(NextResponse.next());
 }
 
 export const config = {
