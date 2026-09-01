@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security (2026-08-31…09-01) — Независимый аудит: CVE, почтовые порты, TLS почты
+
+- **next-auth 4.24.13 → 4.24.15** — закрыт CRITICAL GHSA-7rqj-j65f-68wh (Auth.js нормализует email до Unicode-нормализации → обход через омоглиф «@»); прямо касается credentials-входа. `npm audit`: critical 1→0. Плюс `nanoid` 5.1.6→5.1.16 (токены платёжных ссылок/сброса пароля).
+- **`poweredByHeader:false`** — убран заголовок `X-Powered-By: Next.js` (информационное раскрытие).
+- **Почтовые порты закрыты наружу** (110/143/995/4190): mailcow публиковал их на 0.0.0.0 в обход ufw (Docker пишет iptables перед фильтром) — их уже щупали сканеры. Закрыты правилами DROP в `DOCKER-USER` (идемпотентно в `scripts/security-hardening-prod.sh`, бэкап + персист); 25/587/465/993 оставлены. На почту заходят только через вебмейл. Связка почта↔админка не пострадала.
+- **Нормальный TLS-сертификат почты:** `mail.avaterra.pro` отдавал самоподписанный snakeoil (mailcow за хостовым nginx, `SKIP_LETS_ENCRYPT=y`). Хостовый LE (certbot) теперь копируется в mailcow через certbot deploy-hook (`/etc/letsencrypt/renewal-hooks/deploy/mailcow-cert.sh`, авто на обновлениях) + рестарт dovecot/postfix. Приложение переведено на строгую проверку TLS (`MAIL_IMAP_TLS_REJECT_UNAUTHORIZED=true`, IMAP+SMTP). Проверено: 993/587/25 — Let's Encrypt, `Verify return code: 0`.
+- Отчёт — `docs/Security-Audit-2026-08-31.md`.
+
+### Fixed (2026-08-31…09-01) — SCORM: пустые экраны в курсах (блок eval в CSP)
+
+- **Причина:** контент SCORM-курсов (webpack-сборки) использует `eval()`/`new Function()`, а 30.07 из боевой CSP убрали `'unsafe-eval'` — браузер блокировал eval, часть экранов курса рендерилась пустыми (инцидент со студентом на курсе «Практик», найдено по `csp-report`).
+- **Скоуп `'unsafe-eval'` через middleware:** CSP вынесена в `lib/csp.ts` и ставится в `middleware.ts` per-path — `'unsafe-eval'` выдаётся ТОЛЬКО на `/portal/student/courses/<id>/play` и `/uploads/scorm/`, остальной сайт под строгой политикой. CSP убрана из `next.config` (два CSP-заголовка складываются в пересечение — источник должен быть один). Проверено браузером как тестовый студент: курс играет, экранов-пустышек нет.
+
+
 ### Changed (2026-08-26) — SEO: тематическая перелинковка блога
 
 - Блок «Читайте также» связывает статьи по теме (мышечное тестирование, эмоции, тело, жизнь, обучение, практики), а не по дате публикации — усиливает topical authority. Добор соседями по ленте сохранён, чтобы каждая статья оставалась достижимой для робота. (HowTo/FAQ rich results Google деприкейтил — новую такую разметку не добавляли.)
