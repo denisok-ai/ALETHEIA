@@ -52,8 +52,12 @@ export default function ScormPlayPage() {
     refreshProgressRef.current = refreshProgress;
   }, [refreshProgress]);
 
+  // ВАЖНО: fallback НИКОГДА не проставляет 'completed'. «Пользователь ушёл со
+  // страницы» ≠ «прошёл курс». Раньше fallback на выходе слал 'completed' →
+  // для одно-SCO курса это 100% + авто-сертификат без реального прохождения
+  // (инцидент 01.09.2026). Завершение приходит ТОЛЬКО от самого SCORM.
   const saveFallbackProgress = useCallback(
-    async (lessonId: string, completionStatus: 'incomplete' | 'completed') => {
+    async (lessonId: string, completionStatus: 'incomplete') => {
       const elapsed = Math.floor((Date.now() - lessonStartTimeRef.current) / 1000);
       try {
         const res = await fetch('/api/portal/scorm/progress', {
@@ -86,6 +90,12 @@ export default function ScormPlayPage() {
 
       const commitUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/api/portal/scorm/progress`;
       const requestHandler = (commitObj: unknown) => {
+        // Курс, который коммитит через SCORM API, — это ДЕЙСТВИТЕЛЬНО SCORM.
+        // Отключаем fallback (даже если событие Initialize/LMSInitialize не
+        // пришло): иначе на выходе fallback ложно проставит урок завершённым.
+        // Инцидент 01.09.2026 — «зашёл и вышел → курс 100% + сертификат».
+        scormInitializedRef.current = true;
+        fallbackModeRef.current = false;
         const payload = Object.assign(
           typeof commitObj === 'object' && commitObj !== null ? { ...commitObj } : {},
           { courseId, lessonId }
@@ -207,7 +217,7 @@ export default function ScormPlayPage() {
       if (!structure || lessonId === currentLessonId) return;
 
       if (fallbackModeRef.current && currentLessonId) {
-        await saveFallbackProgress(currentLessonId, 'completed');
+        await saveFallbackProgress(currentLessonId, 'incomplete');
       }
 
       setCurrentLessonId(lessonId);
@@ -259,7 +269,7 @@ export default function ScormPlayPage() {
     const saveOnExit = () => {
       const lid = currentLessonIdRef.current;
       if (fallbackModeRef.current && lid) {
-        void saveFallbackProgress(lid, 'completed');
+        void saveFallbackProgress(lid, 'incomplete');
       }
     };
     const handleBeforeUnload = saveOnExit;
