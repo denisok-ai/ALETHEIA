@@ -251,6 +251,21 @@ export async function POST(request: NextRequest) {
   const cmiData: Record<string, unknown> =
     (rawCmi && typeof rawCmi === 'object' ? rawCmi : cmi_data) ?? {};
 
+  // Серверный рубеж против ложного завершения (после клиентского фикса 02.09).
+  // 'completed'/'passed' БЕЗ реального CMI — это синтетический коммит: fallback
+  // плеера, баг клиента или подделка. Реальные SCORM-коммиты всегда несут полный
+  // CMI (sendFullCommit). Понижаем до 'incomplete' — не будет ни ложного 100%,
+  // ни авто-сертификата. Инцидент: студент «зашёл-вышел» → курс пройден.
+  if (isLessonCompleted(completionStatus) && Object.keys(cmiData).length === 0) {
+    console.warn('[SCORM progress] completed без CMI — понижаем до incomplete', {
+      userId,
+      courseId,
+      lessonId,
+      completionStatus,
+    });
+    completionStatus = 'incomplete';
+  }
+
   const [previousProgress, gamificationNumbers, courseRow] = await Promise.all([
     prisma.scormProgress.findUnique({
       where: { userId_courseId_lessonId: { userId, courseId, lessonId } },
