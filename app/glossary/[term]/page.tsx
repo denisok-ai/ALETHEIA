@@ -10,7 +10,7 @@ import { normalizeSiteUrl } from '@/lib/site-url';
 
 export const revalidate = 3600;
 
-type Props = { params: { term: string } };
+type Props = { params: Promise<{ term: string }> };
 
 const COURSE_LABEL: Record<string, string> = {
   'navyki-myshechnogo-testirovaniya': 'Курс «Тело не врёт» — навыки мышечного тестирования',
@@ -24,7 +24,8 @@ export function generateStaticParams() {
   return GLOSSARY_TERMS.map((t) => ({ term: t.slug }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const t = getGlossaryTerm(params.term);
   if (!t) notFound();
   const settings = await getSystemSettings();
@@ -40,7 +41,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function GlossaryTermPage({ params }: Props) {
+export default async function GlossaryTermPage(props: Props) {
+  const params = await props.params;
   const t = getGlossaryTerm(params.term);
   if (!t) notFound();
 

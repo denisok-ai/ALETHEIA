@@ -159,7 +159,7 @@ rsync -avz -e "$RSYNC_RSH" \
   ./package-lock.json \
   ./.npmrc \
   ./next.config.mjs \
-  ./middleware.ts \
+  ./proxy.ts \
   ./instrumentation.ts \
   ./tsconfig.json \
   ./tailwind.config.ts \

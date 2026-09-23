@@ -29,7 +29,8 @@ function metaDescriptionFor(name: string, card: string, price: number): string {
   return text.length > 300 ? `${text.slice(0, 297)}…` : text;
 }
 
-export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
+  const params = await props.params;
   const product = await getPublicProductBySlug(params.slug);
   // notFound() в generateMetadata → реальный 404-статус (иначе стриминг успевает отдать 200)
   if (!product) notFound();
@@ -48,7 +49,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   });
 }
 
-export default async function ServicePage({ params }: { params: Params }) {
+export default async function ServicePage(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const product = await getPublicProductBySlug(params.slug);
   if (!product) notFound();
 

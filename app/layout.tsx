@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import nextDynamic from 'next/dynamic';
 import { Suspense } from 'react';
 import { Toaster } from 'sonner';
 import './globals.css';
@@ -14,16 +13,13 @@ import { YandexMetrika } from '@/components/YandexMetrika';
 import { SiteAnalytics } from '@/components/SiteAnalytics';
 import { JsonLdWebSite } from '@/components/JsonLdWebSite';
 import { RootMain } from '@/components/RootMain';
+import { ChatBotLazy } from '@/components/ChatBotLazy';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { BRAND_SITE_NAME } from '@/lib/brand';
 import { getPublicProducts } from '@/lib/shop/public-products';
 
 export const dynamic = 'force-dynamic';
 
-const ChatBot = nextDynamic(
-  () => import('@/components/ChatBot').then((m) => ({ default: m.ChatBot })),
-  { ssr: false }
-);
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -144,7 +140,7 @@ export default async function RootLayout({
           <Suspense fallback={<div className="min-h-[100dvh]" aria-hidden />}>
             <Header />
             <RootMain>{children}</RootMain>
-            <ChatBot />
+            <ChatBotLazy />
             <FooterOnPublicOnly contactPhone={settings.contact_phone || undefined} />
           </Suspense>
           <Toaster richColors position="top-center" />

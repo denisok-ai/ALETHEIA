@@ -8,7 +8,8 @@ import { renderBlogCard } from '@/lib/og/blog-card';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(_request: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(_request: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const post = await getBlogPostBySlug(params.slug);
   if (!post) {
     return NextResponse.json({ error: 'not found' }, { status: 404 });

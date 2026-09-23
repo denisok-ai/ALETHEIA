@@ -126,10 +126,6 @@ const nextConfig = {
     '*.ngrok-free.app',
     '*.ngrok.io',
   ],
-  experimental: {
-    /** lucide не в optimizePackageImports: с Turbopack + RSC иконки на сервере давали TypeError «null (reading 'useContext')». */
-    instrumentationHook: true,
-  },
   // instrumentation / server: встроенный `crypto` не должен резолвиться как npm-пакет.
   webpack: (config, { isServer }) => {
     if (!isServer) return config;

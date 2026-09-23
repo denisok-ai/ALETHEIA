@@ -8,7 +8,7 @@ import { writeAuditLog } from '@/lib/audit';
 import { blogPostInputSchema, normalizeBlogBody } from '@/lib/validations/blog-post';
 import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
 
-type Params = { params: { id: string } };
+type Params = { params: Promise<{ id: string }> };
 
 /** Абзацы хранятся JSON-массивом — в форму отдаём читаемый текст. */
 function bodyForForm(body: string, format: string): string {
@@ -22,7 +22,8 @@ function bodyForForm(body: string, format: string): string {
   return body;
 }
 
-export async function GET(_request: NextRequest, { params }: Params) {
+export async function GET(_request: NextRequest, props: Params) {
+  const params = await props.params;
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -40,7 +41,8 @@ export async function GET(_request: NextRequest, { params }: Params) {
   });
 }
 
-export async function PATCH(request: NextRequest, { params }: Params) {
+export async function PATCH(request: NextRequest, props: Params) {
+  const params = await props.params;
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
@@ -121,7 +123,8 @@ export async function PATCH(request: NextRequest, { params }: Params) {
   return NextResponse.json({ post: { id: post.id, slug: post.slug, status: post.status } });
 }
 
-export async function DELETE(_request: NextRequest, { params }: Params) {
+export async function DELETE(_request: NextRequest, props: Params) {
+  const params = await props.params;
   const auth = await requireAdminSession();
   if (!auth) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 

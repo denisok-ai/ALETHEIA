@@ -8,7 +8,8 @@ export const dynamic = 'force-dynamic';
 
 const handler = NextAuth(authOptions);
 
-type AuthRouteCtx = { params: Promise<{ nextauth: string[] }> | { nextauth: string[] } };
+// Next 16: params — только Promise; next-auth 4.24 сам делает `await context.params`.
+type AuthRouteCtx = { params: Promise<{ nextauth: string[] }> };
 
 async function withNextAuthUrlFromDb(req: NextRequest, ctx: AuthRouteCtx) {
   if (req.method === 'POST') {

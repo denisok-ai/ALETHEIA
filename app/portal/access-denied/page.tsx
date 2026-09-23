@@ -10,10 +10,11 @@ import { getPortalHomeForRole } from '@/lib/portal-role-home';
 export const metadata: Metadata = { title: 'Доступ ограничен' };
 
 type Props = {
-  searchParams: { section?: string };
+  searchParams: Promise<{ section?: string }>;
 };
 
-export default async function PortalAccessDeniedPage({ searchParams }: Props) {
+export default async function PortalAccessDeniedPage(props: Props) {
+  const searchParams = await props.searchParams;
   const section = searchParams.section === 'manager' ? 'manager' : 'admin';
   const { profile } = await getUser();
   const role = profile?.role ?? 'user';

@@ -15,7 +15,7 @@ const DESCRIPTION = 'Статьи о мышечном тестировании, 
 /** Статей на странице. Список пополняется ежедневно из Telegram-канала. */
 const PAGE_SIZE = 9;
 
-type Props = { searchParams?: { page?: string } };
+type Props = { searchParams?: Promise<{ page?: string }> };
 
 /** Номер страницы из адреса. Мусор и значения вне диапазона сводим к первой. */
 function pageFromParams(raw: string | undefined, totalPages: number): number {
@@ -24,7 +24,8 @@ function pageFromParams(raw: string | undefined, totalPages: number): number {
   return Math.min(n, Math.max(1, totalPages));
 }
 
-export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const searchParams = await props.searchParams;
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const posts = await getPublishedBlogPosts();
@@ -50,7 +51,8 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
   };
 }
 
-export default async function BlogIndexPage({ searchParams }: Props) {
+export default async function BlogIndexPage(props: Props) {
+  const searchParams = await props.searchParams;
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const allPosts = await getPublishedBlogPosts();

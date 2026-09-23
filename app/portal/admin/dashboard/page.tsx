@@ -2,7 +2,7 @@
  * Admin dashboard: real metrics from DB, revenue and activity charts, quick actions, recent events.
  */
 import type { Metadata } from 'next';
-import nextDynamic from 'next/dynamic';
+import { DashboardChartsLazy } from './DashboardChartsLazy';
 import { prisma } from '@/lib/db';
 import { formatRub } from '@/lib/format-ru';
 import { PageHeader } from '@/components/portal/PageHeader';
@@ -26,22 +26,7 @@ async function resolveSearchParams(sp: SearchParamsInput | undefined): Promise<{
   return sp as { period?: string };
 }
 
-function DashboardChartsFallback() {
-  return (
-    <div className="mt-6 space-y-6" aria-busy="true" aria-label="Загрузка графиков">
-      <div className="h-10 w-full max-w-xl animate-pulse rounded-lg bg-[#E2E8F0]" />
-      <div className="portal-card h-72 animate-pulse rounded-xl bg-[#F1F5F9] md:h-80" />
-      <div className="portal-card h-72 animate-pulse rounded-xl bg-[#F1F5F9] md:h-80" />
-    </div>
-  );
-}
-
 /** Recharts + useSearchParams без SSR — иначе возможен 500 на проде при потоковом рендере RSC. */
-const DashboardCharts = nextDynamic(
-  () => import('./DashboardCharts').then((m) => ({ default: m.DashboardCharts })),
-  { ssr: false, loading: () => <DashboardChartsFallback /> }
-);
-
 async function loadDashboardMetrics(period: 7 | 30 | 90) {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -141,7 +126,8 @@ async function loadDashboardMetrics(period: 7 | 30 | 90) {
   };
 }
 
-export default async function AdminDashboardPage({ searchParams }: { searchParams: SearchParamsInput }) {
+export default async function AdminDashboardPage(props: { searchParams: Promise<SearchParamsInput> }) {
+  const searchParams = await props.searchParams;
   const sp = await resolveSearchParams(searchParams);
   const periodStr = sp.period;
   const periodNum = Math.min(90, Math.max(7, Number(periodStr) || 30));
@@ -360,7 +346,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
         </div>
       </div>
 
-      <DashboardCharts revenueData={chartData} activityData={activityData} />
+      <DashboardChartsLazy revenueData={chartData} activityData={activityData} />
       <RecentEvents events={events} />
     </div>
   );

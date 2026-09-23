@@ -5,7 +5,8 @@ import { buildPaykeeperServiceNamePayload } from '@/lib/paykeeper/fiscal';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
 
-export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const rateLimited = checkRateLimit(req, 'pay-checkout', 10);
   if (rateLimited) return rateLimited;
 

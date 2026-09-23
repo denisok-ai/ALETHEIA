@@ -13,7 +13,7 @@ import { computeRelated } from '@/lib/content/blog-related';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
-type Props = { params: { slug: string } };
+type Props = { params: Promise<{ slug: string }> };
 
 const blogMarkdownClassName =
   'mt-6 text-[var(--text)] leading-[var(--leading-body)] [&>h2]:mt-10 [&>h2]:font-heading [&>h2]:text-2xl [&>h2]:font-semibold [&>h2]:text-[var(--text)] [&>h2]:first:mt-0 [&>h3]:mt-8 [&>h3]:mb-2 [&>h3]:font-heading [&>h3]:text-xl [&>h3]:font-semibold [&>h3]:text-[var(--text)] [&>p]:mt-0 [&>p]:leading-relaxed [&>p+p]:mt-4 [&>ul]:my-4 [&>ul]:ml-5 [&>ul]:list-disc [&>ul]:space-y-2 [&>ul>li]:text-[var(--text-muted)] [&>hr]:my-10 [&>hr]:border-0 [&>hr]:border-t [&>hr]:border-[var(--border)] [&_strong]:font-semibold [&_strong]:text-[var(--text)]';
@@ -23,7 +23,8 @@ export async function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }));
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+  const params = await props.params;
   const { slug } = params;
   const post = await getBlogPostBySlug(slug);
   // notFound() в generateMetadata → реальный 404-статус (иначе стриминг успевает отдать 200)
@@ -60,7 +61,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function BlogArticlePage({ params }: Props) {
+export default async function BlogArticlePage(props: Props) {
+  const params = await props.params;
   const { slug } = params;
   const post = await getBlogPostBySlug(slug);
   if (!post) notFound();

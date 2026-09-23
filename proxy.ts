@@ -23,7 +23,7 @@ const AUTH_PAGES = ['/login', '/register', '/reset-password'];
  */
 const PROTECTED_UPLOAD_PREFIXES = ['/uploads/scorm/', '/uploads/media/', '/uploads/verifications/'];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const secret =
     process.env.NODE_ENV === 'production'
       ? (process.env.NEXTAUTH_SECRET ?? '')
