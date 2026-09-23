@@ -17,6 +17,7 @@ const ctx = (chatId: number, username = `u${chatId}`): BotContext => ({
   telegramUserId: chatId,
   telegramUsername: username,
   displayName: `Тест ${chatId}`,
+  isAdmin: false,
 });
 const H = 3600 * 1000;
 const D = 24 * H;
@@ -102,6 +103,25 @@ describe('followup: прогрев без дублей', () => {
     await markLeadResponded(2003);
     const dry = await runTelegramLeadFollowup({ dryRun: true });
     expect(dry.candidates).toBe(0);
+  });
+});
+
+describe('followup: холодные лиды (info)', () => {
+  it('одно касание через 3 дня, второго нет; свежий и ответивший — не трогаются', async () => {
+    const mk = (chatId: number, ageDays: number, extra: object = {}) =>
+      prisma.lead.create({
+        data: { name: `cold${chatId}`, phone: 'tg:x', status: 'new', source: 'telegram_bot', telegramChatId: chatId, funnelSegment: 'info', followupStage: 0, createdAt: new Date(Date.now() - ageDays * D), ...extra },
+      });
+    await mk(4001, 4); // пора
+    await mk(4002, 1); // рано
+    await mk(4003, 5, { respondedAt: new Date() }); // сам написал — не трогаем
+    const r1 = await runTelegramLeadFollowup({});
+    expect(r1.sent).toBe(1);
+    expect((await prisma.lead.findFirst({ where: { telegramChatId: 4001 } }))?.followupStage).toBe(1);
+    expect((await prisma.lead.findFirst({ where: { telegramChatId: 4002 } }))?.followupStage).toBe(0);
+    expect((await prisma.lead.findFirst({ where: { telegramChatId: 4003 } }))?.followupStage).toBe(0);
+    const r2 = await runTelegramLeadFollowup({});
+    expect(r2.sent).toBe(0);
   });
 });
 

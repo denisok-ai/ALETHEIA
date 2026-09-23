@@ -18,6 +18,7 @@ import {
   LOST_AFTER_NUDGE_MS,
 } from './telegram-bot/offer-nudge';
 import { markLost } from './telegram-bot/lead-qualify';
+import { UNSUBSCRIBE_HINT } from './telegram-bot/unsubscribe';
 
 const STAGE1_AFTER_MS = 2 * 60 * 60 * 1000; // касание 1: 2 часа тишины
 const STAGE2_AFTER_MS = 24 * 60 * 60 * 1000; // касание 2: сутки после касания 1
@@ -25,6 +26,10 @@ const STAGE3_AFTER_MS = 2 * 24 * 60 * 60 * 1000; // касание 3 (оффер
 const MAX_AGE_MS = 10 * 24 * 60 * 60 * 1000; // старше 10 дней не греем
 const MAX_PER_RUN = 25;
 const FINAL_STAGE = 3;
+/** Холодные (`info`): одно мягкое касание через 3 дня, без оффера. */
+const COLD_TOUCH_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+const COLD_TOUCH_STAGE = 1;
+const LINK_WHAT_IS = 'https://avaterra.pro/blog/chto-takoe-myshechnoe-testirovanie';
 
 const LINK_BODY = 'https://avaterra.pro/course/navyki-myshechnogo-testirovaniya';
 const LINK_AWAKENING = 'https://avaterra.pro/course/probuzhdenie';
@@ -96,7 +101,8 @@ async function notifyStaleLeads(now: Date): Promise<number> {
         unsubscribedAt: null,
         OR: [
           // не начали диалог с ботом, либо исчерпали прогрев
-          { status: 'new', OR: [{ telegramChatId: null }, { followupStage: { gte: 2 } }] },
+          // Холодные (info) после единственного касания сюда не попадают: они и так холодные.
+          { status: 'new', funnelSegment: { not: 'info' }, OR: [{ telegramChatId: null }, { followupStage: { gte: 2 } }] },
           // написали, но оффера не было и затихли — вовлечённые, которых нельзя терять
           { status: 'contacted', offerSentAt: null, respondedAt: { lt: staleBefore } },
         ],
@@ -146,6 +152,58 @@ export type FollowupResult = {
   lostClosed: number;
   details: string[];
 };
+
+/**
+ * Холодные лиды (`info` — зашли почитать, кнопку интереса не жали, не писали).
+ * Раньше не трогались вовсе — часть аудитории тихо терялась. Одно касание
+ * через 3 дня: без оффера, с одной полезной статьёй и правом отписаться.
+ * Второго не будет: followupStage = 1 выводит лида из выборки навсегда.
+ */
+async function runColdTouch(now: Date, dryRun: boolean, result: FollowupResult): Promise<void> {
+  const leads = await prisma.lead.findMany({
+    where: {
+      telegramChatId: { not: null },
+      respondedAt: null,
+      unsubscribedAt: null,
+      status: 'new',
+      funnelSegment: 'info',
+      followupStage: 0,
+      createdAt: {
+        lte: new Date(now.getTime() - COLD_TOUCH_AFTER_MS),
+        gte: new Date(now.getTime() - MAX_AGE_MS),
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+    take: MAX_PER_RUN,
+  });
+
+  const text =
+    'Здравствуйте! Несколько дней назад вы заглядывали к нам — просто напомню, что я здесь: ' +
+    'если появятся вопросы о методе или курсах, напишите, отвечу.\n\n' +
+    `Если интересно, с чего всё начинается: <a href="${LINK_WHAT_IS}">что такое мышечное тестирование — простыми словами</a>.\n\n` +
+    `<i>${UNSUBSCRIBE_HINT}</i>`;
+
+  for (const lead of leads) {
+    if (result.sent >= MAX_PER_RUN) break;
+    result.candidates += 1;
+    const chatId = lead.telegramChatId as number;
+    if (dryRun) {
+      result.details.push(`лид ${lead.id} (${lead.name}): холодное касание готово`);
+      continue;
+    }
+    const sent = await sendTelegramMessageWithResult(chatId, text, { parseMode: 'HTML', disableWebPagePreview: true });
+    if (sent.ok) {
+      await prisma.lead.update({ where: { id: lead.id }, data: { followupStage: COLD_TOUCH_STAGE, lastBotMessageAt: now } });
+      result.sent += 1;
+      result.details.push(`лид ${lead.id}: холодное касание отправлено`);
+    } else {
+      // Заблокировал/удалил чат — закрываем, чтобы не пытаться снова.
+      await prisma.lead.update({ where: { id: lead.id }, data: { followupStage: COLD_TOUCH_STAGE } });
+      result.failed += 1;
+      result.details.push(`лид ${lead.id}: холодное касание не доставлено (${sent.error.slice(0, 60)})`);
+    }
+  }
+}
 
 /**
  * Один прогон догонов. `now` инжектируется для тестов.
@@ -246,6 +304,8 @@ export async function runTelegramLeadFollowup(
     result.failed += 1;
     result.details.push(`лид ${lead.id}: ошибка отправки — ${sent.error}`);
   }
+
+  await runColdTouch(now, dryRun, result);
 
   await runOfferNudgeAndClose(now, dryRun, result);
   return result;
