@@ -10,6 +10,7 @@ import { detectBuyIntent } from '@/lib/telegram-bot/buy-intent';
 import { detectObjection } from '@/lib/telegram-bot/objection';
 import { detectAudience } from '@/lib/telegram-bot/audience';
 import { isUnsubscribeCommand } from '@/lib/telegram-bot/unsubscribe';
+import { sourceLines } from '@/lib/telegram-bot/funnel-stats';
 
 describe('deep-link: /start payload', () => {
   it('разбирает источник и id лида вместе и по отдельности', () => {
@@ -106,5 +107,17 @@ describe('unsubscribe: команда «стоп»', () => {
 
   it('обычное слово не считается отпиской', () => {
     expect(isUnsubscribeCommand('остановите боль в спине')).toBe(false);
+  });
+});
+
+describe('funnel-stats: точки входа', () => {
+  it('пусто — без секции; иначе топ с квалифицированными', () => {
+    expect(sourceLines([])).toEqual([]);
+    const lines = sourceLines([
+      { source: 'blog-lobnyy-obhvat', count: 3, qualified: 1 },
+      { source: 'без метки', count: 1, qualified: 0 },
+    ]);
+    expect(lines.join('\n')).toContain('blog-lobnyy-obhvat: 3 (квалиф. 1)');
+    expect(lines.join('\n')).toContain('без метки: 1');
   });
 });

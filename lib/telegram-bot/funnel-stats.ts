@@ -20,6 +20,8 @@ export type FunnelStats = {
   newLast24h: number;
   /** A/B оффера: по варианту — отправлено, кликов, оплат. */
   abTest: Record<'A' | 'B', { sent: number; clicked: number; converted: number }>;
+  /** Новые лиды за 7 дней по точке входа (deep-link `s-<source>`), по убыванию. */
+  sourcesWeek: Array<{ source: string; count: number; qualified: number }>;
 };
 
 export async function fetchFunnelStats(): Promise<FunnelStats> {
@@ -36,6 +38,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
       offerVariant: true,
       unsubscribedAt: true,
       createdAt: true,
+      entrySource: true,
     },
   });
 
@@ -49,6 +52,8 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
   let unsubscribed = 0;
   let newLast24h = 0;
   const abTest = { A: { sent: 0, clicked: 0, converted: 0 }, B: { sent: 0, clicked: 0, converted: 0 } };
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const bySource = new Map<string, { count: number; qualified: number }>();
 
   for (const l of leads) {
     byStatus[l.status] = (byStatus[l.status] ?? 0) + 1;
@@ -66,7 +71,18 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
       if (l.status === 'converted') v.converted += 1;
     }
     if (l.createdAt >= dayAgo) newLast24h += 1;
+    if (l.createdAt >= weekAgo) {
+      // Без deep-link (прямой /start, старые лиды) — отдельной строкой, а не теряется.
+      const key = l.entrySource || 'без метки';
+      const row = bySource.get(key) ?? { count: 0, qualified: 0 };
+      row.count += 1;
+      if (l.status === 'qualified' || l.status === 'converted') row.qualified += 1;
+      bySource.set(key, row);
+    }
   }
+  const sourcesWeek = [...bySource.entries()]
+    .map(([source, v]) => ({ source, ...v }))
+    .sort((a, b) => b.count - a.count);
 
   return {
     total: leads.length,
@@ -80,6 +96,7 @@ export async function fetchFunnelStats(): Promise<FunnelStats> {
     unsubscribed,
     newLast24h,
     abTest,
+    sourcesWeek,
   };
 }
 
@@ -96,6 +113,17 @@ export function formatFunnelStatsLines(s: FunnelStats): string[] {
     `🔥 Интент: <b>${s.buyIntent}</b> · офферов: <b>${s.offersSent}</b> · кликов: <b>${s.offerClicked}</b> · дожимов: <b>${s.nudged}</b>`,
     `Конверсия в оплату: <b>${conv}%</b>${s.unsubscribed ? ` · отписалось: ${s.unsubscribed}` : ''}`,
     ...abLines(s.abTest),
+    ...sourceLines(s.sourcesWeek),
+  ];
+}
+
+/** Какие точки входа приводят людей: блог, FAQ, футер, чат на сайте и т.д. */
+export function sourceLines(rows: FunnelStats['sourcesWeek']): string[] {
+  if (!rows.length) return [];
+  return [
+    '',
+    '<b>📍 Точки входа за 7 дней</b>',
+    ...rows.slice(0, 8).map((r) => `· ${r.source}: ${r.count}${r.qualified ? ` (квалиф. ${r.qualified})` : ''}`),
   ];
 }
 
