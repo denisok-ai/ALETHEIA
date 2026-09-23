@@ -15,10 +15,7 @@ import { recordGamificationXpEvent } from '@/lib/gamification-ledger';
 import { notifyGamificationAfterXpChange } from '@/lib/gamification-milestones';
 import { nanoid } from 'nanoid';
 
-/** SCORM 1.2/2004: "passed" и "completed" считаем завершённым уроком. */
-function isLessonCompleted(status: string | null | undefined): boolean {
-  return status === 'completed' || status === 'passed';
-}
+import { guardCompletionStatus, isLessonCompleted } from '@/lib/scorm/completion-guard';
 
 /** Extract completion_status, score, timeSpent from scorm-again CMI object (1.2 or 2004). */
 function extractFromCmi(cmi: Record<string, unknown>): {
@@ -256,14 +253,15 @@ export async function POST(request: NextRequest) {
   // плеера, баг клиента или подделка. Реальные SCORM-коммиты всегда несут полный
   // CMI (sendFullCommit). Понижаем до 'incomplete' — не будет ни ложного 100%,
   // ни авто-сертификата. Инцидент: студент «зашёл-вышел» → курс пройден.
-  if (isLessonCompleted(completionStatus) && Object.keys(cmiData).length === 0) {
+  const guarded = guardCompletionStatus(completionStatus, cmiData);
+  if (guarded.downgraded) {
     console.warn('[SCORM progress] completed без CMI — понижаем до incomplete', {
       userId,
       courseId,
       lessonId,
       completionStatus,
     });
-    completionStatus = 'incomplete';
+    completionStatus = guarded.status;
   }
 
   const [previousProgress, gamificationNumbers, courseRow] = await Promise.all([
