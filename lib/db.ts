@@ -3,6 +3,17 @@
  */
 import { PrismaClient } from '@prisma/client';
 
+// Prisma 6 перестала сама читать .env: ручные запуски `npx tsx scripts/...` на
+// сервере (публикация статей, IndexNow, разовые проверки) падали без
+// DATABASE_URL. Сервисы и Next получают окружение от systemd — для них no-op.
+if (!process.env.DATABASE_URL && typeof process.loadEnvFile === 'function') {
+  try {
+    process.loadEnvFile('.env');
+  } catch {
+    /* .env нет (CI, тесты со своим DATABASE_URL) — ничего не делаем */
+  }
+}
+
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient;
   prismaPragmasApplied: boolean;
