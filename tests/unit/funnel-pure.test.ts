@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { buildStartPayload, hasStartPayload, parseStartPayload, sanitizeSource } from '@/lib/telegram-bot/deep-link';
 import { buildTrackedOfferUrl, signOfferLink, verifyOfferLink } from '@/lib/telegram-bot/offer-link';
 import { detectBuyIntent } from '@/lib/telegram-bot/buy-intent';
-import { detectObjection } from '@/lib/telegram-bot/objection';
+import { detectObjection, OBJECTION_LABEL, OBJECTION_REPLY } from '@/lib/telegram-bot/objection';
 import { detectAudience } from '@/lib/telegram-bot/audience';
 import { isUnsubscribeCommand } from '@/lib/telegram-bot/unsubscribe';
 import { sourceLines } from '@/lib/telegram-bot/funnel-stats';
@@ -119,5 +119,15 @@ describe('funnel-stats: точки входа', () => {
     ]);
     expect(lines.join('\n')).toContain('blog-lobnyy-obhvat: 3 (квалиф. 1)');
     expect(lines.join('\n')).toContain('без метки: 1');
+  });
+});
+
+describe('objection: подсказки менеджеру', () => {
+  it('подсказка есть для каждого типа и соблюдает правила школы (без сумм и обещаний)', () => {
+    for (const t of Object.keys(OBJECTION_LABEL) as Array<keyof typeof OBJECTION_REPLY>) {
+      const r = OBJECTION_REPLY[t];
+      expect(r.length, t).toBeGreaterThan(30);
+      expect(r, t).not.toMatch(/\d[\d ]*₽|вылечи|гарантир/i);
+    }
   });
 });

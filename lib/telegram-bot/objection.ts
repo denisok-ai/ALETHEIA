@@ -30,6 +30,30 @@ export const OBJECTION_LABEL: Record<Objection, string> = {
   fit: 'не подходит',
 };
 
+/**
+ * Подсказка менеджеру: с чего начать ответ на возражение. Тон школы — без
+ * давления, без обещаний результата, «мы не лечим»; сумм не называем (цены
+ * меняются на витрине). Это заготовка — менеджер правит под человека.
+ */
+export const OBJECTION_REPLY: Record<Objection, string> = {
+  price:
+    'Понимаю, это важное решение. На странице тарифа можно оформить рассрочку. ' +
+    'А попробовать метод на себе без вложений можно в бесплатном мини-курсе «Тело знает всё».',
+  time:
+    'Практика занимает около 15 минут в день, уроки проходятся в своём темпе, доступ открывается сразу. ' +
+    'Можно начать с одного урока и посмотреть, как ляжет в ваш ритм.',
+  later:
+    'Конечно, без спешки. Могу прислать короткую статью о методе, чтобы было с чем познакомиться, ' +
+    'и напомнить о старте, если захотите.',
+  doubt: 'Подумать — нормально. Какой вопрос сейчас главный? Отвечу точечно, чтобы решение было спокойным.',
+  trust:
+    'Скепсис — здоровая реакция. Метод проверяется на себе, без веры на слово: начните с бесплатного мини-курса. ' +
+    'Мы не лечим и честно говорим о границах метода.',
+  fit:
+    'Спасибо, что сказали. Расскажите, какой у вас запрос, — подскажу, подходит ли метод ' +
+    'или вам ближе другой формат, например «Пробуждение».',
+};
+
 /** Найти возражение в тексте. null — не похоже на возражение. */
 export function detectObjection(text: string): Objection | null {
   for (const p of PATTERNS) {
@@ -78,5 +102,31 @@ export async function fetchObjections(hours = 168): Promise<ObjectionSummary> {
   } catch (e) {
     console.error('[objection] fetch:', e);
     return { total: 0, byType: [] };
+  }
+}
+
+export type LeadObjection = { type: Objection; text: string; at: string };
+
+/** Возражения конкретного лида (по chat id) — для карточки в CRM, новые сверху. */
+export async function fetchLeadObjections(chatId: number, limit = 10): Promise<LeadObjection[]> {
+  try {
+    const rows = await prisma.auditLog.findMany({
+      where: { action: ACTION, entity: 'telegram_chat', entityId: String(chatId) },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      select: { diff: true, createdAt: true },
+    });
+    const out: LeadObjection[] = [];
+    for (const r of rows) {
+      const raw = r.diff ?? '';
+      const i = raw.indexOf(':');
+      const type = raw.slice(0, i) as Objection;
+      if (i < 0 || !OBJECTION_LABEL[type]) continue;
+      out.push({ type, text: raw.slice(i + 1).trim(), at: r.createdAt.toISOString() });
+    }
+    return out;
+  } catch (e) {
+    console.error('[objection] lead:', e);
+    return [];
   }
 }

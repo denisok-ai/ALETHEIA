@@ -8,7 +8,8 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { Prisma } from '@prisma/client';
 import { PageHeader } from '@/components/portal/PageHeader';
-import { CrmLeadDetailClient, type LeadEmailDeliveryLogItem } from './CrmLeadDetailClient';
+import { CrmLeadDetailClient, type LeadEmailDeliveryLogItem, type LeadObjectionItem } from './CrmLeadDetailClient';
+import { fetchLeadObjections, OBJECTION_LABEL, OBJECTION_REPLY } from '@/lib/telegram-bot/objection';
 import { formatPersonName } from '@/lib/format-person-name';
 
 type PageProps = { params: Promise<{ id: string }> };
@@ -75,6 +76,17 @@ export default async function CrmLeadDetailPage({ params }: PageProps) {
     }));
   }
 
+  // Возражения из диалога с ботом + заготовка ответа — готовим на сервере:
+  // клиентский компонент не должен тянуть модуль с prisma.
+  const objections: LeadObjectionItem[] = lead.telegramChatId
+    ? (await fetchLeadObjections(lead.telegramChatId)).map((o) => ({
+        label: OBJECTION_LABEL[o.type],
+        text: o.text,
+        at: o.at,
+        reply: OBJECTION_REPLY[o.type],
+      }))
+    : [];
+
   const initial = {
     id: lead.id,
     name: lead.name,
@@ -114,7 +126,7 @@ export default async function CrmLeadDetailPage({ params }: PageProps) {
         title={formatPersonName(lead.name)}
         description={`Лид №${lead.id}`}
       />
-      <CrmLeadDetailClient initialLead={initial} emailDeliveryLogs={emailDeliveryLogs} />
+      <CrmLeadDetailClient initialLead={initial} emailDeliveryLogs={emailDeliveryLogs} objections={objections} />
     </div>
   );
 }

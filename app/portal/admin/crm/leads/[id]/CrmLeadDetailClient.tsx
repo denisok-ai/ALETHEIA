@@ -62,6 +62,8 @@ const SEGMENT_LABEL: Record<string, string> = {
   hot: 'горячий (готов обсуждать участие)',
 };
 
+export type LeadObjectionItem = { label: string; text: string; at: string; reply: string };
+
 export type LeadEmailDeliveryLogItem = {
   id: string;
   module: string;
@@ -77,9 +79,11 @@ export type LeadEmailDeliveryLogItem = {
 export function CrmLeadDetailClient({
   initialLead,
   emailDeliveryLogs = [],
+  objections = [],
 }: {
   initialLead: CrmLeadDetail;
   emailDeliveryLogs?: LeadEmailDeliveryLogItem[];
+  objections?: LeadObjectionItem[];
 }) {
   const router = useRouter();
   const [lead, setLead] = useState(initialLead);
@@ -363,6 +367,41 @@ export function CrmLeadDetailClient({
               {lead.qualify_reason}
             </p>
           )}
+        </Card>
+      )}
+
+      {objections.length > 0 && (
+        <Card
+          title="Возражения и подсказки"
+          description="Что человек ответил на оффер или дожим — и с чего можно начать ответ. Заготовку правьте под человека."
+        >
+          <ul className="space-y-4">
+            {objections.map((o) => (
+              <li key={o.at} className="text-sm">
+                <div className="flex flex-wrap items-baseline gap-x-2">
+                  <span className="font-medium text-[var(--portal-text)]">{o.label}</span>
+                  <span className="text-xs text-[var(--portal-text-muted)]">{format(new Date(o.at), 'dd.MM HH:mm')}</span>
+                </div>
+                <p className="mt-1 text-[var(--portal-text-muted)]">«{o.text}»</p>
+                <div className="mt-2 flex items-start gap-2 rounded-md bg-[var(--portal-accent-soft)] p-2">
+                  <p className="flex-1 text-[var(--portal-text)]">{o.reply}</p>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      void navigator.clipboard.writeText(o.reply).then(
+                        () => toast.success('Подсказка скопирована'),
+                        () => toast.error('Не удалось скопировать')
+                      );
+                    }}
+                  >
+                    Копировать
+                  </Button>
+                </div>
+              </li>
+            ))}
+          </ul>
         </Card>
       )}
 
