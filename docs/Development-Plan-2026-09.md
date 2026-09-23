@@ -41,7 +41,7 @@ A/B и трекингом; `prod-verify` 16/16; деплой near-zero.
 - [x] Тесты с БД (sqlite-копия схемы): [x] lead-service (дедуп), [x] lead-qualify
   (forward-only статусы), [x] followup (идемпотентность), [x] оффер (кулдаун);
   [x] SCORM-прогресс (серверный рубеж «completed без CMI»), [x] сверка платежей → Enrollment.
-- [~] **Миграция Next 14 → 16** (+ postcss): отдельная ветка, полный прогон
+- [x] **Миграция Next 14 → 16** (+ postcss): отдельная ветка, полный прогон
   build/lint/tests/prod-verify, деплой в дневное окно с откатом наготове.
   Закрывает critical DoS. Делать ПОСЛЕ появления тестов.
 
