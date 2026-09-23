@@ -29,6 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
   // Из БД (Портал → Настройки → google_site_verification): токен можно
   // вставить с телефона без деплоя. Env остаётся резервным путём.
   const googleSiteVerification = settings.google_site_verification?.trim();
+  const bingSiteVerification = settings.bing_site_verification?.trim();
   let metadataBase: URL;
   try {
     metadataBase = new URL(siteUrl);
@@ -75,6 +76,7 @@ export async function generateMetadata(): Promise<Metadata> {
     verification: {
       yandex: yandexVerification,
       ...(googleSiteVerification ? { google: googleSiteVerification } : {}),
+      ...(bingSiteVerification ? { other: { 'msvalidate.01': bingSiteVerification } } : {}),
     },
     // Canonical задают только страницы (app/page.tsx и публичные page.tsx).
     // Корневой canonical на главную раньше мог «схлопнуть» URL без своего

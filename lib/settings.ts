@@ -30,6 +30,9 @@ export interface SystemSettings {
    * Search Console — единственный быстрый способ это изменить.
    */
   google_site_verification: string;
+  /** Bing Webmaster Tools: значение content метатега msvalidate.01. Индекс Bing
+   *  питает поиск ChatGPT — отдельный канал трафика от ИИ-агентов. */
+  bing_site_verification: string;
 }
 
 /** Значения по умолчанию при отсутствии в БД. Настройки задаются в Портал → Настройки. */
@@ -41,6 +44,7 @@ const ENV_FALLBACK: Record<keyof SystemSettings, string> = {
   contact_phone: '',
   company_legal_address: '',
   google_site_verification: '',
+  bing_site_verification: '',
 };
 
 async function loadSystemSettingsImpl(): Promise<SystemSettings> {
@@ -66,6 +70,7 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
               'contact_phone',
               'company_legal_address',
               'google_site_verification',
+              'bing_site_verification',
             ],
           },
         },
@@ -88,6 +93,10 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
           byKey.google_site_verification ||
           process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() ||
           ENV_FALLBACK.google_site_verification,
+        bing_site_verification:
+          byKey.bing_site_verification ||
+          process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim() ||
+          ENV_FALLBACK.bing_site_verification,
       };
 
       applyNextAuthUrlToProcessEnv({
@@ -108,6 +117,8 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
         company_legal_address: ENV_FALLBACK.company_legal_address,
         google_site_verification:
           process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() || ENV_FALLBACK.google_site_verification,
+        bing_site_verification:
+          process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim() || ENV_FALLBACK.bing_site_verification,
       };
       try {
         applyNextAuthUrlToProcessEnv({ siteUrl: data.site_url });
