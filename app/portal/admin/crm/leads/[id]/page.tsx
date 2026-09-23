@@ -79,7 +79,7 @@ export default async function CrmLeadDetailPage({ params }: PageProps) {
   // Возражения из диалога с ботом + заготовка ответа — готовим на сервере:
   // клиентский компонент не должен тянуть модуль с prisma.
   const objections: LeadObjectionItem[] = lead.telegramChatId
-    ? (await fetchLeadObjections(lead.telegramChatId)).map((o) => ({
+    ? (await fetchLeadObjections(Number(lead.telegramChatId))).map((o) => ({
         label: OBJECTION_LABEL[o.type],
         text: o.text,
         at: o.at,
@@ -98,7 +98,7 @@ export default async function CrmLeadDetailPage({ params }: PageProps) {
     source: lead.source,
     converted_to_user_id: lead.convertedToUserId,
     last_order_number: lead.lastOrderNumber ?? null,
-    telegram_chat_id: lead.telegramChatId,
+    telegram_chat_id: lead.telegramChatId == null ? null : Number(lead.telegramChatId),
     telegram_username: lead.telegramUsername,
     funnel_segment: lead.funnelSegment,
     entry_source: lead.entrySource,

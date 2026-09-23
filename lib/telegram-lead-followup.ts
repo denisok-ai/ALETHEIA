@@ -186,7 +186,7 @@ async function runColdTouch(now: Date, dryRun: boolean, result: FollowupResult):
   for (const lead of leads) {
     if (result.sent >= MAX_PER_RUN) break;
     result.candidates += 1;
-    const chatId = lead.telegramChatId as number;
+    const chatId = Number(lead.telegramChatId);
     if (dryRun) {
       result.details.push(`лид ${lead.id} (${lead.name}): холодное касание готово`);
       continue;
@@ -244,7 +244,7 @@ export async function runTelegramLeadFollowup(
     if (waited < threshold) continue;
 
     result.candidates += 1;
-    const chatId = lead.telegramChatId as number;
+    const chatId = Number(lead.telegramChatId);
 
     if (dryRun) {
       result.details.push(`лид ${lead.id} (${lead.name}): касание #${stage}${stage === FINAL_STAGE ? ' (оффер)' : ''} готово`);

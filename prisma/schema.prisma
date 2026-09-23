@@ -732,7 +732,9 @@ model Lead {
   lastOrderNumber   String? // при оплате заказа с email лида — для аналитики (1.3)
   /// Диалог в Telegram: заполняется, когда человек сам нажал /start у бота.
   /// Только с ним бот имеет право писать первым — на этом держатся автодогоны.
-  telegramChatId    Int?
+  /// BigInt: ID чатов Telegram давно больше 2^31. Физическая колонка — telegramChatIdBig
+  /// (BIGINT, добавлена 23.09.2026): SQLite-колонку INTEGER Prisma читает как int32.
+  telegramChatId    BigInt?  @map("telegramChatIdBig")
   telegramUsername  String?
   /// Сегмент воронки бота: info | warm | hot
   funnelSegment     String?

@@ -146,3 +146,18 @@ describe('offer: кулдаун', () => {
     expect(['A', 'B']).toContain(l?.offerVariant);
   });
 });
+
+describe('telegramChatId > 2^31 (реальные ID Telegram)', () => {
+  it('лид с chat_id 6052587367 создаётся, читается списком и проходит через догоны', async () => {
+    const BIG = 6052587367;
+    const id = await upsertBotLead(ctx(BIG), { segment: 'warm', entrySource: 'faq' });
+    expect(id).not.toBeNull();
+    // Раньше этот findMany падал: P2023 «does not fit in an INT column»
+    const all = await prisma.lead.findMany({});
+    expect(all.find((l) => l.id === id)?.telegramChatId).toBe(BigInt(BIG));
+    expect(await upsertBotLead(ctx(BIG), { choiceLabel: 'повторный вход' })).toBe(id);
+    await prisma.lead.update({ where: { id: id! }, data: { lastBotMessageAt: new Date(Date.now() - 3 * H) } });
+    const r = await runTelegramLeadFollowup({});
+    expect(r.sent).toBe(1);
+  });
+});

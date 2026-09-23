@@ -79,5 +79,8 @@ export async function PATCH(
     where: { id: leadId },
     data,
   });
-  return NextResponse.json({ lead });
+  // BigInt (telegramChatId) JSON не сериализует — отдаём числом.
+  return NextResponse.json({
+    lead: { ...lead, telegramChatId: lead.telegramChatId == null ? null : Number(lead.telegramChatId) },
+  });
 }

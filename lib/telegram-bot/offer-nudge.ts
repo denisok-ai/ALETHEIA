@@ -38,9 +38,10 @@ function escapeHtml(t: string): string {
 
 /** Отправить дожим и отметить `offerNudgedAt`. Одноразово, уважает отписку/оплату. */
 export async function sendOfferNudge(
-  lead: { id: number; telegramChatId: number | null; audience: string | null }
+  lead: { id: number; telegramChatId: number | bigint | null; audience: string | null }
 ): Promise<boolean> {
   if (!lead.telegramChatId) return false;
+  const chatId = Number(lead.telegramChatId);
   try {
     const { siteUrl } = await getBotSiteSettings();
     const base = (siteUrl || 'https://avaterra.pro').replace(/\/$/, '');
@@ -62,7 +63,7 @@ export async function sendOfferNudge(
       inline_keyboard: [[{ text: '📚 Программа и запись', url: `${base}/course/navyki-myshechnogo-testirovaniya` }]],
     };
 
-    const res = await sendTelegramMessageWithResult(lead.telegramChatId, text, {
+    const res = await sendTelegramMessageWithResult(chatId, text, {
       parseMode: 'HTML',
       replyMarkup: keyboard,
       disableWebPagePreview: true,
