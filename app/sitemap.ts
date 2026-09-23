@@ -195,7 +195,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
 
     // Глоссарий: статичный контент из кода; lastmod — дата последней правки терминов.
-    const GLOSSARY_REVISED = new Date('2026-09-23');
+    const GLOSSARY_REVISED = new Date('2026-09-24');
     const glossaryEntries: MetadataRoute.Sitemap = [
       { url: `${base}/glossary`, lastModified: GLOSSARY_REVISED, changeFrequency: 'monthly' as const, priority: 0.6 },
       ...GLOSSARY_TERMS.map((t) => ({
