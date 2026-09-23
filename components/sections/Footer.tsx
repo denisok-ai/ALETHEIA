@@ -116,6 +116,9 @@ export function Footer({ contactPhone }: FooterProps) {
               <Link href="/faq" className="hover:text-plum transition-colors">
                 Вопросы и ответы
               </Link>
+              <Link href="/glossary" className="hover:text-plum transition-colors">
+                Глоссарий
+              </Link>
               <Link href="/contacts" className="hover:text-plum transition-colors">
                 Контакты
               </Link>

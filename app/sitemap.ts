@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { getPublicProducts } from '@/lib/shop/public-products';
+import { GLOSSARY_TERMS } from '@/lib/content/glossary';
 
 /**
  * Генерирует sitemap.xml для поисковых систем.
@@ -190,7 +191,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     }
 
-    return [...staticEntries, ...serviceEntries, ...newsEntries];
+    // Глоссарий: статичный контент из кода; lastmod — дата последней правки терминов.
+    const GLOSSARY_REVISED = new Date('2026-09-23');
+    const glossaryEntries: MetadataRoute.Sitemap = [
+      { url: `${base}/glossary`, lastModified: GLOSSARY_REVISED, changeFrequency: 'monthly' as const, priority: 0.6 },
+      ...GLOSSARY_TERMS.map((t) => ({
+        url: `${base}/glossary/${t.slug}`,
+        lastModified: GLOSSARY_REVISED,
+        changeFrequency: 'monthly' as const,
+        priority: 0.5,
+      })),
+    ];
+
+    return [...staticEntries, ...serviceEntries, ...newsEntries, ...glossaryEntries];
   } catch (e) {
     console.error('[sitemap] generation failed, returning static fallback:', e);
     return staticFallback(base);

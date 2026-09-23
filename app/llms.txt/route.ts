@@ -7,6 +7,7 @@ import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublicProducts } from '@/lib/shop/public-products';
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
+import { getGlossarySorted } from '@/lib/content/glossary';
 import { ENTITY_SCHOOL_DEFINITION } from '@/lib/seo/entity';
 
 export const dynamic = 'force-dynamic';
@@ -23,6 +24,10 @@ export async function GET() {
 
   const blogLines = (await getPublishedBlogPosts()).map(
     (p) => `- [${p.title}](${base}/blog/${p.slug}): ${p.description}`
+  );
+
+  const glossaryLines = getGlossarySorted().map(
+    (t) => `- [${t.term}](${base}/glossary/${t.slug}): ${t.short}`
   );
 
   const text = `# AVATERRA (АВАТЕРРА)
@@ -42,6 +47,9 @@ ${productLines.join('\n')}
 
 ## Статьи блога
 ${blogLines.join('\n')}
+
+## Глоссарий терминов
+${glossaryLines.join('\n')}
 
 ## Документы
 - [Публичная оферта](${base}/oferta)
