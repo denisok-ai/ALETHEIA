@@ -304,6 +304,11 @@ npx tsx scripts/telegram-delete-webhook.ts 2>&1 | tail -3 || true
 rm -f /etc/cron.d/aletheia-telegram-poll 2>/dev/null || true
 systemctl restart aletheia-telegram-poll.service aletheia-jobs.service
 systemctl is-active aletheia-telegram-poll.service aletheia-jobs.service
+
+# SEO: новые статьи из lib/content/kb-seo-articles.ts публикуются сами — скрипт
+# идемпотентен (создаёт только отсутствующие; правки из админки не трогает) и
+# сразу шлёт их в IndexNow и очередь переобхода Яндекса. Сбой не валит деплой.
+npx tsx scripts/blog-publish-kb-articles.ts 2>&1 | grep -E "Создано|IndexNow|Переобход" || true
 REMOTE
 
 echo ""

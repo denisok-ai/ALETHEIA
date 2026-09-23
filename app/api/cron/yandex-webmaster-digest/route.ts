@@ -17,6 +17,7 @@ import { fetchWebmasterDigest, recrawlUrl } from '@/lib/seo/yandex-webmaster';
 import { notifyAdminsTelegram } from '@/lib/telegram-admin-notify';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
+import { saveSeoTopics } from '@/lib/seo/topics';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -31,7 +32,10 @@ const PROBLEM_LABEL: Record<string, string> = {
 export async function GET(request: NextRequest) {
   const authError = await requireCronAuth(request);
   if (authError) return authError;
-  const dryRun = new URL(request.url).searchParams.get('dry') === '1';
+  const params = new URL(request.url).searchParams;
+  const dryRun = params.get('dry') === '1';
+  // ?dry=1&store=1 — сохранить темы для облачного SEO-агента без отправки в Telegram.
+  const store = !dryRun || params.get('store') === '1';
 
   const digest = await fetchWebmasterDigest();
   if (!digest) {
@@ -77,6 +81,8 @@ export async function GET(request: NextRequest) {
       update: { value: JSON.stringify(currentQueries) },
     });
   }
+
+  if (store) await saveSeoTopics({ topicIdeas, newQueries, topQueries: digest.topQueries });
 
   const top8 = digest.topQueries.slice(0, 8);
   const lines = [

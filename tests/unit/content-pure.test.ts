@@ -80,3 +80,11 @@ describe('blog-related: тематическая перелинковка', () =
     expect(new Set(rel.map((p) => p.slug)).size).toBe(3);
   });
 });
+
+describe('sitemap-recrawl: разбор sitemap', () => {
+  it('достаёт все <loc>, в том числе с пробелами', async () => {
+    const { extractSitemapUrls } = await import('@/lib/seo/sitemap-recrawl');
+    const xml = '<urlset><url><loc>https://a.ru/</loc></url><url><loc> https://a.ru/glossary/x </loc></url></urlset>';
+    expect(extractSitemapUrls(xml)).toEqual(['https://a.ru/', 'https://a.ru/glossary/x']);
+  });
+});

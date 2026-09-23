@@ -40,6 +40,8 @@ export const CRON_EXPECTED_INTERVAL_MIN: Record<string, number> = {
   'yandex-webmaster-digest': 10080,
   // Здоровье сервера (память/swap/диск/OOM) — каждые 15 минут.
   'server-health': 15,
+  // Новые URL sitemap → переобход Яндекса + IndexNow — каждые 6 часов.
+  'sitemap-recrawl': 360,
 };
 
 /** Отметить успешное выполнение. Сбой отметки не должен ронять саму задачу. */
