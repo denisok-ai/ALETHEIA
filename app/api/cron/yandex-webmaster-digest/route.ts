@@ -56,12 +56,39 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // Data-driven темы: запросы, по которым нас уже показывают, но не кликают, —
+  // готовые темы для следующих статей/терминов. «Новые» — чего не было неделю назад.
+  const PREV_KEY = 'seo_digest_prev_queries';
+  const prevRow = await prisma.systemSetting.findUnique({ where: { key: PREV_KEY } });
+  let prevQueries: string[] = [];
+  try {
+    prevQueries = prevRow?.value ? (JSON.parse(prevRow.value) as string[]) : [];
+  } catch {
+    prevQueries = [];
+  }
+  const prevSet = new Set(prevQueries);
+  const currentQueries = digest.topQueries.map((q) => q.query);
+  const newQueries = currentQueries.filter((q) => !prevSet.has(q)).slice(0, 8);
+  const topicIdeas = digest.topQueries.filter((q) => q.shows >= 2 && q.clicks === 0).slice(0, 6);
+  if (!dryRun) {
+    await prisma.systemSetting.upsert({
+      where: { key: PREV_KEY },
+      create: { key: PREV_KEY, value: JSON.stringify(currentQueries), category: 'seo' },
+      update: { value: JSON.stringify(currentQueries) },
+    });
+  }
+
+  const top8 = digest.topQueries.slice(0, 8);
   const lines = [
     `ИКС: ${digest.sqi} · страниц в поиске: ${digest.searchablePages}`,
-    digest.topQueries.length
-      ? 'Топ запросов (показы/клики):'
-      : 'Показов по запросам пока нет.',
-    ...digest.topQueries.map((q) => `· ${q.shows}/${q.clicks} — ${q.query.slice(0, 60)}`),
+    top8.length ? 'Топ запросов (показы/клики):' : 'Показов по запросам пока нет.',
+    ...top8.map((q) => `· ${q.shows}/${q.clicks} — ${q.query.slice(0, 60)}`),
+    ...(topicIdeas.length
+      ? ['', '💡 Показывают, но не кликают — темы для статей/глоссария:', ...topicIdeas.map((q) => `· ${q.query.slice(0, 60)} (${q.shows} показов)`)]
+      : []),
+    ...(newQueries.length && prevQueries.length
+      ? ['', '🆕 Новые запросы за неделю:', ...newQueries.map((q) => `· ${q.slice(0, 60)}`)]
+      : []),
     ...(digest.problems.length
       ? ['', 'Диагностика Яндекса:', ...digest.problems.map((c) => `⚠ ${PROBLEM_LABEL[c] ?? c}`)]
       : ['', 'Диагностика Яндекса: проблем нет ✓']),
@@ -73,5 +100,5 @@ export async function GET(request: NextRequest) {
     await markCronOk('yandex-webmaster-digest');
   }
 
-  return NextResponse.json({ ok: true, digest, recrawled, dryRun });
+  return NextResponse.json({ ok: true, digest, recrawled, topicIdeas, newQueries, dryRun });
 }

@@ -112,7 +112,8 @@ export async function fetchWebmasterDigest(): Promise<WebmasterDigest | null> {
     .filter(([, p]) => p.state === 'PRESENT')
     .map(([code]) => code);
 
-  const topQueries = (queries?.queries ?? []).slice(0, 8).map((q) => ({
+  // До 30 запросов: топ-8 показываем, остальные нужны для «тем без кликов» и «новых».
+  const topQueries = (queries?.queries ?? []).slice(0, 30).map((q) => ({
     query: q.query_text,
     shows: Math.round(q.indicators?.TOTAL_SHOWS ?? 0),
     clicks: Math.round(q.indicators?.TOTAL_CLICKS ?? 0),
