@@ -3,7 +3,7 @@
 /**
  * Форма создания/редактирования шаблона уведомления (name, subject, body, type).
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/portal/Card';
 import { Button } from '@/components/ui/button';
@@ -28,12 +28,12 @@ export function NotificationTemplateForm({ templateId }: TemplateFormProps) {
   const [generating, setGenerating] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(false);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
-  const initialLoaded = useRef(false);
+  const [initialLoaded, setInitialLoaded] = useState(false);
   const [initial, setInitial] = useState({ name: '', subject: '', body: '', type: 'both' as const });
 
   useEffect(() => {
     if (!templateId) {
-      initialLoaded.current = true;
+      setInitialLoaded(true);
       return;
     }
     setLoading(true);
@@ -49,13 +49,13 @@ export function NotificationTemplateForm({ templateId }: TemplateFormProps) {
         setBody(b);
         setType(t);
         setInitial({ name: n, subject: s, body: b, type: t });
-        initialLoaded.current = true;
+        setInitialLoaded(true);
       })
       .finally(() => setLoading(false));
   }, [templateId]);
 
   const isDirty =
-    initialLoaded.current &&
+    initialLoaded &&
     (name !== initial.name || subject !== initial.subject || body !== initial.body || type !== initial.type);
   useUnsavedChanges(isDirty);
 

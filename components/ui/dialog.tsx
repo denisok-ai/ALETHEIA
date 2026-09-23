@@ -16,7 +16,10 @@ const Dialog = ({ open, onOpenChange, children }: DialogProps) => {
   const contentRef = React.useRef<HTMLDivElement>(null);
   const previousActiveRef = React.useRef<HTMLElement | null>(null);
   const onOpenChangeRef = React.useRef(onOpenChange);
-  onOpenChangeRef.current = onOpenChange;
+  // «Свежий» колбэк для обработчиков в эффектах — обновляем после рендера, не во время.
+  React.useLayoutEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
 
   React.useEffect(() => {
     if (!open) {

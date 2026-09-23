@@ -4,7 +4,7 @@
  * Form for creating (POST) or editing (PATCH) a certificate template.
  * Подложка (PNG/JPG/PDF) и textMapping задаются в форме шаблона.
  */
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -48,7 +48,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(!!templateId);
   const [leaveConfirm, setLeaveConfirm] = useState(false);
-  const initialSnapshot = useRef<string | null>(null);
+  const [initialSnapshot, setInitialSnapshot] = useState<string | null>(null);
 
   const snapshot = () =>
     JSON.stringify({
@@ -86,7 +86,7 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
             setValidityDays(d.validityDays != null ? String(d.validityDays) : '');
             setNumberingFormat(d.numberingFormat ?? '');
             setAllowUserDownload(d.allowUserDownload !== false);
-            initialSnapshot.current = JSON.stringify({
+            setInitialSnapshot(JSON.stringify({
               name: d.name ?? '',
               backgroundImageUrl: d.backgroundImageUrl ?? null,
               textMapping: d.textMapping ?? '',
@@ -98,12 +98,12 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
               allowUserDownload: d.allowUserDownload !== false,
               hasFile: false,
               removeBackground: false,
-            });
+            }));
           }
         })
         .finally(() => setLoadingData(false));
     } else {
-      initialSnapshot.current = JSON.stringify({
+      setInitialSnapshot(JSON.stringify({
         name: initial?.name ?? '',
         backgroundImageUrl: initial?.backgroundImageUrl ?? null,
         textMapping: initial?.textMapping ?? '',
@@ -115,11 +115,11 @@ export function CertificateTemplateForm({ templateId, initial }: CertificateTemp
         allowUserDownload: initial?.allowUserDownload ?? true,
         hasFile: false,
         removeBackground: false,
-      });
+      }));
     }
   }, [templateId, initial]);
 
-  const isDirty = initialSnapshot.current !== null && snapshot() !== initialSnapshot.current;
+  const isDirty = initialSnapshot !== null && snapshot() !== initialSnapshot;
   useUnsavedChanges(isDirty);
 
   function goToList() {

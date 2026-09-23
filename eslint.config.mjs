@@ -15,14 +15,14 @@ export default defineConfig([
       ...jsxA11y.configs.recommended.rules,
       'jsx-a11y/heading-has-content': 'warn',
       'jsx-a11y/anchor-is-valid': 'off',
-      // Правила React Compiler, пришедшие с eslint-config-next 16 (react-hooks v7):
-      // ~100 срабатываний на существующем коде, к миграции Next не относятся.
-      // Включать поэтапно — отдельный пункт плана развития (P3).
+      // Правила React Compiler (react-hooks v7). React Compiler в сборке НЕ включён,
+      // поэтому оставшиеся выключенные — рекомендации на будущее, а не баги:
+      // set-state-in-effect (~60, загрузка данных в эффектах), preserve-manual-
+      // memoization (компилятор пропустил бы оптимизацию). Включены реально
+      // полезные: refs (чтение ref во время рендера → устаревший интерфейс), purity
+      // (Date.now/Math.random при рендере → расхождение гидратации), immutability.
       'react-hooks/set-state-in-effect': 'off',
-      'react-hooks/refs': 'off',
       'react-hooks/preserve-manual-memoization': 'off',
-      'react-hooks/purity': 'off',
-      'react-hooks/immutability': 'off',
       'react-hooks/incompatible-library': 'off',
     },
   },

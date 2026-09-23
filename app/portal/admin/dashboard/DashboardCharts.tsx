@@ -36,8 +36,8 @@ export function DashboardCharts({
   const hasRevenue = revenueData.some((d) => d.revenue > 0 || d.count > 0);
   const hasActivity = activityData.some((d) => d.enrollments > 0 || d.certificates > 0);
 
-  const revenueChart = useContainerSize<HTMLDivElement>();
-  const activityChart = useContainerSize<HTMLDivElement>();
+  const { ref: revenueRef, ready: revenueReady } = useContainerSize<HTMLDivElement>();
+  const { ref: activityRef, ready: activityReady } = useContainerSize<HTMLDivElement>();
 
   function setPeriod(p: number) {
     const next = new URLSearchParams(searchParams.toString());
@@ -87,8 +87,8 @@ export function DashboardCharts({
           </div>
         </div>
         {revenueData.length > 0 && hasRevenue ? (
-          <div ref={revenueChart.ref} className="h-64 w-full min-h-[256px]" style={{ minWidth: 0 }}>
-            {revenueChart.ready && (
+          <div ref={revenueRef} className="h-64 w-full min-h-[256px]" style={{ minWidth: 0 }}>
+            {revenueReady && (
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
               <BarChart data={revenueData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
@@ -118,8 +118,8 @@ export function DashboardCharts({
       <div className="mt-6 portal-card p-6">
         <h2 className="mb-3 text-lg font-semibold text-[var(--portal-text)]">Активность по дням (записи и сертификаты)</h2>
         {activityData.length > 0 && hasActivity ? (
-          <div ref={activityChart.ref} className="h-64 w-full min-h-[256px] min-w-0">
-            {activityChart.ready && (
+          <div ref={activityRef} className="h-64 w-full min-h-[256px] min-w-0">
+            {activityReady && (
             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={100}>
               <LineChart data={activityData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
