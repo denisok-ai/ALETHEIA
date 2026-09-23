@@ -119,6 +119,9 @@ export function Footer({ contactPhone }: FooterProps) {
               <Link href="/glossary" className="hover:text-plum transition-colors">
                 Глоссарий
               </Link>
+              <Link href="/obuchenie-kineziologii-onlajn" className="hover:text-plum transition-colors">
+                Обучение онлайн
+              </Link>
               <Link href="/contacts" className="hover:text-plum transition-colors">
                 Контакты
               </Link>
