@@ -104,8 +104,8 @@
     "nanoid": "^5.1.16",
     "next": "14.2.35",
     "next-auth": "^4.24.15",
-    "node-cron": "^3.0.3",
-    "nodemailer": "^7.0.13",
+    "node-cron": "^4.6.0",
+    "nodemailer": "^10.0.10",
     "plyr": "^3.8.4",
     "prisma": "^5.22.0",
     "react": "^18.3.1",
@@ -123,7 +123,7 @@
     "tailwind-merge": "^2.5.4",
     "three": "^0.169.0",
     "undici": "^6.25.0",
-    "xlsx": "^0.18.5",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^4.3.6"
   },
   "prisma": {
