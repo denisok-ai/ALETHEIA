@@ -228,8 +228,10 @@ else
     rm -rf .deps-staging; mkdir -p .deps-staging
     cp package.json package-lock.json .deps-staging/
     [ -f .npmrc ] && cp .npmrc .deps-staging/
+    # postinstall проекта = `prisma generate`: ему нужна схема рядом (только
+    # schema.prisma — не БД и не миграции).
+    mkdir -p .deps-staging/prisma && cp prisma/schema.prisma .deps-staging/prisma/
     (cd .deps-staging && npm ci --omit=dev)
-    (cd .deps-staging && npx prisma generate --schema ../prisma/schema.prisma)
     [ -x .deps-staging/node_modules/.bin/next ] || { echo "Ошибка: staging node_modules без next"; exit 1; }
     [ -f .deps-staging/node_modules/.prisma/client/index.js ] || { echo "Ошибка: клиент Prisma не сгенерирован в staging"; exit 1; }
   fi
