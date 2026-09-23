@@ -38,9 +38,9 @@ A/B и трекингом; `prod-verify` 16/16; деплой near-zero.
 - [x] **Каркас автотестов (vitest)** + тесты чистых модулей воронки
   (deep-link, offer-link/HMAC, faq-match, buy-intent, objection, audience,
   unsubscribe) — у них нет БД, покрываются за один заход.
-- [ ] Тесты с БД (sqlite-копия схемы): lead-service (дедуп), lead-qualify
-  (forward-only статусы), followup (идемпотентность), SCORM-прогресс
-  (серверный рубеж «completed без CMI»), сверка платежей → Enrollment.
+- [~] Тесты с БД (sqlite-копия схемы): [x] lead-service (дедуп), [x] lead-qualify
+  (forward-only статусы), [x] followup (идемпотентность), [x] оффер (кулдаун);
+  [ ] SCORM-прогресс (серверный рубеж «completed без CMI»), [ ] сверка платежей → Enrollment.
 - [ ] **Миграция Next 14 → 16** (+ postcss): отдельная ветка, полный прогон
   build/lint/tests/prod-verify, деплой в дневное окно с откатом наготове.
   Закрывает critical DoS. Делать ПОСЛЕ появления тестов.

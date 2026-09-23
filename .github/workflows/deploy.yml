@@ -64,6 +64,10 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      # Тесты ядра лидов на изолированной sqlite (миграции прода, ~20 с).
+      - name: DB tests
+        run: npm run test:db
+
       - run: npx prisma generate
 
       - name: Apply migrations (SQLite for CI build)
