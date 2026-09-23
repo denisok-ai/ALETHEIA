@@ -53,7 +53,9 @@ export function parseStartPayload(raw?: string | null): StartPayload {
     }
     if (part.startsWith('l-')) {
       const id = Number.parseInt(part.slice(2), 10);
-      if (Number.isInteger(id) && id > 0) result.leadId = id;
+      // Верхняя граница — Prisma Int (32 бит): «l-99999999999999999999» иначе
+      // проходил как 1e20 и ронял запрос к БД вместо тихого игнора.
+      if (Number.isSafeInteger(id) && id > 0 && id <= 2_147_483_647) result.leadId = id;
     }
   }
   return result;

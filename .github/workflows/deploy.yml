@@ -59,6 +59,11 @@ jobs:
 
       - run: npm ci
 
+      # Юнит-тесты чистых модулей (без БД, ~1 с). Красные тесты = деплоя нет:
+      # это единственный автоматический рубеж перед продом.
+      - name: Unit tests
+        run: npm test
+
       - run: npx prisma generate
 
       - name: Apply migrations (SQLite for CI build)
