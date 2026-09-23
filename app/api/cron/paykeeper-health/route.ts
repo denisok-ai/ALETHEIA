@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireCronAuth } from '@/lib/cron-auth';
 import { markCronOk } from '@/lib/cron-heartbeat';
+import { getPaymentsMode } from '@/lib/payments/checkout-request';
 import { getPayKeeperConfigFromSettings } from '@/lib/paykeeper';
 import { refreshPayKeeperToken } from '@/lib/paykeeper/http';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
@@ -62,6 +63,13 @@ function humanDuration(fromIso: string): string {
 export async function GET(request: NextRequest) {
   const authError = await requireCronAuth(request);
   if (authError) return authError;
+
+  // Касса выключена намеренно (режим «оплата по заявке») — её недоступность не
+  // авария, алерты были бы ложными. Heartbeat ставим: сам крон исправен.
+  if ((await getPaymentsMode()) === 'request') {
+    await markCronOk('paykeeper-health');
+    return NextResponse.json({ ok: true, skipped: 'payments_mode=request' });
+  }
 
   const cfg = await getPayKeeperConfigFromSettings();
   if (!cfg?.server) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,18 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
   const [loading, setLoading] = useState(false);
   const [pdConsent, setPdConsent] = useState(false);
   const [installmentParts, setInstallmentParts] = useState(0);
+  /** Касса выключена: сервер принял заявку — показываем подтверждение вместо перехода к оплате. */
+  const [requestMessage, setRequestMessage] = useState<string | null>(null);
+  /** Режим кассы с сервера: при выключенной кассе кнопка честно называется «Оставить заявку». */
+  const [requestMode, setRequestMode] = useState(false);
+  useEffect(() => {
+    fetch('/api/payment/mode')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d: { mode?: string } | null) => setRequestMode(d?.mode === 'request'))
+      .catch(() => {
+        /* по умолчанию — обычная оплата */
+      });
+  }, []);
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -59,12 +71,19 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
         body: JSON.stringify(body),
         signal: AbortSignal.timeout(45_000),
       });
-      let data: { success?: boolean; paymentUrl?: string; error?: string };
+      let data: { success?: boolean; paymentUrl?: string; error?: string; requestAccepted?: boolean; message?: string };
       try {
         const text = await res.text();
-        data = text ? (JSON.parse(text) as { success?: boolean; paymentUrl?: string; error?: string }) : {};
+        data = text ? (JSON.parse(text) as typeof data) : {};
       } catch {
         toast.error('Не удалось создать платёж. Попробуйте позже или свяжитесь с нами.');
+        return;
+      }
+      if (data.success && data.requestAccepted) {
+        trackGa4AndYm(ANALYTICS.FORM_SUBMIT, ANALYTICS.FORM_SUBMIT, {
+          tariff_slug: tariff.slug ?? tariff.id,
+        });
+        setRequestMessage(data.message || 'Заявка принята! Мы свяжемся с вами и пришлём способ оплаты.');
         return;
       }
       if (data.success && data.paymentUrl) {
@@ -91,6 +110,22 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
 
   const priceLabel =
     tariff.price <= 0 ? 'Бесплатно' : `${tariff.price.toLocaleString('ru-RU')} ₽`;
+
+  if (requestMessage) {
+    return (
+      <div className="space-y-3 py-2" role="status">
+        <p className="font-heading text-lg font-semibold text-[var(--text)]">Заявка принята</p>
+        <p className="leading-relaxed text-[var(--text-muted)]">{requestMessage}</p>
+        <p className="text-sm text-[var(--text-muted)]">
+          Тариф: <b>{tariff.name}</b>. Если вопрос срочный — напишите нам через{' '}
+          <a href="/contacts" className="font-medium text-plum underline-offset-2 hover:underline">
+            страницу контактов
+          </a>
+          .
+        </p>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -170,6 +205,11 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
         disabled={loading}
         className="px-0.5"
       />
+      {requestMode && tariff.price > 0 ? (
+        <p className="rounded-lg bg-[var(--lavender-light)] px-3 py-2 text-sm text-[var(--text)]">
+          Онлайн-оплата временно недоступна. Оставьте заявку — мы свяжемся с вами и пришлём удобный способ оплаты.
+        </p>
+      ) : null}
       <Button
         type="submit"
         variant="landingPlum"
@@ -180,10 +220,12 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
         {loading ? (
           <>
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            {tariff.price <= 0 ? 'Оформление…' : 'Создание платежа...'}
+            {tariff.price <= 0 ? 'Оформление…' : requestMode ? 'Отправляем заявку…' : 'Создание платежа...'}
           </>
         ) : tariff.price <= 0 ? (
           'Получить доступ'
+        ) : requestMode ? (
+          'Оставить заявку'
         ) : (
           'Перейти к оплате'
         )}

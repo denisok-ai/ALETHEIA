@@ -18,6 +18,7 @@ import {
 } from '@/lib/paykeeper-integration-log';
 import { logPersonalDataConsent } from '@/lib/consent-log';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
+import { CHECKOUT_REQUEST_CLIENT_MESSAGE, getPaymentsMode, recordCheckoutRequest } from '@/lib/payments/checkout-request';
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'payment-create', 10);
@@ -142,6 +143,34 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         paymentUrl,
+        orderNumber,
+        amount,
+      });
+    }
+
+    // Касса выключена (Портал → Настройки → Приём оплаты): вместо счёта — заявка.
+    // Заказ уже сохранён как pending; лид и уведомление владельцу — внутри.
+    if ((await getPaymentsMode()) === 'request') {
+      await recordCheckoutRequest({
+        orderNumber,
+        productName: serviceName,
+        amount,
+        email: String(email),
+        name: String(name),
+        phone: typeof phone === 'string' ? phone : null,
+        via: 'сайт (кнопка оплаты)',
+      });
+      await writePaykeeperIntegrationLog({
+        direction: 'outbound',
+        event: 'payment.request_mode',
+        status: 'success',
+        orderNumber,
+        message: 'Касса выключена — оформлена заявка на оплату, владелец уведомлён',
+      });
+      return NextResponse.json({
+        success: true,
+        requestAccepted: true,
+        message: CHECKOUT_REQUEST_CLIENT_MESSAGE,
         orderNumber,
         amount,
       });

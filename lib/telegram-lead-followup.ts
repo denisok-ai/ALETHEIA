@@ -105,6 +105,8 @@ async function notifyStaleLeads(now: Date): Promise<number> {
           { status: 'new', funnelSegment: { not: 'info' }, OR: [{ telegramChatId: null }, { followupStage: { gte: 2 } }] },
           // написали, но оффера не было и затихли — вовлечённые, которых нельзя терять
           { status: 'contacted', offerSentAt: null, respondedAt: { lt: staleBefore } },
+          // Заявки на оплату (касса выключена), по которым за сутки не было оплаты.
+          { status: 'qualified', source: 'checkout_request', buyIntentAt: { lt: staleBefore } },
         ],
       },
       orderBy: { createdAt: 'asc' },

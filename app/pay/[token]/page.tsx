@@ -21,6 +21,8 @@ export default function PayCheckoutPage() {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [error, setError] = useState('');
+  /** Касса выключена: заявка принята — подтверждение вместо перехода к оплате. */
+  const [requestMessage, setRequestMessage] = useState<string | null>(null);
   const [installmentParts, setInstallmentParts] = useState(0);
 
   useEffect(() => {
@@ -51,6 +53,11 @@ export default function PayCheckoutPage() {
       const result = await res.json();
       if (!res.ok) {
         setError(result.error || 'Ошибка оплаты');
+        setPaying(false);
+        return;
+      }
+      if (result.requestAccepted) {
+        setRequestMessage(result.message || 'Заявка принята! Мы свяжемся с вами и пришлём способ оплаты.');
         setPaying(false);
         return;
       }
@@ -113,6 +120,18 @@ export default function PayCheckoutPage() {
             На главную
           </button>
         </motion.div>
+      </div>
+    );
+  }
+
+  if (requestMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F6F4F9] px-4">
+        <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md w-full text-center" role="status">
+          <div className="text-5xl mb-4">✅</div>
+          <h1 className="text-xl font-semibold text-[#2D1B4E] mb-2">Заявка принята</h1>
+          <p className="text-gray-600">{requestMessage}</p>
+        </div>
       </div>
     );
   }

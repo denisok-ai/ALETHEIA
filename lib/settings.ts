@@ -33,6 +33,9 @@ export interface SystemSettings {
   /** Bing Webmaster Tools: значение content метатега msvalidate.01. Индекс Bing
    *  питает поиск ChatGPT — отдельный канал трафика от ИИ-агентов. */
   bing_site_verification: string;
+  /** Приём оплаты: online — касса PayKeeper; request — касса выключена, покупка
+   *  превращается в заявку (лид + уведомление владельцу). */
+  payments_mode: string;
 }
 
 /** Значения по умолчанию при отсутствии в БД. Настройки задаются в Портал → Настройки. */
@@ -45,6 +48,7 @@ const ENV_FALLBACK: Record<keyof SystemSettings, string> = {
   company_legal_address: '',
   google_site_verification: '',
   bing_site_verification: '',
+  payments_mode: 'online',
 };
 
 async function loadSystemSettingsImpl(): Promise<SystemSettings> {
@@ -71,6 +75,7 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
               'company_legal_address',
               'google_site_verification',
               'bing_site_verification',
+              'payments_mode',
             ],
           },
         },
@@ -97,6 +102,7 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
           byKey.bing_site_verification ||
           process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim() ||
           ENV_FALLBACK.bing_site_verification,
+        payments_mode: byKey.payments_mode || process.env.PAYMENTS_MODE?.trim() || ENV_FALLBACK.payments_mode,
       };
 
       applyNextAuthUrlToProcessEnv({
@@ -119,6 +125,7 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
           process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim() || ENV_FALLBACK.google_site_verification,
         bing_site_verification:
           process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim() || ENV_FALLBACK.bing_site_verification,
+        payments_mode: process.env.PAYMENTS_MODE?.trim() || ENV_FALLBACK.payments_mode,
       };
       try {
         applyNextAuthUrlToProcessEnv({ siteUrl: data.site_url });

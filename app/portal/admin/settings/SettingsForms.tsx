@@ -72,6 +72,7 @@ interface SettingsKeys {
   company_legal_address: string;
   google_site_verification: string;
   bing_site_verification: string;
+  payments_mode: string;
   scorm_max_size_mb: string;
   email_payment_course_subject?: string;
   email_payment_course_body?: string;
@@ -115,6 +116,7 @@ export function SettingsForms() {
     company_legal_address: '',
     google_site_verification: '',
     bing_site_verification: '',
+    payments_mode: 'online',
     scorm_max_size_mb: '200',
   });
   const [paymentEmail, setPaymentEmail] = useState<PaymentEmailSettings>({
@@ -178,6 +180,7 @@ export function SettingsForms() {
             typeof k.google_site_verification === 'string' ? k.google_site_verification : '',
           bing_site_verification:
             typeof k.bing_site_verification === 'string' ? k.bing_site_verification : '',
+          payments_mode: typeof k.payments_mode === 'string' && k.payments_mode ? k.payments_mode : 'online',
           scorm_max_size_mb: k.scorm_max_size_mb ?? '200',
           email_payment_course_subject: typeof k.email_payment_course_subject === 'string' ? k.email_payment_course_subject : '',
           email_payment_course_body: typeof k.email_payment_course_body === 'string' ? k.email_payment_course_body : '',
@@ -225,6 +228,7 @@ export function SettingsForms() {
             typeof k.google_site_verification === 'string' ? k.google_site_verification : '',
           bing_site_verification:
             typeof k.bing_site_verification === 'string' ? k.bing_site_verification : '',
+          payments_mode: typeof k.payments_mode === 'string' && k.payments_mode ? k.payments_mode : 'online',
           scorm_max_size_mb: k.scorm_max_size_mb ?? '200',
         });
         const pe = data.settings?.payment_email ?? {};
@@ -261,6 +265,7 @@ export function SettingsForms() {
       company_legal_address: keys.company_legal_address ?? '',
       google_site_verification: keys.google_site_verification ?? '',
       bing_site_verification: keys.bing_site_verification ?? '',
+      payments_mode: keys.payments_mode ?? 'online',
       scorm_max_size_mb: keys.scorm_max_size_mb ?? '200',
     });
     setPaymentEmail((p) => ({
@@ -305,6 +310,7 @@ export function SettingsForms() {
         company_legal_address: general.company_legal_address,
         google_site_verification: general.google_site_verification,
         bing_site_verification: general.bing_site_verification,
+        payments_mode: general.payments_mode,
         scorm_max_size_mb: general.scorm_max_size_mb,
       }),
     })
@@ -480,6 +486,23 @@ export function SettingsForms() {
             <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
               В Bing Webmaster Tools выберите способ «Метатег HTML» и вставьте сюда только значение content.
               Индекс Bing использует поиск ChatGPT — это отдельный канал трафика от ИИ-агентов.
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="payments_mode">Приём оплаты</Label>
+            <select
+              id="payments_mode"
+              value={general.payments_mode}
+              onChange={(e) => setGeneral((p) => ({ ...p, payments_mode: e.target.value }))}
+              className="mt-1 w-full rounded-lg border border-[#E2E8F0] bg-white px-3 py-2 text-sm text-[var(--portal-text)]"
+            >
+              <option value="online">Онлайн-оплата (касса PayKeeper)</option>
+              <option value="request">Оплата по заявке (касса выключена)</option>
+            </select>
+            <p className="mt-1 text-xs text-[var(--portal-text-muted)]">
+              «По заявке»: кнопка оплаты не вызывает кассу — заказ сохраняется, в CRM появляется горячий лид
+              «Заявка на оплату», вам приходит сообщение в Telegram; клиент видит «заявка принята, пришлём способ
+              оплаты». Бесплатные тарифы работают как обычно.
             </p>
           </div>
           <div>

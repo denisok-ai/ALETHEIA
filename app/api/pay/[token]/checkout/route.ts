@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createPayKeeperInvoice } from '@/lib/paykeeper';
+import { CHECKOUT_REQUEST_CLIENT_MESSAGE, getPaymentsMode, recordCheckoutRequest } from '@/lib/payments/checkout-request';
 import { buildPaykeeperServiceNamePayload } from '@/lib/paykeeper/fiscal';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
@@ -52,6 +53,19 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
       status: 'pending',
     },
   });
+  // Касса выключена — заявка вместо счёта (заказ уже сохранён как pending).
+  if ((await getPaymentsMode()) === 'request') {
+    await recordCheckoutRequest({
+      orderNumber,
+      productName: link.product.name,
+      amount: link.product.priceRub,
+      email: clientEmail,
+      name: clientName ?? '',
+      via: 'персональная ссылка оплаты',
+    });
+    return NextResponse.json({ requestAccepted: true, message: CHECKOUT_REQUEST_CLIENT_MESSAGE, orderNumber: order.orderNumber });
+  }
+
   const siteUrl = process.env.NEXT_PUBLIC_URL || 'https://avaterra.pro';
   const successRedirectUrl = `${siteUrl}/pay/${params.token}/success`;
   const serviceNamePayload = await buildPaykeeperServiceNamePayload(
