@@ -15,7 +15,7 @@ import { SiteAnalytics } from '@/components/SiteAnalytics';
 import { JsonLdWebSite } from '@/components/JsonLdWebSite';
 import { RootMain } from '@/components/RootMain';
 import { normalizeSiteUrl } from '@/lib/site-url';
-import { BRAND_LOGO_URL, BRAND_SITE_NAME } from '@/lib/brand';
+import { BRAND_SITE_NAME } from '@/lib/brand';
 import { getPublicProducts } from '@/lib/shop/public-products';
 
 export const dynamic = 'force-dynamic';
@@ -71,7 +71,6 @@ export async function generateMetadata(): Promise<Metadata> {
       icon: [
         { url: '/images/icons/favicon-120.png', type: 'image/png', sizes: '120x120' },
         { url: '/images/icons/favicon-512.png', type: 'image/png', sizes: '512x512' },
-        { url: BRAND_LOGO_URL, type: 'image/png', sizes: 'any' },
       ],
       shortcut: '/images/icons/favicon-120.png',
       apple: [{ url: '/images/icons/favicon-180.png', type: 'image/png', sizes: '180x180' }],
