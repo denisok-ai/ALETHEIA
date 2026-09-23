@@ -1,0 +1,108 @@
+- generic [active] [ref=f11e1]:
+  - dialog "Использование файлов cookie" [ref=f11e2]:
+    - generic [ref=f11e3]:
+      - paragraph [ref=f11e4]:
+        - text: "Сайт использует cookie: необходимые для работы (сессия, безопасность) и аналитические — Яндекс.Метрика, Google Analytics и Microsoft Clarity — для улучшения сайта. Продолжая пользоваться сайтом, вы соглашаетесь с"
+        - link "Политикой обработки персональных данных" [ref=f11e5] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+      - button "Понятно" [ref=f11e7] [cursor=pointer]
+  - generic [ref=f11e11]:
+    - banner [ref=f11e12]:
+      - button "Открыть меню" [ref=f11e13] [cursor=pointer]
+      - link "Уведомления" [ref=f11e16] [cursor=pointer]:
+        - /url: /portal/student/notifications
+    - main [ref=f11e23]:
+      - generic [ref=f11e24]:
+        - generic [ref=f11e25]:
+          - generic [ref=f11e28]:
+            - generic [ref=f11e29]:
+              - paragraph [ref=f11e30]: Добро пожаловать
+              - heading "dsosin" [level=1] [ref=f11e31]: dsosin 👋
+              - paragraph [ref=f11e32]:
+                - text: "Продолжайте обучение — каждый день делает вас сильнее. За первое завершение урока: +25 к уровню заряда · шкала пополняется каждые 100 единиц ("
+                - link "как это работает" [ref=f11e33] [cursor=pointer]:
+                  - /url: /portal/student/help#gamification
+                - text: ) ·
+                - link "история начислений" [ref=f11e34] [cursor=pointer]:
+                  - /url: /portal/student/gamification
+            - generic [ref=f11e35]:
+              - generic "Уровень заряда 1" [ref=f11e36]: "1"
+              - generic [ref=f11e37]:
+                - paragraph [ref=f11e38]:
+                  - text: "Заряд: 0%"
+                  - generic [ref=f11e39]: ", +50 к уровню заряда"
+                - paragraph [ref=f11e40]: Уровень заряда 1
+          - generic [ref=f11e44]: 🌱 Новичок
+        - status "Подсказка по разделам личного кабинета" [ref=f11e46]:
+          - generic [ref=f11e47]:
+            - paragraph [ref=f11e48]: Подсказка
+            - paragraph [ref=f11e49]:
+              - text: Ваши курсы и прогресс — в разделе
+              - strong [ref=f11e50]: «Мои курсы»
+              - text: . Вопросы и обращение в поддержку — в разделе
+              - strong [ref=f11e51]: «Поддержка»
+              - text: .
+            - generic [ref=f11e52]:
+              - link "Мои курсы" [ref=f11e53] [cursor=pointer]:
+                - /url: /portal/student/courses
+              - link "Поддержка" [ref=f11e56] [cursor=pointer]:
+                - /url: /portal/student/support
+              - button "Понятно" [ref=f11e59] [cursor=pointer]
+          - button "Закрыть подсказку" [ref=f11e60] [cursor=pointer]
+        - generic [ref=f11e64]:
+          - generic [ref=f11e69]:
+            - paragraph [ref=f11e70]: "1"
+            - paragraph [ref=f11e71]: Всего курсов
+          - generic [ref=f11e77]:
+            - paragraph [ref=f11e78]: "0"
+            - paragraph [ref=f11e79]: Завершено
+          - generic [ref=f11e85]:
+            - paragraph [ref=f11e86]: 0 мин
+            - paragraph [ref=f11e87]: Время обучения
+          - generic [ref=f11e92]:
+            - paragraph [ref=f11e93]: "Заряд: 0%"
+            - paragraph [ref=f11e94]: Уровни заряда
+            - paragraph [ref=f11e95]: Уровень заряда 1
+        - generic [ref=f11e96]:
+          - generic [ref=f11e97]:
+            - heading "Мои курсы" [level=2] [ref=f11e98]
+            - link "Все курсы" [ref=f11e99] [cursor=pointer]:
+              - /url: /portal/student/courses
+          - article [ref=f11e103]:
+            - 'button "Открыть страницу курса: Курс «Тело не врет» — поток 1" [ref=f11e104] [cursor=pointer]':
+              - generic: Не начат
+              - generic:
+                - button "Запустить курс \"Курс «Тело не врет» — поток 1\""
+            - generic [ref=f11e105]:
+              - generic [ref=f11e106]:
+                - link "Курс «Тело не врет» — поток 1" [ref=f11e107] [cursor=pointer]:
+                  - /url: /portal/student/courses/course-seed-1
+                - paragraph [ref=f11e108]: Описание курса 1. Phygital школа мышечного тестирования AVATERRA.
+              - generic [ref=f11e110]:
+                - generic [ref=f11e111]: "Прогресс: 0 из 3 уроков"
+                - generic [ref=f11e112]: 0%
+              - link "Начать курс" [ref=f11e115] [cursor=pointer]:
+                - /url: /portal/student/courses/course-seed-1/play
+        - generic [ref=f11e118]:
+          - generic [ref=f11e119]:
+            - heading "Уведомления" [level=2] [ref=f11e120]
+            - link "Все" [ref=f11e121] [cursor=pointer]:
+              - /url: /portal/student/notifications
+          - generic [ref=f11e124]:
+            - generic [ref=f11e130]:
+              - paragraph [ref=f11e131]: Вы записаны на курс — Курс «Тело не врет» — поток 1
+              - paragraph [ref=f11e132]: Запись на курс
+              - time [ref=f11e133]: 30 апр. 2026 г.
+            - generic [ref=f11e139]:
+              - paragraph [ref=f11e140]: Вы записаны на курс — AVATERRA
+              - paragraph [ref=f11e141]: Запись на курс
+              - time [ref=f11e142]: 29 апр. 2026 г.
+        - link [ref=f11e143] [cursor=pointer]:
+          - /url: https://t.me/AvaterraProBot?start=s-portal-student
+          - generic [ref=f11e147]:
+            - paragraph [ref=f11e148]: Telegram-бот школы
+            - paragraph [ref=f11e149]: Прогресс, сертификат и ответы под рукой — откройте @AvaterraProBot
+  - button "Открыть чат с консультантом" [ref=f11e152] [cursor=pointer]
+  - region "Notifications alt+T"
+  - alert [ref=f11e155]

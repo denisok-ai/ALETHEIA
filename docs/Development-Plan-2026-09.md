@@ -41,7 +41,7 @@ A/B и трекингом; `prod-verify` 16/16; деплой near-zero.
 - [x] Тесты с БД (sqlite-копия схемы): [x] lead-service (дедуп), [x] lead-qualify
   (forward-only статусы), [x] followup (идемпотентность), [x] оффер (кулдаун);
   [x] SCORM-прогресс (серверный рубеж «completed без CMI»), [x] сверка платежей → Enrollment.
-- [ ] **Миграция Next 14 → 16** (+ postcss): отдельная ветка, полный прогон
+- [~] **Миграция Next 14 → 16** (+ postcss): отдельная ветка, полный прогон
   build/lint/tests/prod-verify, деплой в дневное окно с откатом наготове.
   Закрывает critical DoS. Делать ПОСЛЕ появления тестов.
 
@@ -56,6 +56,9 @@ A/B и трекингом; `prod-verify` 16/16; деплой near-zero.
   показывать готовый ответ про рассрочку.
 
 ### P3 — качество кода
+- [ ] Включить правила React Compiler из eslint-config-next 16 (`react-hooks/set-state-in-effect`,
+  `refs`, `purity`, `preserve-manual-memoization`, `immutability`) — ~100 мест;
+  выключены при миграции, чтобы не смешивать с ней.
 - [ ] Разбить `lib/certificates.tsx` (1929 строк) и админ-клиенты > 1000
   строк на модули по ответственности — только под прикрытием тестов.
 - [ ] Prisma 5 → 6 (после Next 16).

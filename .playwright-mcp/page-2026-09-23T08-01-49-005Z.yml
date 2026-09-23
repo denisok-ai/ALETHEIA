@@ -1,0 +1,205 @@
+- generic [active] [ref=f7e1]:
+  - dialog "Использование файлов cookie" [ref=f7e2]:
+    - generic [ref=f7e3]:
+      - paragraph [ref=f7e4]:
+        - text: "Сайт использует cookie: необходимые для работы (сессия, безопасность) и аналитические — Яндекс.Метрика, Google Analytics и Microsoft Clarity — для улучшения сайта. Продолжая пользоваться сайтом, вы соглашаетесь с"
+        - link "Политикой обработки персональных данных" [ref=f7e5] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+      - button "Понятно" [ref=f7e7] [cursor=pointer]
+  - generic [ref=f7e13]:
+    - button [ref=f7e15] [cursor=pointer]
+    - main [ref=f7e19]:
+      - generic [ref=f7e20]:
+        - generic [ref=f7e21]:
+          - navigation "Хлебные крошки" [ref=f7e22]:
+            - generic [ref=f7e23]: Дашборд
+          - generic [ref=f7e26]:
+            - heading "Дашборд" [level=1] [ref=f7e27]
+            - paragraph [ref=f7e28]: Сводная аналитика и последние события
+        - region [ref=f7e29]:
+          - heading "Быстрый переход по разделам" [level=2] [ref=f7e30]
+          - generic [ref=f7e31]:
+            - generic [ref=f7e32]:
+              - link "Контент и обучение Курсы, сертификаты, публикации, медиатека" [ref=f7e33] [cursor=pointer]:
+                - /url: /portal/admin/courses
+                - generic [ref=f7e34]: Контент и обучение
+                - paragraph [ref=f7e40]: Курсы, сертификаты, публикации, медиатека
+              - list [ref=f7e41]:
+                - listitem [ref=f7e42]:
+                  - link "Курсы" [ref=f7e43] [cursor=pointer]:
+                    - /url: /portal/admin/courses
+                - listitem [ref=f7e44]:
+                  - link "Сертификаты" [ref=f7e45] [cursor=pointer]:
+                    - /url: /portal/admin/certificates
+                - listitem [ref=f7e46]:
+                  - link "Публикации" [ref=f7e47] [cursor=pointer]:
+                    - /url: /portal/admin/publications
+                - listitem [ref=f7e48]:
+                  - link "ещё…" [ref=f7e49] [cursor=pointer]:
+                    - /url: /portal/admin/courses
+            - generic [ref=f7e50]:
+              - link "Пользователи и продажи Пользователи, CRM, товары, оплаты" [ref=f7e51] [cursor=pointer]:
+                - /url: /portal/admin/users
+                - generic [ref=f7e52]: Пользователи и продажи
+                - paragraph [ref=f7e61]: Пользователи, CRM, товары, оплаты
+              - list [ref=f7e62]:
+                - listitem [ref=f7e63]:
+                  - link "Пользователи" [ref=f7e64] [cursor=pointer]:
+                    - /url: /portal/admin/users
+                - listitem [ref=f7e65]:
+                  - link "CRM" [ref=f7e66] [cursor=pointer]:
+                    - /url: /portal/admin/crm
+                - listitem [ref=f7e67]:
+                  - link "Товары" [ref=f7e68] [cursor=pointer]:
+                    - /url: /portal/admin/shop
+                - listitem [ref=f7e69]:
+                  - link "ещё…" [ref=f7e70] [cursor=pointer]:
+                    - /url: /portal/admin/users
+            - generic [ref=f7e71]:
+              - link "Коммуникации Почта, доставка, ящики @домен, рассылки, уведомления" [ref=f7e72] [cursor=pointer]:
+                - /url: /portal/admin/mail
+                - generic [ref=f7e73]: Коммуникации
+                - paragraph [ref=f7e80]: Почта, доставка, ящики @домен, рассылки, уведомления
+              - list [ref=f7e81]:
+                - listitem [ref=f7e82]:
+                  - link "Почта" [ref=f7e83] [cursor=pointer]:
+                    - /url: /portal/admin/mail
+                - listitem [ref=f7e84]:
+                  - link "Почтовые ящики" [ref=f7e85] [cursor=pointer]:
+                    - /url: /portal/admin/mail?tab=mailboxes
+                - listitem [ref=f7e86]:
+                  - link "Рассылки" [ref=f7e87] [cursor=pointer]:
+                    - /url: /portal/admin/mailings
+                - listitem [ref=f7e88]:
+                  - link "ещё…" [ref=f7e89] [cursor=pointer]:
+                    - /url: /portal/admin/mail
+            - generic [ref=f7e90]:
+              - link "Аналитика и контроль Отчётность, мониторинг, аудит" [ref=f7e91] [cursor=pointer]:
+                - /url: /portal/admin/reports
+                - generic [ref=f7e92]: Аналитика и контроль
+                - paragraph [ref=f7e98]: Отчётность, мониторинг, аудит
+              - list [ref=f7e99]:
+                - listitem [ref=f7e100]:
+                  - link "Отчётность" [ref=f7e101] [cursor=pointer]:
+                    - /url: /portal/admin/reports
+                - listitem [ref=f7e102]:
+                  - link "Мониторинг" [ref=f7e103] [cursor=pointer]:
+                    - /url: /portal/admin/monitoring
+                - listitem [ref=f7e104]:
+                  - link "Журнал аудита" [ref=f7e105] [cursor=pointer]:
+                    - /url: /portal/admin/audit
+            - generic [ref=f7e106]:
+              - link "Настройки AI, общие настройки системы" [ref=f7e107] [cursor=pointer]:
+                - /url: /portal/admin/settings
+                - generic [ref=f7e108]: Настройки
+                - paragraph [ref=f7e115]: AI, общие настройки системы
+              - list [ref=f7e116]:
+                - listitem [ref=f7e117]:
+                  - link "Настройки AI" [ref=f7e118] [cursor=pointer]:
+                    - /url: /portal/admin/ai-settings
+                - listitem [ref=f7e119]:
+                  - link "Настройки" [ref=f7e120] [cursor=pointer]:
+                    - /url: /portal/admin/settings
+        - generic [ref=f7e121]:
+          - generic [ref=f7e126]:
+            - paragraph [ref=f7e127]: Выручка (мес.)
+            - paragraph [ref=f7e128]: 0 ₽
+          - generic [ref=f7e129]:
+            - paragraph [ref=f7e130]: Пользователей
+            - paragraph [ref=f7e131]: "17"
+          - generic [ref=f7e132]:
+            - paragraph [ref=f7e133]: Курсов
+            - paragraph [ref=f7e134]: "6"
+          - generic [ref=f7e135]:
+            - paragraph [ref=f7e136]: Открытых тикетов
+            - paragraph [ref=f7e137]: "0"
+          - generic [ref=f7e138]:
+            - paragraph [ref=f7e139]: Новых лидов
+            - paragraph [ref=f7e140]: "2"
+        - generic [ref=f7e141]:
+          - generic [ref=f7e142]:
+            - paragraph [ref=f7e143]: Начали обучение
+            - paragraph [ref=f7e144]: "6"
+            - paragraph [ref=f7e145]: уникальных слушателей
+          - generic [ref=f7e146]:
+            - paragraph [ref=f7e147]: Сертификатов
+            - paragraph [ref=f7e148]: "0"
+          - generic [ref=f7e149]:
+            - paragraph [ref=f7e150]: Средний балл
+            - paragraph [ref=f7e151]: 0%
+          - generic [ref=f7e152]:
+            - paragraph [ref=f7e153]: Записей прогресса
+            - paragraph [ref=f7e154]: "7"
+        - generic "Загрузка графиков" [ref=f7e155]
+        - generic [ref=f7e159]:
+          - heading "Последние события" [level=2] [ref=f7e160]
+          - table [ref=f7e162]:
+            - rowgroup [ref=f7e163]:
+              - row [ref=f7e164]:
+                - columnheader "Тип" [ref=f7e165]
+                - columnheader "Детали" [ref=f7e166]
+                - columnheader "Дата" [ref=f7e167]
+            - rowgroup [ref=f7e168]:
+              - row [ref=f7e169]:
+                - cell "Лид" [ref=f7e170]
+                - cell [ref=f7e171]:
+                  - link "Shehraz Ali · tg:6052587367" [ref=f7e172] [cursor=pointer]:
+                    - /url: /portal/admin/crm
+                - cell "12.09.2026 16:41" [ref=f7e173]
+              - row [ref=f7e174]:
+                - cell "Лид" [ref=f7e175]
+                - cell [ref=f7e176]:
+                  - link "One love · @jafer2n" [ref=f7e177] [cursor=pointer]:
+                    - /url: /portal/admin/crm
+                - cell "29.08.2026 00:36" [ref=f7e178]
+              - row [ref=f7e179]:
+                - cell "Лид" [ref=f7e180]
+                - cell [ref=f7e181]:
+                  - link "Monu · tg:id-уточняется" [ref=f7e182] [cursor=pointer]:
+                    - /url: /portal/admin/crm
+                - cell "25.08.2026 23:47" [ref=f7e183]
+              - row [ref=f7e184]:
+                - cell "Лид" [ref=f7e185]
+                - cell [ref=f7e186]:
+                  - link "Mame · tg:id-уточняется" [ref=f7e187] [cursor=pointer]:
+                    - /url: /portal/admin/crm
+                - cell "25.08.2026 23:31" [ref=f7e188]
+              - row [ref=f7e189]:
+                - cell "Лид" [ref=f7e190]
+                - cell [ref=f7e191]:
+                  - link "Abrsh · @abrsh1922" [ref=f7e192] [cursor=pointer]:
+                    - /url: /portal/admin/crm
+                - cell "24.08.2026 15:32" [ref=f7e193]
+              - row [ref=f7e194]:
+                - cell "Лид" [ref=f7e195]
+                - cell [ref=f7e196]:
+                  - link "Md · @Mdrohid733" [ref=f7e197] [cursor=pointer]:
+                    - /url: /portal/admin/crm
+                - cell "24.08.2026 11:12" [ref=f7e198]
+              - row [ref=f7e199]:
+                - cell "Регистрация" [ref=f7e200]
+                - cell [ref=f7e201]:
+                  - link "my-loft@yandex.ru" [ref=f7e202] [cursor=pointer]:
+                    - /url: /portal/admin/users/cmsy9rs140000h5poijkoqy40
+                - cell "18.08.2026 09:16" [ref=f7e203]
+              - row [ref=f7e204]:
+                - cell "Регистрация" [ref=f7e205]
+                - cell [ref=f7e206]:
+                  - link "e.lelekova1@mail.ru" [ref=f7e207] [cursor=pointer]:
+                    - /url: /portal/admin/users/cms4874gs00528cw568ik5trq
+                - cell "28.07.2026 08:39" [ref=f7e208]
+              - row [ref=f7e209]:
+                - cell "Оплата" [ref=f7e210]
+                - cell [ref=f7e211]:
+                  - link "ALT-_1kZ4CDgBi — 0 ₽ · e.lelekova1@mail.ru" [ref=f7e212] [cursor=pointer]:
+                    - /url: /portal/admin/payments
+                - cell "28.07.2026 08:39" [ref=f7e213]
+              - row [ref=f7e214]:
+                - cell "Оплата" [ref=f7e215]
+                - cell [ref=f7e216]:
+                  - link "PL-1785165655700-M2B9 — 2 500 ₽ · taiss2379@mail.ru" [ref=f7e217] [cursor=pointer]:
+                    - /url: /portal/admin/payments
+                - cell "27.07.2026 18:21" [ref=f7e218]
+  - region "Notifications alt+T"
+  - alert [ref=f7e219]

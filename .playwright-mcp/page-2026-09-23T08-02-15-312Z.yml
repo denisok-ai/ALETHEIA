@@ -1,0 +1,19 @@
+- generic [active] [ref=f8e1]:
+  - dialog "Использование файлов cookie" [ref=f8e2]:
+    - generic [ref=f8e3]:
+      - paragraph [ref=f8e4]:
+        - text: "Сайт использует cookie: необходимые для работы (сессия, безопасность) и аналитические — Яндекс.Метрика, Google Analytics и Microsoft Clarity — для улучшения сайта. Продолжая пользоваться сайтом, вы соглашаетесь с"
+        - link "Политикой обработки персональных данных" [ref=f8e5] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+      - button "Понятно" [ref=f8e7] [cursor=pointer]
+  - main [ref=f8e8]:
+    - generic [ref=f8e10]:
+      - heading "Выход" [level=1] [ref=f8e11]
+      - paragraph [ref=f8e12]: Вы уверены, что хотите выйти из личного кабинета?
+      - generic [ref=f8e13]:
+        - button "Выйти" [ref=f8e14] [cursor=pointer]
+        - link "Остаться" [ref=f8e15] [cursor=pointer]:
+          - /url: /portal
+  - region "Notifications alt+T"
+  - alert [ref=f8e16]
