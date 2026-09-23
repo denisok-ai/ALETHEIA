@@ -157,6 +157,7 @@ fi
 rsync -avz -e "$RSYNC_RSH" \
   ./package.json \
   ./package-lock.json \
+  ./.npmrc \
   ./next.config.mjs \
   ./middleware.ts \
   ./instrumentation.ts \
