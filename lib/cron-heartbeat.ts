@@ -38,6 +38,8 @@ export const CRON_EXPECTED_INTERVAL_MIN: Record<string, number> = {
   'telegram-lead-followup': 60,
   // SEO-дайджест Яндекс.Вебмастера — раз в неделю (пн 09:00).
   'yandex-webmaster-digest': 10080,
+  // Здоровье сервера (память/swap/диск/OOM) — каждые 15 минут.
+  'server-health': 15,
 };
 
 /** Отметить успешное выполнение. Сбой отметки не должен ронять саму задачу. */

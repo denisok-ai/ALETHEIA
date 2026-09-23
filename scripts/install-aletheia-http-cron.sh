@@ -61,6 +61,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # диагностика) + дострел переобхода свежих статей. Понедельник утром.
 0 9 * * 1 root /opt/ALETHEIA/scripts/cron-http-call.sh yandex-webmaster-digest
 
+# Здоровье сервера после даунгрейда до 4 ГБ: память/swap/диск/OOM, алерт в Telegram.
+*/15 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh server-health
+
 # Целостность контента курсов — раз в сутки, 08:40 МСК.
 # После инцидента 11.08.2026: во всех платных курсах 2,5 месяца стоял demo-SCORM,
 # витрина/оплата/доступ выглядели исправными — узнали от студентки, дошедшей до
