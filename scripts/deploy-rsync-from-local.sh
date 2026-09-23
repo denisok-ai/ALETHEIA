@@ -180,6 +180,12 @@ deploy_emergency_start() {
   code=$?
   echo "(!) Деплой оборван (код $code) — аварийное восстановление"
   if [ ! -d .next ] && [ -d .next.old ]; then mv .next.old .next 2>/dev/null || true; fi
+  # Инцидент 23.09: упавший npm ci оставлял пустые node_modules → «next: not found»
+  # и 3 часа рестарт-лупа. Зависимости теперь ставятся в staging и подменяются
+  # атомарно, но на всякий случай возвращаем и их.
+  if [ ! -x node_modules/.bin/next ] && [ -d node_modules.old ]; then
+    rm -rf node_modules; mv node_modules.old node_modules 2>/dev/null || true
+  fi
   systemctl start aletheia 2>/dev/null || true
   systemctl start aletheia-jobs 2>/dev/null || true
   systemctl start aletheia-telegram-poll 2>/dev/null || true
@@ -215,6 +221,19 @@ else
   # (безопасно при работающем инстансе: он держит старый клиент в памяти).
   if [ "$NEED_CI" = "0" ]; then npx prisma generate; fi
 
+  # Зависимости ставим в staging ПРИ РАБОТАЮЩЕМ проде: если npm ci упадёт —
+  # деплой прервётся до остановки сервисов, а не оставит пустые node_modules
+  # внутри окна простоя (инцидент 23.09). Клиент Prisma генерируем туда же.
+  if [ "$NEED_CI" = "1" ]; then
+    rm -rf .deps-staging; mkdir -p .deps-staging
+    cp package.json package-lock.json .deps-staging/
+    [ -f .npmrc ] && cp .npmrc .deps-staging/
+    (cd .deps-staging && npm ci --omit=dev)
+    (cd .deps-staging && npx prisma generate --schema ../prisma/schema.prisma)
+    [ -x .deps-staging/node_modules/.bin/next ] || { echo "Ошибка: staging node_modules без next"; exit 1; }
+    [ -f .deps-staging/node_modules/.prisma/client/index.js ] || { echo "Ошибка: клиент Prisma не сгенерирован в staging"; exit 1; }
+  fi
+
   echo "  → окно простоя: NEED_CI=$NEED_CI NEED_MIGRATE=$NEED_MIGRATE"
   # === ОКНО ПРОСТОЯ === (минимально: swap .next + рестарт; +npm ci/migrate лишь при нужде)
   # Воркеры и приложение держат SQLite → для migrate их надо остановить.
@@ -229,9 +248,10 @@ else
   fuser -k 3000/tcp 2>/dev/null || true
 
   if [ "$NEED_CI" = "1" ]; then
-    rm -rf node_modules; npm ci --omit=dev
+    rm -rf node_modules.old; [ -d node_modules ] && mv node_modules node_modules.old
+    mv .deps-staging/node_modules node_modules
+    rm -rf .deps-staging
     sha256sum package-lock.json > .deploy-lock-hash
-    npx prisma generate
   fi
   if [ "$NEED_MIGRATE" = "1" ]; then
     npx prisma migrate deploy
@@ -268,6 +288,7 @@ fuser -k 3000/tcp 2>/dev/null || true
 sudo systemctl restart aletheia.service
 sudo systemctl is-active aletheia.service
 trap - ERR
+rm -rf node_modules.old
 rm -f /run/aletheia-deploy.active
 rm -rf .next.old
 
