@@ -1,0 +1,358 @@
+- generic [active] [ref=e1]:
+  - dialog "Использование файлов cookie" [ref=e2]:
+    - generic [ref=e3]:
+      - paragraph [ref=e4]:
+        - text: "Сайт использует cookie: необходимые для работы (сессия, безопасность) и аналитические — Яндекс.Метрика, Google Analytics и Microsoft Clarity — для улучшения сайта. Продолжая пользоваться сайтом, вы соглашаетесь с"
+        - link "Политикой обработки персональных данных" [ref=e5] [cursor=pointer]:
+          - /url: /privacy
+        - text: .
+      - button "Понятно" [ref=e7] [cursor=pointer]
+  - banner [ref=e8]:
+    - generic [ref=e9]:
+      - link "АВАТЕРРА" [ref=e10] [cursor=pointer]:
+        - /url: "#hero"
+      - button "Меню" [ref=e13] [cursor=pointer]
+  - main [ref=e15]:
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - paragraph [ref=e20]: Школа «AVATERRA»
+        - heading "Ваше тело знает ответ. Научитесь его понимать." [level=1] [ref=e21]
+        - paragraph [ref=e22]: Курс по обучению мышечному тестированию. Узнайте, как найти причину проблемы за 30 секунд.
+        - generic [ref=e23]:
+          - link "Выбрать программу" [ref=e24] [cursor=pointer]:
+            - /url: "#pricing"
+          - link "Купить курс" [ref=e25] [cursor=pointer]:
+            - /url: /#pricing
+        - paragraph [ref=e26]:
+          - link "Читать блог" [ref=e27] [cursor=pointer]:
+            - /url: /blog
+      - 'img "Практика мышечного тестирования и кинезиологии AVATERRA: сессия, жест O‑кольцо, работа с руками" [ref=e31]'
+    - generic [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e35]: Метод
+        - heading "Как это работает?" [level=2] [ref=e36]
+        - paragraph [ref=e37]: Три шага взаимодействия с телом. Так вы получаете обратную связь без сложной аппаратуры.
+      - generic [ref=e38]:
+        - generic [ref=e40]:
+          - generic [aria-hidden] [ref=e41]: "1"
+          - heading "Контакт" [level=3] [ref=e42]
+          - paragraph [ref=e43]: Вы касаетесь тела.
+        - generic [ref=e48]:
+          - generic [aria-hidden] [ref=e49]: "2"
+          - heading "Вопрос" [level=3] [ref=e50]
+          - paragraph [ref=e51]: Задаете вопрос.
+        - generic [ref=e56]:
+          - generic [aria-hidden] [ref=e57]: "3"
+          - heading "Ответ" [level=3] [ref=e58]
+          - paragraph [ref=e59]: Слабость или сила мышцы показывают готовность тела к взаимодействию.
+    - generic [ref=e61]:
+      - generic [ref=e62]:
+        - generic [ref=e63]: О школе
+        - heading "АВАТЕРРА — школа мышечного тестирования" [level=2] [ref=e64]
+        - paragraph [ref=e65]: АВАТЕРРА (AVATERRA) — онлайн-школа мышечного тестирования и кинезиологии Татьяны Стрельцовой. Мы учим находить причину телесного или эмоционального напряжения через обратную связь мышц («тело не врёт») и применять метод на себе и с клиентами. Более 15 000 человек прошли программы школы за 20+ лет практики.
+      - generic [ref=e66]:
+        - generic [ref=e67]:
+          - heading "Индивидуальный подход" [level=3] [ref=e70]
+          - paragraph [ref=e71]: Глубокое понимание связи тела и психики, ориентированное на ваши запросы.
+        - generic [ref=e72]:
+          - heading "Опыт и признание" [level=3] [ref=e75]
+          - paragraph [ref=e76]: Мастера школы — практики с многолетним стажем и признанной методикой в России и за рубежом.
+        - generic [ref=e77]:
+          - heading "Проверенные методики" [level=3] [ref=e80]
+          - paragraph [ref=e81]: Программы на основе мышечного тестирования и работы с подсознанием.
+        - generic [ref=e82]:
+          - heading "Поддержка на пути" [level=3] [ref=e88]
+          - paragraph [ref=e89]: Сопровождение на всех этапах — от первой консультации до курса.
+    - generic [ref=e91]:
+      - heading "Программа курса" [level=2] [ref=e92]
+      - paragraph [ref=e93]: Что входит в программу
+      - generic [ref=e94]:
+        - generic [ref=e99]:
+          - paragraph [ref=e100]: "5"
+          - paragraph [ref=e101]: модулей
+        - generic [ref=e107]:
+          - paragraph [ref=e108]: "8"
+          - paragraph [ref=e109]: живых практических уроков
+        - generic [ref=e115]:
+          - paragraph [ref=e116]: 25+
+          - paragraph [ref=e117]: часов материала
+      - generic [ref=e118]:
+        - button "1 Введение в метод 1 уроков · 1 ч" [ref=e120] [cursor=pointer]:
+          - generic [ref=e121]:
+            - generic [ref=e122]: "1"
+            - heading "Введение в метод" [level=3] [ref=e123]
+          - generic [ref=e124]: 1 уроков · 1 ч
+        - button "2 Мышечное тестирование 4 уроков · 4 ч" [ref=e128] [cursor=pointer]:
+          - generic [ref=e129]:
+            - generic [ref=e130]: "2"
+            - heading "Мышечное тестирование" [level=3] [ref=e131]
+          - generic [ref=e132]: 4 уроков · 4 ч
+        - button "3 Работа с подсознанием 5 уроков · 7 ч" [ref=e136] [cursor=pointer]:
+          - generic [ref=e137]:
+            - generic [ref=e138]: "3"
+            - heading "Работа с подсознанием" [level=3] [ref=e139]
+          - generic [ref=e140]: 5 уроков · 7 ч
+        - button "4 Практика 8 уроков · 12 ч" [ref=e144] [cursor=pointer]:
+          - generic [ref=e145]:
+            - generic [ref=e146]: "4"
+            - heading "Практика" [level=3] [ref=e147]
+          - generic [ref=e148]: 8 уроков · 12 ч
+        - button "5 Работа с подсознанием. Инструменты 2 уроков · 3 ч" [ref=e152] [cursor=pointer]:
+          - generic [ref=e153]:
+            - generic [ref=e154]: "5"
+            - heading "Работа с подсознанием. Инструменты" [level=3] [ref=e155]
+          - generic [ref=e156]: 2 уроков · 3 ч
+      - generic [ref=e159]:
+        - link "Записаться на курс" [ref=e160] [cursor=pointer]:
+          - /url: /#pricing
+        - link "Смотреть тарифы" [ref=e161] [cursor=pointer]:
+          - /url: "#pricing"
+    - generic [ref=e164]:
+      - img "Татьяна Стрельцова — мастер подсознания, основательница школы кинезиологии АВАТЕРРА" [ref=e168]
+      - article [ref=e169]:
+        - generic [ref=e170]: Основательница школы и ведущий мастер
+        - heading "Татьяна Стрельцова" [level=2] [ref=e171]
+        - paragraph [ref=e172]: 22 года практики · более 15 000 консультаций
+        - paragraph [ref=e173]: "С 2004 года я практикую кинезиологию и мышечный тест, помогая людям обрести внутренний баланс и силу жизни. «АВАТЕРРА» — онлайн-школа мышечного тестирования: здесь я передаю метод, который помогает за десятки секунд увидеть скрытую причину напряжения через обратную связь тела."
+        - paragraph [ref=e174]: "Школа обучает специалистов и тех, кто готов меняться: основы мышечного тестирования, работа с подсознанием, разбор ошибок и живая практика с кураторами. Основной курс — «Навыки мышечного тестирования» (тариф «Практик»); отдельно — программа «Пробуждение»."
+        - paragraph [ref=e175]: Я передаю знания и опыт тем, кто готов меняться.
+        - link "Связаться со мной" [ref=e176] [cursor=pointer]:
+          - /url: /#pricing
+    - generic [ref=e178]:
+      - generic [ref=e179]:
+        - generic [ref=e180]: Отзывы
+        - heading "Истории тех, кто прошёл наши программы" [level=2] [ref=e181]
+        - generic [ref=e182]: 5.0 · на основе отзывов
+      - list [ref=e195]:
+        - listitem [ref=e196]:
+          - blockquote [ref=e197]:
+            - paragraph [ref=e201]: «Помнишь, мы года 4 назад делали групповое на сбычу желаний. У меня почти всё сбылось на 70% — именно то, что я просила и хотела. Осталось ещё немного.»
+            - generic [ref=e202]:
+              - generic [ref=e203]: Марина П.
+              - generic "Оценка 5 из 5" [ref=e204]
+        - listitem [ref=e215]:
+          - blockquote [ref=e216]:
+            - paragraph [ref=e220]: "«После курса я по-другому слышу тело: меньше тревоги, больше ясности в решениях. Татьяна даёт и инструмент, и человеческую поддержку — рекомендую всем, кто готов к честному диалогу с собой.»"
+            - generic [ref=e221]:
+              - generic [ref=e222]: Ирина Г.
+              - generic "Оценка 5 из 5" [ref=e223]
+        - listitem [ref=e234]:
+          - blockquote [ref=e235]:
+            - paragraph [ref=e239]: «Прошла курс „8 состояний“ — по-другому слышу тело и свои реакции, меньше хаоса в голове. Благодарю за ясность и поддержку.»
+            - generic [ref=e240]:
+              - generic [ref=e241]: Елена С.
+              - generic "Оценка 5 из 5" [ref=e242]
+    - generic [ref=e254]:
+      - generic [ref=e255]:
+        - generic [ref=e256]:
+          - generic [ref=e257]: Блог
+          - heading "Свежие материалы" [level=2] [ref=e258]
+          - paragraph [ref=e259]: Статьи о мышечном тестировании, телесной обратной связи и практике школы AVATERRA.
+        - link "Все статьи" [ref=e260] [cursor=pointer]:
+          - /url: /blog
+      - list [ref=e261]:
+        - listitem [ref=e262]:
+          - link [ref=e263] [cursor=pointer]:
+            - /url: /blog/probuzhdenie-21-den-osoznannosti
+            - time [ref=e264]: 3 мая 2026 г.
+            - 'heading "Пробуждение: 21 день, который возвращает контакт с собой" [level=3] [ref=e265]'
+            - paragraph [ref=e266]: "Три недели программы: диагностика и контакт с собой, очищение и новое состояние, интеграция «я новая». Форматы и цены — в конце статьи."
+            - generic [ref=e267]:
+              - text: Читать
+              - generic [aria-hidden] [ref=e268]: →
+        - listitem [ref=e269]:
+          - link [ref=e270] [cursor=pointer]:
+            - /url: /blog/pervye-shagi-myshechnogo-testirovaniya
+            - time [ref=e271]: 12 апреля 2026 г.
+            - 'heading "Первые шаги: контакт, вода и тест" [level=3] [ref=e272]'
+            - paragraph [ref=e273]: "С чего начать без спешки: контакт с телом, вода, простой тест — и почему важнее качество связи с мышцой, чем «сильное давление»."
+            - generic [ref=e274]:
+              - text: Читать
+              - generic [aria-hidden] [ref=e275]: →
+        - listitem [ref=e276]:
+          - link [ref=e277] [cursor=pointer]:
+            - /url: /blog/stress-hronika-ili-signal-tela
+            - time [ref=e278]: 8 апреля 2026 г.
+            - 'heading "Стресс: найти причину, применяя мышечный тест" [level=3] [ref=e279]'
+            - paragraph [ref=e280]: Как отличить привычный фон от сигнала тела и зачем мышечный тест помогает увидеть, где перегруз и что с этим делать.
+            - generic [ref=e281]:
+              - text: Читать
+              - generic [aria-hidden] [ref=e282]: →
+    - generic [ref=e286]:
+      - generic [ref=e287]:
+        - generic [ref=e288]: Telegram-бот школы
+        - heading "Задайте вопрос о методе прямо в Telegram" [level=2] [ref=e292]
+        - list [ref=e293]:
+          - listitem [ref=e294]:
+            - generic [ref=e296]: Ответит на вопросы о мышечном тестировании и школе
+          - listitem [ref=e297]:
+            - generic [ref=e299]: Поможет выбрать курс под ваш запрос
+          - listitem [ref=e300]:
+            - generic [ref=e302]: Студентам — прогресс по курсу и сертификат под рукой
+      - generic [ref=e303]:
+        - link "Открыть бота" [ref=e304] [cursor=pointer]:
+          - /url: https://t.me/AvaterraProBot?start=s-landing
+        - link "Подписаться на канал" [ref=e307] [cursor=pointer]:
+          - /url: https://t.me/+ZTTHAJZfS281OGZi
+        - paragraph [ref=e308]: "@AvaterraProBot"
+    - generic [ref=e310]:
+      - generic [ref=e311]:
+        - generic [ref=e312]: Вопросы и ответы
+        - heading "Часто задаваемые вопросы" [level=2] [ref=e313]
+        - paragraph [ref=e314]: Практики, время в день, форматы участия и частые вопросы перед стартом.
+      - generic [ref=e315]:
+        - generic [ref=e316]:
+          - button "Я никогда не занимался(ась) практиками — мне подойдёт?" [expanded] [ref=e317] [cursor=pointer]
+          - generic [ref=e322]:
+            - paragraph [ref=e323]: Да. Курс построен на простых, но эффективных методах. Их легко встроить в обычный день — без специальной подготовки.
+            - paragraph [ref=e324]: Часть практик и очищений мы проходим вместе с мастером на эфирах и в работе в чате.
+        - button "Сколько времени в день потребуется?" [ref=e326] [cursor=pointer]
+        - button "Чем отличается групповой формат от индивидуального?" [ref=e331] [cursor=pointer]
+        - button "Это религиозный курс?" [ref=e336] [cursor=pointer]
+        - button "Могу ли я пройти курс, если есть депрессия или тревожность?" [ref=e341] [cursor=pointer]
+    - generic [ref=e346]:
+      - generic [ref=e347]: Тарифы
+      - heading "Купить курс или записаться на консультацию" [level=2] [ref=e348]
+      - paragraph [ref=e349]: "Выберите формат: бесплатное знакомство, полный курс или наставничество. Оплата и детали — в модальном окне."
+      - generic [ref=e350]:
+        - generic [ref=e356]:
+          - 'heading "«Аватера»: Мастер. Наставничество Татьяны Стрельцовой" [level=3] [ref=e357]'
+          - paragraph [ref=e358]: "Тариф VIP: глубокое погружение, авторские нюансы и личное время основателя с 22-летним опытом."
+          - list [ref=e359]:
+            - listitem [ref=e360]: "• Всё из тарифа «Практик»: курс и базовые дополнительные материалы"
+            - listitem [ref=e361]: • Закрытые онлайн-встречи с Татьяной Стрельцовой для узкой группы
+            - listitem [ref=e362]: • Обучение диагностике и применение в авторских техниках
+            - listitem [ref=e363]: "• Закрытый модуль: продвинутые техники, сложные кейсы, интеграция системы в жизнь"
+          - paragraph [ref=e364]: 69 000 ₽
+          - button "Купить" [ref=e365] [cursor=pointer]
+          - link "Подробнее о тарифе" [ref=e366] [cursor=pointer]:
+            - /url: /services/avaterra-master-vip
+        - generic [ref=e369]:
+          - generic [ref=e370]: Хит продаж
+          - generic [ref=e373]:
+            - 'heading "«Аватера»: Практик" [level=3] [ref=e374]'
+            - paragraph [ref=e375]: "Тариф «Практик»: фундаментальный навык мышечного тестирования — на себе, для близких или старта работы с клиентами."
+            - list [ref=e376]:
+              - listitem [ref=e377]: "• Полный дистанционный курс: введение, основы тестирования, подсознание, методы работы с подсознанием"
+              - listitem [ref=e378]: "• Доп. видео: библиотека эмоций, ошибки новичков, скрипты и алгоритмы"
+              - listitem [ref=e379]: • Регулярные Zoom с сертифицированными кураторами школы
+              - listitem [ref=e380]: • Вопросы и ответы, отработка техники под наблюдением эксперта, разбор ваших ситуаций
+            - paragraph [ref=e381]: 25 000 ₽
+            - button "Купить" [ref=e382] [cursor=pointer]
+            - link "Подробнее о тарифе" [ref=e383] [cursor=pointer]:
+              - /url: /services/avaterra-praktik
+        - generic [ref=e389]:
+          - 'heading "Тело знает всё: введение в мышечное тестирование" [level=3] [ref=e390]'
+          - paragraph [ref=e391]: "Бесплатный мини-курс для знакомства с методом: снять страх «не получится», дать быстрый «вау»-эффект и мягко подвести к платным тарифам."
+          - list [ref=e392]:
+            - listitem [ref=e393]: • 3–4 коротких видео по 7–15 минут
+            - listitem [ref=e394]: "• Видео 1 — знакомство: кинезиология, стресс, скрытые эмоции"
+            - listitem [ref=e395]: • Видео 2 — демонстрация теста из практики
+            - listitem [ref=e396]: "• Видео 3 — практика: простой само-тест «Да/Нет» на вашем теле"
+            - listitem [ref=e397]: • Видео 4 — полный путь в школе и предложение тарифов «Практик» и VIP
+          - paragraph [ref=e398]: Бесплатно
+          - button "Получить бесплатно" [ref=e399] [cursor=pointer]
+          - link "Подробнее о тарифе" [ref=e400] [cursor=pointer]:
+            - /url: /services/kod-tela-start
+        - generic [ref=e406]:
+          - heading "«Пробуждение» — групповой формат" [level=3] [ref=e407]
+          - paragraph [ref=e408]: Пробуждение в группе с поддержкой мастера. 3 недели практик настоящего момента, чат участников и живые встречи.
+          - list [ref=e409]:
+            - listitem [ref=e410]: • 3 недели практик «настоящего момента»
+            - listitem [ref=e411]: • Доступ к материалам без ограничений по времени
+            - listitem [ref=e412]: • Работа в чате и с мастером в группе
+            - listitem [ref=e413]: • Живые встречи с разбором практик
+          - paragraph [ref=e414]: 22 000 ₽
+          - button "Купить" [ref=e415] [cursor=pointer]
+          - link "Подробнее о тарифе" [ref=e416] [cursor=pointer]:
+            - /url: /services/probuzhdenie-group
+        - generic [ref=e422]:
+          - heading "«Пробуждение» — индивидуально" [level=3] [ref=e423]
+          - paragraph [ref=e424]: Личное сопровождение мастера в индивидуальном темпе. Все практики адаптируются под запрос.
+          - list [ref=e425]:
+            - listitem [ref=e426]: • 3 недели практик «настоящего момента»
+            - listitem [ref=e427]: • Доступ к материалам без ограничений по времени
+            - listitem [ref=e428]: • Работа в личном чате с мастером
+            - listitem [ref=e429]: • Индивидуальный разбор практик и обратная связь
+          - paragraph [ref=e430]: 44 000 ₽
+          - paragraph [ref=e431]: Рассрочка от 7 334 ₽/мес
+          - button "Купить" [ref=e432] [cursor=pointer]
+          - button "Купить в рассрочку от 7 334 ₽/мес" [ref=e433] [cursor=pointer]
+          - link "Подробнее о тарифе" [ref=e434] [cursor=pointer]:
+            - /url: /services/probuzhdenie-individual
+    - generic [ref=e436]:
+      - generic [ref=e437]:
+        - generic [ref=e438]: Поиск и помощник
+        - heading "Вопросы и помощник по курсу" [level=2] [ref=e439]
+        - paragraph [ref=e440]: Сначала поищите в списке; если нужно переформулировать — спросите помощника по базе знаний курса или откройте чат справа внизу на экране.
+      - generic [ref=e441]:
+        - generic [ref=e442]:
+          - searchbox "Поиск по вопросам" [ref=e447]
+          - generic [ref=e448]:
+            - button "Что такое мышечное тестирование?" [ref=e450] [cursor=pointer]
+            - button "Как проходит личная консультация?" [ref=e459] [cursor=pointer]
+            - button "Можно ли обучаться онлайн / дистанционно? Эффективно ли это?" [ref=e468] [cursor=pointer]
+            - button "Сколько длится курс?" [ref=e477] [cursor=pointer]
+        - complementary [ref=e485]:
+          - generic [ref=e486]:
+            - heading "Задайте вопрос по курсу" [level=3] [ref=e490]
+            - paragraph [ref=e491]: Ответ по базе знаний курса школы «АВАТЕРРА» (нейросеть). Не заменяет консультацию специалиста.
+            - generic [ref=e492]:
+              - textbox "Напишите вопрос..." [ref=e493]
+              - button "Отправить" [disabled]
+  - button "Открыть чат с консультантом" [ref=e494] [cursor=pointer]
+  - contentinfo [ref=e497]:
+    - generic [ref=e498]:
+      - generic [ref=e499]:
+        - generic [ref=e500]:
+          - link "АВАТЕРРА" [ref=e501] [cursor=pointer]:
+            - /url: "#hero"
+          - paragraph [ref=e504]: Школа «AVATERRA»
+          - list "Соцсети AVATERRA" [ref=e505]:
+            - listitem [ref=e506]:
+              - link "Instagram AVATERRA" [ref=e507] [cursor=pointer]:
+                - /url: https://www.instagram.com/avaterrapro/
+            - listitem [ref=e511]:
+              - link "YouTube AVATERRA" [ref=e512] [cursor=pointer]:
+                - /url: https://www.youtube.com/@AVATERRAPRO
+            - listitem [ref=e516]:
+              - link "Telegram AVATERRA" [ref=e517] [cursor=pointer]:
+                - /url: https://t.me/+ZTTHAJZfS281OGZi
+        - generic [ref=e520]:
+          - paragraph [ref=e521]: Контакты
+          - list [ref=e522]:
+            - listitem [ref=e523]:
+              - link "support@avaterra.pro" [ref=e524] [cursor=pointer]:
+                - /url: mailto:support@avaterra.pro
+            - listitem [ref=e528]:
+              - link "Бот @AvaterraProBot" [ref=e529] [cursor=pointer]:
+                - /url: https://t.me/AvaterraProBot?start=s-site-footer
+        - generic [ref=e532]:
+          - link "Купить курс" [ref=e533] [cursor=pointer]:
+            - /url: "#pricing"
+          - navigation "Разделы сайта" [ref=e534]:
+            - link "Главная" [ref=e535] [cursor=pointer]:
+              - /url: /
+            - link "Курс «Навыки мышечного тестирования и работа с подсознанием»" [ref=e536] [cursor=pointer]:
+              - /url: /course/navyki-myshechnogo-testirovaniya
+            - link "Тарифы и услуги" [ref=e537] [cursor=pointer]:
+              - /url: /services
+            - link "О мастере" [ref=e538] [cursor=pointer]:
+              - /url: /about
+            - link "Блог" [ref=e539] [cursor=pointer]:
+              - /url: /blog
+            - link "Вопросы и ответы" [ref=e540] [cursor=pointer]:
+              - /url: /faq
+            - link "Глоссарий" [ref=e541] [cursor=pointer]:
+              - /url: /glossary
+            - link "Контакты" [ref=e542] [cursor=pointer]:
+              - /url: /contacts
+            - link "Оферта" [ref=e543] [cursor=pointer]:
+              - /url: /oferta
+            - link "Политика ПДн" [ref=e544] [cursor=pointer]:
+              - /url: /privacy
+            - link "Согласие ПДн" [ref=e545] [cursor=pointer]:
+              - /url: /pd-consent
+      - paragraph [ref=e546]: © АВАТЕРРА. Индивидуальный предприниматель Стрельцова Татьяна.
+  - region "Notifications alt+T"
+  - alert [ref=e547]
