@@ -11,6 +11,9 @@ export function JsonLdPerson({
   url,
   imageUrl,
   jobTitle,
+  sameAs,
+  knowsAbout,
+  worksFor,
 }: {
   /** Стабильный URI сущности, напр. https://avaterra.pro/about#person */
   id: string;
@@ -19,6 +22,12 @@ export function JsonLdPerson({
   url: string;
   imageUrl: string;
   jobTitle: string;
+  /** E-E-A-T: публичные профили автора/школы — связывают сущность с внешними источниками. */
+  sameAs?: string[];
+  /** Области экспертизы — для понимания тематики автора поисковиками и ИИ. */
+  knowsAbout?: string[];
+  /** Ссылка на организацию (@id EducationalOrganization из layout). */
+  worksFor?: string;
 }) {
   const data = {
     '@context': 'https://schema.org',
@@ -29,6 +38,9 @@ export function JsonLdPerson({
     url,
     image: imageUrl,
     jobTitle,
+    ...(sameAs?.length ? { sameAs } : {}),
+    ...(knowsAbout?.length ? { knowsAbout } : {}),
+    ...(worksFor ? { worksFor: { '@id': worksFor } } : {}),
   };
 
   return (

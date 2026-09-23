@@ -122,7 +122,12 @@ export default async function BlogArticlePage({ params }: Props) {
           <h1 className="font-heading text-3xl font-semibold leading-tight text-[var(--text)] sm:text-4xl">
             {post.h1}
           </h1>
-          <p className="mt-2 text-sm text-[var(--text-soft)]">Опубликовано: {publishedLabel}</p>
+          <p className="mt-2 text-sm text-[var(--text-soft)]">
+            Опубликовано: {publishedLabel} · Автор:{' '}
+            <Link href="/about" rel="author" className="text-plum underline-offset-2 hover:underline">
+              Татьяна Стрельцова
+            </Link>
+          </p>
           {/* Иллюстрация статьи. Показываем coverImage, а не ogImage: последняя —
               карточка для соцсетей с текстом поверх, в теле статьи неуместна. */}
           {post.coverImage ? (

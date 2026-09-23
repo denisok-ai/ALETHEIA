@@ -80,7 +80,7 @@ A/B и трекингом; `prod-verify` 16/16; деплой near-zero.
   Москвы и любого города» — честно про онлайн-формат, без фейкового адреса.
 - [ ] **Bing Webmaster Tools** (индекс Bing питает поиск ChatGPT): инструкция
   владельцу + meta-верификация в layout, затем подача sitemap.
-- [ ] E-E-A-T: у `Person` Татьяны добавить `sameAs` (Telegram-канал, Дзен,
+- [x] E-E-A-T: у `Person` Татьяны добавить `sameAs` (Telegram-канал, Дзен,
   YouTube когда появятся) и `knowsAbout`; ссылка «автор» под каждой статьёй
   на /about.
 - [ ] Проверка `AggregateRating` в JsonLdCourse на соответствие правилам

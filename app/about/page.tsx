@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { JsonLdPerson } from '@/components/JsonLdPerson';
+import { SOCIAL_LINKS } from '@/lib/social-links';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { cn } from '@/lib/utils';
 import { ABOUT_MASTER } from '@/lib/content/about-master';
@@ -48,6 +49,9 @@ export default async function AboutPage() {
         url={pageUrl}
         imageUrl={imageAbs}
         jobTitle="Основательница школы кинезиологии АВАТЕРРА"
+        sameAs={[SOCIAL_LINKS.youtube, SOCIAL_LINKS.telegram, SOCIAL_LINKS.instagram, `${base}/blog/tatyana-streltsova`]}
+        knowsAbout={['прикладная кинезиология', 'мышечное тестирование', 'работа со стрессом', 'карта эмоций', 'практики осознанности']}
+        worksFor={`${base}/#organization`}
       />
       <JsonLdBreadcrumbList
         items={[
