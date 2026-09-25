@@ -21,6 +21,7 @@
  */
 import { prisma } from '../lib/db';
 import { pingIndexNow } from '../lib/indexnow';
+import { recrawlUrl } from '../lib/seo/yandex-webmaster';
 import { KB_SEO_ARTICLES } from '../lib/content/kb-seo-articles';
 import { KB_REVISED } from '../lib/content/kb-revisions';
 

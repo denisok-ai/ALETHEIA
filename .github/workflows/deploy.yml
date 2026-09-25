@@ -64,6 +64,9 @@ jobs:
       - name: Unit tests
         run: npm test
 
+      - name: Typecheck scripts/ (вне основного tsconfig)
+        run: npm run typecheck:scripts
+
       # Тесты ядра лидов на изолированной sqlite (миграции прода, ~20 с).
       - name: DB tests
         run: npm run test:db

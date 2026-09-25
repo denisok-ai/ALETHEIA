@@ -3,6 +3,8 @@
  * целостность внутренних ссылок. Только чтение (GET-запросы).
  * Запуск: npx tsx scripts/seo-audit-live.ts [https://avaterra.pro]
  */
+export {}; // модуль, а не глобальный скрипт: иначе BASE/main конфликтуют между файлами
+
 const BASE = (process.argv[2] || 'https://avaterra.pro').replace(/\/$/, '');
 
 const PAGES = [

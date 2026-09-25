@@ -52,6 +52,7 @@
     "prod:diagnostics": "bash scripts/prod-diagnostics.sh",
     "prod:timezone-moscow": "bash scripts/prod-set-timezone-moscow-remote.sh",
     "test": "vitest run",
+    "typecheck:scripts": "tsc --noEmit -p tsconfig.scripts.json",
     "test:db": "vitest run --config vitest.db.config.ts",
     "test:paykeeper": "tsx scripts/paykeeper-protocol-check.ts",
     "test:payment-flow": "tsx scripts/payment-flow-check.ts",

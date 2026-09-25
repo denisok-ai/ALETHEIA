@@ -5,6 +5,8 @@
  * Запуск: npx tsx scripts/prod-verify.ts [https://avaterra.pro]
  * Код возврата 1 — есть провалы (годится для cron/CI).
  */
+export {}; // модуль, а не глобальный скрипт: иначе BASE/main конфликтуют между файлами
+
 const BASE = (process.argv[2] || 'https://avaterra.pro').replace(/\/$/, '');
 
 type Check = { name: string; ok: boolean; detail: string };

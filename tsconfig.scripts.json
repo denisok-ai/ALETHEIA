@@ -1,0 +1,7 @@
+{
+  // Проверка типов scripts/: основной tsconfig их исключает (сборка Next их не
+  // трогает), и ошибки вроде неимпортированной функции всплывали только на проде.
+  "extends": "./tsconfig.json",
+  "include": ["next-env.d.ts", "types/**/*.d.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules"]
+}

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Статья «Мышечное тестирование для психологов и коучей» расширена втрое (ход сессии, совмещение с методами, этика, FAQ).
 - `blog-publish-kb-articles --refresh=slug`: обновление опубликованной kb-статьи с датой ревизии в `KB_REVISED` → `dateModified` и `lastmod` sitemap.
 - JSON-LD Organization: кириллические варианты названия в `alternateName`.
+- Fix: публикатор статей падал на Яндекс.Переобходе (не импортирован `recrawlUrl`). Типы `scripts/` теперь проверяются в CI (`npm run typecheck:scripts`).
 
 ### Fixed (2026-09-25) — Алерт ресурсов: ложная тревога по swap
 
