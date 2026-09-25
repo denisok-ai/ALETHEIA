@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-09-25) — SEO: статья для психологов, обновление статей, бренд
+
+- Статья «Мышечное тестирование для психологов и коучей» расширена втрое (ход сессии, совмещение с методами, этика, FAQ).
+- `blog-publish-kb-articles --refresh=slug`: обновление опубликованной kb-статьи с датой ревизии в `KB_REVISED` → `dateModified` и `lastmod` sitemap.
+- JSON-LD Organization: кириллические варианты названия в `alternateName`.
+
 ### Fixed (2026-09-25) — Алерт ресурсов: ложная тревога по swap
 
 - `server-health`: swap больше не тревожит сам по себе (холодные страницы при свободной RAM). Алерт — при swap > 85 % или > 50 % вместе с доступной памятью < 30 %. Пороги — в чистой `evaluateHealthProblems`, покрыты unit-тестами. На сервере `vm.swappiness = 10`.

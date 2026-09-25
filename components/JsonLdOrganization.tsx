@@ -23,7 +23,8 @@ export function JsonLdOrganization({
     '@type': 'EducationalOrganization',
     '@id': `${url}/#organization`,
     name: 'Школа «AVATERRA»',
-    alternateName: ['АВАТЕРРА', 'AVATERRA', 'avaterra.pro'],
+    // Кириллические написания из реальных запросов Вебмастера («аватера курсы», «аватерра прайс»)
+    alternateName: ['АВАТЕРРА', 'Аватэрра', 'Аватерра', 'Аватера', 'AVATERRA', 'avaterra.pro'],
     url,
     logo: `${url}${BRAND_LOGO_URL}`,
     description:

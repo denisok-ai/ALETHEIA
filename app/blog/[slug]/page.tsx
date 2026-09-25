@@ -8,6 +8,7 @@ import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
 import { TelegramPromo } from '@/components/TelegramPromo';
 import { JsonLdBlogArticle } from '@/components/JsonLdBlogArticle';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
+import { blogModifiedAt } from '@/lib/content/kb-revisions';
 import { getBlogPostBySlug, getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { computeRelated } from '@/lib/content/blog-related';
 import { getSystemSettings } from '@/lib/settings';
@@ -48,7 +49,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       type: 'article',
       locale: 'ru_RU',
       publishedTime: post.publishedAt,
-      modifiedTime: post.publishedAt,
+      modifiedTime: blogModifiedAt(post.slug, post.publishedAt),
       images: [{ url: ogImageAbs, width: 1200, height: 630, alt: post.title }],
     },
     twitter: {
@@ -101,6 +102,7 @@ export default async function BlogArticlePage(props: Props) {
         description={post.description}
         pageUrl={pageUrl}
         datePublished={post.publishedAt}
+        dateModified={blogModifiedAt(post.slug, post.publishedAt)}
         imageUrl={imageUrlAbs}
       />
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-20 font-body md:pt-24">

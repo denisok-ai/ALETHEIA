@@ -88,3 +88,20 @@ describe('sitemap-recrawl: разбор sitemap', () => {
     expect(extractSitemapUrls(xml)).toEqual(['https://a.ru/', 'https://a.ru/glossary/x']);
   });
 });
+
+describe('kb-revisions: дата изменения статьи', () => {
+  it('переработанная статья — дата ревизии, прочие — дата публикации', async () => {
+    const { blogModifiedAt, KB_REVISED } = await import('@/lib/content/kb-revisions');
+    const slug = Object.keys(KB_REVISED)[0];
+    expect(blogModifiedAt(slug, '2026-07-20T14:52:15Z').slice(0, 10)).toBe(KB_REVISED[slug]);
+    expect(blogModifiedAt('net-takoy-stati', '2026-07-20T14:52:15Z')).toBe('2026-07-20T14:52:15.000Z');
+    // Ревизия старше публикации не «омолаживает» статью назад
+    expect(blogModifiedAt(slug, '2027-01-01T00:00:00Z')).toBe('2027-01-01T00:00:00.000Z');
+  });
+
+  it('у каждой ревизии есть статья в базе знаний', async () => {
+    const { KB_REVISED } = await import('@/lib/content/kb-revisions');
+    const { KB_SEO_ARTICLES } = await import('@/lib/content/kb-seo-articles');
+    for (const slug of Object.keys(KB_REVISED)) expect(KB_SEO_ARTICLES.some((a) => a.slug === slug)).toBe(true);
+  });
+});

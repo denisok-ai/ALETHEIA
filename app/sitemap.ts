@@ -5,6 +5,7 @@ import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { getPublicProducts } from '@/lib/shop/public-products';
 import { GLOSSARY_TERMS } from '@/lib/content/glossary';
+import { KB_REVISED } from '@/lib/content/kb-revisions';
 
 /**
  * Генерирует sitemap.xml для поисковых систем.
@@ -143,7 +144,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         };
       }),
       ...blogPosts.map((p) => {
-        const lastModified = safeDate(p.publishedAt);
+        const lastModified = newestOf([safeDate(p.publishedAt), safeDate(KB_REVISED[p.slug] ?? null)]);
         return {
           url: `${base}/blog/${p.slug}`,
           ...(lastModified ? { lastModified } : {}),
