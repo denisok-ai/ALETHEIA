@@ -28,9 +28,17 @@ export type ServerHealth = {
   problems: string[]; // человекочитаемые пробитые пороги
 };
 
-/** Пороги: available < 15 % памяти, swap > 50 %, диск > 80 %, любой OOM. */
+/**
+ * Пороги: available < 15 % памяти, диск > 80 %, любой OOM. Swap сам по себе не
+ * проблема: ядро выносит туда холодные страницы (rspamd, mailcow) и держит их,
+ * даже когда RAM свободна (25.09: swap 51 % при 39 % доступной памяти и нулевом
+ * свопинге — ложная тревога). Тревога по swap — только если он почти исчерпан
+ * либо заполняется при одновременной нехватке RAM.
+ */
 const MEM_AVAILABLE_MIN_PCT = 15;
-const SWAP_USED_MAX_PCT = 50;
+const SWAP_USED_MAX_PCT = 85;
+const SWAP_PRESSURE_PCT = 50;
+const SWAP_PRESSURE_MEM_AVAILABLE_PCT = 30;
 const DISK_USED_MAX_PCT = 80;
 
 function readMeminfo(): Record<string, number> {
@@ -82,21 +90,7 @@ export async function checkServerHealth(windowMinutes = 20): Promise<ServerHealt
 
   const oomKillsRecent = await countOomKills(windowMinutes);
 
-  const problems: string[] = [];
-  if (memTotalMb && memAvailablePct < MEM_AVAILABLE_MIN_PCT) {
-    problems.push(`память: доступно ${Math.round(memAvailableMb)} МБ (${memAvailablePct} %)`);
-  }
-  if (swapTotalMb && swapUsedPct > SWAP_USED_MAX_PCT) {
-    problems.push(`swap: занято ${Math.round(swapUsedMb)} МБ (${swapUsedPct} %)`);
-  }
-  if (diskUsedPct > DISK_USED_MAX_PCT) {
-    problems.push(`диск: занято ${diskUsedPct} %, свободно ${diskFreeGb} ГБ`);
-  }
-  if (oomKillsRecent) {
-    problems.push(`OOM-kill за ${windowMinutes} мин: ${oomKillsRecent}`);
-  }
-
-  return {
+  const metrics = {
     memTotalMb: Math.round(memTotalMb),
     memAvailableMb: Math.round(memAvailableMb),
     memAvailablePct,
@@ -106,6 +100,27 @@ export async function checkServerHealth(windowMinutes = 20): Promise<ServerHealt
     diskUsedPct,
     diskFreeGb,
     oomKillsRecent,
-    problems,
   };
+  return { ...metrics, problems: evaluateHealthProblems(metrics, windowMinutes) };
+}
+
+/** Пробитые пороги по снятым метрикам (чистая функция — покрыта тестами). */
+export function evaluateHealthProblems(h: Omit<ServerHealth, 'problems'>, windowMinutes = 20): string[] {
+  const problems: string[] = [];
+  if (h.memTotalMb && h.memAvailablePct < MEM_AVAILABLE_MIN_PCT) {
+    problems.push(`память: доступно ${h.memAvailableMb} МБ (${h.memAvailablePct} %)`);
+  }
+  const swapExhausted = h.swapUsedPct > SWAP_USED_MAX_PCT;
+  const swapPressure =
+    h.swapUsedPct > SWAP_PRESSURE_PCT && h.memAvailablePct < SWAP_PRESSURE_MEM_AVAILABLE_PCT;
+  if (h.swapTotalMb && (swapExhausted || swapPressure)) {
+    problems.push(`swap: занято ${h.swapUsedMb} МБ (${h.swapUsedPct} %) при доступной памяти ${h.memAvailablePct} %`);
+  }
+  if (h.diskUsedPct > DISK_USED_MAX_PCT) {
+    problems.push(`диск: занято ${h.diskUsedPct} %, свободно ${h.diskFreeGb} ГБ`);
+  }
+  if (h.oomKillsRecent) {
+    problems.push(`OOM-kill за ${windowMinutes} мин: ${h.oomKillsRecent}`);
+  }
+  return problems;
 }
