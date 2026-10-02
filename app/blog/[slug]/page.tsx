@@ -9,6 +9,7 @@ import { TelegramPromo } from '@/components/TelegramPromo';
 import { JsonLdBlogArticle } from '@/components/JsonLdBlogArticle';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { blogModifiedAt } from '@/lib/content/kb-revisions';
+import { findGlossaryTerms } from '@/lib/content/glossary-links';
 import { getBlogPostBySlug, getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { computeRelated } from '@/lib/content/blog-related';
 import { getSystemSettings } from '@/lib/settings';
@@ -87,6 +88,10 @@ export default async function BlogArticlePage(props: Props) {
    */
   const all = await getPublishedBlogPosts();
   const related = computeRelated(slug, all, 3);
+
+  // Термины глоссария, упомянутые в статье, — перелинковка статья → глоссарий
+  // (lib/content/glossary-links.ts, покрыто тестами).
+  const terms = findGlossaryTerms(body.kind === 'markdown' ? body.markdown : body.paragraphs.join('\n'));
 
   return (
     <>
@@ -184,6 +189,27 @@ export default async function BlogArticlePage(props: Props) {
           )}
           <BlogArticleCourseLinks slug={slug} />
         </article>
+
+        {terms.length > 0 ? (
+          <aside className="mt-10" aria-labelledby="article-terms">
+            <h2 id="article-terms" className="font-heading text-lg font-semibold text-[var(--text)]">
+              Термины из статьи
+            </h2>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {terms.map((t) => (
+                <li key={t.slug}>
+                  <Link
+                    href={`/glossary/${t.slug}`}
+                    title={t.short}
+                    className="inline-block rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-sm text-plum hover:border-plum"
+                  >
+                    {t.term}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        ) : null}
 
         {related.length > 0 ? (
           <aside className="mt-12 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)]">
