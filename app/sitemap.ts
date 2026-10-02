@@ -196,12 +196,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }
 
     // Глоссарий: статичный контент из кода; lastmod — дата последней правки терминов.
+    // Базовая дата словаря; переписанный термин несёт свою `revised`, индекс — самую свежую.
     const GLOSSARY_REVISED = new Date('2026-09-24');
+    const termRevised = (t: (typeof GLOSSARY_TERMS)[number]) =>
+      newestOf([GLOSSARY_REVISED, safeDate(t.revised ?? null)]) ?? GLOSSARY_REVISED;
     const glossaryEntries: MetadataRoute.Sitemap = [
-      { url: `${base}/glossary`, lastModified: GLOSSARY_REVISED, changeFrequency: 'monthly' as const, priority: 0.6 },
+      {
+        url: `${base}/glossary`,
+        lastModified: newestOf(GLOSSARY_TERMS.map(termRevised)) ?? GLOSSARY_REVISED,
+        changeFrequency: 'monthly' as const,
+        priority: 0.6,
+      },
       ...GLOSSARY_TERMS.map((t) => ({
         url: `${base}/glossary/${t.slug}`,
-        lastModified: GLOSSARY_REVISED,
+        lastModified: termRevised(t),
         changeFrequency: 'monthly' as const,
         priority: 0.5,
       })),

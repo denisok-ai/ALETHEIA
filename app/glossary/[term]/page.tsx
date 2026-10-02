@@ -18,7 +18,7 @@ const COURSE_LABEL: Record<string, string> = {
 };
 
 const markdownClassName =
-  'mt-6 text-[var(--text)] leading-[var(--leading-body)] [&>p]:mt-0 [&>p]:leading-relaxed [&>p+p]:mt-4 [&_strong]:font-semibold';
+  'mt-6 text-[var(--text)] leading-[var(--leading-body)] [&>p]:mt-0 [&>p]:leading-relaxed [&>p+p]:mt-4 [&>ul+p]:mt-4 [&>ul]:mt-3 [&>ul]:list-disc [&>ul]:space-y-1 [&>ul]:pl-6 [&_strong]:font-semibold';
 
 export function generateStaticParams() {
   return GLOSSARY_TERMS.map((t) => ({ term: t.slug }));
