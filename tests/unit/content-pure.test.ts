@@ -105,3 +105,15 @@ describe('kb-revisions: дата изменения статьи', () => {
     for (const slug of Object.keys(KB_REVISED)) expect(KB_SEO_ARTICLES.some((a) => a.slug === slug)).toBe(true);
   });
 });
+
+describe('normalizePostLexicon: замена запрещённого «калибр…»', () => {
+  it('дополнение после глагола сохраняется и грамматика цела', async () => {
+    const { normalizePostLexicon } = await import('@/lib/content/quality-gates');
+    expect(normalizePostLexicon('Мы учим наблюдать реакцию и калибровать её.')).toBe(
+      'Мы учим наблюдать реакцию и сверять её с балансом тела.'
+    );
+    expect(normalizePostLexicon('Если вы научились калибровать себя')).toBe('Если вы научились сверять себя с балансом тела');
+    expect(normalizePostLexicon('Важно калибровать.')).toBe('Важно сверить ответ с балансом.');
+    expect(normalizePostLexicon('калибровка перед тестом')).toBe('замер через баланс тела перед тестом');
+  });
+});
