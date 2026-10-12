@@ -1,9 +1,11 @@
 /**
- * Cron (каждые 15 мин): здоровье сервера — память/swap/диск/OOM.
+ * Cron (каждые 15 мин): здоровье сервера — память/swap/диск/OOM и компоненты
+ * у потолка своего бюджета памяти.
  *
- * Алерт админам в Telegram при пробитом пороге. Антиспам: тот же набор
- * проблем повторяем не чаще раза в 6 часов; изменившийся набор (новая
- * проблема или ухудшение) шлём сразу. Восстановление сообщаем один раз.
+ * Алерт админам в Telegram при пробитом пороге, с топом потребителей памяти —
+ * чтобы виновник был виден сразу. Антиспам: тот же набор ВИДОВ проблем
+ * (без цифр: «swap», «limit:rspamd») повторяем не чаще раза в 6 часов; новая
+ * проблема — сразу. Восстановление сообщаем один раз.
  *
  * ?dry=1 — вернуть замер без отправки и без heartbeat.
  */
@@ -11,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireCronAuth } from '@/lib/cron-auth';
 import { markCronOk } from '@/lib/cron-heartbeat';
-import { checkServerHealth } from '@/lib/server-health';
+import { checkServerHealth, topComponentsLine } from '@/lib/server-health';
 import { notifyAdminsTelegram } from '@/lib/telegram-admin-notify';
 
 export const dynamic = 'force-dynamic';
@@ -32,8 +34,9 @@ export async function GET(request: NextRequest) {
     `память ${h.memAvailableMb}/${h.memTotalMb} МБ доступно (${h.memAvailablePct} %) · ` +
     `swap ${h.swapUsedMb}/${h.swapTotalMb} МБ · диск ${h.diskUsedPct} %` +
     (h.oomKillsRecent == null ? '' : ` · OOM: ${h.oomKillsRecent}`);
+  const top = topComponentsLine(h.components);
 
-  if (dryRun) return NextResponse.json({ ok: true, health: h, summary, dryRun });
+  if (dryRun) return NextResponse.json({ ok: true, health: h, summary, top, dryRun });
 
   const row = await prisma.systemSetting.findUnique({ where: { key: STATE_KEY } });
   let prev: AlertState | null = null;
@@ -43,7 +46,8 @@ export async function GET(request: NextRequest) {
     prev = null;
   }
 
-  const signature = h.problems.join('|');
+  // Сигнатура — виды проблем без цифр: «swap 885 → 887 МБ» не новый алерт.
+  const signature = [...h.problemKeys].sort().join('|');
   let sent = false;
 
   if (h.problems.length > 0) {
@@ -55,6 +59,7 @@ export async function GET(request: NextRequest) {
         ...h.problems.map((p) => `· ${p}`),
         '',
         summary,
+        ...(top ? [`Больше всех памяти (МБ): ${top}`] : []),
       ]);
       sent = true;
       await prisma.systemSetting.upsert({
