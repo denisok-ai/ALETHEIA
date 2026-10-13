@@ -24,6 +24,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # Запланированные рассылки — каждые 5 мин
 */5 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh mailings-send
 
+# Автопубликация постов соцсетей (Telegram-канал школы) — каждые 10 мин.
+# Один пост в сутки на сеть (МСК), стоп после двух ошибок подряд (lib/social/scheduler.ts).
+# НЕ добавлять в список ручного теста ниже: он реально публикует в канал.
+*/10 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh social-publish
+
 # Синхронизация IMAP (Входящие) — каждые 15 мин
 */15 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh inmail-sync
 

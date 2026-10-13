@@ -42,6 +42,8 @@ export const CRON_EXPECTED_INTERVAL_MIN: Record<string, number> = {
   'server-health': 15,
   // Новые URL sitemap → переобход Яндекса + IndexNow — каждые 6 часов.
   'sitemap-recrawl': 360,
+  // Автопубликация постов соцсетей — каждые 10 минут.
+  'social-publish': 10,
 };
 
 /** Отметить успешное выполнение. Сбой отметки не должен ронять саму задачу. */
