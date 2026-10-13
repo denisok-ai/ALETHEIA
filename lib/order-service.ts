@@ -37,6 +37,22 @@ export async function findActiveServiceForOrderTariff(
   });
 }
 
+/**
+ * Товар заказа по Order.tariffId (slug ИЛИ paykeeperTariffId) без требования isActive:
+ * для действий над уже оплаченным заказом (возврат → закрыть доступ), когда товар
+ * могли снять с продажи.
+ */
+export async function findServiceForOrderTariff(
+  tariffId: string | null | undefined
+): Promise<ServiceForOrderTariff | null> {
+  const key = tariffId?.trim();
+  if (!key) return null;
+  return prisma.service.findFirst({
+    where: { OR: [{ paykeeperTariffId: key }, { slug: key }] },
+    select: serviceSelect,
+  });
+}
+
 /** Только по slug витрины (строгий путь API с полем serviceSlug). */
 export async function findActiveServiceBySlug(
   slug: string

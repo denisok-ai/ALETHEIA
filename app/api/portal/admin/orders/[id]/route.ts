@@ -8,6 +8,7 @@ import { getPayKeeperConfigFromSettings, reversePayment } from '@/lib/paykeeper'
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
 import { getYooKassaConfigFromSettings } from '@/lib/yookassa/config';
 import { createYooKassaRefund } from '@/lib/yookassa/client';
+import { findServiceForOrderTariff } from '@/lib/order-service';
 
 export async function GET(
   request: NextRequest,
@@ -157,10 +158,9 @@ export async function PATCH(
       return NextResponse.json({ error: msg }, { status: 502 });
     }
 
-    const service = await prisma.service.findFirst({
-      where: { paykeeperTariffId: order.tariffId, isActive: true },
-      select: { courseId: true },
-    });
+    // Товар по slug ИЛИ paykeeperTariffId, в том числе снятый с продажи: иначе после
+    // возврата заказа по slug (ЮKassa, витрина) доступ к курсу оставался открытым.
+    const service = await findServiceForOrderTariff(order.tariffId);
 
     const newRefunded = order.refundedAmountRub + requested;
     const fullyRefunded = newRefunded >= order.amount;
