@@ -177,12 +177,31 @@ async function onSucceeded(payment: YooKassaPayment, deps: YooKassaWebhookDeps):
       `Заказ: ${order.amount} ₽, платёж: ${payment.amount?.value} ${payment.amount?.currency}`,
       'Оплата не проведена — проверьте вручную.',
     ]);
-    return { status: 400, body: { error: 'Amount mismatch' } };
+    // 200, а не 4xx: иначе ЮKassa повторяет уведомление, и каждый повтор шлёт ту же тревогу.
+    return { status: 200, body: { ok: false, error: 'Amount mismatch' } };
+  }
+
+  // Заказ уже оплачен ДРУГИМ платежом — двойная оплата. Доступ не дублируем,
+  // первый платёж не перезаписываем, владельцу — сигнал вернуть лишнее.
+  if (order.status === 'paid' && order.providerPaymentId && order.providerPaymentId !== payment.id) {
+    await deps.log({
+      event: 'yookassa.webhook.double_payment',
+      status: 'error',
+      orderNumber,
+      message: `Второй платёж ${payment.id} по уже оплаченному заказу (первый: ${order.providerPaymentId})`,
+      payload: { firstPaymentId: order.providerPaymentId, secondPaymentId: payment.id },
+    });
+    deps.alert('attention', [
+      `Двойная оплата заказа ${orderNumber} в ЮKassa`,
+      `Первый платёж: ${order.providerPaymentId}, второй: ${payment.id}`,
+      'Верните второй платёж в кабинете ЮKassa.',
+    ]);
+    return { status: 200, body: { ok: true, alreadyPaid: true, doublePayment: true } };
   }
 
   // Повторное уведомление о том же платеже: ничего не проводим повторно.
   if (order.status === 'paid') {
-    if (order.providerPaymentId !== payment.id) {
+    if (!order.providerPaymentId) {
       await deps.attachPayment(orderNumber, payment.id);
     }
     const repaired = await deps.repairEnrollment(orderNumber).catch(() => false);

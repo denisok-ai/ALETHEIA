@@ -92,13 +92,29 @@ describe('handleYooKassaNotification', () => {
     expect(h.deps.repairEnrollment).toHaveBeenCalledWith('ALT-TEST1');
   });
 
+  it('второй платёж по уже оплаченному заказу — доступ не дублируется, первый платёж не перезаписан, сигнал о двойной оплате', async () => {
+    const h = makeHarness({
+      payment: { ...succeededPayment, id: 'pay-2' },
+      order: { status: 'paid', providerPaymentId: 'pay-1' },
+    });
+    const res = await handleYooKassaNotification({ ...succeededNotification, object: { id: 'pay-2' } }, h.deps);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ alreadyPaid: true, doublePayment: true });
+    expect(h.deps.processPaidOrder).not.toHaveBeenCalled();
+    expect(h.deps.attachPayment).not.toHaveBeenCalled();
+    expect(h.store.order?.providerPaymentId).toBe('pay-1');
+    expect(h.deps.alert).toHaveBeenCalledTimes(1);
+  });
+
   it('сумма платежа не совпала с заказом — отклоняем, побочные эффекты не выполняются', async () => {
     const h = makeHarness({
       payment: { ...succeededPayment, amount: { value: '4999.00', currency: 'RUB' } },
     });
     const res = await handleYooKassaNotification(succeededNotification, h.deps);
 
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: false, error: 'Amount mismatch' });
     expect(h.deps.processPaidOrder).not.toHaveBeenCalled();
     expect(h.deps.markPaymentLinkPaid).not.toHaveBeenCalled();
     expect(h.deps.attachPayment).not.toHaveBeenCalled();
@@ -110,7 +126,8 @@ describe('handleYooKassaNotification', () => {
       payment: { ...succeededPayment, amount: { value: '5000.00', currency: 'USD' } },
     });
     const res = await handleYooKassaNotification(succeededNotification, h.deps);
-    expect(res.status).toBe(400);
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({ ok: false, error: 'Amount mismatch' });
     expect(h.deps.processPaidOrder).not.toHaveBeenCalled();
   });
 
