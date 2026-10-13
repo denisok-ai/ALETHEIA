@@ -29,6 +29,8 @@ interface PaymentModalProps {
 function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
   const [loading, setLoading] = useState(false);
   const [pdConsent, setPdConsent] = useState(false);
+  /** Платный продукт: ознакомление с описанием и согласие на немедленный доступ (оферта, разд. 4.3). */
+  const [productConsent, setProductConsent] = useState(false);
   const [installmentParts, setInstallmentParts] = useState(0);
   /** Касса выключена: сервер принял заявку — показываем подтверждение вместо перехода к оплате. */
   const [requestMessage, setRequestMessage] = useState<string | null>(null);
@@ -58,6 +60,9 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
         phone: formData.phone,
         pdConsent: true,
       };
+      if (tariff.price > 0) {
+        body.productConsent = productConsent;
+      }
       if (tariff.slug) {
         body.serviceSlug = tariff.slug;
       } else {
@@ -198,6 +203,30 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
           </div>
         )}
       </div>
+      {tariff.price > 0 ? (
+        <div className="space-y-1 px-0.5">
+          <label
+            htmlFor="payment-product-consent"
+            className="flex cursor-pointer items-start gap-2 text-xs leading-snug text-[var(--text-muted)]"
+          >
+            <input
+              id="payment-product-consent"
+              type="checkbox"
+              checked={productConsent}
+              onChange={(e) => setProductConsent(e.target.checked)}
+              disabled={loading}
+              className="mt-0.5 h-4 w-4 shrink-0 rounded border-[#E2E8F0] text-plum focus:ring-plum"
+            />
+            <span>
+              Понимаю, что доступ к материалам открывается сразу после оплаты и с этого момента услуга считается оказанной. С{' '}
+              <a href="/oferta" target="_blank" rel="noopener noreferrer" className="font-medium text-plum underline hover:opacity-90">
+                описанием продукта
+              </a>{' '}
+              ознакомлен(а).
+            </span>
+          </label>
+        </div>
+      ) : null}
       <PersonalDataConsentCheckbox
         id="payment-pd-consent"
         checked={pdConsent}
@@ -215,7 +244,7 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
         variant="landingPlum"
         className="w-full"
         size="lg"
-        disabled={loading || !pdConsent}
+        disabled={loading || !pdConsent || (tariff.price > 0 && !productConsent)}
       >
         {loading ? (
           <>

@@ -16,7 +16,7 @@ import {
   maskEmailForLog,
   writePaykeeperIntegrationLog,
 } from '@/lib/paykeeper-integration-log';
-import { logPersonalDataConsent } from '@/lib/consent-log';
+import { logPersonalDataConsent, OFERTA_DOCS_VERSION } from '@/lib/consent-log';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { CHECKOUT_REQUEST_CLIENT_MESSAGE, getPaymentsMode, recordCheckoutRequest } from '@/lib/payments/checkout-request';
 import { acqRefFromRequest } from '@/lib/social/ref-tracking';
@@ -59,6 +59,18 @@ export async function POST(request: NextRequest) {
     const tariffIdToUse = orderTariffIdForStorage(service!);
     const amount = service!.price;
     const serviceName = service!.name;
+
+    // Платный продукт (и онлайн-оплата, и заявка на оплату) создаёт заказ на сумму —
+    // без подтверждения ознакомления с описанием и условиями доступа заказ не создаём.
+    if (amount > 0 && body?.productConsent !== true) {
+      return NextResponse.json(
+        {
+          error:
+            'Подтвердите, что ознакомлены с описанием продукта и что доступ открывается сразу после оплаты',
+        },
+        { status: 400 }
+      );
+    }
 
     const orderNumber = `ALT-${nanoid(10)}`;
 
@@ -110,6 +122,16 @@ export async function POST(request: NextRequest) {
       emailNorm: String(email).trim().toLowerCase(),
       orderNumber,
     });
+
+    if (amount > 0) {
+      await logPersonalDataConsent({
+        kind: 'oferta_access_consent',
+        context: 'payment_create',
+        emailNorm: String(email).trim().toLowerCase(),
+        orderNumber,
+        docVersion: OFERTA_DOCS_VERSION,
+      });
+    }
 
     const settings = await getSystemSettings();
     const siteFromSettings = settings.site_url?.replace(/\/$/, '').trim() || '';

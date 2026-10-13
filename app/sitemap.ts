@@ -90,7 +90,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       '/obuchenie-kineziologii-onlajn': '2026-09-23',
       '/contacts': '2026-08-12',
       '/news': '2026-07-19',
-      '/oferta': '2026-04-27',
+      '/oferta': '2026-10-13',
       '/privacy': '2026-10-13',
       '/pd-consent': '2026-07-20',
     };

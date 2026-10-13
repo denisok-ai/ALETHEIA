@@ -7,6 +7,8 @@ import { prisma } from '@/lib/db';
 import { clientIpFromHeaders } from '@/lib/client-ip';
 
 export const PDN_DOCS_VERSION = '2026-04-30';
+/** Версия публичной оферты, на которую даётся согласие при оплате платного продукта. */
+export const OFERTA_DOCS_VERSION = '2026-10-13';
 
 function hashIp(ip: string | null): string | null {
   if (!ip) return null;
@@ -31,6 +33,8 @@ export async function logPersonalDataConsent(input: {
   userId?: string | null;
   emailNorm?: string | null;
   orderNumber?: string | null;
+  /** По умолчанию — версия политики ПДн; для согласий с офертой передаётся OFERTA_DOCS_VERSION. */
+  docVersion?: string;
 }): Promise<void> {
   const { ipHash, userAgent } = await getClientMeta();
   try {
@@ -41,7 +45,7 @@ export async function logPersonalDataConsent(input: {
         userId: input.userId ?? null,
         emailNorm: input.emailNorm ?? null,
         orderNumber: input.orderNumber ?? null,
-        docVersion: PDN_DOCS_VERSION,
+        docVersion: input.docVersion ?? PDN_DOCS_VERSION,
         ipHash,
         userAgent,
       },
