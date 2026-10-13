@@ -23,6 +23,18 @@ export async function getPaymentsMode(): Promise<PaymentsMode> {
   return s.payments_mode === 'request' ? 'request' : 'online';
 }
 
+export type PaymentsProvider = 'paykeeper' | 'yookassa';
+
+/**
+ * Провайдер онлайн-оплаты (Портал → Настройки → Платежи; fallback — env PAYMENTS_PROVIDER).
+ * По умолчанию paykeeper: поведение без явного переключения не меняется.
+ * Используется только при payments_mode=online.
+ */
+export async function getPaymentsProvider(): Promise<PaymentsProvider> {
+  const s = await getSystemSettings();
+  return s.payments_provider === 'yookassa' ? 'yookassa' : 'paykeeper';
+}
+
 export const CHECKOUT_REQUEST_SOURCE = 'checkout_request';
 
 /** Текст для покупателя — без внутренних терминов. */

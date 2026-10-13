@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { requireCronAuth } from '@/lib/cron-auth';
 import { markCronOk } from '@/lib/cron-heartbeat';
-import { getPaymentsMode } from '@/lib/payments/checkout-request';
+import { getPaymentsMode, getPaymentsProvider } from '@/lib/payments/checkout-request';
 import { getPayKeeperConfigFromSettings } from '@/lib/paykeeper';
 import { refreshPayKeeperToken } from '@/lib/paykeeper/http';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
@@ -69,6 +69,12 @@ export async function GET(request: NextRequest) {
   if ((await getPaymentsMode()) === 'request') {
     await markCronOk('paykeeper-health');
     return NextResponse.json({ ok: true, skipped: 'payments_mode=request' });
+  }
+
+  // Провайдер ЮKassa: PayKeeper не используется, его недоступность не авария приёма оплаты.
+  if ((await getPaymentsProvider()) === 'yookassa') {
+    await markCronOk('paykeeper-health');
+    return NextResponse.json({ ok: true, skipped: 'payments_provider=yookassa' });
   }
 
   const cfg = await getPayKeeperConfigFromSettings();

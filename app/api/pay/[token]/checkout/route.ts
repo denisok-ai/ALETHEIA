@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { createPayKeeperInvoice } from '@/lib/paykeeper';
-import { CHECKOUT_REQUEST_CLIENT_MESSAGE, getPaymentsMode, recordCheckoutRequest } from '@/lib/payments/checkout-request';
+import {
+  CHECKOUT_REQUEST_CLIENT_MESSAGE,
+  getPaymentsMode,
+  getPaymentsProvider,
+  recordCheckoutRequest,
+} from '@/lib/payments/checkout-request';
+import { createYooKassaCheckout } from '@/lib/yookassa/checkout';
 import { buildPaykeeperServiceNamePayload } from '@/lib/paykeeper/fiscal';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
@@ -70,6 +76,51 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_URL || 'https://avaterra.pro';
+
+  // Провайдер ЮKassa: платёж создаём сразу, ссылку на товар связываем с заказом.
+  if ((await getPaymentsProvider()) === 'yookassa') {
+    try {
+      const yk = await createYooKassaCheckout({
+        orderNumber,
+        amountRub: link.product.priceRub,
+        productName: link.product.name,
+        email: clientEmail,
+        siteBase: siteUrl,
+        returnPath: `/pay/${params.token}/success`,
+      });
+      await prisma.paymentLink.update({
+        where: { id: link.id },
+        data: { clientEmail, clientName, orderId: order.id },
+      });
+      await writePaykeeperIntegrationLog({
+        direction: 'outbound',
+        event: 'yookassa.payment_link.checkout',
+        status: 'success',
+        orderNumber,
+        message: `Персональный товар: ${link.product.name}, ${link.product.priceRub}₽ (ЮKassa ${yk.paymentId})`,
+      });
+      return NextResponse.json({ invoiceUrl: yk.confirmationUrl, orderNumber });
+    } catch (ykErr) {
+      const msg = ykErr instanceof Error ? ykErr.message : 'Ошибка ЮKassa';
+      console.error('[yookassa] payment link checkout:', msg);
+      await prisma.order.delete({ where: { id: order.id } }).catch(() => {});
+      await writePaykeeperIntegrationLog({
+        direction: 'outbound',
+        event: 'yookassa.payment_link.checkout',
+        status: 'error',
+        orderNumber,
+        message: msg.slice(0, 500),
+      });
+      return NextResponse.json(
+        {
+          error:
+            'Платёжный сервис временно недоступен. Попробуйте ещё раз через несколько минут. Если не получится, напишите нам через страницу контактов.',
+        },
+        { status: 502 }
+      );
+    }
+  }
+
   const successRedirectUrl = `${siteUrl}/pay/${params.token}/success`;
   const serviceNamePayload = await buildPaykeeperServiceNamePayload(
     link.product.name,

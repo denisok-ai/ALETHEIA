@@ -18,7 +18,13 @@ import {
 } from '@/lib/paykeeper-integration-log';
 import { logPersonalDataConsent, OFERTA_DOCS_VERSION } from '@/lib/consent-log';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
-import { CHECKOUT_REQUEST_CLIENT_MESSAGE, getPaymentsMode, recordCheckoutRequest } from '@/lib/payments/checkout-request';
+import {
+  CHECKOUT_REQUEST_CLIENT_MESSAGE,
+  getPaymentsMode,
+  getPaymentsProvider,
+  recordCheckoutRequest,
+} from '@/lib/payments/checkout-request';
+import { createYooKassaCheckout } from '@/lib/yookassa/checkout';
 import { acqRefFromRequest } from '@/lib/social/ref-tracking';
 
 export async function POST(request: NextRequest) {
@@ -196,6 +202,59 @@ export async function POST(request: NextRequest) {
         success: true,
         requestAccepted: true,
         message: CHECKOUT_REQUEST_CLIENT_MESSAGE,
+        orderNumber,
+        amount,
+      });
+    }
+
+    // Провайдер ЮKassa (Портал → Настройки → Платежи → «Провайдер онлайн-оплаты»).
+    if ((await getPaymentsProvider()) === 'yookassa') {
+      let ykPaymentUrl: string;
+      try {
+        const yk = await createYooKassaCheckout({
+          orderNumber,
+          amountRub: amount,
+          productName: serviceName,
+          email: email.trim(),
+          siteBase: baseUrl,
+          returnPath: `/success?order=${encodeURIComponent(orderNumber)}`,
+        });
+        ykPaymentUrl = yk.confirmationUrl;
+      } catch (ykErr) {
+        const msg = ykErr instanceof Error ? ykErr.message : 'Ошибка создания платежа ЮKassa';
+        console.error('[yookassa] create payment:', msg);
+        await writePaykeeperIntegrationLog({
+          direction: 'outbound',
+          event: 'yookassa.payment.create',
+          status: 'error',
+          orderNumber,
+          message: msg.slice(0, 500),
+        });
+        notifyAdminsTelegramAsync('payment_needs_attention', [
+          'ЮKassa: не удалось создать платёж (клиент не смог перейти к оплате)',
+          `Заказ: ${orderNumber}, сумма: ${amount} ₽`,
+          `Ошибка: ${msg.slice(0, 200)}`,
+        ]);
+        return NextResponse.json(
+          {
+            error:
+              'Платёжный сервис временно недоступен. Попробуйте ещё раз через несколько минут — заказ сохранён. Если не получится, напишите нам через страницу контактов.',
+            success: false,
+          },
+          { status: 502 }
+        );
+      }
+      await writePaykeeperIntegrationLog({
+        direction: 'outbound',
+        event: 'yookassa.payment.redirect',
+        status: 'success',
+        orderNumber,
+        invoiceUrl: ykPaymentUrl,
+        message: 'Ссылка на оплату ЮKassa выдана клиенту',
+      });
+      return NextResponse.json({
+        success: true,
+        paymentUrl: ykPaymentUrl,
         orderNumber,
         amount,
       });

@@ -814,6 +814,12 @@ model Order {
   receiptKey          String?
   lastSyncedAt        DateTime?
 
+  /// Провайдер, через которого принята (или принимается) оплата: yookassa.
+  /// Пусто — заказ PayKeeper (исторические заказы и заказы до переключения).
+  paymentProvider     String?
+  /// Идентификатор платежа ЮKassa (payment.id). Для PayKeeper не используется.
+  providerPaymentId   String?
+
   paykeeperRefunds  PaykeeperRefundRecord[]
   paykeeperReceipts PaykeeperReceiptRecord[]
   paymentLinks      PaymentLink[]

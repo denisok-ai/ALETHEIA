@@ -36,6 +36,8 @@ export interface SystemSettings {
   /** Приём оплаты: online — касса PayKeeper; request — касса выключена, покупка
    *  превращается в заявку (лид + уведомление владельцу). */
   payments_mode: string;
+  /** Провайдер онлайн-оплаты: paykeeper (по умолчанию) | yookassa. Действует при payments_mode=online. */
+  payments_provider: string;
 }
 
 /** Значения по умолчанию при отсутствии в БД. Настройки задаются в Портал → Настройки. */
@@ -49,6 +51,7 @@ const ENV_FALLBACK: Record<keyof SystemSettings, string> = {
   google_site_verification: '',
   bing_site_verification: '',
   payments_mode: 'online',
+  payments_provider: 'paykeeper',
 };
 
 async function loadSystemSettingsImpl(): Promise<SystemSettings> {
@@ -76,6 +79,7 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
               'google_site_verification',
               'bing_site_verification',
               'payments_mode',
+              'payments_provider',
             ],
           },
         },
@@ -103,6 +107,7 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
           process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim() ||
           ENV_FALLBACK.bing_site_verification,
         payments_mode: byKey.payments_mode || process.env.PAYMENTS_MODE?.trim() || ENV_FALLBACK.payments_mode,
+        payments_provider: byKey.payments_provider || process.env.PAYMENTS_PROVIDER?.trim() || ENV_FALLBACK.payments_provider,
       };
 
       applyNextAuthUrlToProcessEnv({
@@ -126,6 +131,7 @@ async function loadSystemSettingsImpl(): Promise<SystemSettings> {
         bing_site_verification:
           process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim() || ENV_FALLBACK.bing_site_verification,
         payments_mode: process.env.PAYMENTS_MODE?.trim() || ENV_FALLBACK.payments_mode,
+        payments_provider: process.env.PAYMENTS_PROVIDER?.trim() || ENV_FALLBACK.payments_provider,
       };
       try {
         applyNextAuthUrlToProcessEnv({ siteUrl: data.site_url });
