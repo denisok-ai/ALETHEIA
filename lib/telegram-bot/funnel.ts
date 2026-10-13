@@ -29,13 +29,13 @@ const LINK_BLOG = 'https://avaterra.pro/blog/pervye-shagi-myshechnogo-testirovan
 
 export const FUNNEL_WELCOME_TEXT =
   'Здравствуйте! Я бот <b>AVATERRA</b> — Phygital-школы мышечного тестирования.\n\n' +
-  '<i>Тело помнит всё.</i> Помогу понять, что вам сейчас ближе: освоить метод «Тело не врёт», ' +
+  '<i>Тело помнит всё.</i> Помогу понять, что вам сейчас ближе: освоить метод в практикуме «Тело знает всё», ' +
   'практики «Пробуждения» или просто разобраться с вопросами.\n\n' +
   'Выберите вариант — пришлю подходящие материалы или передам команде.';
 
 export const FUNNEL_CHOICE_LABELS: Record<FunnelChoice, string> = {
   learn: 'Хочу узнать о методике подробнее',
-  thinking: 'Думаю про курс — есть вопросы',
+  thinking: 'Думаю про практикум — есть вопросы',
   ready: 'Готов(а) обсудить участие',
 };
 
@@ -45,7 +45,7 @@ const FUNNEL_RESPONSES: Record<FunnelChoice, { text: string; notifyAdmin: boolea
       'Отлично! Короткая подборка для старта:\n\n' +
       `• Что такое мышечное тестирование: <a href="${LINK_ABOUT}">avaterra.pro/about</a>\n` +
       `• Первые шаги: <a href="${LINK_BLOG}">читать в блоге</a>\n` +
-      `• Программа курса «Тело не врёт»: <a href="${LINK_BODY}">страница курса</a>\n` +
+      `• Практикум «Тело знает всё»: <a href="${LINK_BODY}">страница курса</a>\n` +
       `• Практики «Пробуждение» (21 день): <a href="${LINK_AWAKENING}">страница курса</a>\n` +
       `• Ответы на частые вопросы: <a href="${LINK_FAQ}">avaterra.pro/faq</a>\n\n` +
       'Если появятся вопросы — напишите сюда или нажмите «💬 Написать в поддержку» в меню.',
@@ -56,7 +56,7 @@ const FUNNEL_RESPONSES: Record<FunnelChoice, { text: string; notifyAdmin: boolea
     text:
       'Понимаю — выбрать формат важно. Расскажите коротко, что именно хочется решить с помощью практики? ' +
       'Я передам команде, и вам ответит специалист.\n\n' +
-      `Пока можно посмотреть: <a href="${LINK_BODY}">«Тело не врёт»</a> · ` +
+      `Пока можно посмотреть: <a href="${LINK_BODY}">«Тело знает всё»</a> · ` +
       `<a href="${LINK_AWAKENING}">«Пробуждение»</a> · <a href="${LINK_FAQ}">FAQ</a>\n\n` +
       'Можете отправить текстовое сообщение.',
     notifyAdmin: true,
@@ -65,8 +65,8 @@ const FUNNEL_RESPONSES: Record<FunnelChoice, { text: string; notifyAdmin: boolea
   ready: {
     text:
       'Отлично, что вы готовы! Один уточняющий вопрос: когда планируете начать — ' +
-      'в ближайший поток или гибко?\n\n' +
-      `Курсы на выбор: <a href="${LINK_BODY}">«Тело не врёт»</a> · ` +
+      'сейчас или позже?\n\n' +
+      `Программы на выбор: <a href="${LINK_BODY}">«Тело знает всё»</a> · ` +
       `<a href="${LINK_AWAKENING}">«Пробуждение»</a>\n\n` +
       'Просто напишите ответ ниже — передам менеджеру.',
     notifyAdmin: true,

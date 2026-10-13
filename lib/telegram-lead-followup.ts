@@ -50,14 +50,14 @@ function followupText(stage: Stage, segment: string | null): string {
       'Чтобы ответить точнее, достаточно пары слов: что хочется решить — телесное напряжение и усталость, ' +
         'личная ситуация, или вы помогающий специалист и берёте метод в работу?',
       '',
-      `Пока можно посмотреть программы: <a href="${LINK_BODY}">«Тело не врёт»</a> · ` +
+      `Пока можно посмотреть программы: <a href="${LINK_BODY}">«Тело знает всё»</a> · ` +
         `<a href="${LINK_AWAKENING}">«Пробуждение»</a> · <a href="${LINK_FAQ}">частые вопросы</a>.`,
     ].join('\n');
   }
   return [
     'Не буду больше напоминать — просто оставлю всё нужное в одном месте.',
     '',
-    `• <a href="${LINK_BODY}">«Тело не врёт»</a> — базовый навык мышечного тестирования, подходит с нуля.`,
+    `• <a href="${LINK_BODY}">«Тело знает всё»</a> — практикум мышечного тестирования: 5 000 ₽, доступ 3 месяца, в своём темпе.`,
     `• <a href="${LINK_AWAKENING}">«Пробуждение»</a> — 21 день практик, в группе или индивидуально.`,
     `• <a href="${LINK_FAQ}">Ответы на частые вопросы</a>.`,
     '',
@@ -69,7 +69,7 @@ function followupText(stage: Stage, segment: string | null): string {
 
 function followupKeyboard(stage: Stage) {
   const rows: { text: string; url?: string; callback_data?: string }[][] = [
-    [{ text: '📚 Программа «Тело не врёт»', url: LINK_BODY }],
+    [{ text: '📚 Практикум «Тело знает всё»', url: LINK_BODY }],
   ];
   if (stage === 1) {
     rows.push([{ text: '💬 Написать менеджеру', url: `${TELEGRAM_BOT_URL}?start=write` }]);

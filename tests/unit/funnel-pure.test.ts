@@ -127,7 +127,8 @@ describe('objection: подсказки менеджеру', () => {
     for (const t of Object.keys(OBJECTION_LABEL) as Array<keyof typeof OBJECTION_REPLY>) {
       const r = OBJECTION_REPLY[t];
       expect(r.length, t).toBeGreaterThan(30);
-      expect(r, t).not.toMatch(/\d[\d ]*₽|вылечи|гарантир/i);
+      // Единственная названная сумма — цена практикума «Тело знает всё» (публичная и фиксированная).
+      expect(r.replace('5 000 ₽', ''), t).not.toMatch(/\d[\d ]*₽|вылечи|гарантир/i);
     }
   });
 });

@@ -21,6 +21,11 @@ import type { Audience } from './audience';
 const OFFER_COOLDOWN_MS = 24 * 60 * 60 * 1000;
 /** Жёсткий пол: даже реактивный (force) оффер не чаще раза в час — от спама. */
 const OFFER_HARD_FLOOR_MS = 60 * 60 * 1000;
+/**
+ * Продукты, снятые с продажи: бот их не предлагает, даже если они ещё видны в витрине.
+ * «Практик» (25 000 ₽) снят 13.10.2026 — его место занял практикум «Тело знает всё».
+ */
+const WITHDRAWN_SLUGS = new Set<string>(['avaterra-praktik']);
 
 function fmtPrice(p: number): string {
   return p <= 0 ? 'бесплатно' : `${p.toLocaleString('ru-RU')} ₽`;
@@ -44,7 +49,7 @@ async function buildOffer(
   intent?: BuyIntent | null,
   audience?: Audience | null
 ): Promise<{ text: string; keyboard: { inline_keyboard: { text: string; url: string }[][] } } | null> {
-  const all = (await getCachedPublicProducts()).filter((p) => p.price > 0);
+  const all = (await getCachedPublicProducts()).filter((p) => p.price > 0 && !WITHDRAWN_SLUGS.has(p.slug));
   if (!all.length) return null;
   // Специалисту/скептику ближе продвинутый (дорогой) тариф — покажем его первым;
   // новичку с телесным/личным запросом — сначала базовый (дешёвый).
@@ -88,7 +93,7 @@ async function buildOffer(
     lines.push('<i>На странице тарифа можно оформить рассрочку. Это не медицинская услуга — мы работаем со стрессом и телесным откликом.</i>');
   } else if (variant === 'B') {
     // Вариант B: акцент на прозрачность условий (доступ сразу, до покупки — вводный курс и программа).
-    lines.push('<i>Доступ к материалам открывается сразу после оплаты. До покупки можно посмотреть вводный курс и полную программу.</i>');
+    lines.push('<i>Доступ к материалам открывается сразу после оплаты. До покупки можно пройти бесплатное знакомство «Первый тест» и посмотреть программу.</i>');
   } else {
     lines.push('<i>Оплата на странице тарифа. Без давления — если остались вопросы, просто напишите, разберём.</i>');
   }
