@@ -116,4 +116,12 @@ describe('normalizePostLexicon: замена запрещённого «кали
     expect(normalizePostLexicon('Важно калибровать.')).toBe('Важно сверить ответ с балансом.');
     expect(normalizePostLexicon('калибровка перед тестом')).toBe('замер через баланс тела перед тестом');
   });
+
+  it('ссылки и почта не дублируются и не меняются', async () => {
+    const { normalizePostLexicon } = await import('@/lib/content/quality-gates');
+    expect(normalizePostLexicon('Курс: https://avaterra.pro/kurs?ref=tg-01 — калибровка')).toBe(
+      'Курс: https://avaterra.pro/kurs?ref=tg-01 — замер через баланс тела'
+    );
+    expect(normalizePostLexicon('Пишите support@avaterra.pro')).toBe('Пишите support@avaterra.pro');
+  });
 });

@@ -227,20 +227,17 @@ const LEXICON_REPLACEMENTS: Array<[RegExp, string]> = [
 
 export function normalizePostLexicon(text: string): string {
   if (!text) return text;
+  // split с одной группой захвата отдаёт и куски текста, и сами ссылки/почты:
+  // нечётные индексы — это URL и e-mail, их не трогаем и не добавляем второй раз.
   const parts = text.split(URL_OR_EMAIL);
-  const tokens = text.match(URL_OR_EMAIL) ?? [];
-  let out = '';
-  let ti = 0;
-  for (let i = 0; i < parts.length; i++) {
-    let chunk = parts[i] ?? '';
-    for (const [re, rep] of LEXICON_REPLACEMENTS) chunk = chunk.replace(re, rep);
-    out += chunk;
-    if (ti < tokens.length) {
-      out += tokens[ti];
-      ti += 1;
-    }
-  }
-  return out;
+  return parts
+    .map((chunk, i) => {
+      if (i % 2 === 1) return chunk;
+      let out = chunk ?? '';
+      for (const [re, rep] of LEXICON_REPLACEMENTS) out = out.replace(re, rep);
+      return out;
+    })
+    .join('');
 }
 
 export function scanPublishBlockers(text: string): QualityIssue[] {
