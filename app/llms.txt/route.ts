@@ -9,6 +9,7 @@ import { getPublicProducts } from '@/lib/shop/public-products';
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { getGlossarySorted } from '@/lib/content/glossary';
 import { ENTITY_SCHOOL_DEFINITION } from '@/lib/seo/entity';
+import { SELLER_FOOTER_LINE } from '@/lib/legal/seller';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,7 @@ ${productLines.join('\n')}
 - [Вопросы и ответы](${base}/faq): частые вопросы о методе и обучении
 - [Обучение кинезиологии онлайн](${base}/obuchenie-kineziologii-onlajn): как устроено онлайн-обучение (6 модулей, живые занятия с куратором, доступ 3 месяца, сертификат), учиться можно из Москвы, любого города и страны
 - [Контакты](${base}/contacts): телефон, email, как связаться
+- Юридическое лицо: ${SELLER_FOOTER_LINE}; продавец курсов школы АВАТЕРРА
 
 ## Статьи блога
 ${blogLines.join('\n')}

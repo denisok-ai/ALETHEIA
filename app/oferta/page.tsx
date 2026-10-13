@@ -4,6 +4,7 @@ import { getSystemSettings } from '@/lib/settings';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
+import { SELLER_EMAIL, SELLER_INN, SELLER_LEGAL_ADDRESS, SELLER_LEGAL_NAME, SELLER_OGRN } from '@/lib/legal/seller';
 
 const DESCRIPTION =
   'Публичная оферта АВАТЕРРА: условия оплаты, доступа к курсам в личном кабинете и возврата средств. Образовательные и консультационные услуги.';
@@ -32,7 +33,9 @@ const tocItems = [
 /**
  * Публичная оферта на оказание образовательных и консультационных услуг школы АВАТЕРРА.
  */
-export default function OfertaPage() {
+export default async function OfertaPage() {
+  const settings = await getSystemSettings();
+  const phone = settings.contact_phone?.trim() || null;
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 font-body">
       <h1 className="font-heading text-3xl font-semibold text-[var(--text)]">
@@ -64,6 +67,10 @@ export default function OfertaPage() {
       <div className="mt-10 max-w-[var(--prose-max-width)] space-y-8 font-body leading-[var(--leading-body)] text-[var(--text)]">
         <section>
           <h2 className="font-heading text-xl font-semibold text-[var(--text)]">1. Общие положения</h2>
+          <p className="mt-2">
+            <strong>Исполнитель — {SELLER_LEGAL_NAME} (ОГРН {SELLER_OGRN}, ИНН {SELLER_INN}), адрес: {SELLER_LEGAL_ADDRESS}, далее — Исполнитель;</strong>{' '}
+            образовательные и информационные материалы школы «Аватэрра» (avaterra.pro) предоставляются Исполнителем.
+          </p>
           <p className="mt-2">
             Настоящая оферта является официальным предложением Исполнителя заключить договор на оказание образовательных и консультационных услуг на условиях, изложенных ниже. Акцептом оферты считается оплата услуг или подача заявки через формы сайта и последующее подтверждение Исполнителем.
           </p>
@@ -189,6 +196,27 @@ export default function OfertaPage() {
           <p className="mt-2">
             По вопросам оферты и оказания услуг можно обратиться через форму обратной связи на сайте или по контактам, указанным в разделе «Контакты». Исполнитель оставляет за собой право изменять условия оферты с публикацией актуальной версии на сайте.
           </p>
+        </section>
+
+        <section id="rekvizity" className="scroll-mt-28" aria-labelledby="rekvizity-heading">
+          <h2 id="rekvizity-heading" className="font-heading text-xl font-semibold text-[var(--text)]">
+            7. Реквизиты Исполнителя
+          </h2>
+          <ul className="mt-2 list-disc space-y-1 pl-5">
+            <li>Наименование: {SELLER_LEGAL_NAME}</li>
+            <li>ОГРН: {SELLER_OGRN}</li>
+            <li>ИНН: {SELLER_INN}</li>
+            <li>Юридический адрес: {SELLER_LEGAL_ADDRESS}</li>
+            <li>
+              Email: <a href={`mailto:${SELLER_EMAIL}`} className="text-[#D4AF37] underline hover:text-[#e8c85c]">{SELLER_EMAIL}</a>
+            </li>
+            {phone ? (
+              <li>
+                Телефон:{' '}
+                <a href={`tel:${phone.replace(/\D/g, '')}`} className="text-[#D4AF37] underline hover:text-[#e8c85c]">{phone}</a>
+              </li>
+            ) : null}
+          </ul>
         </section>
       </div>
 

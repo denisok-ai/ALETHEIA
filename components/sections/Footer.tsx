@@ -9,6 +9,7 @@ import { BrandLogo } from '@/components/BrandLogo';
 import { BRAND_SCHOOL_LINE, BRAND_SITE_NAME } from '@/lib/brand';
 import { courseIntro } from '@/lib/content/course-lynda-teaser';
 import { getPdnOperatorPublic } from '@/lib/pdn-public';
+import { SELLER_FOOTER_LINE } from '@/lib/legal/seller';
 import { botDeepLink, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
 
 function FooterTelegramIcon({ className }: { className?: string }) {
@@ -140,8 +141,11 @@ export function Footer({ contactPhone, acqRef = null }: FooterProps) {
           </div>
         </div>
         <p className="mt-8 pt-6 border-t border-[var(--border)] text-center text-xs text-[var(--text-soft)]">
-          {op.footerLine}
+          <Link href="/oferta" className="hover:text-plum transition-colors">
+            {SELLER_FOOTER_LINE}
+          </Link>
         </p>
+        <p className="mt-2 text-center text-xs text-[var(--text-soft)]">{op.footerLine}</p>
       </div>
     </footer>
   );

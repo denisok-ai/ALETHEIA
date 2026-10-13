@@ -3,6 +3,7 @@
  */
 import { BRAND_LOGO_URL } from '@/lib/brand';
 import { jsonLdString } from '@/lib/json-ld';
+import { SELLER_INN, SELLER_LEGAL_NAME } from '@/lib/legal/seller';
 import { SOCIAL_LINKS } from '@/lib/social-links';
 
 export type OrgOffer = { name: string; price: number; slug: string };
@@ -23,6 +24,9 @@ export function JsonLdOrganization({
     '@type': 'EducationalOrganization',
     '@id': `${url}/#organization`,
     name: 'Школа «AVATERRA»',
+    // Юридическое лицо, которое продаёт курсы школы (Организация: legalName, taxID)
+    legalName: SELLER_LEGAL_NAME,
+    taxID: SELLER_INN,
     // Кириллические написания из реальных запросов Вебмастера («аватера курсы», «аватерра прайс»)
     alternateName: ['АВАТЕРРА', 'Аватэрра', 'Аватерра', 'Аватера', 'AVATERRA', 'avaterra.pro'],
     url,

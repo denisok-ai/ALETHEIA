@@ -9,6 +9,7 @@ import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { FAQ_JSON_LD_ITEMS } from '@/lib/landing-faq';
 import { MT_MODULES } from '@/lib/content/course-mt-landing';
 import { PROB_WEEKS } from '@/lib/content/course-probuzhdenie';
+import { SELLER_FOOTER_LINE } from '@/lib/legal/seller';
 
 export const dynamic = 'force-dynamic';
 
@@ -131,6 +132,7 @@ ${contactsParts.join('\n')}
 
 ## Правовая информация
 
+- Юридическое лицо (продавец курсов): ${SELLER_FOOTER_LINE}
 - Публичная оферта: ${base}/oferta
 - Политика обработки персональных данных: ${base}/privacy
 - Согласие на обработку персональных данных: ${base}/pd-consent

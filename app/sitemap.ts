@@ -88,7 +88,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       '/about': '2026-07-23',
       '/faq': '2026-07-16',
       '/obuchenie-kineziologii-onlajn': '2026-09-23',
-      '/contacts': '2026-08-12',
+      '/contacts': '2026-10-13',
       '/news': '2026-07-19',
       '/oferta': '2026-10-13',
       '/privacy': '2026-10-13',

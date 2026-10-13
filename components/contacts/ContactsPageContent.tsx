@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { TelegramPromo } from '@/components/TelegramPromo';
+import { SELLER_EMAIL, SELLER_INN, SELLER_LEGAL_ADDRESS, SELLER_LEGAL_NAME, SELLER_OGRN } from '@/lib/legal/seller';
 
 type Props = {
   /** null, если реальный контакт не задан в настройках — см. app/contacts/page.tsx */
@@ -53,6 +54,26 @@ export function ContactsPageContent({ phone, phoneHref, address, acqRef = null }
           </li>
         ) : null}
       </ul>
+
+      <section
+        id="rekvizity"
+        aria-labelledby="rekvizity-heading"
+        className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 md:p-8"
+      >
+        <h2 id="rekvizity-heading" className="text-sm font-semibold uppercase tracking-wider text-plum">
+          Реквизиты
+        </h2>
+        <p className="mt-2 text-[var(--text)]">
+          Продавец курсов: {SELLER_LEGAL_NAME}. ОГРН {SELLER_OGRN}, ИНН {SELLER_INN}.
+        </p>
+        <p className="mt-1 text-[var(--text-muted)]">Юридический адрес: {SELLER_LEGAL_ADDRESS}.</p>
+        <p className="mt-1 text-[var(--text-muted)]">
+          Email для обращений: <a href={`mailto:${SELLER_EMAIL}`} className="text-plum hover:underline">{SELLER_EMAIL}</a>
+        </p>
+        <p className="mt-3 text-sm text-[var(--text-muted)]">
+          Полный текст условий — <Link href="/oferta" className="font-medium text-plum hover:underline">публичная оферта</Link>.
+        </p>
+      </section>
 
       <div className="mt-8">
         <TelegramPromo variant="card" source="contacts" acqRef={acqRef} />
