@@ -66,7 +66,7 @@ export function Program() {
             </div>
             <div>
               <p className="text-2xl font-bold tabular-nums text-[var(--text)]">{DISPLAY_PRACTICAL_LESSONS}</p>
-              <p className="text-sm leading-snug text-[var(--text-muted)]">живых практических уроков</p>
+              <p className="text-sm leading-snug text-[var(--text-muted)]">практических уроков</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -124,7 +124,7 @@ export function Program() {
                   >
                     <div className="flex items-center gap-2 p-4 text-sm text-[var(--text)]">
                       <Video className="h-4 w-4 shrink-0 text-plum" aria-hidden />
-                      Живые практические занятия и материалы для самостоятельной работы
+                      Видео, тексты и аудиопрактики для самостоятельной работы — без кураторов и живых занятий
                     </div>
                   </motion.div>
                 )}

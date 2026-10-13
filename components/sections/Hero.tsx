@@ -46,7 +46,7 @@ export function Hero() {
               transition={t(0.5, 0.1)}
               className="mt-5 max-w-xl text-lg leading-relaxed text-[var(--text)]"
             >
-              Курс по обучению мышечному тестированию. Узнайте, как найти причину проблемы за 30 секунд.
+              Практикум мышечного тестирования для самостоятельного освоения. Узнайте, как найти причину проблемы за 30 секунд.
             </motion.p>
             <motion.div
               initial={{ opacity: 0 }}

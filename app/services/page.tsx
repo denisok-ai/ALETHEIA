@@ -15,9 +15,9 @@ import { jsonLdString } from '@/lib/json-ld';
 
 const TITLE = 'Тарифы и услуги школы АВАТЕРРА';
 /** Мета-заголовок без бренда: его добавляет шаблон layout ('%s | АВАТЕРРА') */
-const SEO_TITLE = 'Тарифы и цены на обучение';
+const SEO_TITLE = 'Тарифы и цены';
 const DESCRIPTION =
-  'Обучение мышечному тестированию: бесплатное знакомство с методом, полный курс «Практик» и наставничество Татьяны Стрельцовой. Актуальные цены и состав тарифов.';
+  'Мышечное тестирование: бесплатное знакомство «Первый тест», практикум «Тело знает всё» для самостоятельного освоения и наставничество Татьяны Стрельцовой. Актуальные цены и состав тарифов.';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -72,7 +72,7 @@ export default async function ServicesIndexPage() {
               <Link href="/contacts" className="text-plum underline underline-offset-4">
                 страницу контактов
               </Link>{' '}
-              — подскажем актуальные форматы обучения.
+              — подскажем актуальные форматы.
             </p>
           ) : (
             <div className="mt-12 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
@@ -114,7 +114,7 @@ export default async function ServicesIndexPage() {
           <div className="mt-16 rounded-2xl border border-[var(--border)] bg-[var(--lavender-light)] p-7">
             <h2 className="font-heading text-xl font-semibold">О курсе</h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--text-muted)]">
-              Все тарифы дают доступ к обучению мышечному тестированию — методу, который помогает
+              Все тарифы дают доступ к мышечному тестированию — методу, который помогает
               находить причину проблемы через обратную связь тела. Подробная программа — на{' '}
               <Link
                 href="/course/navyki-myshechnogo-testirovaniya"

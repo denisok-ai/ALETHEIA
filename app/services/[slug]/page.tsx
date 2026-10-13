@@ -182,8 +182,8 @@ export default async function ServicePage(props: { params: Promise<Params> }) {
               </div>
 
               <p className="mt-8 text-sm leading-relaxed text-[var(--text-muted)]">
-                Тариф относится к курсу «{product.courseTitle}» онлайн-школы АВАТЕРРА. Программа и
-                формат обучения — на{' '}
+                Тариф относится к практикуму «{product.courseTitle}» онлайн-школы АВАТЕРРА. Программа и
+                формат — на{' '}
                 <Link
                   href="/course/navyki-myshechnogo-testirovaniya"
                   className="text-plum underline underline-offset-4"

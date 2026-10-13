@@ -64,7 +64,7 @@ export default async function HomePage() {
     price: p.price,
     description: p.cardDescription,
     features: p.features,
-    popular: p.slug === 'avaterra-praktik',
+    popular: p.slug === 'telo-znaet-vse',
     imageUrl: p.imageUrl,
     installmentEnabled: p.installmentEnabled,
     maxInstallments: p.maxInstallments,

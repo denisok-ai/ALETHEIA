@@ -8,7 +8,7 @@
 import { chromium } from 'playwright';
 
 const BASE = (process.argv[2] || 'http://127.0.0.1:4500').replace(/\/$/, '');
-const PAGES = ['/', '/services', '/services/avaterra-praktik', '/course/probuzhdenie', '/blog', '/faq'];
+const PAGES = ['/', '/services', '/services/telo-znaet-vse', '/course/probuzhdenie', '/blog', '/faq'];
 
 type PageResult = {
   page: string;

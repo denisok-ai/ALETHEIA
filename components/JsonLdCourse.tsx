@@ -21,7 +21,7 @@ export function JsonLdCourse({
   const personId = `${base}/about#person`;
   const courseUrl = `${base}/course/${COURSE_SLUG}`;
   const courseDescription =
-    'Курс по обучению мышечному тестированию: причина проблемы за 30 секунд, работа с телом и подсознанием, измеримая обратная связь.';
+    'Практикум мышечного тестирования «Тело знает всё» для самостоятельного освоения: причина проблемы за 30 секунд, работа с телом и подсознанием, измеримая обратная связь.';
 
   const reviewsJsonLd = LANDING_REVIEWS.map((r) => ({
     '@type': 'Review',
@@ -47,7 +47,7 @@ export function JsonLdCourse({
       {
         '@type': 'Course',
         '@id': `${courseUrl}#course`,
-        name: 'Курс по мышечному тестированию',
+        name: 'Тело знает всё — практикум мышечного тестирования',
         url: courseUrl,
         description: courseDescription,
         provider: {
@@ -65,8 +65,8 @@ export function JsonLdCourse({
         hasCourseInstance: {
           '@type': 'CourseInstance',
           courseMode: 'Online',
-          // ~20 часов: 6 модулей + 8 живых занятий
-          courseWorkload: 'PT20H',
+          // ~6 часов: 6 модулей для самостоятельного освоения, без живых занятий
+          courseWorkload: 'PT6H',
           inLanguage: 'ru-RU',
         },
         offers:

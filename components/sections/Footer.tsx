@@ -123,7 +123,7 @@ export function Footer({ contactPhone, acqRef = null }: FooterProps) {
                 Глоссарий
               </Link>
               <Link href="/obuchenie-kineziologii-onlajn" className="hover:text-plum transition-colors">
-                Обучение онлайн
+                Кинезиология онлайн
               </Link>
               <Link href="/contacts" className="hover:text-plum transition-colors">
                 Контакты

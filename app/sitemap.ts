@@ -83,11 +83,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
      * не узнает об изменении.
      */
     const CONTENT_REVISED: Record<string, string> = {
-      '/course/navyki-myshechnogo-testirovaniya': '2026-08-04',
+      '/course/navyki-myshechnogo-testirovaniya': '2026-10-13',
       '/course/probuzhdenie': '2026-08-11',
-      '/about': '2026-07-23',
+      '/about': '2026-10-13',
       '/faq': '2026-07-16',
-      '/obuchenie-kineziologii-onlajn': '2026-09-23',
+      '/obuchenie-kineziologii-onlajn': '2026-10-13',
       '/contacts': '2026-10-13',
       '/news': '2026-07-19',
       '/oferta': '2026-10-13',

@@ -62,26 +62,26 @@ export const BLOG_CTA: Partial<
 > = {
   'telo-znaet-otvet': {
     heading: 'Готовы научиться слышать своё тело?',
-    text: 'Начните с бесплатного знакомства с методом или выберите полный курс мышечного тестирования.',
+    text: 'Начните с бесплатного знакомства с методом или выберите практикум мышечного тестирования для самостоятельного освоения.',
     primary: { href: '/services/kod-tela-start', label: 'Бесплатное знакомство с методом' },
     secondary: { href: '/services', label: 'Все тарифы и цены' },
   },
   'pochemu-problemy-vozvrashautysya': {
     heading: 'Дойти до причины и убрать её',
-    text: 'На курсе вы научитесь находить корень проблемы и работать с ним — на себе и с близкими.',
-    primary: { href: '/services/avaterra-praktik', label: 'Тариф «Практик» — полный курс' },
+    text: 'В практикуме вы научитесь находить корень проблемы и работать с ним — на себе и с близкими.',
+    primary: { href: '/services/telo-znaet-vse', label: 'Практикум «Тело знает всё»' },
     secondary: { href: '/services', label: 'Сравнить тарифы' },
   },
   'mify-o-myshechnom-testirovanii': {
     heading: 'Проверьте метод на практике',
     text: 'Мышечное тестирование основано на физиологии. Убедитесь сами на бесплатном мини-курсе.',
     primary: { href: '/services/kod-tela-start', label: 'Попробовать бесплатно' },
-    secondary: { href: '/services', label: 'Все форматы обучения' },
+    secondary: { href: '/services', label: 'Все форматы' },
   },
   'stress-hronika-ili-signal-tela': {
     heading: 'Научитесь распознавать сигналы тела',
     text: 'Полный курс даёт инструмент, который остаётся с вами навсегда — без подписок и внешнего доступа.',
-    primary: { href: '/services/avaterra-praktik', label: 'Тариф «Практик»' },
+    primary: { href: '/services/telo-znaet-vse', label: 'Практикум «Тело знает всё»' },
     secondary: { href: '/services', label: 'Тарифы и цены' },
   },
   'pervye-shagi-myshechnogo-testirovaniya': {

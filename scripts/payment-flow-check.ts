@@ -22,6 +22,7 @@ const sample: ServiceForOrderTariff = {
   slug: 'my-slug',
   name: 'Тест',
   price: 1000,
+  accessDays: null,
 };
 
 assert(orderTariffIdForStorage(sample) === 'pk-99', 'orderTariffIdForStorage prefers paykeeperTariffId');

@@ -10,7 +10,7 @@ const BASE = (process.argv[2] || 'https://avaterra.pro').replace(/\/$/, '');
 const PAGES = [
   '/',
   '/services',
-  '/services/avaterra-praktik',
+  '/services/telo-znaet-vse',
   '/course/navyki-myshechnogo-testirovaniya',
   '/course/probuzhdenie',
   '/about',
