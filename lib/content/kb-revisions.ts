@@ -8,6 +8,7 @@
  */
 export const KB_REVISED: Record<string, string> = {
   'myshechnoe-testirovanie-dlya-psihologov': '2026-09-25',
+  'myshechnoe-testirovanie-obuchenie': '2026-10-13',
 };
 
 /** Дата последнего изменения статьи для dateModified/lastmod (ISO). */
