@@ -8,6 +8,7 @@
  * Ошибки БД здесь не пробрасываются: диалог с человеком важнее записи в CRM.
  */
 import { prisma } from '@/lib/db';
+import { firstTouchRef } from '@/lib/social/refs';
 import type { BotContext } from './types';
 
 export const LEAD_SOURCE = 'telegram_bot';
@@ -45,6 +46,8 @@ type UpsertParams = {
   entrySource?: string;
   /** Привязать этот чат к уже существующему лиду (deep link `l-<id>`). */
   bindLeadId?: number;
+  /** Метка соцсети ?ref= из deep link (tg-01). Пишется в Lead.acqRef только если поле пустое. */
+  acqRef?: string | null;
   /** Отметить, что бот только что написал человеку (сброс окна догона). */
   botMessaged?: boolean;
 };
@@ -85,10 +88,13 @@ export async function upsertBotLead(
 
     if (existing) {
       const message = (existing.message ? `${block}\n\n— ранее —\n${existing.message}` : block).slice(0, 2000);
+      // Первое касание: метку не перезаписываем, если она уже есть у лида.
+      const acqRef = firstTouchRef(existing.acqRef, params.acqRef);
       await prisma.lead.update({
         where: { id: existing.id },
         data: {
           ...dialogData,
+          ...(acqRef && acqRef !== existing.acqRef ? { acqRef } : {}),
           message,
           // Контакт из бота полезнее пустого телефона, но телефон из формы не затираем.
           ...(existing.phone && !existing.phone.startsWith('tg:') && !existing.phone.startsWith('@')
@@ -106,6 +112,7 @@ export async function upsertBotLead(
         message: block.slice(0, 2000),
         status: 'new',
         source: LEAD_SOURCE,
+        acqRef: firstTouchRef(null, params.acqRef),
         ...dialogData,
       },
     });

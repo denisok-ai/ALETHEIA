@@ -8,6 +8,7 @@ import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { botDeepLink } from '@/lib/social-links';
+import { currentAcqRef } from '@/lib/social/current-ref';
 
 /**
  * Посадочная под региональный спрос («обучение кинезиологии Москва»,
@@ -68,6 +69,7 @@ const linkClass = 'font-medium text-plum underline-offset-2 hover:underline';
 
 export default async function OnlineKinesiologyPage() {
   const settings = await getSystemSettings();
+  const acqRef = await currentAcqRef();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const pageUrl = `${base}${PATH}`;
 
@@ -167,7 +169,7 @@ export default async function OnlineKinesiologyPage() {
         <section className="mt-10 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
           <p className="text-[var(--text)]">
             Остались вопросы о формате или о том, подойдёт ли вам метод? Задайте их{' '}
-            <a href={botDeepLink('online-landing')} className={linkClass} rel="noopener">
+            <a href={botDeepLink('online-landing', { ref: acqRef })} className={linkClass} rel="noopener">
               в Telegram-боте школы
             </a>{' '}
             — ответ придёт сразу, а сложные вопросы бот передаст куратору.

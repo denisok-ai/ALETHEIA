@@ -278,6 +278,7 @@ async function handleCommand(ctx: BotContext): Promise<void> {
         await upsertBotLead(ctx, {
           entrySource: payload.entrySource,
           bindLeadId: payload.leadId,
+          acqRef: payload.ref ?? null,
           botMessaged: true,
         });
       }

@@ -8,6 +8,7 @@ import { LandingBlog } from '@/components/sections/LandingBlog';
 import { LandingFAQ } from '@/components/sections/LandingFAQ';
 import { TelegramPromo } from '@/components/TelegramPromo';
 import { getSystemSettings } from '@/lib/settings';
+import { currentAcqRef } from '@/lib/social/current-ref';
 import { DEFAULT_OG_IMAGE_PATH, SEO_HOME } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublicProducts } from '@/lib/shop/public-products';
@@ -51,6 +52,7 @@ const Pricing = dynamic(() => import('@/components/sections/Pricing').then((m) =
 const FAQ = dynamic(() => import('@/components/sections/FAQ').then((m) => m.FAQ), { ssr: true });
 export default async function HomePage() {
   const settings = await getSystemSettings();
+  const acqRef = await currentAcqRef();
   const siteUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
   const base = siteUrl.replace(/\/$/, '');
   // Товары рендерятся на сервере: поисковики видят реальные тарифы, а не fallback после гидрации
@@ -84,7 +86,7 @@ export default async function HomePage() {
       <Author />
       <Testimonials />
       <LandingBlog />
-      <TelegramPromo variant="section" source="landing" />
+      <TelegramPromo variant="section" source="landing" acqRef={acqRef} />
       <LandingFAQ />
       <Pricing initialProducts={tariffs.length ? tariffs : undefined} />
       <FAQ />

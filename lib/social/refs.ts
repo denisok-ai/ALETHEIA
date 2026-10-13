@@ -33,6 +33,20 @@ export function refFromValue(value: string | null | undefined): string | null {
   return isValidRefCode(value) ? value : null;
 }
 
+/** Имя cookie с меткой первого касания (ставит proxy.ts, читают серверные маршруты). */
+export const REF_COOKIE_NAME = 'av_ref';
+
+/**
+ * Правило первого касания: уже сохранённая валидная метка не перезаписывается.
+ * Возвращает значение, которое нужно записать, или null, если менять нечего.
+ */
+export function firstTouchRef(
+  current: string | null | undefined,
+  incoming: string | null | undefined,
+): string | null {
+  return refFromValue(current) ?? refFromValue(incoming);
+}
+
 /** Код сети по метке; null, если метка некорректна или префикс неизвестен. */
 export function networkForRef(refCode: string): string | null {
   if (!isValidRefCode(refCode)) return null;

@@ -20,8 +20,10 @@ export const TELEGRAM_BOT_USERNAME = '@AvaterraProBot';
  * Так человек сам начинает диалог (Telegram запрещает боту писать первым), а бот
  * при нажатии «Начать» сразу заводит лид в CRM с этим источником и получает право
  * отвечать и напоминать. `leadId` связывает диалог с заявкой, оставленной на сайте.
+ * `ref` — метка соцсети первого касания (tg-01): бот запишет её в Lead.acqRef.
+ * Передавать только если метка известна серверу (cookie av_ref).
  */
-export function botDeepLink(source: string, leadId?: number): string {
-  const payload = buildStartPayload({ source, leadId });
+export function botDeepLink(source: string, options: { leadId?: number; ref?: string | null } = {}): string {
+  const payload = buildStartPayload({ source, leadId: options.leadId, ref: options.ref });
   return payload ? `${TELEGRAM_BOT_URL}?start=${payload}` : TELEGRAM_BOT_URL;
 }

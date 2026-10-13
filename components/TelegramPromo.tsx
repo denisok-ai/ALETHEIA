@@ -31,9 +31,12 @@ type Variant = 'section' | 'card';
 export function TelegramPromo({
   variant = 'card',
   source = 'site-promo',
+  acqRef = null,
 }: {
   variant?: Variant;
   source?: string;
+  /** Метка первого касания (cookie av_ref), читает родительская серверная страница. */
+  acqRef?: string | null;
 }) {
   const inner = (
     <div className="relative overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)] md:p-8">
@@ -61,7 +64,7 @@ export function TelegramPromo({
         </div>
         <div className="flex shrink-0 flex-col items-stretch gap-3 md:w-56">
           <a
-            href={botDeepLink(source)}
+            href={botDeepLink(source, { ref: acqRef })}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-plum px-5 py-3 font-semibold text-white transition-colors hover:bg-plum/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-plum"

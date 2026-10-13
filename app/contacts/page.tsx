@@ -7,6 +7,7 @@ import { getSystemSettings } from '@/lib/settings';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH, SEO_CONTACTS } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
+import { currentAcqRef } from '@/lib/social/current-ref';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -54,7 +55,7 @@ export default async function ContactsPage() {
           { name: 'Контакты', url: pageUrl },
         ]}
       />
-      <ContactsPageContent phone={phone} phoneHref={phoneHref} address={streetAddress} />
+      <ContactsPageContent phone={phone} phoneHref={phoneHref} address={streetAddress} acqRef={await currentAcqRef()} />
     </>
   );
 }

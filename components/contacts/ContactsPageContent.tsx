@@ -10,9 +10,11 @@ type Props = {
   phone: string | null;
   phoneHref: string | null;
   address: string | null;
+  /** Метка первого касания из серверной страницы (cookie av_ref). */
+  acqRef?: string | null;
 };
 
-export function ContactsPageContent({ phone, phoneHref, address }: Props) {
+export function ContactsPageContent({ phone, phoneHref, address, acqRef = null }: Props) {
   return (
     <main className="mx-auto max-w-3xl px-4 pb-16 pt-20 font-body md:pt-24">
       <Breadcrumbs items={[{ label: 'Главная', href: '/' }, { label: 'Контакты' }]} />
@@ -53,7 +55,7 @@ export function ContactsPageContent({ phone, phoneHref, address }: Props) {
       </ul>
 
       <div className="mt-8">
-        <TelegramPromo variant="card" source="contacts" />
+        <TelegramPromo variant="card" source="contacts" acqRef={acqRef} />
       </div>
 
       <p className="mt-10 text-center text-sm text-[var(--text-muted)]">

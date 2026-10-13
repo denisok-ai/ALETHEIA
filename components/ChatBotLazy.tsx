@@ -7,6 +7,7 @@ import dynamic from 'next/dynamic';
  * компонентах, поэтому ленивая загрузка живёт в этой клиентской обёртке,
  * а корневой layout рендерит её как обычный компонент.
  */
-export const ChatBotLazy = dynamic(() => import('@/components/ChatBot').then((m) => ({ default: m.ChatBot })), {
-  ssr: false,
-});
+export const ChatBotLazy = dynamic<{ acqRef?: string | null }>(
+  () => import('@/components/ChatBot').then((m) => ({ default: m.ChatBot })),
+  { ssr: false },
+);

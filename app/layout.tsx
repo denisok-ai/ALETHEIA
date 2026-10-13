@@ -17,6 +17,7 @@ import { ChatBotLazy } from '@/components/ChatBotLazy';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { BRAND_SITE_NAME } from '@/lib/brand';
 import { getPublicProducts } from '@/lib/shop/public-products';
+import { currentAcqRef } from '@/lib/social/current-ref';
 
 export const dynamic = 'force-dynamic';
 
@@ -118,6 +119,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const settings = await getSystemSettings();
+  // Метка первого касания для ссылок в бота (футер и чат-бот — клиентские, получают строку пропом).
+  const acqRef = await currentAcqRef();
   const siteUrl = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro');
   // Продуктовая линейка для hasOfferCatalog в разметке организации
   const orgOffers = (await getPublicProducts()).map((p) => ({
@@ -142,8 +145,8 @@ export default async function RootLayout({
           <Suspense fallback={<div className="min-h-[100dvh]" aria-hidden />}>
             <Header />
             <RootMain>{children}</RootMain>
-            <ChatBotLazy />
-            <FooterOnPublicOnly contactPhone={settings.contact_phone || undefined} />
+            <ChatBotLazy acqRef={acqRef} />
+            <FooterOnPublicOnly contactPhone={settings.contact_phone || undefined} acqRef={acqRef} />
           </Suspense>
           <Toaster richColors position="top-center" />
         </SessionProvider>

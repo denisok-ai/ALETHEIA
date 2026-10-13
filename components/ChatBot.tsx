@@ -13,7 +13,7 @@ import { isMinimalPublicShell } from '@/lib/public-shell-paths';
 
 type Message = { role: 'user' | 'bot'; text: string };
 
-export function ChatBot() {
+export function ChatBot({ acqRef = null }: { acqRef?: string | null }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -203,7 +203,7 @@ export function ChatBot() {
                     </button>
                   </div>
                   <a
-                    href={botDeepLink('chat')}
+                    href={botDeepLink('chat', { ref: acqRef })}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="mt-3 flex w-full items-center justify-center rounded-xl bg-plum px-4 py-2.5 font-semibold text-white transition-colors hover:bg-plum/90"

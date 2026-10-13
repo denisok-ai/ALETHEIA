@@ -22,6 +22,8 @@ function FooterTelegramIcon({ className }: { className?: string }) {
 interface FooterProps {
   /** Из настроек портала (БД). Если не задан — блок телефона не показывается. */
   contactPhone?: string | null;
+  /** Метка первого касания (cookie av_ref), передаётся из layout. */
+  acqRef?: string | null;
 }
 
 /**
@@ -33,7 +35,7 @@ interface FooterProps {
  * телефону просто не дозвонится. Лучше не показать контакт, чем показать
  * ложный: пустое место видно владельцу, а фальшивый номер выглядит настоящим.
  */
-export function Footer({ contactPhone }: FooterProps) {
+export function Footer({ contactPhone, acqRef = null }: FooterProps) {
   const phone = contactPhone?.trim() || null;
   const phoneHref = phone && phone.replace(/\D/g, '').length >= 10 ? `tel:${phone.replace(/\D/g, '')}` : null;
   const op = getPdnOperatorPublic();
@@ -75,7 +77,7 @@ export function Footer({ contactPhone }: FooterProps) {
               </li>
               <li>
                 <a
-                  href={botDeepLink('site-footer')}
+                  href={botDeepLink('site-footer', { ref: acqRef })}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 md:justify-start hover:text-plum transition-colors"

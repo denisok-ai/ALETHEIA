@@ -10,6 +10,7 @@ import { JsonLdBlogArticle } from '@/components/JsonLdBlogArticle';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { blogModifiedAt } from '@/lib/content/kb-revisions';
 import { findGlossaryTerms } from '@/lib/content/glossary-links';
+import { currentAcqRef } from '@/lib/social/current-ref';
 import { getBlogPostBySlug, getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { computeRelated } from '@/lib/content/blog-related';
 import { getSystemSettings } from '@/lib/settings';
@@ -68,6 +69,7 @@ export default async function BlogArticlePage(props: Props) {
   const { slug } = params;
   const post = await getBlogPostBySlug(slug);
   if (!post) notFound();
+  const acqRef = await currentAcqRef();
   const body = post.body;
 
   const settings = await getSystemSettings();
@@ -228,7 +230,7 @@ export default async function BlogArticlePage(props: Props) {
 
         <div className="mt-10">
           {/* Метка со слагом статьи: в CRM видно, какой текст привёл человека. */}
-          <TelegramPromo variant="card" source={`blog-${slug}`} />
+          <TelegramPromo variant="card" source={`blog-${slug}`} acqRef={acqRef} />
         </div>
 
         <div className="mt-10">

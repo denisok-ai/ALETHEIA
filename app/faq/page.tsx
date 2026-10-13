@@ -9,6 +9,7 @@ import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH, SEO_FAQ } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { botDeepLink } from '@/lib/social-links';
+import { currentAcqRef } from '@/lib/social/current-ref';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
@@ -26,6 +27,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function FaqPage() {
   const settings = await getSystemSettings();
+  const acqRef = await currentAcqRef();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const pageUrl = `${base}/faq`;
   const faqJsonLd = buildLandingFaqPageJsonLd();
@@ -95,7 +97,7 @@ export default async function FaqPage() {
           ,{' '}
           {/* Бот отвечает на частые вопросы сам и заводит обращение в CRM. */}
           <a
-            href={botDeepLink('faq')}
+            href={botDeepLink('faq', { ref: acqRef })}
             target="_blank"
             rel="noopener noreferrer"
             className="font-medium text-plum hover:underline"
