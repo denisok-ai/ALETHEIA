@@ -740,6 +740,8 @@ model Lead {
   funnelSegment     String?
   /// Метка источника из deep link (?start=s-<source>): site-footer, blog, channel…
   entrySource       String?
+  /// Метка ?ref= с сайта (cookie av_ref, первое касание): какая сеть/материал привела лида.
+  acqRef            String?
   /// Сколько догоняющих сообщений уже отправлено (0 — ни одного)
   followupStage     Int      @default(0)
   lastBotMessageAt  DateTime?
@@ -785,6 +787,8 @@ model Order {
   clientPhone String?
   /// ФИО клиента из формы оплаты (используется в письмах вместо локальной части email).
   clientName  String?
+  /// Метка ?ref= с сайта (cookie av_ref на момент заказа): источник для учёта окупаемости.
+  acqRef      String?
   status      String    @default("pending")
   paidAt      DateTime?
   userId      String?
@@ -1265,4 +1269,91 @@ model BlogPost {
   updatedAt   DateTime  @updatedAt
 
   @@index([status, publishedAt])
+}
+
+// ─── Соцсети: «один материал → все площадки» (T3.1, docs/Plan-SEO-Social-2026-10.md) ───
+
+/// Сеть как цель публикации. code — telegram | vk | youtube | rutube | dzen | instagram.
+model SocialNetwork {
+  id         Int      @id @default(autoincrement())
+  code       String   @unique
+  title      String
+  /// Выключенная сеть не получает постов.
+  enabled    Boolean  @default(true)
+  /// auto — публикация по расписанию; ready_post — только «готовый пост» владельцу.
+  mode       String   @default("ready_post")
+  profileUrl String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+/// Материал: ролик, новость или статья. Из одного материала получаются посты по сетям.
+model SocialItem {
+  id        Int      @id @default(autoincrement())
+  /// video | news | article
+  kind      String
+  title     String
+  body      String?
+  /// Путь к файлу ролика/картинки в хранилище.
+  mediaPath String?
+  /// Исходная страница (новость, статья), откуда взят материал.
+  sourceUrl String?
+  /// draft | ready | archived
+  status    String   @default("draft")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts SocialPost[]
+
+  @@index([status])
+  @@index([kind])
+}
+
+/// Пост материала в одной сети. Один материал — не более одного поста в сети.
+model SocialPost {
+  id          Int        @id @default(autoincrement())
+  itemId      Int
+  item        SocialItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  /// Код сети (SocialNetwork.code). Связь мягкая: сеть выключают, а не удаляют вместе с постами.
+  networkCode String
+  caption     String     @default("")
+  /// Метка ссылки ?ref=, например tg-01 (префикс сети + номер материала).
+  refCode     String?
+  /// draft | scheduled | published | ready_post_sent | failed | skipped
+  status      String     @default("draft")
+  scheduledAt DateTime?
+  publishedAt DateTime?
+  /// Идентификатор поста в сети (после публикации через API).
+  externalId  String?
+  error       String?
+  attempts    Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@unique([itemId, networkCode])
+  @@index([status, scheduledAt])
+  @@index([refCode])
+}
+
+/// Правила публикаций: ключ — значение (время постов, шаблон подписи, хештеги, paused_all).
+model SocialRule {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String   @default("")
+  updatedAt DateTime @updatedAt
+}
+
+/// Переход по ссылке с меткой ?ref= (учёт источника без персональных данных).
+model SocialLinkEvent {
+  id          Int      @id @default(autoincrement())
+  refCode     String
+  networkCode String
+  /// Путь страницы без query-строки.
+  path        String
+  /// Хэш IP с солью. Сейчас не заполняется: персональные данные без отдельного решения не пишем.
+  ipHash      String?
+  createdAt   DateTime @default(now())
+
+  @@index([refCode])
+  @@index([createdAt])
 }
