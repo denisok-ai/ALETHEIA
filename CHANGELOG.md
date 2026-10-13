@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-13) — Автопубликация роликов в Telegram-канал
+
+- Планировщик `lib/social/scheduler.ts` и крон `/api/cron/social-publish` (каждые 10 минут): один пост в сутки на сеть (МСК), пауза `paused_all`, две ошибки подряд выключают сеть и шлют алерт владельцу, зависший пост (publishing > 10 мин) уходит в failed без повтора.
+- Коннектор Telegram `lib/social/connectors/telegram.ts`: sendVideo с диска (до 50 МБ, подпись до 1024 знаков), sendMessage; понятные сообщения об ошибках Bot API.
+- Очередь: `scripts/social-enqueue.ts` (JSON-файл, `--dry`), `scripts/social-status.ts`. Подпись HTML с ссылкой `?ref=tg-NN` на практикум.
+- Миграция `20261013200000_social_publisher`: `SocialNetwork.chatId/failStreak/lastError`, `SocialPost.externalUrl` (только добавление колонок).
+
 ### Changed (2026-10-13) — Витрина под эксперимент «Тысяча»
 
 - Практикум «Тело знает всё» (5 000 ₽, доступ 90 дней, без кураторов): витрина, посадочная `/course/navyki-myshechnogo-testirovaniya`, «Практик» снят, бесплатный курс → «Первый тест».
