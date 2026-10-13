@@ -39,6 +39,8 @@ export type CheckoutRequestInput = {
   phone?: string | null;
   /** Откуда пришла заявка — для карточки лида и уведомления. */
   via: 'сайт (кнопка оплаты)' | 'персональная ссылка оплаты';
+  /** Метка ?ref= из cookie av_ref (T3.3). В лид пишется только первое касание. */
+  acqRef?: string | null;
 };
 
 /**
@@ -68,6 +70,8 @@ export async function recordCheckoutRequest(input: CheckoutRequestInput): Promis
           lastOrderNumber: input.orderNumber,
           message: [existing.message, line].filter(Boolean).join('\n').slice(-4000),
           ...(phone && existing.phone.startsWith('tg:') ? { phone } : {}),
+          // Источник — первое касание: уже записанную метку не перезаписываем.
+          ...(!existing.acqRef && input.acqRef ? { acqRef: input.acqRef } : {}),
         },
       });
       leadId = updated.id;
@@ -84,6 +88,7 @@ export async function recordCheckoutRequest(input: CheckoutRequestInput): Promis
           qualifyReason: 'хочет оплатить, онлайн-касса выключена',
           buyIntentAt: new Date(),
           lastOrderNumber: input.orderNumber,
+          acqRef: input.acqRef ?? null,
         },
       });
       leadId = created.id;

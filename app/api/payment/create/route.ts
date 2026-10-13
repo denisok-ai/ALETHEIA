@@ -19,6 +19,7 @@ import {
 import { logPersonalDataConsent } from '@/lib/consent-log';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { CHECKOUT_REQUEST_CLIENT_MESSAGE, getPaymentsMode, recordCheckoutRequest } from '@/lib/payments/checkout-request';
+import { acqRefFromRequest } from '@/lib/social/ref-tracking';
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'payment-create', 10);
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
           clientEmail: email.trim(),
           clientPhone: typeof phone === 'string' ? phone.trim() || null : null,
           clientName: typeof name === 'string' ? name.trim() || null : null,
+          acqRef: acqRefFromRequest(request),
           status: 'pending',
         },
       });
@@ -159,6 +161,7 @@ export async function POST(request: NextRequest) {
         name: String(name),
         phone: typeof phone === 'string' ? phone : null,
         via: 'сайт (кнопка оплаты)',
+        acqRef: acqRefFromRequest(request),
       });
       await writePaykeeperIntegrationLog({
         direction: 'outbound',

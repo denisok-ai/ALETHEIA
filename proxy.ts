@@ -9,6 +9,7 @@ import {
   buildContentSecurityPolicy,
   buildContentSecurityPolicyReportOnly,
 } from '@/lib/csp';
+import { trackRefVisit } from '@/lib/social/ref-tracking';
 
 const PORTAL_PREFIX = '/portal';
 const LOGIN_PATH = '/login';
@@ -50,6 +51,10 @@ export async function proxy(request: NextRequest) {
         'Content-Security-Policy-Report-Only',
         buildContentSecurityPolicyReportOnly(),
       );
+    }
+    // Метка ?ref= соцсетей (T3.3): cookie av_ref на публичных страницах и запись перехода.
+    if (!path.startsWith(PORTAL_PREFIX)) {
+      trackRefVisit(request, response, !isDev);
     }
     return response;
   };

@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
+import { acqRefFromRequest } from '@/lib/social/ref-tracking';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +76,7 @@ export async function POST(request: NextRequest) {
           status: 'new',
           source: 'web_chat',
           entrySource: 'chat',
+          acqRef: acqRefFromRequest(request),
         },
       });
       leadId = lead.id;

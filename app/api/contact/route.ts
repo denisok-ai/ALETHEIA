@@ -8,6 +8,7 @@ import {
   buildContactConfirmationEmail,
   buildContactNotificationEmail,
 } from '@/lib/email-templates';
+import { acqRefFromRequest } from '@/lib/social/ref-tracking';
 
 export async function POST(request: NextRequest) {
   const rateLimitRes = checkRateLimit(request, 'contact', 5);
@@ -45,6 +46,7 @@ export async function POST(request: NextRequest) {
           phone: String(phone).slice(0, 50),
           email: email ? String(email).slice(0, 200) : null,
           message: message ? String(message).slice(0, 2000) : null,
+          acqRef: acqRefFromRequest(request),
         },
       });
       leadId = String(lead.id);

@@ -5,6 +5,7 @@ import { CHECKOUT_REQUEST_CLIENT_MESSAGE, getPaymentsMode, recordCheckoutRequest
 import { buildPaykeeperServiceNamePayload } from '@/lib/paykeeper/fiscal';
 import { checkRateLimit } from '@/lib/rate-limit';
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
+import { acqRefFromRequest } from '@/lib/social/ref-tracking';
 
 export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
   const params = await props.params;
@@ -50,6 +51,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
       amount: link.product.priceRub,
       clientEmail,
       clientName,
+      acqRef: acqRefFromRequest(req),
       status: 'pending',
     },
   });
@@ -62,6 +64,7 @@ export async function POST(req: NextRequest, props: { params: Promise<{ token: s
       email: clientEmail,
       name: clientName ?? '',
       via: 'персональная ссылка оплаты',
+      acqRef: acqRefFromRequest(req),
     });
     return NextResponse.json({ requestAccepted: true, message: CHECKOUT_REQUEST_CLIENT_MESSAGE, orderNumber: order.orderNumber });
   }
