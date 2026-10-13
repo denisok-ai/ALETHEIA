@@ -92,7 +92,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       '/news': '2026-07-19',
       '/oferta': '2026-10-13',
       '/privacy': '2026-10-13',
-      '/pd-consent': '2026-07-20',
+      '/pd-consent': '2026-10-13',
     };
 
     const publicPaths = [

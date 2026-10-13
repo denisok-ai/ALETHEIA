@@ -53,7 +53,7 @@ export default function PrivacyPage() {
           <p className="mt-2">
             <strong>Оператор персональных данных:</strong> {op.name}
             {op.inn ? `, ИНН ${op.inn}` : ''}
-            {op.ogrnip ? `, ОГРНИП ${op.ogrnip}` : ''}.{' '}
+            {op.ogrn ? `, ${op.ogrnLabel} ${op.ogrn}` : ''}.{' '}
             {op.address ? (
               <>
                 <strong>Адрес:</strong> {op.address}.{' '}

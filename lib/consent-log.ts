@@ -6,7 +6,7 @@ import { headers } from 'next/headers';
 import { prisma } from '@/lib/db';
 import { clientIpFromHeaders } from '@/lib/client-ip';
 
-export const PDN_DOCS_VERSION = '2026-04-30';
+export const PDN_DOCS_VERSION = '2026-10-13';
 /** Версия публичной оферты, на которую даётся согласие при оплате платного продукта. */
 export const OFERTA_DOCS_VERSION = '2026-10-13';
 

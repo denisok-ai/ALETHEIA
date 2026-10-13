@@ -49,7 +49,7 @@ export default function PdConsentPage() {
           Настоящим я, пользователь сайта <strong>{site}</strong>, действуя свободно, своей волей и в своём интересе,
           даю согласие <strong>{op.name}</strong>
           {op.inn ? ` (ИНН ${op.inn})` : ''}
-          {op.ogrnip ? `, ОГРНИП ${op.ogrnip}` : ''}
+          {op.ogrn ? `, ${op.ogrnLabel} ${op.ogrn}` : ''}
           {op.address ? `, зарегистрированному по адресу: ${op.address}` : ''} (далее — Оператор), на обработку моих
           персональных данных на следующих условиях.
         </p>

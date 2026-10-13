@@ -1,12 +1,17 @@
 /**
  * Публичные реквизиты оператора ПДн для страниц и футера.
- * Задаются в .env через NEXT_PUBLIC_* — см. .env.example и docs/Personal-Data-RKN-Checklist.md.
+ * По умолчанию оператор — продавец ООО «ЭХОТЕКА» (lib/legal/seller.ts, решение владельца 13.10.2026).
+ * NEXT_PUBLIC_PDN_OPERATOR_* переопределяют значения (см. docs/Personal-Data-RKN-Checklist.md).
  */
+import { SELLER_INN, SELLER_LEGAL_ADDRESS, SELLER_LEGAL_NAME, SELLER_OGRN } from '@/lib/legal/seller';
+
 export type PdnOperatorPublic = {
   name: string;
   inn: string | null;
-  ogrnip: string | null;
-  /** Пусто, пока реальный адрес не задан: выдуманный в правовом документе хуже отсутствующего. */
+  /** ОГРН юрлица или ОГРНИП предпринимателя — подпись в ogrnLabel. */
+  ogrn: string | null;
+  ogrnLabel: 'ОГРН' | 'ОГРНИП';
+  /** Юридический адрес оператора (по умолчанию — адрес ООО из lib/legal/seller.ts). */
   address: string | null;
   dpoEmail: string;
   /** Одна строка для футера */
@@ -15,37 +20,18 @@ export type PdnOperatorPublic = {
 
 export function getPdnOperatorPublic(): PdnOperatorPublic {
   const name =
-    process.env.NEXT_PUBLIC_PDN_OPERATOR_NAME?.trim() ||
-    'Индивидуальный предприниматель Стрельцова Татьяна';
-  const inn = process.env.NEXT_PUBLIC_PDN_OPERATOR_INN?.trim() || null;
-  const ogrnip = process.env.NEXT_PUBLIC_PDN_OPERATOR_OGRNIP?.trim() || null;
-  // Адрес оператора ПДн — обязательный реквизит политики. Заглушка
-  // «125167, г. Москва, ул. Здоровья, д. 10» делала документ формально
-  // заполненным и юридически недостоверным одновременно, и тот же адрес
-  // уходил в schema.org. Пусто — значит видно, что реквизит нужно заполнить.
-  const address = process.env.NEXT_PUBLIC_PDN_OPERATOR_ADDRESS?.trim() || null;
+    process.env.NEXT_PUBLIC_PDN_OPERATOR_NAME?.trim() || SELLER_LEGAL_NAME;
+  const inn = process.env.NEXT_PUBLIC_PDN_OPERATOR_INN?.trim() || SELLER_INN;
+  const envOgrnip = process.env.NEXT_PUBLIC_PDN_OPERATOR_OGRNIP?.trim() || null;
+  const ogrn = envOgrnip || SELLER_OGRN;
+  const ogrnLabel: 'ОГРН' | 'ОГРНИП' = envOgrnip ? 'ОГРНИП' : 'ОГРН';
+  // Адрес оператора ПДн — обязательный реквизит политики; заглушки сюда не ставить.
+  const address = process.env.NEXT_PUBLIC_PDN_OPERATOR_ADDRESS?.trim() || SELLER_LEGAL_ADDRESS;
   const dpoEmail =
     process.env.NEXT_PUBLIC_PDN_DPO_EMAIL?.trim() || 'support@avaterra.pro';
 
-  const parts: string[] = [name];
-  if (inn) parts.push(`ИНН ${inn}`);
-  if (ogrnip) parts.push(`ОГРНИП ${ogrnip}`);
+  // Реквизиты продавца/оператора подвал уже показывает строкой SELLER_FOOTER_LINE.
+  const footerLine = '© АВАТЕРРА.';
 
-  // Пока реквизиты не заданы — просто короткая строка без них.
-  //
-  // Раньше в этой ветке стоял текст «укажите NEXT_PUBLIC_PDN_OPERATOR_INN
-  // и OGRNIP в .env (чеклист: docs/…)» — напоминание разработчику, которое
-  // полгода висело в подвале КАЖДОЙ страницы боевого сайта и попадало в
-  // поисковую выдачу. Подсказки о незаполненной конфигурации место в логах
-  // сборки, а не в интерфейсе для клиентов.
-  const footerLine = inn && ogrnip ? `© АВАТЕРРА. ${parts.join(', ')}.` : `© АВАТЕРРА. ${name}.`;
-
-  if (process.env.NODE_ENV !== 'production' && !(inn && ogrnip)) {
-    console.warn(
-      '[pdn] Не заданы NEXT_PUBLIC_PDN_OPERATOR_INN / _OGRNIP — реквизиты оператора ПДн не показываются. ' +
-        'См. docs/Personal-Data-RKN-Checklist.md'
-    );
-  }
-
-  return { name, inn, ogrnip, address, dpoEmail, footerLine };
+  return { name, inn, ogrn, ogrnLabel, address, dpoEmail, footerLine };
 }
