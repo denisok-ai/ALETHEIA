@@ -24,7 +24,8 @@ export type AdminTelegramEvent =
   | 'email_delivery_failed'
   | 'seo_digest'
   | 'server_health'
-  | 'checkout_request';
+  | 'checkout_request'
+  | 'social_autopublish';
 
 const EVENT_LABELS: Record<AdminTelegramEvent, string> = {
   contact_lead: 'Новая заявка с сайта',
@@ -44,6 +45,7 @@ const EVENT_LABELS: Record<AdminTelegramEvent, string> = {
   seo_digest: 'SEO-дайджест Яндекса',
   server_health: 'Здоровье сервера',
   checkout_request: 'Заявка на оплату',
+  social_autopublish: 'Автопубликация в соцсети',
 };
 
 /** Разбор списка chat ID из настроек (через запятую). */
