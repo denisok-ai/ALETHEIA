@@ -12,25 +12,31 @@ import { TestimonialsCompact } from '@/components/course-landing/TestimonialsCom
 import { AuthorMiniBlock } from '@/components/course-landing/AuthorMiniBlock';
 import { FaqBlock } from '@/components/course-landing/FaqBlock';
 import { FinalCTA } from '@/components/course-landing/FinalCTA';
+import { WaitlistForm } from '@/components/course-landing/WaitlistForm';
 import { COURSE_SLUG } from '@/lib/content/course-lynda-teaser';
 import {
   MT_AUDIENCES,
   MT_BONUSES,
   MT_FAQ,
+  MT_FIT,
   MT_FORMAT_FACTS,
   MT_FORMAT_FEATURES,
   MT_HERO,
   MT_MODULES,
+  MT_NOT_FIT,
+  MT_PRODUCT_NAME,
+  MT_PRODUCT_SLUG,
   MT_RESULTS,
   MT_TESTIMONIALS,
 } from '@/lib/content/course-mt-landing';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 import { getPublicProducts } from '@/lib/shop/public-products';
-import { Gift, Sparkles } from 'lucide-react';
+import { Check, Gift, Sparkles, X } from 'lucide-react';
 
+const PAGE_TITLE = 'Тело знает всё — практикум мышечного тестирования';
 const DESCRIPTION =
-  'Курс «Навыки мышечного тестирования»: научитесь находить причины проблем за 5–15 минут. 6 живых занятий с куратором + 2 с автором. Доступ 3 месяца.';
+  'Практикум «Тело знает всё»: мышечное тестирование для самостоятельного освоения. 6 модулей, доступ 3 месяца, в своём темпе. Без кураторов и живых занятий.';
 const OG_IMAGE_PATH = '/images/og/og-default.png' as const;
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -39,7 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
   const path = `/course/${COURSE_SLUG}`;
   const canonical = `${base}${path}`;
   // Бренд добавляет шаблон в layout — вручную не дублируем
-  const title = 'Курс мышечного тестирования онлайн';
+  const title = PAGE_TITLE;
   const ogImageAbs = `${base}${OG_IMAGE_PATH}`;
   return {
     title,
@@ -47,7 +53,8 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords: [
       'мышечное тестирование',
       'кинезиология онлайн',
-      'курс по телесной терапии',
+      'обучение кинезиологии онлайн',
+      'практикум мышечного тестирования',
       'Татьяна Стрельцова',
       'работа с подсознанием',
       'психосоматика',
@@ -60,7 +67,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
       locale: 'ru_RU',
       siteName: 'АВАТЕРРА',
-      images: [{ url: ogImageAbs, width: 1200, height: 630, alt: 'Курс мышечного тестирования — школа АВАТЕРРА' }],
+      images: [{ url: ogImageAbs, width: 1200, height: 630, alt: 'Тело знает всё — практикум школы АВАТЕРРА' }],
     },
     twitter: { card: 'summary_large_image', title, description: DESCRIPTION, images: [ogImageAbs] },
     robots: { index: true, follow: true },
@@ -72,14 +79,12 @@ export default async function CourseNavykiPage() {
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const pageUrl = `${base}/course/${COURSE_SLUG}`;
 
-  const courseTitle = 'Навыки мышечного тестирования и работа с подсознанием';
+  const courseTitle = MT_PRODUCT_NAME;
+  const buyHref = `/services/${MT_PRODUCT_SLUG}`;
 
-  // Диапазон цен платных тарифов из БД — для Offer в schema.org Course
-  const paidPrices = (await getPublicProducts()).map((p) => p.price).filter((p) => p > 0);
-  const priceRange =
-    paidPrices.length > 0
-      ? { low: Math.min(...paidPrices), high: Math.max(...paidPrices) }
-      : undefined;
+  // Цена практикума — из БД (товар telo-znaet-vse) для Offer в schema.org Course
+  const practicum = (await getPublicProducts()).find((p) => p.slug === MT_PRODUCT_SLUG);
+  const priceRange = practicum ? { low: practicum.price, high: practicum.price } : undefined;
 
   return (
     <>
@@ -87,14 +92,20 @@ export default async function CourseNavykiPage() {
       <JsonLdBreadcrumbList
         items={[
           { name: 'Главная', url: `${base}/` },
-          { name: `Курс «${courseTitle}»`, url: pageUrl },
+          { name: courseTitle, url: pageUrl },
         ]}
       />
-      <JsonLdCoursePage name={courseTitle} description={DESCRIPTION} pageUrl={pageUrl} priceRange={priceRange} />
+      <JsonLdCoursePage
+        name={courseTitle}
+        description={DESCRIPTION}
+        pageUrl={pageUrl}
+        priceRange={priceRange}
+        courseWorkload="PT6H"
+      />
 
       <div className="bg-[var(--bg)]">
         <div className="mx-auto max-w-6xl px-4 pt-20 md:px-8 md:pt-22">
-          <Breadcrumbs items={[{ label: 'Главная', href: '/' }, { label: 'Курс мышечного тестирования' }]} />
+          <Breadcrumbs items={[{ label: 'Главная', href: '/' }, { label: 'Тело знает всё' }]} />
         </div>
 
         <LandingHero
@@ -106,25 +117,58 @@ export default async function CourseNavykiPage() {
           trust={MT_HERO.trust}
           imageSrc="/images/tatiana/tatiana-hero.png"
           imageAlt="Татьяна Стрельцова — основательница школы кинезиологии АВАТЕРРА"
-          ctaPrimary={{ label: 'Выбрать тариф', href: '/#pricing' }}
-          ctaSecondary={{ label: 'Программа курса', href: '#program' }}
+          ctaPrimary={{ label: 'Начать практикум', href: buyHref }}
+          ctaSecondary={{ label: 'Программа практикума', href: '#program' }}
         />
 
         <LandingSection
           id="audience"
-          eyebrow="Для кого этот курс"
-          title="Этот курс — для вас, если…"
-          description="Программа подходит и тем, кто только знакомится с методом, и практикам с опытом — каждому свой формат пользы."
+          eyebrow="Для кого этот практикум"
+          title="Практикум — для вас, если…"
+          description="Подходит и тем, кто только знакомится с методом, и практикам с опытом — каждому свой формат пользы."
           tone="surface"
         >
           <AudienceBlocks items={MT_AUDIENCES} />
         </LandingSection>
 
         <LandingSection
+          id="fit"
+          eyebrow="Формат"
+          title="Кому подойдёт самостоятельный формат, а кому — нет"
+          description="Честно о том, что входит в практикум и что не входит."
+          tone="bg"
+        >
+          <div className="grid gap-5 md:grid-cols-2">
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)]">
+              <h3 className="font-heading text-lg font-semibold text-[var(--text)]">Практикум подойдёт, если</h3>
+              <ul className="mt-4 space-y-3">
+                {MT_FIT.map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm text-[var(--text)]">
+                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-plum" aria-hidden />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 shadow-[var(--shadow-soft)]">
+              <h3 className="font-heading text-lg font-semibold text-[var(--text)]">Практикум не подойдёт, если</h3>
+              <ul className="mt-4 space-y-3">
+                {MT_NOT_FIT.map((item) => (
+                  <li key={item} className="flex items-start gap-3 text-sm text-[var(--text-muted)]">
+                    <X className="mt-0.5 h-4 w-4 shrink-0 text-rose" aria-hidden />
+                    <span>{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </LandingSection>
+
+        <LandingSection
           id="format"
           eyebrow="Что внутри"
           title="Формат и доступ к материалам"
-          description="Видео, тексты, аудио-практики и живые встречи — баланс самостоятельной работы и обратной связи от мастеров."
+          description="Видео, тексты, чек-листы и аудиопрактики — всё, чтобы освоить метод самостоятельно, в своём темпе."
           tone="lavender"
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -154,9 +198,9 @@ export default async function CourseNavykiPage() {
 
         <LandingSection
           id="program"
-          eyebrow="Программа курса"
+          eyebrow="Программа практикума"
           title="6 модулей: от первой связи с телом до устойчивого результата"
-          description="Каждый модуль — короткие видео, чек-листы, аудио-практика и живой разбор с куратором."
+          description="Каждый модуль — короткие видео, тексты, чек-листы и аудиопрактика. Вопросы по материалам задайте помощнику в личном кабинете."
           tone="bg"
         >
           <ModulesAccordionRich modules={MT_MODULES} />
@@ -164,9 +208,9 @@ export default async function CourseNavykiPage() {
 
         <LandingSection
           id="results"
-          eyebrow="После курса"
+          eyebrow="После практикума"
           title="Что у вас останется после программы"
-          description="Не временный «вау-эффект», а устойчивый навык, который останется с вами навсегда."
+          description="Не временный «вау-эффект», а устойчивый навык, который останется с вами."
           tone="surface"
         >
           <ResultsGrid items={MT_RESULTS} />
@@ -174,7 +218,7 @@ export default async function CourseNavykiPage() {
 
         <LandingSection
           id="author"
-          eyebrow="Автор курса"
+          eyebrow="Автор практикума"
           title="Татьяна Стрельцова"
           tone="lavender"
         >
@@ -186,7 +230,7 @@ export default async function CourseNavykiPage() {
               '22 года практики в области кинезиологии и работы с подсознанием',
               '15 000+ выпускников из 23 стран',
               'Автор интеграции: мышечное тестирование + Карта Эмоций + Регресс',
-              'Живые сессии и ответы на вопросы студентов на каждом потоке',
+              'Личная работа с мастером — по листу ожидания, без обязательств',
             ]}
           />
         </LandingSection>
@@ -194,7 +238,7 @@ export default async function CourseNavykiPage() {
         <LandingSection
           id="reviews"
           eyebrow="Отзывы"
-          title="Истории тех, кто прошёл курс"
+          title="Истории тех, кто прошёл практикум"
           tone="bg"
         >
           <TestimonialsCompact
@@ -209,9 +253,9 @@ export default async function CourseNavykiPage() {
 
         <LandingSection
           id="bonuses"
-          eyebrow="Бонусы и гарантия"
-          title="Что вы получаете в подарок"
-          description="Подарки и поддержка — чтобы первые шаги были мягкими, а результат — устойчивым."
+          eyebrow="Материалы"
+          title="Что входит в подарок к практикуму"
+          description="Дополнительные материалы — для мягкого старта и закрепления результата."
           tone="surface"
         >
           <div className="grid gap-5 md:grid-cols-3">
@@ -228,7 +272,7 @@ export default async function CourseNavykiPage() {
           </div>
 
           <p className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-sm leading-relaxed text-[var(--text-muted)]">
-            <span className="font-semibold text-[var(--text)]">Перед покупкой.</span> Можно посмотреть бесплатный вводный курс и полную программу. Доступ к материалам открывается сразу после оплаты; возврат предусмотрен, если доступ не был предоставлен по вине школы — условия в <a href="/oferta#vozvrat" className="font-medium text-plum underline hover:opacity-90">публичной оферте</a>.
+            <span className="font-semibold text-[var(--text)]">Перед покупкой.</span> Можно начать с бесплатного знакомства «Первый тест» и посмотреть полную программу. Доступ к материалам открывается сразу после оплаты на 3 месяца; возврат предусмотрен, если доступ не был предоставлен по вине школы — условия в <a href="/oferta#vozvrat" className="font-medium text-plum underline hover:opacity-90">публичной оферте</a>.
           </p>
         </LandingSection>
 
@@ -236,12 +280,23 @@ export default async function CourseNavykiPage() {
           <FaqBlock items={MT_FAQ} />
         </LandingSection>
 
+        <LandingSection
+          id="waitlist"
+          eyebrow="Личная работа с мастером"
+          title="Хочу личную работу с мастером"
+          description="Личная работа с Татьяной Стрельцовой открывается отдельными потоками. Запишитесь в лист ожидания — мы свяжемся, когда появится запись."
+          tone="lavender"
+        >
+          <WaitlistForm />
+        </LandingSection>
+
         <FinalCTA
           title="Готовы начать диалог с вашим телом?"
-          subtitle="Присоединяйтесь к тем, кто уже научился находить причины и снимать напряжение — без таблеток и долгих поисков."
-          ctaPrimary={{ label: 'Выбрать тариф и начать', href: '/#pricing' }}
-          ctaSecondary={{ label: 'Читать блог о методе', href: '/blog' }}
-          disclaimer="Курс не является медицинской услугой. При наличии диагнозов консультируйтесь с врачом. Все техники рассчитаны на ресурсное состояние и этичную подачу."
+          subtitle="Начните самостоятельный практикум: 6 модулей, доступ 3 месяца, в своём темпе."
+          ctaPrimary={{ label: 'Начать практикум', href: buyHref }}
+          ctaSecondary={{ label: 'Хочу личную работу с мастером', href: '#waitlist' }}
+          supportLabel="Помощник в личном кабинете"
+          disclaimer="Практикум не является медицинской услугой и не заменяет врача. При наличии диагнозов консультируйтесь с врачом. Все техники рассчитаны на ресурсное состояние и этичную подачу."
         />
       </div>
     </>

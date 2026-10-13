@@ -12,10 +12,12 @@ type Props = {
   ctaSecondary?: { label: string; href: string };
   /** Дисклеймер в одну строку под CTA (опционально). */
   disclaimer?: string;
+  /** Подпись третьего трастового пункта (по умолчанию — поддержка кураторов). */
+  supportLabel?: string;
 };
 
 /** Финальная CTA-секция с трастом и дисклеймером — закрывающий аккорд лендинга. */
-export function FinalCTA({ title, subtitle, ctaPrimary, ctaSecondary, disclaimer }: Props) {
+export function FinalCTA({ title, subtitle, ctaPrimary, ctaSecondary, disclaimer, supportLabel = 'Поддержка кураторов' }: Props) {
   return (
     <section className="relative overflow-hidden border-t border-[var(--border)] bg-[var(--lavender-light)] py-10 px-5 md:py-14 md:px-6">
       <div className="mx-auto max-w-4xl text-center">
@@ -50,7 +52,7 @@ export function FinalCTA({ title, subtitle, ctaPrimary, ctaSecondary, disclaimer
             <ShieldCheck className="h-4 w-4 text-plum" aria-hidden /> Защита данных
           </span>
           <span className="inline-flex items-center gap-2">
-            <Sparkles className="h-4 w-4 text-plum" aria-hidden /> Поддержка кураторов
+            <Sparkles className="h-4 w-4 text-plum" aria-hidden /> {supportLabel}
           </span>
         </div>
 
