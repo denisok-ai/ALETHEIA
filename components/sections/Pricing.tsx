@@ -172,7 +172,7 @@ export function Pricing({ initialProducts }: { initialProducts?: TariffItem[] })
                   >
                     {tariff.popular && (
                       <span className="absolute -top-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-rose px-4 py-1 text-sm font-bold text-white">
-                        Хит продаж
+                        Рекомендуем
                       </span>
                     )}
                     <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl">
