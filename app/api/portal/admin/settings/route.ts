@@ -9,6 +9,11 @@ import { writeAuditLog } from '@/lib/audit';
 import { clearSettingsCache, clearEnvOverridesCache, clearPaymentEmailTemplatesCache, resolvePaymentEmailField, DEFAULT_PAYMENT_EMAIL_TEMPLATES } from '@/lib/settings';
 import { decrypt, encrypt } from '@/lib/encrypt';
 import { clearPayKeeperConfigCache, normalizePayKeeperServer } from '@/lib/paykeeper';
+import { clearYooKassaConfigCache } from '@/lib/yookassa/config';
+import {
+  PAYMENT_MODES as YOOKASSA_PAYMENT_MODES,
+  PAYMENT_SUBJECTS as YOOKASSA_PAYMENT_SUBJECTS,
+} from '@/lib/yookassa/payloads';
 import { getMailDomain, getMailSmtpHost, getMailSmtpPort } from '@/lib/mail-stack-env';
 import { isLoopbackHostname, normalizeSiteUrl } from '@/lib/site-url';
 
@@ -36,6 +41,19 @@ const ALLOWED_KEYS = [
   'paykeeper_test_login',
   'paykeeper_test_password',
   'paykeeper_test_secret',
+  'payments_provider',
+  'yookassa_shop_id',
+  'yookassa_secret_key',
+  'yookassa_use_test',
+  'yookassa_test_shop_id',
+  'yookassa_test_secret_key',
+  'yookassa_receipts_enabled',
+  'yookassa_tax_system_code',
+  'yookassa_vat_code',
+  'yookassa_payment_subject',
+  'yookassa_payment_mode',
+  'yookassa_return_url',
+  'yookassa_ip_check',
   'email_transport',
   'resend_api_key',
   'smtp_host',
@@ -76,6 +94,19 @@ const KEY_CATEGORY: Record<(typeof ALLOWED_KEYS)[number], string> = {
   paykeeper_test_login: 'payments',
   paykeeper_test_password: 'payments',
   paykeeper_test_secret: 'payments',
+  payments_provider: 'payments',
+  yookassa_shop_id: 'payments',
+  yookassa_secret_key: 'payments',
+  yookassa_use_test: 'payments',
+  yookassa_test_shop_id: 'payments',
+  yookassa_test_secret_key: 'payments',
+  yookassa_receipts_enabled: 'payments',
+  yookassa_tax_system_code: 'payments',
+  yookassa_vat_code: 'payments',
+  yookassa_payment_subject: 'payments',
+  yookassa_payment_mode: 'payments',
+  yookassa_return_url: 'payments',
+  yookassa_ip_check: 'payments',
   email_transport: 'env',
   resend_api_key: 'env',
   smtp_host: 'env',
@@ -100,6 +131,8 @@ const PAYKEEPER_SENSITIVE = new Set([
 ]);
 
 const SENSITIVE_KEYS = new Set([
+  'yookassa_secret_key',
+  'yookassa_test_secret_key',
   'paykeeper_password',
   'paykeeper_secret',
   'paykeeper_test_password',
@@ -171,6 +204,50 @@ function validateSettingsPatchValue(key: string, raw: unknown): { ok: true; valu
     return { ok: true, value: String(n) };
   }
 
+  if (key === 'payments_provider') {
+    const v = raw.trim().toLowerCase();
+    if (v !== '' && v !== 'paykeeper' && v !== 'yookassa') {
+      return { ok: false, message: 'payments_provider: укажите paykeeper или yookassa' };
+    }
+    return { ok: true, value: v };
+  }
+
+  if (key === 'yookassa_use_test' || key === 'yookassa_receipts_enabled' || key === 'yookassa_ip_check') {
+    const v = raw.trim().toLowerCase();
+    return { ok: true, value: v === '1' || v === 'true' ? '1' : '0' };
+  }
+
+  if (key === 'yookassa_tax_system_code' || key === 'yookassa_vat_code') {
+    const trimmed = raw.trim();
+    if (trimmed === '') return { ok: true, value: '' };
+    const n = parseInt(trimmed, 10);
+    const max = key === 'yookassa_tax_system_code' ? 6 : 12;
+    if (!Number.isInteger(n) || n < 1 || n > max) {
+      return { ok: false, message: `${key}: укажите число от 1 до ${max}` };
+    }
+    return { ok: true, value: String(n) };
+  }
+
+  if (key === 'yookassa_payment_subject' || key === 'yookassa_payment_mode') {
+    const v = raw.trim();
+    const allowed = key === 'yookassa_payment_subject' ? YOOKASSA_PAYMENT_SUBJECTS : YOOKASSA_PAYMENT_MODES;
+    if (v !== '' && !(allowed as readonly string[]).includes(v)) {
+      return { ok: false, message: `${key}: значение не из справочника ЮKassa` };
+    }
+    return { ok: true, value: v };
+  }
+
+  if (key === 'yookassa_return_url') {
+    const trimmed = raw.trim().replace(/\/+$/, '');
+    if (trimmed === '') return { ok: true, value: '' };
+    try {
+      if (new URL(trimmed).protocol !== 'https:') throw new Error('not https');
+    } catch {
+      return { ok: false, message: 'yookassa_return_url: укажите https://… адрес сайта или оставьте пустым' };
+    }
+    return { ok: true, value: trimmed };
+  }
+
   if (key === 'nextauth_url') {
     const trimmed = raw.trim();
     if (trimmed === '') return { ok: true, value: '' };
@@ -217,6 +294,19 @@ export async function GET() {
     paykeeper_test_login: '',
     paykeeper_test_password: '',
     paykeeper_test_secret: '',
+    payments_provider: process.env.PAYMENTS_PROVIDER ?? '',
+    yookassa_shop_id: '',
+    yookassa_secret_key: '',
+    yookassa_use_test: '',
+    yookassa_test_shop_id: '',
+    yookassa_test_secret_key: '',
+    yookassa_receipts_enabled: '',
+    yookassa_tax_system_code: '',
+    yookassa_vat_code: '',
+    yookassa_payment_subject: '',
+    yookassa_payment_mode: '',
+    yookassa_return_url: '',
+    yookassa_ip_check: '',
     email_transport: process.env.EMAIL_TRANSPORT ?? '',
     resend_api_key: process.env.RESEND_API_KEY ?? '',
     smtp_host: process.env.SMTP_HOST ?? '',
@@ -352,6 +442,7 @@ export async function PATCH(request: NextRequest) {
   clearEnvOverridesCache();
   clearPaymentEmailTemplatesCache();
   clearPayKeeperConfigCache();
+  clearYooKassaConfigCache();
 
   return NextResponse.json({ success: true, updated: Object.keys(updates), values: savedValues });
 }

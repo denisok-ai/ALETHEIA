@@ -10,6 +10,7 @@ import { PasswordInput } from '@/components/ui/PasswordInput';
 import { Label } from '@/components/ui/label';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { OutboundMailSettingsBlock } from '@/components/portal/admin/settings/OutboundMailSettingsBlock';
+import { YooKassaSettingsBlock } from '@/components/portal/admin/settings/YooKassaSettingsBlock';
 
 function normalizePayKeeperServerInput(value: string): string {
   const trimmed = value.trim();
@@ -962,6 +963,8 @@ export function SettingsForms() {
           </div>
         </form>
       </div>
+
+      <YooKassaSettingsBlock />
 
       <div className="mt-6 portal-card p-6">
         <h2 className="text-base font-semibold text-[var(--portal-text)]">Интеграции</h2>
