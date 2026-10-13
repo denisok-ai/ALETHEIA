@@ -117,3 +117,6 @@ tsconfig.tsbuildinfo
 [0-9]*.[0-9]*.[0-9]*.[0-9]*.env
 .vitest-db/
 .playwright-mcp/
+
+# Расшифровки и нарезка платного курса — только вне публичного репозитория (~/projects/AVATERRA-private)
+docs/marketing/clips/
