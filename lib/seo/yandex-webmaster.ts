@@ -3,33 +3,27 @@
  *
  * Токен лежит НЕ в .env приложения, а в /opt/ALETHEIA/secrets/seo.env
  * (каталог 700, файл 600) — чтобы SEO-доступ не разъезжался по бэкапам
- * и деплой-веткам вместе с обычным окружением. Читаем файл напрямую.
+ * и деплой-веткам вместе с обычным окружением. Читается через lib/seo/secrets.ts.
  *
  * Зачем: аудит 30.08.2026 показал ИКС=0 и ~9 показов при нормальной
  * индексации (52/59 в поиске). Переобход новых статей и еженедельный
  * контроль динамики — та часть рычага, которую можно автоматизировать.
  */
-import fs from 'node:fs';
+import { getSeoSecret } from './secrets';
 
 const API = 'https://api.webmaster.yandex.net/v4';
 export const HOST_ID = 'https:avaterra.pro:443';
-const SECRETS_FILE = process.env.SEO_SECRETS_FILE?.trim() || '/opt/ALETHEIA/secrets/seo.env';
 
 let cachedToken: string | null | undefined;
 let cachedUserId: number | undefined;
 
-/** Токен из secrets-файла (fallback — переменная окружения). null — не настроен. */
+/**
+ * Токен Вебмастера: YANDEX_WEBMASTER_TOKEN, запасной YANDEX_OAUTH_TOKEN (env → secrets-файл).
+ * null — не настроен. Результат (в том числе null) кешируется до перезапуска процесса.
+ */
 export function getWebmasterToken(): string | null {
   if (cachedToken !== undefined) return cachedToken;
-  let token = process.env.YANDEX_WEBMASTER_TOKEN?.trim() || '';
-  if (!token) {
-    try {
-      const raw = fs.readFileSync(SECRETS_FILE, 'utf8');
-      token = raw.match(/^YANDEX_WEBMASTER_TOKEN=(.+)$/m)?.[1]?.trim() ?? '';
-    } catch {
-      /* файла нет — токен не настроен */
-    }
-  }
+  const token = getSeoSecret('YANDEX_WEBMASTER_TOKEN') ?? getSeoSecret('YANDEX_OAUTH_TOKEN') ?? '';
   cachedToken = token || null;
   return cachedToken;
 }

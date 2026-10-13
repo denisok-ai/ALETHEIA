@@ -7,6 +7,7 @@ import { requireAdminSession } from '@/lib/auth';
 import { getEnvOverrides } from '@/lib/settings';
 import { getLlmApiKey } from '@/lib/llm';
 import { getPayKeeperConfigFromSettings } from '@/lib/paykeeper';
+import { seoSecretsStatus, SEO_SECRET_KEYS } from '@/lib/seo/secrets';
 
 export async function GET() {
   const auth = await requireAdminSession();
@@ -36,6 +37,8 @@ export async function GET() {
       NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
       DATABASE_URL: !!process.env.DATABASE_URL,
       CRON_SECRET: !!overrides.cron_secret,
+      /** Только булевы «задан/не задан» — значения секретов сюда не попадают. */
+      SEO: seoSecretsStatus(),
     });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -55,6 +58,7 @@ export async function GET() {
         NEXTAUTH_SECRET: !!process.env.NEXTAUTH_SECRET,
         DATABASE_URL: !!process.env.DATABASE_URL,
         CRON_SECRET: false,
+        SEO: Object.fromEntries(SEO_SECRET_KEYS.map((k) => [k, false])),
       },
       { status: 200 }
     );

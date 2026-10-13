@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import type { SeoSecretKey } from '@/lib/seo/secrets';
 
 interface EnvCheck {
   RESEND_API_KEY?: boolean;
@@ -15,12 +16,25 @@ interface EnvCheck {
   NEXTAUTH_SECRET?: boolean;
   DATABASE_URL?: boolean;
   CRON_SECRET?: boolean;
+  /** SEO-секреты: только булевы «задан/не задан» (lib/seo/secrets.ts). */
+  SEO?: Partial<Record<SeoSecretKey, boolean>>;
   /** Сервер ответил 403 — сессия не прошла (часто после неверного NEXTAUTH_URL в БД). */
   accessDenied?: boolean;
   /** Ошибка при сборе проверок (редко); не путать с «интеграции не настроены». */
   loadError?: string;
   error?: string;
 }
+
+const SEO_ITEMS: { key: SeoSecretKey; label: string }[] = [
+  { key: 'YANDEX_WEBMASTER_TOKEN', label: 'Яндекс.Вебмастер (токен)' },
+  { key: 'YANDEX_OAUTH_TOKEN', label: 'Яндекс OAuth (запасной токен)' },
+  { key: 'YANDEX_OAUTH_CLIENT_ID', label: 'Яндекс OAuth (client id)' },
+  { key: 'YANDEX_OAUTH_CLIENT_SECRET', label: 'Яндекс OAuth (client secret)' },
+  { key: 'GOOGLE_OAUTH_CLIENT_ID', label: 'Google OAuth (client id)' },
+  { key: 'GOOGLE_OAUTH_CLIENT_SECRET', label: 'Google OAuth (client secret)' },
+  { key: 'GOOGLE_OAUTH_REFRESH_TOKEN', label: 'Google OAuth (refresh token)' },
+  { key: 'CRUX_API_KEY', label: 'CrUX API (Core Web Vitals)' },
+];
 
 export function SettingsEnvIndicators() {
   const [check, setCheck] = useState<EnvCheck | null>(null);
@@ -82,21 +96,26 @@ export function SettingsEnvIndicators() {
     { key: 'CRON_SECRET', label: 'Cron (рассылки)' },
   ];
 
+  const renderItem = (key: string, label: string, ok: boolean) => (
+    <li key={key} className="flex items-center gap-2">
+      <span className={`inline-block h-3 w-3 shrink-0 rounded-full ${ok ? 'bg-green-500' : 'bg-red-400'}`} aria-hidden />
+      <span className={ok ? 'text-green-700' : 'text-red-700'}>
+        {label}: {ok ? 'настроено' : 'не задано'}
+      </span>
+    </li>
+  );
+
   return (
-    <ul className="mt-2 space-y-2 text-sm">
-      {items.map(({ key, label }) => (
-        <li key={key} className="flex items-center gap-2">
-          <span
-            className={`inline-block h-3 w-3 shrink-0 rounded-full ${
-              (check as Record<string, boolean>)[key] ? 'bg-green-500' : 'bg-red-400'
-            }`}
-            aria-hidden
-          />
-          <span className={ (check as Record<string, boolean>)[key] ? 'text-green-700' : 'text-red-700' }>
-            {label}: {(check as Record<string, boolean>)[key] ? 'настроено' : 'не задано'}
-          </span>
-        </li>
-      ))}
-    </ul>
+    <>
+      <ul className="mt-2 space-y-2 text-sm">
+        {items.map(({ key, label }) =>
+          renderItem(key, label, !!(check as Record<string, boolean>)[key])
+        )}
+      </ul>
+      <h4 className="mt-4 text-sm font-semibold text-[var(--portal-text)]">SEO-интеграции</h4>
+      <ul className="mt-2 space-y-2 text-sm">
+        {SEO_ITEMS.map(({ key, label }) => renderItem(key, label, !!check.SEO?.[key]))}
+      </ul>
+    </>
   );
 }
