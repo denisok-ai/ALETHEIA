@@ -7,8 +7,31 @@
  * статьи действительно расширен (см. `--refresh` в blog-publish-kb-articles).
  */
 export const KB_REVISED: Record<string, string> = {
-  'myshechnoe-testirovanie-dlya-psihologov': '2026-09-25',
+  'myshechnoe-testirovanie-dlya-psihologov': '2026-10-13',
   'myshechnoe-testirovanie-obuchenie': '2026-10-13',
+  // 13.10.2026: практикум «Тело знает всё» (самостоятельно, без кураторов и сертификата)
+  'chem-otlichaetsya-ot-kursov-samorazvitiya': '2026-10-13',
+  'gruppovoy-ili-individualnyy-format': '2026-10-13',
+  'zhivye-sessii-v-onlayn-obuchenii': '2026-10-13',
+  'ponimayu-no-nichego-ne-menyaetsya': '2026-10-13',
+  'vnutrenniy-konflikt-i-telo': '2026-10-13',
+  'sverka-balansa-pered-testom': '2026-10-13',
+  'ustalost-ne-prohodit-posle-otdyha': '2026-10-13',
+  'tatyana-streltsova': '2026-10-13',
+  'myshechnoe-testirovanie-pravda-ili-samovnushenie': '2026-10-13',
+  'chto-takoe-myshechnoe-testirovanie': '2026-10-13',
+  'prikladnaya-kineziologiya-prostymi-slovami': '2026-10-13',
+  'kto-takoy-kineziolog': '2026-10-13',
+  'stress-nakaplivaetsya-v-tele': '2026-10-13',
+  'karta-emotsiy': '2026-10-13',
+  'kak-vybrat-kurs-avaterra': '2026-10-13',
+  'emotsionalnyy-zaryad': '2026-10-13',
+  'dengi-i-telesnye-ubezhdeniya': '2026-10-13',
+  'strah-proyavlyatsya': '2026-10-13',
+  'myshechnoe-testirovanie-na-sebe': '2026-10-13',
+  'lobnyy-obhvat': '2026-10-13',
+  'starye-obidy-i-otnosheniya': '2026-10-13',
+  'myshechnoe-testirovanie-komu-podhodit-i-kogda-nuzhen-vrach': '2026-10-13',
 };
 
 /** Дата последнего изменения статьи для dateModified/lastmod (ISO). */
