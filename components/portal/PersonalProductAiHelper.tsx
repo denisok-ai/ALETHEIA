@@ -29,7 +29,7 @@ export function PersonalProductAiHelper({
       const ctxParts = [
         `Название услуги: ${context.name || '(не указано)'}`,
         context.description ? `Текущее описание: ${context.description}` : '',
-        'Контекст: школа AVATERRA — Phygital школа мышечного тестирования, курс «Тело не врет». Основательница — Татьяна Стрельцова, 22 года практики.',
+        'Контекст: школа AVATERRA — Phygital школа мышечного тестирования, курс «Тело знает всё». Основательница — Татьяна Стрельцова, 22 года практики.',
         'Формат: персональная индивидуальная услуга, клиент получает уникальную ссылку на оплату.',
       ].filter(Boolean);
       const res = await fetch('/api/portal/admin/ai-settings/generate-text', {

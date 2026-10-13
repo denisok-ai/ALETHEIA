@@ -13,7 +13,7 @@ export const revalidate = 3600;
 type Props = { params: Promise<{ term: string }> };
 
 const COURSE_LABEL: Record<string, string> = {
-  'navyki-myshechnogo-testirovaniya': 'Курс «Тело не врёт» — навыки мышечного тестирования',
+  'navyki-myshechnogo-testirovaniya': 'Курс «Тело знает всё» — навыки мышечного тестирования',
   probuzhdenie: 'Курс «Пробуждение» — 21 день практик присутствия',
 };
 

@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
   const successUrl = siteUrl ? `${siteUrl}/success` : '/success';
   const vars = {
     orderid: 'ALT-DEMO12345',
-    courseTitle: 'Демо-курс «Тело не врёт»',
+    courseTitle: 'Демо-курс «Тело знает всё»',
     userName: 'Иван',
     orderAmount: '25 000 ₽',
     loginUrl,

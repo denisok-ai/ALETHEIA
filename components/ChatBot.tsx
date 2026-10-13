@@ -126,7 +126,7 @@ export function ChatBot({ acqRef = null }: { acqRef?: string | null }) {
           >
             <div className="flex items-center justify-between border-b border-[#E2E8F0] px-5 py-4 rounded-t-[1.75rem] bg-white">
               <span className="font-bold text-[var(--portal-text)] text-base">
-                Консультант курса «Тело не врёт»
+                Консультант курса «Тело знает всё»
               </span>
               <button
                 type="button"

@@ -121,7 +121,7 @@ check('название курса в кавычках — не тариф', () 
 
 check('цитата в кавычках без контекста цены', () => {
   assert.deepStrictEqual(
-    auditAnswerAgainstCatalog('Мы говорим: «тело не врёт» — и это основа метода.', CATALOG),
+    auditAnswerAgainstCatalog('Мы говорим: «тело отвечает честно» — и это основа метода.', CATALOG),
     []
   );
 });

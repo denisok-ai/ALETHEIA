@@ -3,7 +3,7 @@
  */
 export const CERTIFICATE_SAMPLE_DEMO = {
   userName: 'Иванова Анна Сергеевна',
-  courseName: 'Курс «Тело не врёт» — мышечное тестирование',
+  courseName: 'Курс «Тело знает всё» — мышечное тестирование',
   certNumber: 'AVT-DEMO-2026',
   date: new Date().toLocaleDateString('ru'),
   expiryDate: null as string | null,
