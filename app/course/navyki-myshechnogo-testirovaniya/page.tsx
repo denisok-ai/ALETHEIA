@@ -228,7 +228,7 @@ export default async function CourseNavykiPage() {
           </div>
 
           <p className="mt-8 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 text-sm leading-relaxed text-[var(--text-muted)]">
-            <span className="font-semibold text-[var(--text)]">Гарантия 7 дней.</span> Если в первую неделю вы поймёте, что курс не ваш — напишите в поддержку, и мы вернём деньги без вопросов и бюрократии.
+            <span className="font-semibold text-[var(--text)]">Перед покупкой.</span> Можно посмотреть бесплатный вводный курс и полную программу. Доступ к материалам открывается сразу после оплаты; возврат предусмотрен, если доступ не был предоставлен по вине школы — условия в <a href="/oferta#vozvrat" className="font-medium text-plum underline hover:opacity-90">публичной оферте</a>.
           </p>
         </LandingSection>
 
