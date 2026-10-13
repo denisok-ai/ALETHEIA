@@ -13,7 +13,7 @@ export const SELLER_LEGAL_NAME = 'ООО «ЭХОТЕКА»';
 export const SELLER_OGRN = '1267700280320';
 export const SELLER_INN = '9717194959';
 export const SELLER_LEGAL_ADDRESS =
-  '129515, г. Москва, вн. тер. г. муниципальный округ Останкинский, ул. 1-я Останкинская, д. 13/1, кв. 73';
+  '129515, г. Москва, вн. тер. г. муниципальный округ Останкинский, ул. 1-я Останкинская, д. 13/1';
 export const SELLER_EMAIL = 'support@avaterra.pro';
 
 export const SELLER = {
