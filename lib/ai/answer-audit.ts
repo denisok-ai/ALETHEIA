@@ -67,6 +67,30 @@ function nameAliases(name: string): string[] {
 }
 
 /**
+ * Совпадение с точностью до падежного окончания: бот склоняет названия
+ * («тариф «Пробуждения»», «в «Первом тесте»»), а каталог хранит именительный
+ * падеж. Каждое слово сравниваем по основе: общий префикс не короче слова
+ * каталога без двух последних букв и не меньше 3 символов. Ложная тревога
+ * на проде 13.10.2026: «Пробуждения» vs «Пробуждение».
+ */
+function sameWordStem(a: string, b: string): boolean {
+  if (a === b) return true;
+  if (Math.abs(a.length - b.length) > 3) return false;
+  const need = Math.max(3, Math.min(a.length, b.length) - 2);
+  return a.slice(0, need) === b.slice(0, need);
+}
+
+function matchesKnownName(name: string, known: Set<string>): boolean {
+  if (known.has(name)) return true;
+  const words = name.split(' ');
+  for (const k of known) {
+    const kw = k.split(' ');
+    if (kw.length === words.length && kw.every((w, i) => sameWordStem(w, words[i]))) return true;
+  }
+  return false;
+}
+
+/**
  * Расхождения ответа с каталогом.
  *
  * Пустой каталог (БД недоступна) → пустой результат: без источника правды
@@ -100,7 +124,7 @@ export function auditAnswerAgainstCatalog(
   for (const m of answer.matchAll(QUOTED_RE)) {
     const raw = m[1].trim();
     const name = normalizeName(raw);
-    if (known.has(name)) continue;
+    if (matchesKnownName(name, known)) continue;
     // В кавычках бывают курсы, книги и цитаты — тревожимся только там, где рядом
     // слово «тариф»/«пакет», то есть речь идёт именно о позиции витрины.
     const from = Math.max(0, (m.index ?? 0) - 60);

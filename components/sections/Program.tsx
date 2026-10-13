@@ -5,18 +5,20 @@ import Link from 'next/link';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { BookOpen, Clock, ListChecks, Video, ChevronDown } from 'lucide-react';
+import { BookOpen, CalendarClock, Footprints, Video, ChevronDown } from 'lucide-react';
 
-/** Цифры в шапке секции — по согласованию с заказчиком. */
-const DISPLAY_PRACTICAL_LESSONS = 8;
-const DISPLAY_HOURS = 25;
-
+/**
+ * 6 модулей практикума «Тело знает всё» — как в базе знаний школы
+ * (content/knowledge/avaterra.yaml). Число уроков и часов по модулям не
+ * указываем: для новой разбивки они не подтверждены.
+ */
 const modules = [
-  { title: 'Введение в метод', lessons: 1, hours: 1 },
-  { title: 'Мышечное тестирование', lessons: 4, hours: 4 },
-  { title: 'Работа с подсознанием', lessons: 5, hours: 7 },
-  { title: 'Практика', lessons: 8, hours: 12 },
-  { title: 'Работа с подсознанием. Инструменты', lessons: 2, hours: 3 },
+  { title: 'Введение и сверка баланса', text: 'Философия метода, физиология теста, подготовка: вода, дыхание, сверка баланса. Этика работы.' },
+  { title: 'Карта эмоций', text: 'Как точно назвать эмоцию и отличить свои эмоции от чужих.' },
+  { title: 'Энергетический заряд', text: 'Шкала заряда 0–100 %, замер «до» и «после».' },
+  { title: 'Лобный обхват', text: 'Техника снятия стресса за несколько минут и точки эмоционального баланса.' },
+  { title: 'Регресс', text: 'Поиск причины во времени по принципу «слоёного пирога».' },
+  { title: 'Изменение образа', text: 'Освобождение заряда, новый ресурсный образ и проверка завершённости.' },
 ];
 
 const moduleCount = modules.length;
@@ -34,7 +36,7 @@ export function Program() {
           animate={isInView ? { opacity: 1, y: 0 } : {}}
           className="font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl"
         >
-          Программа курса
+          Программа практикума «Тело знает всё»
         </motion.h2>
         <motion.p
           initial={{ opacity: 0, y: 16 }}
@@ -42,7 +44,7 @@ export function Program() {
           transition={{ delay: 0.04 }}
           className="mt-2 text-lg text-[var(--text-muted)] sm:text-xl"
         >
-          Что входит в программу
+          Шесть модулей для самостоятельного освоения метода
         </motion.p>
 
         <motion.div
@@ -62,20 +64,20 @@ export function Program() {
           </div>
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-periwinkle/30 p-3">
-              <ListChecks className="h-6 w-6 text-plum" aria-hidden />
+              <CalendarClock className="h-6 w-6 text-plum" aria-hidden />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-[var(--text)]">{DISPLAY_PRACTICAL_LESSONS}</p>
-              <p className="text-sm leading-snug text-[var(--text-muted)]">практических уроков</p>
+              <p className="text-2xl font-bold tabular-nums text-[var(--text)]">3</p>
+              <p className="text-sm leading-snug text-[var(--text-muted)]">месяца доступа</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="rounded-xl bg-periwinkle/30 p-3">
-              <Clock className="h-6 w-6 text-plum" aria-hidden />
+              <Footprints className="h-6 w-6 text-plum" aria-hidden />
             </div>
             <div>
-              <p className="text-2xl font-bold tabular-nums text-[var(--text)]">{DISPLAY_HOURS}+</p>
-              <p className="text-sm text-[var(--text-muted)]">часов материала</p>
+              <p className="text-2xl font-bold text-[var(--text)]">В своём темпе</p>
+              <p className="text-sm text-[var(--text-muted)]">без расписания</p>
             </div>
           </div>
         </motion.div>
@@ -91,7 +93,7 @@ export function Program() {
             >
               <button
                 type="button"
-                className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--lavender-light)] sm:grid sm:grid-cols-[1fr_auto_auto] sm:items-center sm:gap-4"
+                className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-[var(--lavender-light)] sm:grid sm:grid-cols-[1fr_auto] sm:items-center sm:gap-4"
                 onClick={() => setOpenIndex(openIndex === i ? null : i)}
                 aria-expanded={openIndex === i}
               >
@@ -101,18 +103,12 @@ export function Program() {
                   </span>
                   <h3 className="min-w-0 font-heading text-base font-semibold text-[var(--text)] sm:text-lg">{mod.title}</h3>
                 </span>
-                <span className="ml-auto hidden text-sm text-[var(--text-muted)] sm:block">
-                  {mod.lessons} уроков · {mod.hours} ч
-                </span>
                 <ChevronDown
                   className={`h-5 w-5 shrink-0 text-[var(--text-muted)] transition-transform sm:justify-self-end ${
                     openIndex === i ? 'rotate-180' : ''
                   }`}
                 />
               </button>
-              <p className="px-4 pb-3 text-sm text-[var(--text-muted)] sm:hidden">
-                {mod.lessons} уроков · {mod.hours} ч
-              </p>
               <AnimatePresence>
                 {openIndex === i && (
                   <motion.div
@@ -122,9 +118,12 @@ export function Program() {
                     transition={{ duration: 0.25 }}
                     className="overflow-hidden border-t border-[var(--border)] bg-[var(--lavender-light)]"
                   >
-                    <div className="flex items-center gap-2 p-4 text-sm text-[var(--text)]">
-                      <Video className="h-4 w-4 shrink-0 text-plum" aria-hidden />
-                      Видео, тексты и аудиопрактики для самостоятельной работы — без кураторов и живых занятий
+                    <div className="space-y-2 p-4 text-sm text-[var(--text)]">
+                      <p>{mod.text}</p>
+                      <p className="flex items-center gap-2 text-[var(--text-muted)]">
+                        <Video className="h-4 w-4 shrink-0 text-plum" aria-hidden />
+                        Видео, тексты, чек-листы и аудиопрактики — без кураторов и живых занятий
+                      </p>
                     </div>
                   </motion.div>
                 )}
@@ -139,11 +138,14 @@ export function Program() {
           transition={{ delay: 0.35 }}
           className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center"
         >
-          <Link href="/#pricing" className={cn(buttonVariants({ variant: 'landingRose', size: 'lg' }))}>
-            Записаться на курс
+          <Link
+            href="/course/navyki-myshechnogo-testirovaniya"
+            className={cn(buttonVariants({ variant: 'landingRose', size: 'lg' }))}
+          >
+            Подробнее о практикуме
           </Link>
           <Link href="#pricing" className="text-sm font-medium text-plum hover:underline">
-            Смотреть тарифы
+            Все форматы и цены
           </Link>
         </motion.div>
       </div>
