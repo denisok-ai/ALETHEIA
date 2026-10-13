@@ -56,6 +56,8 @@ export interface ServiceRow {
   isActive: boolean;
   installmentEnabled: boolean;
   maxInstallments: number;
+  /** Срок доступа в днях; null — бессрочно. */
+  accessDays: number | null;
   createdAt: string;
 }
 
@@ -90,6 +92,8 @@ export function ServicesAdminBlock() {
     isActive: true,
     installmentEnabled: false,
     maxInstallments: 3,
+    /** Пусто — бессрочно, иначе дней доступа от оплаты. */
+    accessDays: '',
   });
 
   const load = useCallback(async () => {
@@ -160,6 +164,7 @@ export function ServicesAdminBlock() {
       isActive: true,
       installmentEnabled: false,
       maxInstallments: 3,
+      accessDays: '',
     });
     setSaveError(null);
     setFormOpen(true);
@@ -179,6 +184,7 @@ export function ServicesAdminBlock() {
       isActive: s.isActive,
       installmentEnabled: s.installmentEnabled,
       maxInstallments: s.maxInstallments,
+      accessDays: s.accessDays != null ? String(s.accessDays) : '',
     });
     setSaveError(null);
     setFormOpen(true);
@@ -306,6 +312,7 @@ export function ServicesAdminBlock() {
         isActive: form.isActive,
         installmentEnabled: form.installmentEnabled,
         maxInstallments: form.maxInstallments,
+        accessDays: form.accessDays.trim() === '' ? null : Number(form.accessDays),
       };
       if (isEdit && idForPatch) {
         const res = await fetch(`/api/portal/admin/services/${encodeURIComponent(idForPatch)}`, {
@@ -549,6 +556,19 @@ export function ServicesAdminBlock() {
                   value={form.price || ''}
                   onChange={(e) => setForm((p) => ({ ...p, price: parseInt(e.target.value, 10) || 0 }))}
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="svc-access-days">Срок доступа, дней</Label>
+                <Input
+                  id="svc-access-days"
+                  type="number"
+                  min={1}
+                  max={3650}
+                  placeholder="бессрочно"
+                  value={form.accessDays}
+                  onChange={(e) => setForm((p) => ({ ...p, accessDays: e.target.value }))}
+                />
+                <p className="text-xs text-gray-500">Считается от даты оплаты. Пусто — доступ бессрочный. Для практикума «Тело знает всё» — 90.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="svc-course">Курс (для зачисления после оплаты)</Label>

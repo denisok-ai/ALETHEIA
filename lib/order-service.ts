@@ -11,6 +11,8 @@ export type ServiceForOrderTariff = {
   slug: string;
   name: string;
   price: number;
+  /** Срок доступа в днях от оплаты; null — бессрочно. */
+  accessDays: number | null;
 };
 
 const serviceSelect = {
@@ -20,6 +22,7 @@ const serviceSelect = {
   slug: true,
   name: true,
   price: true,
+  accessDays: true,
 } as const;
 
 /** Совпадение по slug ИЛИ paykeeperTariffId (как в Order.tariffId после оплаты). */

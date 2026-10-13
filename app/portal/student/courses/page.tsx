@@ -11,6 +11,7 @@ import { prisma } from '@/lib/db';
 import { CourseCard } from '@/components/portal/CourseCard';
 import { isLiveEventCourse } from '@/lib/course-format';
 import { StudentCoursesEmptyState } from './StudentCoursesEmptyState';
+import { isEnrollmentExpired } from '@/lib/payments/enrollment-access';
 
 function totalLessons(manifest: string | null): number {
   if (!manifest) return 1;
@@ -81,7 +82,7 @@ export default async function StudentCoursesPage() {
     list = enrollments.map((e) => ({
       enrollId: e.id,
       course: e.course!,
-      accessClosed: e.accessClosed,
+      accessClosed: e.accessClosed || isEnrollmentExpired(e),
     }));
     const openWhere: {
       status: 'published';

@@ -8,6 +8,7 @@ export const metadata: Metadata = { title: 'Медиатека' };
 
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
+import { isEnrollmentExpired } from '@/lib/payments/enrollment-access';
 import { Breadcrumbs } from '@/components/portal/Breadcrumbs';
 import { PageHeader } from '@/components/portal/PageHeader';
 import { MediaListClient } from './MediaListClient';
@@ -35,7 +36,7 @@ export default async function StudentMediaPage() {
   const [enrollments, userGroups, allMedia] = await Promise.all([
     prisma.enrollment.findMany({
       where: { userId, accessClosed: false },
-      select: { courseId: true },
+      select: { courseId: true, expiresAt: true },
     }),
     prisma.userGroup.findMany({
       where: { userId },
@@ -47,7 +48,8 @@ export default async function StudentMediaPage() {
     }),
   ]);
 
-  const enrolledCourseIds = new Set(enrollments.map((e) => e.courseId));
+  const now = new Date();
+  const enrolledCourseIds = new Set(enrollments.filter((e) => !isEnrollmentExpired(e, now)).map((e) => e.courseId));
   const userGroupIds = new Set(userGroups.map((ug) => ug.groupId));
 
   const list = allMedia.filter((m) => {

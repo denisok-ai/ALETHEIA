@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { CourseNotFoundInPortal } from '@/components/portal/CourseNotFoundInPortal';
 import { parseVerificationLessons } from '@/lib/verification-lessons';
+import { isEnrollmentExpired } from '@/lib/payments/enrollment-access';
 import { getGamificationNumbers } from '@/lib/gamification-config';
 import { isLiveEventCourse } from '@/lib/course-format';
 import { CourseMediaBlock, type CourseMediaItem } from './CourseMediaBlock';
@@ -100,12 +101,13 @@ export default async function StudentCourseDetailPage({ params }: Props) {
     getGamificationNumbers(),
   ]);
 
+  const expired = isEnrollmentExpired(enrollment);
   const canAccess =
     role === 'admin' ||
     (course.status === 'published' && course.openAccessForAllStudents) ||
-    (!!enrollment && !enrollment.accessClosed);
+    (!!enrollment && !enrollment.accessClosed && !expired);
   if (!canAccess) {
-    return <StudentCourseAccessDenied />;
+    return <StudentCourseAccessDenied expired={expired} />;
   }
 
   const total = totalLessons(course.scormManifest);

@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
+import { parseAccessDaysInput } from '@/lib/payments/enrollment-access';
 
 export async function GET(
   _request: NextRequest,
@@ -32,6 +33,7 @@ export async function GET(
       courseId: service.courseId,
       courseTitle: service.course?.title ?? null,
       isActive: service.isActive,
+      accessDays: service.accessDays,
     },
   });
 }
@@ -55,6 +57,7 @@ export async function PATCH(
     isActive?: boolean;
     installmentEnabled?: boolean;
     maxInstallments?: number;
+    accessDays?: number | string | null;
   };
   try {
     body = await request.json();
@@ -76,6 +79,7 @@ export async function PATCH(
     isActive?: boolean;
     installmentEnabled?: boolean;
     maxInstallments?: number;
+    accessDays?: number | null;
   } = {};
   if (typeof body.slug === 'string') {
     const slug = body.slug.trim().toLowerCase().replace(/\s+/g, '-');
@@ -101,6 +105,13 @@ export async function PATCH(
   if (typeof body.isActive === 'boolean') data.isActive = body.isActive;
   if (typeof body.installmentEnabled === 'boolean') data.installmentEnabled = body.installmentEnabled;
   if (typeof body.maxInstallments === 'number') data.maxInstallments = Math.min(Math.max(body.maxInstallments, 2), 6);
+  if (body.accessDays !== undefined) {
+    const days = parseAccessDaysInput(body.accessDays);
+    if (days === undefined) {
+      return NextResponse.json({ error: 'Срок доступа: целое число дней от 1 до 3650 или пусто (бессрочно)' }, { status: 400 });
+    }
+    data.accessDays = days;
+  }
 
   if (body.price !== undefined) {
     const raw = body.price;
@@ -136,6 +147,7 @@ export async function PATCH(
       isActive: updated.isActive,
       installmentEnabled: updated.installmentEnabled,
       maxInstallments: updated.maxInstallments,
+      accessDays: updated.accessDays,
     },
   });
 }

@@ -5,26 +5,27 @@
  */
 import { prisma } from '@/lib/db';
 import { triggerNotification } from '@/lib/notifications';
+import { grantPaidEnrollment } from '@/lib/payments/enrollment-access';
 
 export async function claimPaidOrdersForUser(userId: string, emailNorm: string): Promise<number> {
   const [paidOrders, services] = await Promise.all([
     prisma.order.findMany({
       where: { status: 'paid', userId: null },
-      select: { id: true, tariffId: true, clientEmail: true },
+      select: { id: true, tariffId: true, clientEmail: true, paidAt: true },
     }),
     prisma.service.findMany({
       where: { isActive: true },
-      select: { paykeeperTariffId: true, slug: true, courseId: true },
+      select: { paykeeperTariffId: true, slug: true, courseId: true, accessDays: true },
     }),
   ]);
 
   const tariffToCourse = new Map<string, string | null>();
+  const tariffToAccessDays = new Map<string, number | null>();
   for (const s of services) {
-    if (s.paykeeperTariffId?.trim()) {
-      tariffToCourse.set(s.paykeeperTariffId.trim(), s.courseId);
-    }
-    if (s.slug?.trim()) {
-      tariffToCourse.set(s.slug.trim(), s.courseId);
+    for (const key of [s.paykeeperTariffId?.trim(), s.slug?.trim()]) {
+      if (!key) continue;
+      tariffToCourse.set(key, s.courseId);
+      tariffToAccessDays.set(key, s.accessDays);
     }
   }
 
@@ -46,10 +47,12 @@ export async function claimPaidOrdersForUser(userId: string, emailNorm: string):
   for (const order of forUser) {
     const courseId = tariffToCourse.get(order.tariffId);
     if (!courseId) continue;
-    await prisma.enrollment.upsert({
-      where: { userId_courseId: { userId, courseId } },
-      create: { userId, courseId },
-      update: {},
+    // Срок доступа — по дате оплаты заказа (paidAt), а не по дате привязки.
+    await grantPaidEnrollment(prisma, {
+      userId,
+      courseId,
+      paidAt: order.paidAt ?? new Date(),
+      accessDays: tariffToAccessDays.get(order.tariffId),
     });
     await triggerNotification({
       eventType: 'enrollment',

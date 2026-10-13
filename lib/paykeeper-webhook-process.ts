@@ -16,6 +16,7 @@ import { findActiveServiceForOrderTariff, findPersonalProductForOrderTariff } fr
 import { writePaykeeperIntegrationLog } from '@/lib/paykeeper-integration-log';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { repairEnrollmentForOrder } from '@/lib/payments/reconcile-enrollments';
+import { grantPaidEnrollment } from '@/lib/payments/enrollment-access';
 
 async function sendPaymentEmail(params: {
   order: { id: number; clientEmail: string };
@@ -175,11 +176,13 @@ export async function processPaidOrder(
   // проходили гейт и оба выполняли обработку — клиент получал два письма,
   // дважды срабатывали уведомления и синхронизация лидов. Условие в самом
   // updateMany делает гейт неделимым.
+  // Момент оплаты — от него считается срок доступа (Service.accessDays).
+  const paidAt = new Date();
   const claimed = await prisma.order.updateMany({
     where: { orderNumber, status: order.status },
     data: {
       status: 'paid',
-      paidAt: new Date(),
+      paidAt,
       ...(paykeeperMeta?.paykeeperPaymentId != null && {
         paykeeperPaymentId: paykeeperMeta.paykeeperPaymentId,
       }),
@@ -367,12 +370,12 @@ export async function processPaidOrder(
     }
 
     if (userId) {
-      await prisma.enrollment.upsert({
-        where: {
-          userId_courseId: { userId, courseId },
-        },
-        create: { userId, courseId },
-        update: {},
+      // Срок доступа: создание с expiresAt, продление без укорочения (см. enrollment-access).
+      await grantPaidEnrollment(prisma, {
+        userId,
+        courseId,
+        paidAt,
+        accessDays: service?.accessDays,
       });
       enrollmentCreated = true;
       resultUserId = userId;

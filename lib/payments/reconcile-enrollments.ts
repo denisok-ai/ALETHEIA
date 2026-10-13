@@ -28,6 +28,7 @@
  */
 import { prisma } from '@/lib/db';
 import { findActiveServiceForOrderTariff } from '@/lib/order-service';
+import { grantPaidEnrollment } from '@/lib/payments/enrollment-access';
 
 export type MissingEnrollment = {
   orderNumber: string;
@@ -39,6 +40,8 @@ export type MissingEnrollment = {
   paidAt: Date | null;
   /** Сумма заказа: по ней админ отличает тестовые оплаты от настоящих. */
   amount: number;
+  /** Срок доступа товара в днях (null — бессрочно). */
+  accessDays: number | null;
   /**
    * Зачисление, судя по заполненному Order.userId, существовало и было удалено —
    * то есть доступ отозвали намеренно. Автоматике такие заказы не отдаём.
@@ -119,6 +122,7 @@ export async function findMissingEnrollments(limit = 1000): Promise<{
       needsUser: !user,
       paidAt: order.paidAt,
       amount: order.amount,
+      accessDays: service.accessDays,
       looksRevoked: order.userId != null,
     });
   }
@@ -145,6 +149,7 @@ export async function repairEnrollmentForOrder(orderNumber: string): Promise<boo
       refundedAmountRub: true,
       status: true,
       userId: true,
+      paidAt: true,
     },
   });
   if (!order || order.status !== 'paid') return false;
@@ -170,10 +175,11 @@ export async function repairEnrollmentForOrder(orderNumber: string): Promise<boo
   if (existing) return false;
 
   await prisma.$transaction(async (tx) => {
-    await tx.enrollment.upsert({
-      where: { userId_courseId: { userId: user.id, courseId } },
-      create: { userId: user.id, courseId },
-      update: {},
+    await grantPaidEnrollment(tx, {
+      userId: user.id,
+      courseId,
+      paidAt: order.paidAt ?? new Date(),
+      accessDays: service.accessDays,
     });
     await tx.order.update({ where: { orderNumber }, data: { userId: user.id } });
   });
@@ -202,10 +208,11 @@ export async function reconcileEnrollments(
       if (!item.userId || item.looksRevoked) continue;
       try {
         await prisma.$transaction(async (tx) => {
-          await tx.enrollment.upsert({
-            where: { userId_courseId: { userId: item.userId!, courseId: item.courseId } },
-            create: { userId: item.userId!, courseId: item.courseId },
-            update: {},
+          await grantPaidEnrollment(tx, {
+            userId: item.userId!,
+            courseId: item.courseId,
+            paidAt: item.paidAt ?? new Date(),
+            accessDays: item.accessDays,
           });
           await tx.order.update({
             where: { orderNumber: item.orderNumber },

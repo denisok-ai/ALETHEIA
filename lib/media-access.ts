@@ -8,6 +8,7 @@
  *   Это intentional: неразмещённые в курсах/группах материалы считаются общими для всех студентов.
  */
 import { prisma } from '@/lib/db';
+import { isEnrollmentExpired } from '@/lib/payments/enrollment-access';
 
 export async function canStudentAccessMedia(
   userId: string,
@@ -17,7 +18,7 @@ export async function canStudentAccessMedia(
     const enrollment = await prisma.enrollment.findFirst({
       where: { userId, courseId: media.courseId, accessClosed: false },
     });
-    if (enrollment) return true;
+    if (enrollment && !isEnrollmentExpired(enrollment)) return true;
   }
   const mediaGroupIds = media.mediaGroups?.map((mg) => mg.groupId) ?? [];
   if (mediaGroupIds.length > 0) {

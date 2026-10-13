@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { pingIndexNowForPathsAsync } from '@/lib/indexnow';
+import { parseAccessDaysInput } from '@/lib/payments/enrollment-access';
 
 export async function GET() {
   const auth = await requireAdminSession();
@@ -31,6 +32,7 @@ export async function GET() {
       isActive: s.isActive,
       installmentEnabled: s.installmentEnabled,
       maxInstallments: s.maxInstallments,
+      accessDays: s.accessDays,
       createdAt: s.createdAt.toISOString(),
     })),
   });
@@ -51,6 +53,7 @@ export async function POST(request: NextRequest) {
     isActive?: boolean;
     installmentEnabled?: boolean;
     maxInstallments?: number;
+    accessDays?: number | string | null;
   };
   try {
     body = await request.json();
@@ -83,6 +86,10 @@ export async function POST(request: NextRequest) {
   const isActive = body.isActive !== false;
   const installmentEnabled = body.installmentEnabled === true;
   const maxInstallments = typeof body.maxInstallments === 'number' ? Math.min(Math.max(body.maxInstallments, 2), 6) : 3;
+  const accessDays = parseAccessDaysInput(body.accessDays);
+  if (accessDays === undefined) {
+    return NextResponse.json({ error: 'Срок доступа: целое число дней от 1 до 3650 или пусто (бессрочно)' }, { status: 400 });
+  }
   const description =
     typeof body.description === 'string' && body.description.trim() ? body.description.trim() : null;
   const imageUrl =
@@ -100,6 +107,7 @@ export async function POST(request: NextRequest) {
       isActive,
       installmentEnabled,
       maxInstallments,
+      accessDays,
     },
   });
 
@@ -121,6 +129,7 @@ export async function POST(request: NextRequest) {
       isActive: service.isActive,
       installmentEnabled: service.installmentEnabled,
       maxInstallments: service.maxInstallments,
+      accessDays: service.accessDays,
     },
   });
 }

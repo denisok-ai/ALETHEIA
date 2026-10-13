@@ -8,6 +8,7 @@ import { redirect } from 'next/navigation';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { hasCourseLearningAccess } from '@/lib/course-learning-access';
+import { isEnrollmentExpired } from '@/lib/payments/enrollment-access';
 import { CourseNotFoundInPortal } from '@/components/portal/CourseNotFoundInPortal';
 
 export const metadata: Metadata = { title: 'Плеер' };
@@ -45,7 +46,9 @@ export default async function PlayLayout({
       return (
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 p-6 text-center">
           <p className="max-w-md text-[var(--portal-text)]">
-            {enrollment?.accessClosed
+            {isEnrollmentExpired(enrollment)
+              ? 'Срок доступа к практикуму закончился.'
+              : enrollment?.accessClosed
               ? 'Доступ к этому курсу закрыт. Обратитесь в поддержку школы.'
               : 'Плеер доступен только после записи на курс. Оформите доступ на странице курса или в каталоге.'}
           </p>

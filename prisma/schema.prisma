@@ -692,6 +692,8 @@ model Service {
   isActive           Boolean  @default(true)
   installmentEnabled Boolean  @default(false)
   maxInstallments    Int      @default(3)
+  /// Срок доступа в днях от момента оплаты (null = бессрочно).
+  accessDays         Int?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
