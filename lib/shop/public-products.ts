@@ -65,7 +65,8 @@ export async function getPublicProducts(): Promise<PublicProduct[]> {
           select: { id: true, title: true, description: true },
         },
       },
-      orderBy: { createdAt: 'asc' },
+      // Лестница цен: бесплатное знакомство → практикум → форматы с мастером.
+      orderBy: [{ price: 'asc' }, { createdAt: 'asc' }],
     });
     return services.map((s) => {
       const { cardDescription, features } = descriptionToCardAndFeatures(
