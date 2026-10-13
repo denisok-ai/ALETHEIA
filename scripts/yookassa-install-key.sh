@@ -58,7 +58,10 @@ main().catch(async (e) => {
 TS
 
 TS_B64=$(printf '%s' "$TS" | base64 -w0)
-tr -d ' \r\n' < "$KEY_FILE" | ssh "$AV" "cd /opt/ALETHEIA && f=scripts/.tmp-yk-install.ts && echo $TS_B64 | base64 -d > \$f && npx tsx --env-file=.env \$f $SHOP_ID $MODE; rc=\$?; rm -f \$f; exit \$rc"
+# Берём только строку с ключом (live_… или test_…): в файле могут быть подписи и пояснения.
+KEY_LINES=$(grep -cE '^[[:space:]]*(live|test)_[A-Za-z0-9_-]+[[:space:]]*$' "$KEY_FILE" || true)
+[ "$KEY_LINES" = "1" ] || { echo "В файле должна быть ровно одна строка с ключом live_… или test_… (найдено: $KEY_LINES)"; exit 1; }
+grep -E '^[[:space:]]*(live|test)_[A-Za-z0-9_-]+[[:space:]]*$' "$KEY_FILE" | tr -d ' \t\r\n' | ssh "$AV" "cd /opt/ALETHEIA && f=scripts/.tmp-yk-install.ts && echo $TS_B64 | base64 -d > \$f && npx tsx --env-file=.env \$f $SHOP_ID $MODE; rc=\$?; rm -f \$f; exit \$rc"
 
 if [ "$DELETE" = "--delete-file" ]; then
   shred -u "$KEY_FILE" 2>/dev/null || rm -f "$KEY_FILE"
