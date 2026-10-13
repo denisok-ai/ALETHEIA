@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-13) — SEO-ключи и основа соцсетей
+
+- `lib/seo/secrets.ts`: единый загрузчик SEO-ключей (env → `/opt/ALETHEIA/secrets/seo.env`); группа «SEO-интеграции» в Портал → Настройки (только «задан/не задан»). Ключи Google OAuth, Яндекс OAuth и CrUX перенесены из Magic Master (`scripts/seo-import-mm-keys.sh`).
+- Соцсети: таблицы `SocialNetwork`, `SocialItem`, `SocialPost`, `SocialRule`, `SocialLinkEvent`; подписи по сетям с проверкой правил школы (`lib/social/captions.ts`).
+- Учёт источника: `?ref=tg-01` → cookie `av_ref` (90 дней, первое касание) и журнал переходов; метка пишется в `Lead.acqRef` и `Order.acqRef`. Политика конфиденциальности дополнена описанием cookie.
+
+### Fixed (2026-10-13)
+
+- `normalizePostLexicon` дублировал ссылки и e-mail в постах (с 15.06): «https://…/kurs» → «https://…/kurshttps://…/kurs».
+
 ### Added (2026-10-12) — Бюджет памяти сервера
 
 - `scripts/install-memory-budget.sh`: потолок памяти у каждой службы сайта (systemd) и каждого контейнера mailcow (override); ofelia — `GOMEMLIMIT`.
