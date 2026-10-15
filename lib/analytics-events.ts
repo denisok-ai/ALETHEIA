@@ -8,6 +8,8 @@ export const ANALYTICS = {
   FORM_SUBMIT: 'form_submit',
   SCROLL_PRICING: 'scroll_pricing',
   ENGAGEMENT_2MIN: 'engagement_2min',
+  /** Страница /success для оплаченного заказа; с суммой — доход в отчётах Метрики. */
+  PAYMENT_SUCCESS: 'payment_success',
 } as const;
 
 function getGtag(): ((...args: unknown[]) => void) | null {
@@ -23,13 +25,20 @@ export function trackGa4Event(name: string, params?: Record<string, unknown>) {
   if (gtag) gtag('event', name, params ?? {});
 }
 
-/** Цель Яндекс.Метрики (задайте те же имена в интерфейсе Метрики). */
-export function trackYmGoal(goal: string) {
+/**
+ * Цель Яндекс.Метрики. Цели с этими идентификаторами заводит scripts/metrika-ensure-goals.ts —
+ * без цели в счётчике Метрика reachGoal молча отбрасывает. params — параметры визита
+ * (order_price + currency дают доход в отчётах).
+ */
+export function trackYmGoal(goal: string, params?: Record<string, unknown>) {
   if (process.env.NODE_ENV !== 'production') return;
   const raw = (process.env.NEXT_PUBLIC_YANDEX_METRIKA_ID || '108390990').trim();
   if (!/^\d+$/.test(raw)) return;
-  const ym = (window as unknown as { ym?: (id: number, a: string, b: string) => void }).ym;
-  if (typeof ym === 'function') ym(Number(raw), 'reachGoal', goal);
+  const ym = (window as unknown as { ym?: (id: number, a: string, b: string, p?: Record<string, unknown>) => void }).ym;
+  if (typeof ym === 'function') {
+    if (params) ym(Number(raw), 'reachGoal', goal, params);
+    else ym(Number(raw), 'reachGoal', goal);
+  }
 }
 
 /** Дублирование в GA4 и Метрику (имена целей совпадают с ключами событий). */
