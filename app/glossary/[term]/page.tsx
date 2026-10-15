@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
+import { JsonLdFaqPage } from '@/components/JsonLdFaqPage';
 import { GLOSSARY_TERMS, getGlossarySorted, getGlossaryTerm } from '@/lib/content/glossary';
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { getSystemSettings } from '@/lib/settings';
@@ -16,6 +17,11 @@ const COURSE_LABEL: Record<string, string> = {
   'navyki-myshechnogo-testirovaniya': 'Курс «Тело знает всё» — навыки мышечного тестирования',
   probuzhdenie: 'Курс «Пробуждение» — 21 день практик присутствия',
 };
+
+/** Текст ответа для JSON-LD: без Markdown-ссылок (в FAQPage уходит plain text). */
+function plainText(md: string): string {
+  return md.replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/\*\*/g, '');
+}
 
 const markdownClassName =
   'mt-6 text-[var(--text)] leading-[var(--leading-body)] [&>p]:mt-0 [&>p]:leading-relaxed [&>p+p]:mt-4 [&>ul+p]:mt-4 [&>ul]:mt-3 [&>ul]:list-disc [&>ul]:space-y-1 [&>ul]:pl-6 [&_strong]:font-semibold';
@@ -31,13 +37,14 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const canonical = `${base}/glossary/${t.slug}`;
-  const title = `${t.term} — что это простыми словами`;
+  // Бренд добавит шаблон layout — иначе двойной суффикс
+  const title = t.seoTitle ?? `${t.term} — что это простыми словами`;
+  const description = t.seoDescription ?? t.short;
   return {
-    // Бренд добавит шаблон layout — иначе двойной суффикс
     title,
-    description: t.short,
+    description,
     alternates: { canonical },
-    openGraph: { title, description: t.short, url: canonical, type: 'article', locale: 'ru_RU' },
+    openGraph: { title, description, url: canonical, type: 'article', locale: 'ru_RU' },
   };
 }
 
@@ -80,6 +87,7 @@ export default async function GlossaryTermPage(props: Props) {
         ]}
       />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <JsonLdFaqPage items={(t.faq ?? []).map((f) => ({ q: f.q, a: plainText(f.a) }))} />
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-20 font-body md:pt-24">
         <nav aria-label="Хлебные крошки" className="mb-6 text-sm text-[var(--text-muted)]">
           <Link href="/" className="hover:underline">Главная</Link>
@@ -128,6 +136,43 @@ export default async function GlossaryTermPage(props: Props) {
                   </li>
                 ))}
               </ul>
+            </section>
+          ) : null}
+
+          {t.faq?.length ? (
+            <section className="mt-10" aria-labelledby="glossary-faq">
+              <h2 id="glossary-faq" className="font-heading text-lg font-semibold text-[var(--text)]">Частые вопросы</h2>
+              <div className="mt-3 divide-y divide-[var(--border)] border-y border-[var(--border)]">
+                {t.faq.map((item) => (
+                  <details key={item.q} className="group py-4">
+                    <summary className="cursor-pointer list-none font-medium text-[var(--text)] marker:content-none hover:text-plum">
+                      <span className="flex items-center justify-between gap-4">
+                        {item.q}
+                        <span aria-hidden className="text-[var(--text-muted)] transition-transform group-open:rotate-45">+</span>
+                      </span>
+                    </summary>
+                    <div className={markdownClassName.replace('mt-6 ', 'mt-3 ')}>
+                      <ReactMarkdown
+                        components={{
+                          a({ href, children }) {
+                            return href?.startsWith('/') ? (
+                              <Link href={href} className="font-medium text-plum underline-offset-2 hover:underline">
+                                {children}
+                              </Link>
+                            ) : (
+                              <a href={href} className="font-medium text-plum underline-offset-2 hover:underline" rel="noopener">
+                                {children}
+                              </a>
+                            );
+                          },
+                        }}
+                      >
+                        {item.a}
+                      </ReactMarkdown>
+                    </div>
+                  </details>
+                ))}
+              </div>
             </section>
           ) : null}
 
