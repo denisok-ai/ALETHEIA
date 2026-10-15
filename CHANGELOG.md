@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-16) — Текстовые посты и переходы в дайджесте
+
+- `scripts/social-enqueue.ts`: текстовый пост в очереди без `file` (поле `body` — текст поста). Лимит текста без медиа: 4096 Telegram, 4000 MAX.
+- Недельный SEO-дайджест: блок «Переходы из соцсетей за неделю» по сетям и топ-3 метки `?ref=`, окно — как у продаж.
+
 ### Added (2026-10-16) — Скилы ведения соцсетей
 
 - Исследование `docs/research/social-media-skills-2026-10.md`: разбор репозитория `charlie947/social-media-skills` (MIT), таблица 17 скилов, рекомендации по сайтам владельца, приоритеты.

@@ -166,6 +166,8 @@ export type SeoWeeklyDigestData = {
   alerts: string[];
   sales: { count: number; revenue: number; byChannel: Array<{ channel: string; count: number; revenue: number }> };
   leads: { count: number; byChannel: Array<[string, number]> };
+  /** Переходы по меткам ?ref= (SocialLinkEvent) за то же окно, что продажи. */
+  socialLinks: { count: number; byChannel: Array<[string, number]>; topRefs: Array<[string, number]> };
 };
 
 /**
@@ -200,7 +202,7 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
   const webmasterEverOk = webmasterOkCount > 0;
 
   // Продажи и заявки за 7 полных дней до вчера (как окно Метрики).
-  const [paid, leads] = await Promise.all([
+  const [paid, leads, linkGroups] = await Promise.all([
     prisma.order.findMany({
       where: {
         status: 'paid',
@@ -211,6 +213,11 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
     prisma.lead.findMany({
       where: { createdAt: { gte: mskStart(metrikaWeek.from), lt: mskStart(addDays(metrikaWeek.to, 1)) } },
       select: { acqRef: true },
+    }),
+    prisma.socialLinkEvent.groupBy({
+      by: ['refCode'],
+      where: { createdAt: { gte: mskStart(metrikaWeek.from), lt: mskStart(addDays(metrikaWeek.to, 1)) } },
+      _count: { _all: true },
     }),
   ]);
 
@@ -259,6 +266,20 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
     leadsByChannel.set(ch, (leadsByChannel.get(ch) ?? 0) + 1);
   }
 
+  // --- Переходы по меткам ?ref= ---
+  const linksByChannel = new Map<string, number>();
+  let linksCount = 0;
+  for (const g of linkGroups) {
+    const n = g._count._all;
+    linksCount += n;
+    const ch = channelOf(g.refCode);
+    linksByChannel.set(ch, (linksByChannel.get(ch) ?? 0) + n);
+  }
+  const topRefs = [...linkGroups]
+    .map((g) => [g.refCode, g._count._all] as [string, number])
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .slice(0, 3);
+
   // --- Тревоги сторожа: текущая неделя против прошлой ---
   const alerts = seoWatchdog(
     [...gscCurRows, ...inRange(webmasterIdx, gscWeek)],
@@ -287,6 +308,16 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
       byChannel: salesList,
     },
     leads: { count: leads.length, byChannel: [...leadsByChannel.entries()].sort((a, b) => b[1] - a[1]) },
+    socialLinks: {
+      count: linksCount,
+      // «прочее» — в конце, остальные сети по убыванию.
+      byChannel: [...linksByChannel.entries()].sort((a, b) => {
+        if (a[0] === 'прочее') return 1;
+        if (b[0] === 'прочее') return -1;
+        return b[1] - a[1];
+      }),
+      topRefs,
+    },
   };
 
   const body: string[] = [];
@@ -357,6 +388,15 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
     body.push(
       `Заявки за неделю: ${leads.length} (${data.leads.byChannel.map(([c, n]) => `${c} ${n}`).join(' · ')})`,
     );
+  }
+
+  if (linksCount === 0) {
+    body.push('Переходов по меткам нет');
+  } else {
+    body.push(
+      `Переходы из соцсетей за неделю: ${linksCount} (${data.socialLinks.byChannel.map(([c, n]) => `${c} ${n}`).join(' · ')})`,
+    );
+    body.push(`Топ меток: ${topRefs.map(([ref, n]) => `${ref} — ${n}`).join(' · ')}`);
   }
 
   if (opps.length > 0) {

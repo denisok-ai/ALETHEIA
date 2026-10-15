@@ -129,3 +129,45 @@ describe('parseQueueInput', () => {
     expect(r.errors.some((e) => e.includes('повторяется'))).toBe(true);
   });
 });
+
+describe('parseQueueInput: текстовые посты без file', () => {
+  const text = {
+    title: 'Вопрос недели',
+    body: 'Текст текстового поста.',
+    ref: 'tg-02',
+    scheduledAt: '2026-10-14 10:00',
+  };
+
+  it('запись без file — текстовый пост: entry.file = null, body сохранён', () => {
+    const r = parseQueueInput([text], { mediaDir: DIR });
+    expect(r.errors).toEqual([]);
+    expect(r.entries).toHaveLength(1);
+    expect(r.entries[0].file).toBeNull();
+    expect(r.entries[0].body).toBe('Текст текстового поста.');
+  });
+
+  it('пустой file трактуется как отсутствующий', () => {
+    const r = parseQueueInput([{ ...text, file: '  ' }], { mediaDir: DIR });
+    expect(r.errors).toEqual([]);
+    expect(r.entries[0].file).toBeNull();
+  });
+
+  it('текстовый пост без body — ошибка: текста нет', () => {
+    const r = parseQueueInput([{ ...text, body: '' }], { mediaDir: DIR });
+    expect(r.entries).toEqual([]);
+    expect(r.errors[0]).toContain('нужен body');
+  });
+
+  it('видео с file по-прежнему проверяет путь, даже при наличии body', () => {
+    const r = parseQueueInput([{ ...text, file: '../secret.mp4' }], { mediaDir: DIR });
+    expect(r.entries).toEqual([]);
+    expect(r.errors[0]).toContain('..');
+  });
+
+  it('текстовый и видео-посты в одной очереди', () => {
+    const video = { ...text, file: 'clip-01.mp4', ref: 'tg-01' };
+    const r = parseQueueInput([video, text], { mediaDir: DIR });
+    expect(r.errors).toEqual([]);
+    expect(r.entries.map((e) => e.file)).toEqual(['clip-01.mp4', null]);
+  });
+});

@@ -34,6 +34,7 @@ async function resetDb() {
   await prisma.seoSyncRun.deleteMany({});
   await prisma.order.deleteMany({});
   await prisma.lead.deleteMany({});
+  await prisma.socialLinkEvent.deleteMany({});
 }
 
 let orderSeq = 0;
@@ -67,6 +68,7 @@ describe('buildSeoWeeklyDigest', () => {
     expect(lines).toContain('⚠️ Метрика: синков ещё не было');
     expect(lines).toContain('Вебмастер: API Яндекса недоступен, данные не собираются');
     expect(lines).toContain('Продажи за неделю: оплат нет');
+    expect(lines).toContain('Переходов по меткам нет');
     expect(lines).toContain('Метрика: визиты 0 (было 0) — мало данных для выводов');
     expect(lines.some((l) => l.startsWith('🚨'))).toBe(false);
     expect(lines.some((l) => l.includes('Вебмастер') && l.includes('⚠️'))).toBe(false);
@@ -145,6 +147,37 @@ describe('buildSeoWeeklyDigest', () => {
     await finishSeoSyncRun(id, { state: 'ok', rows: 1 });
     const { lines } = await buildSeoWeeklyDigest(NOW);
     expect(lines.some((l) => l.includes('API Яндекса недоступен'))).toBe(false);
+  });
+});
+
+describe('buildSeoWeeklyDigest: переходы из соцсетей по меткам', () => {
+  it('считает переходы по сетям и топ-3 метки за окно недели; неизвестная метка — «прочее»', async () => {
+    const inWeek = new Date('2026-10-10T12:00:00+03:00');
+    const outside = new Date('2026-10-20T12:00:00+03:00');
+    const before = new Date('2026-10-01T12:00:00+03:00');
+    const event = (refCode: string, networkCode: string, createdAt: Date) => ({
+      refCode,
+      networkCode,
+      path: '/',
+      createdAt,
+    });
+    await prisma.socialLinkEvent.createMany({
+      data: [
+        ...Array.from({ length: 3 }, () => event('tg-01', 'telegram', inWeek)),
+        event('tg-02', 'telegram', inWeek),
+        ...Array.from({ length: 2 }, () => event('mx-01', 'max', inWeek)),
+        event('zz-09', 'telegram', inWeek),
+        // Не должны попасть: за пределами недели.
+        event('tg-01', 'telegram', outside),
+        event('tg-03', 'telegram', before),
+      ],
+    });
+
+    const { lines, data } = await buildSeoWeeklyDigest(NOW);
+    expect(data.socialLinks.count).toBe(7);
+    expect(lines).toContain('Переходы из соцсетей за неделю: 7 (Telegram 4 · MAX 2 · прочее 1)');
+    expect(lines).toContain('Топ меток: tg-01 — 3 · mx-01 — 2 · tg-02 — 1');
+    expect(lines).not.toContain('Переходов по меткам нет');
   });
 });
 

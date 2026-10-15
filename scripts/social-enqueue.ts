@@ -13,6 +13,8 @@
  *   [{ "file": "2026-10-14-test.mp4", "title": "Почему дрожат руки",
  *      "body": "Короткий текст поста.", "ref": "tg-01", "scheduledAt": "2026-10-14 10:00" }]
  * scheduledAt без смещения — московское время. "hashtags" необязательно.
+ * Текстовый пост (без ролика): без "file", с "body" — это текст поста. Лимит текста
+ * длиннее лимита подписи к видео (Telegram 4096, MAX 4000).
  *
  * Любое предупреждение проверок подписи (правила школы, «не» в заголовке, длина,
  * запрещённые формулировки) — причина не записывать: при нём скрипт завершается с кодом 1
@@ -86,6 +88,7 @@ async function main(): Promise<number> {
       refCode: e.ref,
       hashtags: e.hashtags,
       prohibitedPhrases: prohibited,
+      hasMedia: e.file !== null,
     }),
   }));
 
@@ -99,10 +102,11 @@ async function main(): Promise<number> {
 
   for (const b of built) {
     const { entry } = b;
-    console.log(`\n=== ${entry.ref} · ${formatMsk(entry.scheduledAt)} · ${entry.file}`);
+    const material = entry.file ?? 'текстовый пост, без медиа';
+    console.log(`\n=== ${entry.ref} · ${formatMsk(entry.scheduledAt)} · ${material}`);
     console.log(b.caption);
     for (const w of b.warnings) problems.push(`${entry.ref}: ${w}`);
-    if (!fs.existsSync(resolveSocialMediaPath(entry.file, mediaDir))) {
+    if (entry.file && !fs.existsSync(resolveSocialMediaPath(entry.file, mediaDir))) {
       console.log(`Внимание: файла «${entry.file}» нет в ${mediaDir} (до публикации он должен лежать там).`);
     }
   }
@@ -141,7 +145,8 @@ async function main(): Promise<number> {
     for (const b of built) {
       const item = await tx.socialItem.create({
         data: {
-          kind: 'video',
+          // Текстовый пост — kind 'news' без mediaPath: планировщик публикует его через publishText.
+          kind: b.entry.file ? 'video' : 'news',
           title: b.entry.title,
           body: b.entry.body || null,
           mediaPath: b.entry.file,

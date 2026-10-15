@@ -26,6 +26,8 @@ const LINK_IN_BIO_TEXT = 'Ссылка в профиле';
  */
 const CAPTION_LIMIT_DEFAULT = 2200;
 const CAPTION_LIMITS: Readonly<Record<string, number>> = { telegram: 1024, max: 4000 };
+/** Текст поста без медиа (sendMessage): у Telegram лимит 4096, у MAX тот же 4000. */
+const TEXT_LIMITS: Readonly<Record<string, number>> = { telegram: 4096, max: 4000 };
 
 const PLACEHOLDER_RE = /\{(title|body|link|hashtags)\}/g;
 
@@ -79,6 +81,12 @@ export function prohibitedWarnings(text: string, phrases: readonly string[] = []
   return warnings;
 }
 
+/** Лимит знаков для сети: подпись к медиа или текст поста без медиа. */
+export function captionLimitFor(networkCode: string, hasMedia: boolean): number {
+  if (!hasMedia) return TEXT_LIMITS[networkCode] ?? CAPTION_LIMIT_DEFAULT;
+  return CAPTION_LIMITS[networkCode] ?? CAPTION_LIMIT_DEFAULT;
+}
+
 /** Ссылка с меткой ?ref=: при ошибке возвращаем исходный URL и предупреждение. */
 function linkWithRef(url: string, refCode: string, warnings: string[]): string {
   if (!isValidRefCode(refCode)) {
@@ -118,6 +126,8 @@ export type CaptionInput = {
   template?: string;
   /** Запрещённые формулировки (prohibited_phrases из avaterra.yaml). */
   prohibitedPhrases?: readonly string[];
+  /** Есть ли медиа (ролик, картинка). По умолчанию true: подпись к медиа, лимит короче. false — текст поста. */
+  hasMedia?: boolean;
 };
 
 export type CaptionResult = {
@@ -150,7 +160,7 @@ export function buildCaption(input: CaptionInput): CaptionResult {
   const caption = normalizePostLexicon(collapseBlankLines(filled));
 
   if (!caption) warnings.push('подпись пустая');
-  const limit = CAPTION_LIMITS[network] ?? CAPTION_LIMIT_DEFAULT;
+  const limit = captionLimitFor(network, input.hasMedia !== false);
   if (caption.length > limit) {
     warnings.push(`подпись длиннее ${limit} знаков (сейчас ${caption.length})`);
   }

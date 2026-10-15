@@ -4,14 +4,16 @@
  * Формат — массив объектов:
  *   [{ "file": "2026-10-14-test.mp4", "title": "…", "body": "…", "ref": "tg-01",
  *      "scheduledAt": "2026-10-14 10:00" }]
+ * Без "file" запись — текстовый пост (SocialItem.kind 'news', без медиа): тогда "body" обязателен,
+ * это и есть текст поста.
  * scheduledAt без смещения — московское время (МСК, UTC+3); с «Z» или «+03:00» — как есть.
  */
 import { isValidRefCode, networkForRef } from './refs';
 import { resolveSocialMediaPath } from './media-path';
 
 export type QueueEntry = {
-  /** Имя файла относительно каталога соцсетей. */
-  file: string;
+  /** Имя файла относительно каталога соцсетей; null — текстовый пост без медиа. */
+  file: string | null;
   title: string;
   body: string;
   ref: string;
@@ -79,10 +81,10 @@ export function parseQueueInput(
     const hashtags = typeof rec.hashtags === 'string' ? rec.hashtags : undefined;
     let ok = true;
 
-    if (!file) {
-      errors.push(`${at}: не задан file`);
+    if (!file && !body) {
+      errors.push(`${at}: текстовый пост без file: нужен body (текст поста)`);
       ok = false;
-    } else {
+    } else if (file) {
       try {
         resolveSocialMediaPath(file, opts.mediaDir);
       } catch (e) {
@@ -110,7 +112,14 @@ export function parseQueueInput(
     }
 
     if (ok && scheduledAt) {
-      entries.push({ file, title, body, ref, scheduledAt, ...(hashtags !== undefined ? { hashtags } : {}) });
+      entries.push({
+        file: file || null,
+        title,
+        body,
+        ref,
+        scheduledAt,
+        ...(hashtags !== undefined ? { hashtags } : {}),
+      });
     }
   });
 

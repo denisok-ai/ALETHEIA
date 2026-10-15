@@ -15,7 +15,7 @@
  * это строже, чем видимый текст после разбора тегов, и безопаснее.
  */
 import { normalizePostLexicon } from '@/lib/content/quality-gates';
-import { buildCaption } from './captions';
+import { buildCaption, captionLimitFor } from './captions';
 
 /** Страница практикума: куда ведёт ссылка из подписи. */
 export const SCHOOL_COURSE_URL = 'https://avaterra.pro/course/navyki-myshechnogo-testirovaniya';
@@ -24,6 +24,8 @@ export const TELEGRAM_DEFAULT_HASHTAGS = '#мышечноетестирован�
 
 /** Лимит подписи к медиа в Telegram (Bot API, знаков). */
 export const TELEGRAM_CAPTION_LIMIT = 1024;
+/** Лимит текста поста без медиа в Telegram (sendMessage, знаков). */
+export const TELEGRAM_TEXT_LIMIT = 4096;
 /** Лимит текста поста в MAX (знаков): подпись к видео — это текст сообщения. */
 export const MAX_CAPTION_LIMIT = 4000;
 
@@ -47,6 +49,8 @@ export type TelegramCaptionInput = {
   /** Строка хештегов; по умолчанию TELEGRAM_DEFAULT_HASHTAGS. */
   hashtags?: string;
   prohibitedPhrases?: readonly string[];
+  /** Есть ли медиа. По умолчанию true (подпись к видео). false — текстовый пост: лимит длиннее. */
+  hasMedia?: boolean;
 };
 
 export type TelegramCaptionResult = {
@@ -59,7 +63,8 @@ export type TelegramCaptionResult = {
 /** Подпись для Telegram и MAX: проверки правил, экранирование, ссылка с ?ref=. */
 export function buildTelegramCaption(input: TelegramCaptionInput): TelegramCaptionResult {
   const networkCode = input.networkCode ?? 'telegram';
-  const limit = networkCode === 'max' ? MAX_CAPTION_LIMIT : TELEGRAM_CAPTION_LIMIT;
+  const hasMedia = input.hasMedia !== false;
+  const limit = captionLimitFor(networkCode, hasMedia);
   const url = input.url ?? SCHOOL_COURSE_URL;
   const hashtags = input.hashtags ?? TELEGRAM_DEFAULT_HASHTAGS;
   // Плоская версия прогоняет все проверки buildCaption (заголовок, запрещённые слова, стоп-слова).
@@ -72,6 +77,7 @@ export function buildTelegramCaption(input: TelegramCaptionInput): TelegramCapti
     hashtags,
     template: '{title}\n\n{body}\n\n{link}\n{hashtags}',
     prohibitedPhrases: input.prohibitedPhrases,
+    hasMedia,
   });
 
   const title = normalizePostLexicon((input.title ?? '').trim());
@@ -86,8 +92,9 @@ export function buildTelegramCaption(input: TelegramCaptionInput): TelegramCapti
 
   const warnings = [...plain.warnings];
   if (caption.length > limit) {
+    const what = hasMedia ? 'подпись' : 'текст поста';
     warnings.push(
-      `подпись длиннее ${limit} знаков после HTML-экранирования (сейчас ${caption.length}): сократите текст`,
+      `${what} длиннее ${limit} знаков после HTML-экранирования (сейчас ${caption.length}): сократите текст`,
     );
   }
   return { caption, warnings: [...new Set(warnings)] };

@@ -155,6 +155,8 @@ describe('выбор поста', () => {
     const report = await tick(NOW);
     expect(report.published).toEqual([p.id]);
     expect(publishVideoMock).not.toHaveBeenCalled();
+    // Текст уходит тем, что записано в caption поста (сюда же попадает текст из очереди).
+    expect(vi.mocked(publishText)).toHaveBeenCalledWith({ chatId: '-1003916704986', text: p.caption });
     expect((await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } })).externalUrl).toBeNull();
   });
 });

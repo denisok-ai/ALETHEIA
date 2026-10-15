@@ -97,3 +97,26 @@ describe('buildTelegramCaption: предупреждения и лимит', () 
     expect(caption).toContain(`<a href="${SCHOOL_COURSE_URL}">`);
   });
 });
+
+describe('buildTelegramCaption: текстовый пост без медиа', () => {
+  it('подпись к видео: 1100 знаков — предупреждение о лимите 1024', () => {
+    const { warnings } = buildTelegramCaption({ title: 'Заголовок', body: 'я'.repeat(1100), refCode: 'tg-10' });
+    expect(warnings.some((w) => w.includes('1024'))).toBe(true);
+  });
+
+  it('текст без медиа: 1100 знаков проходят, лимит Telegram — 4096', () => {
+    const r = buildTelegramCaption({ title: 'Заголовок', body: 'я'.repeat(1100), refCode: 'tg-10', hasMedia: false });
+    expect(r.warnings.some((w) => w.includes('1024'))).toBe(false);
+    expect(r.warnings.some((w) => w.includes('4096'))).toBe(false);
+  });
+
+  it('текст без медиа: длиннее 4096 знаков — предупреждение с лимитом 4096', () => {
+    const r = buildTelegramCaption({ title: 'Заголовок', body: 'я'.repeat(4200), refCode: 'tg-11', hasMedia: false });
+    expect(r.warnings.some((w) => w.includes('4096'))).toBe(true);
+  });
+
+  it('MAX без медиа — лимит 4000 как и с медиа', () => {
+    const r = buildTelegramCaption({ networkCode: 'max', title: 'Заголовок', body: 'я'.repeat(4100), refCode: 'mx-10', hasMedia: false });
+    expect(r.warnings.some((w) => w.includes('4000'))).toBe(true);
+  });
+});
