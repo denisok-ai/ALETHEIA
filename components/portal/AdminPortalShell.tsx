@@ -31,6 +31,7 @@ import {
   Landmark,
   Link2,
   CalendarClock,
+  Search,
 } from 'lucide-react';
 import { PortalSidebar, type NavSection } from '@/components/portal/PortalSidebar';
 import { AdminMobileMenuBar } from '@/components/portal/AdminMobileMenuBar';
@@ -85,6 +86,7 @@ const adminSections: NavSection[] = [
     sectionLabel: 'Аналитика и контроль',
     items: [
       { href: '/portal/admin/reports', label: 'Отчётность', icon: icon(BarChart3) },
+      { href: '/portal/admin/seo', label: 'SEO', icon: icon(Search) },
       { href: '/portal/admin/monitoring', label: 'Мониторинг', icon: icon(Activity) },
       { href: '/portal/admin/audit', label: 'Журнал аудита', icon: icon(FileText) },
     ],
