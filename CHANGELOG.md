@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2026-10-16) — Цели Яндекс.Метрики
+
+- JS-цели сайта заведены в счётчике (`scripts/metrika-ensure-goals.ts`): до этого reachGoal не учитывался. Новая цель `payment_success` с суммой заказа на странице успешной оплаты.
+
 ### Changed (2026-10-16) — Страницы под запросы поиска
 
 - Глоссарий: SEO-заголовки, описания и блок «Частые вопросы» (FAQPage) для «На автопилоте», «Телесная память», «Мышечный тест».
