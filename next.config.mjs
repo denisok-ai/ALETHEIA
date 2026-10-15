@@ -91,6 +91,16 @@ const nextConfig = {
         destination: '/course/probuzhdenie',
         permanent: true,
       },
+      /**
+       * «Практик» снят с витрины 13.10.2026 (эксперимент «Тысяча»), его заменил практикум
+       * «Тело знает всё». Google ещё показывает старый URL по брендовым запросам
+       * («аватерра», «аватера» — GSC 15.10), а снятый товар отдавал мягкий 404.
+       */
+      {
+        source: '/services/avaterra-praktik',
+        destination: '/services/telo-znaet-vse',
+        permanent: true,
+      },
     ];
   },
   images: {
