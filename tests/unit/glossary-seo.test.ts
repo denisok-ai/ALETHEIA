@@ -1,4 +1,4 @@
-/** Глоссарий: SEO-поля (seoTitle/seoDescription/faq) и тексты трёх терминов под запросы GSC. */
+/** Глоссарий: SEO-поля (seoTitle/seoDescription/faq) и тексты терминов под запросы GSC. */
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { describe, expect, it } from 'vitest';
@@ -12,7 +12,15 @@ function prohibitedPhrases(): string[] {
   return Array.from(block.matchAll(/^\s*-\s*"(.*)"\s*$/gm), (m) => m[1]);
 }
 
-const SEO_TERMS = ['avtopilot', 'telesnaya-pamyat', 'myshechnoe-testirovanie'] as const;
+const SEO_TERMS = [
+  'avtopilot',
+  'telesnaya-pamyat',
+  'myshechnoe-testirovanie',
+  'kineziolog',
+  'trigger',
+  'obratnaya-svyaz-tela',
+  'resursnoe-sostoyanie',
+] as const;
 
 function termText(slug: string): string {
   const t = getGlossaryTerm(slug);
@@ -48,7 +56,7 @@ describe('glossary SEO-поля', () => {
     }
   });
 
-  it('в seoTitle трёх терминов нет отдельного слова «не» (правило Татьяны)', () => {
+  it('в seoTitle терминов из SEO_TERMS нет отдельного слова «не» (правило Татьяны)', () => {
     for (const slug of SEO_TERMS) {
       const title = getGlossaryTerm(slug)?.seoTitle;
       expect(title, slug).toBeDefined();
@@ -57,7 +65,7 @@ describe('glossary SEO-поля', () => {
   });
 });
 
-describe('тексты трёх терминов под запросы GSC', () => {
+describe('тексты терминов под запросы GSC', () => {
   const phrases = prohibitedPhrases();
 
   it('фразы из avaterra.yaml прочитаны', () => {
