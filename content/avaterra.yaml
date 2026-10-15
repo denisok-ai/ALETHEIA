@@ -136,7 +136,7 @@ products:
   awakening:
     name: "Пробуждение"
     short: "21 день авторских практик настоящего момента: выход из автопилота, восстановление контакта с собой и внутренней опоры."
-    url: "https://avaterra.pro/course/probuzhdenie-berlinska"
+    url: "https://avaterra.pro/course/probuzhdenie"
     duration: "3 недели, около 15 минут практики в день"
     fits_for:
       - "Устали от постоянного напряжения"
@@ -301,8 +301,8 @@ cta_library:
     - "Если хотите освоить мышечное тестирование как навык, посмотрите программу практикума: https://avaterra.pro/course/navyki-myshechnogo-testirovaniya"
     - "Практикум «Тело знает всё» — 5 000 ₽, доступ 3 месяца, в своём темпе: https://avaterra.pro/course/navyki-myshechnogo-testirovaniya"
   course_awakening:
-    - "Страница курса 'Пробуждение': https://avaterra.pro/course/probuzhdenie-berlinska"
-    - "Если сейчас важнее вернуться к себе, посмотрите программу 'Пробуждения': https://avaterra.pro/course/probuzhdenie-berlinska"
+    - "Страница курса 'Пробуждение': https://avaterra.pro/course/probuzhdenie"
+    - "Если сейчас важнее вернуться к себе, посмотрите программу 'Пробуждения': https://avaterra.pro/course/probuzhdenie"
   faq:
     - "Если остались сомнения, посмотрите раздел «Описание» на сайте: https://avaterra.pro/faq"
     - "Подробное описание программы и ответы на частые вопросы: https://avaterra.pro/faq"
@@ -408,7 +408,7 @@ editor_checklist:
 quick_links:
   home: "https://avaterra.pro"
   course_body: "https://avaterra.pro/course/navyki-myshechnogo-testirovaniya"
-  course_awakening: "https://avaterra.pro/course/probuzhdenie-berlinska"
+  course_awakening: "https://avaterra.pro/course/probuzhdenie"
   faq: "https://avaterra.pro/faq"
   catalog: "https://avaterra.pro"
   support_email: "support@avaterra.pro"
