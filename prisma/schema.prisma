@@ -1373,3 +1373,41 @@ model SocialLinkEvent {
   @@index([refCode])
   @@index([createdAt])
 }
+
+/// Ежедневные SEO-метрики из источников (GSC, Метрика, Вебмастер). Цифры разных source не смешиваем.
+model SeoMetric {
+  id        Int      @id @default(autoincrement())
+  host      String
+  /// gsc | metrika | webmaster
+  source    String
+  /// День по Москве, YYYY-MM-DD.
+  date      String
+  /// total | query | page | traffic_source | goal | indexing
+  dimension String
+  /// Значение разреза (запрос, URL, источник); для total — пустая строка.
+  key       String   @default("")
+  /// Имя показателя: clicks, impressions, visits и т.д.
+  measure   String
+  value     Float
+  updatedAt DateTime @updatedAt
+
+  @@unique([host, source, date, dimension, key, measure])
+  @@index([source, dimension, date])
+}
+
+/// Журнал прогонов синхронизации SEO-метрик: сторож и страница SEO читают последний прогон по source.
+model SeoSyncRun {
+  id         Int       @id @default(autoincrement())
+  source     String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  /// ok | error | not_configured
+  state      String
+  rows       Int       @default(0)
+  /// Диапазон дат, который синхронизировали (YYYY-MM-DD).
+  dateFrom   String?
+  dateTo     String?
+  message    String?
+
+  @@index([source, startedAt])
+}
