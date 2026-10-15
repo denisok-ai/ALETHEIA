@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-15) — SEO-данные: синк, анализ, недельный дайджест
+
+- Таблицы `SeoMetric` (ежедневные цифры по источникам) и `SeoSyncRun` (журнал синков), миграция `20261015210000_seo_metrics`.
+- Коннекторы: Google OAuth + Search Console (`lib/seo/gsc.ts`), Яндекс.Метрика (`lib/seo/metrika.ts`), история Вебмастера (`lib/seo/webmaster-metrics.ts`).
+- Ночной синк `/api/cron/seo-sync` (03:30 МСК, бэкфилл 90 дней при первом запуске), алерт при повторном сбое источника.
+- Анализ `lib/seo/analysis.ts`: корзины позиций, падения, показы без кликов, темы на 6–20 месте, сторож падений.
+- Недельный SEO-дайджест владельцу `/api/cron/seo-weekly-digest` (пн 09:15 МСК) с продажами и заявками по меткам `?ref=`.
+
 ### Added (2026-10-15) — Канал MAX на сайте и в боте
 
 - Ссылка на канал школы в MAX: иконка в шапке и подвале (`SOCIAL_LINKS.max`), `sameAs` в разметке, ответ бота «Где вас читать» (Telegram + MAX), `quick_links` в базе знаний.

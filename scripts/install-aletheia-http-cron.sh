@@ -71,6 +71,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # в список ручного теста ниже: он без ?dry=1 и пишет в БД.
 30 3 * * * root /opt/ALETHEIA/scripts/cron-http-call.sh seo-sync
 
+# Недельный SEO-дайджест владельцу: поиск (GSC), Метрика, темы на 6–20 месте,
+# продажи и заявки по меткам ?ref= — понедельник 09:15 МСК (после дайджеста Вебмастера).
+# Не добавлять в ручной тест: шлёт сообщение в Telegram.
+15 9 * * 1 root /opt/ALETHEIA/scripts/cron-http-call.sh seo-weekly-digest
+
 # Здоровье сервера после даунгрейда до 4 ГБ: память/swap/диск/OOM, алерт в Telegram.
 */15 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh server-health
 

@@ -8,6 +8,8 @@ import { buildSeoWeeklyDigest } from '@/lib/seo/weekly-digest';
 import { upsertSeoMetrics, startSeoSyncRun, finishSeoSyncRun } from '@/lib/seo/store';
 import type { SeoMetricRow } from '@/lib/seo/metric-types';
 
+// Названия целей — сетевой вызов Метрики; в тесте его нет.
+vi.mock('@/lib/seo/metrika', () => ({ fetchMetrikaGoals: vi.fn(async () => []) }));
 vi.mock('@/lib/telegram-admin-notify', () => ({
   notifyAdminsTelegram: vi.fn(async () => ({ sent: 1, failed: 0, skipped: false })),
 }));
@@ -59,12 +61,12 @@ afterAll(async () => {
 describe('buildSeoWeeklyDigest', () => {
   it('на пустой базе пишет «мало данных», предупреждения о синке и спокойную строку про Вебмастер', async () => {
     const { lines, data } = await buildSeoWeeklyDigest(NOW);
-    expect(lines).toContain('GSC: мало данных (показов за неделю: 0)');
+    expect(lines).toContain('GSC (поиск): показы 0, клики 0 — мало данных для выводов');
     expect(lines).toContain('⚠️ GSC: синков ещё не было');
     expect(lines).toContain('⚠️ Метрика: синков ещё не было');
     expect(lines).toContain('Вебмастер: API Яндекса недоступен, данные не собираются');
     expect(lines).toContain('Продажи за неделю: оплат нет');
-    expect(lines).toContain('Метрика: мало данных (визитов за неделю: 0)');
+    expect(lines).toContain('Метрика: визиты 0 (было 0) — мало данных для выводов');
     expect(lines.some((l) => l.startsWith('🚨'))).toBe(false);
     expect(lines.some((l) => l.includes('Вебмастер') && l.includes('⚠️'))).toBe(false);
     expect(data.alerts).toEqual([]);

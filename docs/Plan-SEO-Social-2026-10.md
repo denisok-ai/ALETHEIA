@@ -45,22 +45,22 @@
 
 | # | Задача (Haiku) | Образец MM | Готово, когда |
 |---|---|---|---|
-| T1.1 | Prisma-модель `SeoMetric` (host, source, date, dimension, key, value) + миграция | `seo/store.py` | миграция применяется, запись/чтение покрыты тестом |
-| T1.2 | Google OAuth: обмен refresh → access, кэш, три состояния (`not_configured`/`error`/`ok`) | `connectors/gsc.py` L51-145, `metrika.py` L114-130 | юнит-тест на истёкший токен |
-| T1.3 | Коннектор GSC: Search Analytics (запросы, страницы, позиции), Sitemaps (только чтение и отправка), доменный ресурс | `gsc.py` L155-210, L404; `gsc_domain.py` | ночной синк пишет в SeoMetric |
-| T1.4 | Коннектор Метрики: визиты, источники, цели | `connectors/metrika.py` L164-177 | синк за вчера, цели видны |
-| T1.5 | Вебмастер: дополнить наш модуль индексацией по дням и запросами | `connectors/webmaster.py` L167, L302 | данные в SeoMetric |
-| T1.6 | CrUX раз в неделю | `scripts/seo_cwv_tracker.py` | LCP/INP/CLS по главной и практикуму |
-| T1.7 | Крон `/api/cron/seo-sync` 03:30 MSK через установщик | `deploy/cron/magic-master-seo-sync` | запись в установщике, проверка на проде |
+| T1.1 ✅ 15.10 | Prisma-модель `SeoMetric` (host, source, date, dimension, key, value) + миграция | `seo/store.py` | миграция применяется, запись/чтение покрыты тестом |
+| T1.2 ✅ 15.10 | Google OAuth: обмен refresh → access, кэш, три состояния (`not_configured`/`error`/`ok`) | `connectors/gsc.py` L51-145, `metrika.py` L114-130 | юнит-тест на истёкший токен |
+| T1.3 ✅ 15.10 | Коннектор GSC: Search Analytics (запросы, страницы, позиции), Sitemaps (только чтение и отправка), доменный ресурс | `gsc.py` L155-210, L404; `gsc_domain.py` | ночной синк пишет в SeoMetric |
+| T1.4 ✅ 15.10 | Коннектор Метрики: визиты, источники, цели | `connectors/metrika.py` L164-177 | синк за вчера, цели видны |
+| T1.5 ✅ 15.10 | Вебмастер: дополнить наш модуль индексацией по дням и запросами | `connectors/webmaster.py` L167, L302 | данные в SeoMetric |
+| T1.6 ⏸ | CrUX раз в неделю (15.10: «данных нет» — мало трафика из Chrome; вернуться при росте) | `scripts/seo_cwv_tracker.py` | LCP/INP/CLS по главной и практикуму |
+| T1.7 ✅ 15.10 | Крон `/api/cron/seo-sync` 03:30 MSK через установщик | `deploy/cron/magic-master-seo-sync` | запись в установщике, проверка на проде |
 
 ## Этап 2. Анализ и дайджест
 
 | # | Задача (Haiku) | Образец MM |
 |---|---|---|
-| T2.1 | Позиции по корзинам, регрессии, CTR-выбросы (показы без кликов) | `analysis.py` L280, L470, L754 |
-| T2.2 | «Шахтёр возможностей»: запросы с показами на позициях 6–20 → темы недели (заменяет ручной цикл «Вебмастер → тема») | `scripts/seo_opportunity_miner.py` |
-| T2.3 | Недельный дайджест в Telegram владельцу: источники, позиции, регрессии, продажи по каналам; «отправлено» только после `ok:true` | `seo/ai_agent.py` weekly_digest L450, `deploy/seo_weekly_digest.sh` |
-| T2.4 | Сторож: падение индексации/кликов, ошибки sitemap — алерт | `scripts/seo_watchdog.py`, `seo_tech_watchdog.py` |
+| T2.1 ✅ 15.10 | Позиции по корзинам, регрессии, CTR-выбросы (показы без кликов) | `analysis.py` L280, L470, L754 |
+| T2.2 ✅ 15.10 | «Шахтёр возможностей»: запросы с показами на позициях 6–20 → темы недели (заменяет ручной цикл «Вебмастер → тема») | `scripts/seo_opportunity_miner.py` |
+| T2.3 ✅ 15.10 | Недельный дайджест в Telegram владельцу: источники, позиции, регрессии, продажи по каналам; «отправлено» только после `ok:true` | `seo/ai_agent.py` weekly_digest L450, `deploy/seo_weekly_digest.sh` |
+| T2.4 ✅ 15.10 | Сторож: падение индексации/кликов, ошибки sitemap — алерт | `scripts/seo_watchdog.py`, `seo_tech_watchdog.py` |
 | T2.5 | Страница «SEO» в портале: сводка, запросы, страницы, кнопка переобхода | `frontend/admin.html` L2299-2337 |
 
 Правила решений из `docs/seo/decision-rules.md` MM переносим в `docs/seo-decision-rules.md`: одну страницу в кластере не измерить; цифры разных инструментов не смешивать; не тратить квоту переобхода на уже проиндексированное; не трогать title страниц, которые уже приносят клики.

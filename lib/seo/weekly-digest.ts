@@ -24,6 +24,7 @@ import {
   type SeoAgg,
 } from './analysis';
 import { networkForRef } from '@/lib/social/refs';
+import { fetchMetrikaGoals } from './metrika';
 
 /** Порог показов за неделю, ниже которого сравнения GSC не интерпретируем. */
 export const MIN_WEEK_IMPRESSIONS = 20;
@@ -296,7 +297,10 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
       `GSC (поиск): показы ${fmtNum(gscCur.impressions)} (было ${fmtNum(gscPrev.impressions)}), клики ${fmtNum(gscCur.clicks)} (было ${fmtNum(gscPrev.clicks)}), средняя позиция ${fmtPos(gscCur.position)}`,
     );
   } else {
-    body.push(`GSC: мало данных (показов за неделю: ${fmtNum(gscCur.impressions)})`);
+    // Цифры показываем и при малом трафике — выводы (падения, корзины) нет.
+    body.push(
+      `GSC (поиск): показы ${fmtNum(gscCur.impressions)}, клики ${fmtNum(gscCur.clicks)} — мало данных для выводов`,
+    );
   }
 
   if (gscEnough) {
@@ -315,11 +319,11 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
     body.push('Падения (показы от 20 на прошлой неделе):', ...pickTopRegressions(regAll, 5));
   }
 
-  if (visitsCur >= MIN_WEEK_VISITS) {
-    body.push(`Метрика: визиты ${fmtNum(visitsCur)} (было ${fmtNum(visitsPrev)})`);
-  } else {
-    body.push(`Метрика: мало данных (визитов за неделю: ${fmtNum(visitsCur)})`);
-  }
+  // Визиты — главная цифра при любом трафике; MIN_WEEK_VISITS отвечает только за пометку.
+  body.push(
+    `Метрика: визиты ${fmtNum(visitsCur)} (было ${fmtNum(visitsPrev)})` +
+      (visitsCur < MIN_WEEK_VISITS ? ' — мало данных для выводов' : ''),
+  );
   if (sources.length > 0) {
     body.push(
       `Источники: ${sources
@@ -329,7 +333,9 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
     );
   }
   if (goals.length > 0) {
-    body.push(`Цели: ${goals.slice(0, 5).map(([k, v]) => `цель ${k} — ${fmtNum(v)}`).join(' · ')}`);
+    // Названия целей из Метрики; при сбое API — номер цели (fetchMetrikaGoals не бросает).
+    const goalNames = new Map((await fetchMetrikaGoals()).map((g) => [String(g.id), g.name.replace(/^Автоцель:\s*/, '')]));
+    body.push(`Цели: ${goals.slice(0, 5).map(([k, v]) => `${goalNames.get(k) ?? `цель ${k}`} — ${fmtNum(v)}`).join(' · ')}`);
   }
 
   if (salesList.length === 0) {

@@ -46,6 +46,8 @@ export const CRON_EXPECTED_INTERVAL_MIN: Record<string, number> = {
   'social-publish': 10,
   // Ночной синк SEO-метрик (GSC, Метрика, Вебмастер) — раз в сутки, 03:30 МСК.
   'seo-sync': 1440,
+  // Недельный SEO-дайджест — понедельник 09:15 МСК; heartbeat только после отправки.
+  'seo-weekly-digest': 10080,
 };
 
 /** Отметить успешное выполнение. Сбой отметки не должен ронять саму задачу. */
