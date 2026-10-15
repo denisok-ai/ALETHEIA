@@ -51,6 +51,10 @@ const TRAFFIC_LABEL: Record<string, string> = {
   referral: 'ссылки',
   social: 'соцсети',
   ad: 'реклама',
+  internal: 'внутренние переходы',
+  messenger: 'мессенджеры',
+  recommend: 'рекомендации',
+  email: 'почта',
 };
 
 const SOURCE_LABEL: Record<string, string> = { gsc: 'GSC', metrika: 'Метрика', webmaster: 'Вебмастер' };
