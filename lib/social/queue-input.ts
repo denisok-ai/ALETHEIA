@@ -43,8 +43,15 @@ export function parseScheduledAt(raw: string): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+/** Префикс метки по сети: подсказка в тексте ошибки. */
+const REF_EXAMPLE: Readonly<Record<string, string>> = { telegram: 'Telegram вида tg-01', max: 'MAX вида mx-01' };
+
 /** Проверка структуры и путей. Подписи и БД проверяет вызывающий код. */
-export function parseQueueInput(raw: unknown, opts: { mediaDir: string }): QueueParseResult {
+export function parseQueueInput(
+  raw: unknown,
+  opts: { mediaDir: string; networkCode?: 'telegram' | 'max' },
+): QueueParseResult {
+  const networkCode = opts.networkCode ?? 'telegram';
   const errors: string[] = [];
   const entries: QueueEntry[] = [];
   if (!Array.isArray(raw)) {
@@ -87,8 +94,8 @@ export function parseQueueInput(raw: unknown, opts: { mediaDir: string }): Queue
       errors.push(`${at}: не задан title`);
       ok = false;
     }
-    if (!isValidRefCode(ref) || networkForRef(ref) !== 'telegram') {
-      errors.push(`${at}: ref «${ref}» должен быть меткой Telegram вида tg-01`);
+    if (!isValidRefCode(ref) || networkForRef(ref) !== networkCode) {
+      errors.push(`${at}: ref «${ref}» должен быть меткой ${REF_EXAMPLE[networkCode]}`);
       ok = false;
     } else if (seenRefs.has(ref)) {
       errors.push(`${at}: метка ${ref} повторяется в файле`);

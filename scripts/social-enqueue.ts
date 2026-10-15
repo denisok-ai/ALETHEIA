@@ -1,9 +1,13 @@
 /**
- * Постановка роликов в очередь Telegram-канала школы (T3.4/T3.5).
+ * Постановка роликов в очередь канала школы: Telegram (T3.4/T3.5) или MAX.
  *
  * Запуск:
  *   npx tsx scripts/social-enqueue.ts queue.json --dry   # показать подписи, ничего не писать
- *   npx tsx scripts/social-enqueue.ts queue.json         # записать в очередь
+ *   npx tsx scripts/social-enqueue.ts queue.json         # записать в очередь Telegram
+ *   npx tsx scripts/social-enqueue.ts queue-max.json --network=max   # очередь MAX (метки mx-01…)
+ *
+ * Канал MAX заводит scripts/max-connect.ts (токен, chat id, права бота) — до этого очередь MAX
+ * не записывается: без chat id публиковать некуда.
  *
  * Формат queue.json — массив:
  *   [{ "file": "2026-10-14-test.mp4", "title": "Почему дрожат руки",
@@ -25,9 +29,9 @@ import { parseQueueInput } from '../lib/social/queue-input';
 import { buildTelegramCaption, SCHOOL_COURSE_URL } from '../lib/social/telegram-caption';
 import { getMediaDir } from '../lib/social/scheduler';
 
-/** Канал школы: @avaterrapro. Chat id фиксирован; сменить можно флагом --chat-id=… */
+/** Telegram-канал школы: @avaterrapro. Chat id фиксирован; сменить можно флагом --chat-id=… */
 const SCHOOL_CHANNEL = { chatId: '-1003916704986', username: 'avaterrapro' };
-const NETWORK_CODE = 'telegram';
+type NetworkCode = 'telegram' | 'max';
 const KB_PATH = path.join(process.cwd(), 'content', 'knowledge', 'avaterra.yaml');
 
 function loadProhibitedPhrases(): string[] {
@@ -37,12 +41,27 @@ function loadProhibitedPhrases(): string[] {
 async function main(): Promise<number> {
   const args = process.argv.slice(2);
   const dry = args.includes('--dry');
+  const networkArg = args.find((a) => a.startsWith('--network='))?.slice('--network='.length).trim() ?? 'telegram';
+  if (networkArg !== 'telegram' && networkArg !== 'max') {
+    console.error(`--network: telegram или max (передано «${networkArg}»)`);
+    return 2;
+  }
+  const NETWORK_CODE: NetworkCode = networkArg;
   const chatArg = args.find((a) => a.startsWith('--chat-id='));
-  const chatId = chatArg ? chatArg.slice('--chat-id='.length).trim() : SCHOOL_CHANNEL.chatId;
   const file = args.find((a) => !a.startsWith('--'));
   if (!file) {
-    console.error('Использование: npx tsx scripts/social-enqueue.ts <queue.json> [--dry] [--chat-id=-100…]');
+    console.error('Использование: npx tsx scripts/social-enqueue.ts <queue.json> [--dry] [--network=telegram|max] [--chat-id=…]');
     return 2;
+  }
+
+  const existing = await prisma.socialNetwork.findUnique({ where: { code: NETWORK_CODE } });
+  let chatId: string;
+  if (chatArg) chatId = chatArg.slice('--chat-id='.length).trim();
+  else if (NETWORK_CODE === 'telegram') chatId = SCHOOL_CHANNEL.chatId;
+  else chatId = existing?.chatId ?? '';
+  if (!chatId) {
+    console.error('Канал MAX не подключён: сначала scripts/max-connect.ts (он сохранит chat id канала).');
+    return 1;
   }
 
   let raw: unknown;
@@ -54,13 +73,14 @@ async function main(): Promise<number> {
   }
 
   const mediaDir = await getMediaDir();
-  const { entries, errors } = parseQueueInput(raw, { mediaDir });
+  const { entries, errors } = parseQueueInput(raw, { mediaDir, networkCode: NETWORK_CODE });
   const problems: string[] = [...errors];
   const prohibited = loadProhibitedPhrases();
 
   const built = entries.map((e) => ({
     entry: e,
     ...buildTelegramCaption({
+      networkCode: NETWORK_CODE,
       title: e.title,
       body: e.body,
       refCode: e.ref,
@@ -74,7 +94,7 @@ async function main(): Promise<number> {
       where: { networkCode: NETWORK_CODE, refCode: { in: entries.map((e) => e.ref) } },
       select: { refCode: true },
     });
-    for (const t of taken) problems.push(`метка ${t.refCode} уже есть в очереди Telegram`);
+    for (const t of taken) problems.push(`метка ${t.refCode} уже есть в очереди ${NETWORK_CODE}`);
   }
 
   for (const b of built) {
@@ -87,9 +107,8 @@ async function main(): Promise<number> {
     }
   }
 
-  const network = await prisma.socialNetwork.findUnique({ where: { code: NETWORK_CODE } });
-  if (network && !network.enabled) {
-    console.log('\nВнимание: сеть telegram выключена (enabled=false). Посты встанут в очередь, пока её не включат.');
+  if (existing && !existing.enabled) {
+    console.log(`\nВнимание: сеть ${NETWORK_CODE} выключена (enabled=false). Посты встанут в очередь, пока её не включат.`);
   }
 
   if (problems.length > 0) {
@@ -103,19 +122,22 @@ async function main(): Promise<number> {
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.socialNetwork.upsert({
-      where: { code: NETWORK_CODE },
-      // enabled в update не трогаем: выключенную владельцем или по ошибкам сеть enqueue не включает.
-      create: {
-        code: NETWORK_CODE,
-        title: 'Telegram-канал школы',
-        enabled: true,
-        mode: 'auto',
-        profileUrl: `https://t.me/${SCHOOL_CHANNEL.username}`,
-        chatId,
-      },
-      update: { title: 'Telegram-канал школы', mode: 'auto', profileUrl: `https://t.me/${SCHOOL_CHANNEL.username}`, chatId },
-    });
+    // Сеть MAX создаёт max-connect.ts (там же проверка прав бота); здесь только Telegram.
+    if (NETWORK_CODE === 'telegram') {
+      await tx.socialNetwork.upsert({
+        where: { code: NETWORK_CODE },
+        // enabled в update не трогаем: выключенную владельцем или по ошибкам сеть enqueue не включает.
+        create: {
+          code: NETWORK_CODE,
+          title: 'Telegram-канал школы',
+          enabled: true,
+          mode: 'auto',
+          profileUrl: `https://t.me/${SCHOOL_CHANNEL.username}`,
+          chatId,
+        },
+        update: { title: 'Telegram-канал школы', mode: 'auto', profileUrl: `https://t.me/${SCHOOL_CHANNEL.username}`, chatId },
+      });
+    }
     for (const b of built) {
       const item = await tx.socialItem.create({
         data: {

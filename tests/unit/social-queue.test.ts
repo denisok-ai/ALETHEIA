@@ -95,6 +95,13 @@ describe('parseQueueInput', () => {
     expect(r.entries[0].ref).toBe('tg-01');
   });
 
+  it('очередь MAX принимает только метки mx-, очередь Telegram — только tg-', () => {
+    const mx = { ...ok, ref: 'mx-01' };
+    expect(parseQueueInput([mx], { mediaDir: DIR, networkCode: 'max' }).errors).toEqual([]);
+    expect(parseQueueInput([ok], { mediaDir: DIR, networkCode: 'max' }).errors[0]).toContain('MAX вида mx-01');
+    expect(parseQueueInput([mx], { mediaDir: DIR }).errors[0]).toContain('Telegram вида tg-01');
+  });
+
   it('не массив и пустой массив — ошибка', () => {
     expect(parseQueueInput({ file: 'x' }, { mediaDir: DIR }).errors).toHaveLength(1);
     expect(parseQueueInput([], { mediaDir: DIR }).errors).toEqual(['очередь пуста']);

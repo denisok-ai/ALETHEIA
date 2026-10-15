@@ -5,6 +5,8 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { prisma } from '@/lib/db';
 import { notifyAdminsTelegram } from '@/lib/telegram-admin-notify';
+import * as maxConnector from '@/lib/social/connectors/max';
+import { MaxPublishError } from '@/lib/social/connectors/max';
 import { publishText, publishVideo, TelegramPublishError } from '@/lib/social/connectors/telegram';
 import { tick } from '@/lib/social/scheduler';
 
@@ -12,11 +14,16 @@ vi.mock('@/lib/social/connectors/telegram', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/social/connectors/telegram')>();
   return { ...actual, publishVideo: vi.fn(), publishText: vi.fn() };
 });
+vi.mock('@/lib/social/connectors/max', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/social/connectors/max')>();
+  return { ...actual, publishVideo: vi.fn(), publishText: vi.fn() };
+});
 vi.mock('@/lib/telegram-admin-notify', () => ({
   notifyAdminsTelegram: vi.fn(async () => ({ sent: 1, failed: 0, skipped: false })),
 }));
 
 const publishVideoMock = vi.mocked(publishVideo);
+const maxVideoMock = vi.mocked(maxConnector.publishVideo);
 const notifyMock = vi.mocked(notifyAdminsTelegram);
 
 /** Среда: 14 октября 2026, 11:00 МСК. */
@@ -31,11 +38,13 @@ async function resetDb() {
   await prisma.socialRule.deleteMany({ where: { key: 'paused_all' } });
 }
 
-async function network(overrides: Partial<{ enabled: boolean; mode: string; chatId: string | null }> = {}) {
+async function network(
+  overrides: Partial<{ code: string; enabled: boolean; mode: string; chatId: string | null }> = {},
+) {
   return prisma.socialNetwork.create({
     data: {
-      code: 'telegram',
-      title: 'Telegram-канал школы',
+      code: overrides.code ?? 'telegram',
+      title: overrides.code === 'max' ? 'Канал школы в MAX' : 'Telegram-канал школы',
       enabled: overrides.enabled ?? true,
       mode: overrides.mode ?? 'auto',
       chatId: overrides.chatId === undefined ? '-1003916704986' : overrides.chatId,
@@ -88,6 +97,7 @@ beforeEach(async () => {
   await resetDb();
   publishVideoMock.mockReset();
   vi.mocked(publishText).mockReset();
+  maxVideoMock.mockReset();
   notifyMock.mockClear();
   n = 0;
 });
@@ -322,5 +332,62 @@ describe('блокировка от двойной публикации', () => 
     expect(row.error).toContain('Возможно, он уже в канале');
     const texts = notifyMock.mock.calls.map((c) => (c[1] as string[]).join(' '));
     expect(texts.some((t) => t.toLowerCase().includes('проверьте канал'))).toBe(true);
+  });
+});
+
+describe('сеть MAX', () => {
+  it('пост сети max уходит через коннектор MAX, Telegram в этом проходе не вызывается', async () => {
+    await network({ code: 'max', chatId: '-72000000001' });
+    const p = await post({ networkCode: 'max' });
+    maxVideoMock.mockResolvedValue({ messageId: 'mid.abc', url: 'https://max.ru/avaterra/AZ1' });
+
+    const report = await tick(NOW);
+
+    expect(report.published).toEqual([p.id]);
+    expect(publishVideoMock).not.toHaveBeenCalled();
+    expect(maxVideoMock).toHaveBeenCalledTimes(1);
+    expect(maxVideoMock.mock.calls[0][0].chatId).toBe('-72000000001');
+    const row = await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } });
+    expect(row.externalId).toBe('mid.abc');
+    expect(row.externalUrl).toBe('https://max.ru/avaterra/AZ1');
+  });
+
+  it('обе сети в одном проходе: каждая публикует свой пост, лимит «один в день» — по сети', async () => {
+    await network();
+    await network({ code: 'max', chatId: '-72000000001' });
+    const tg = await post({});
+    const mx = await post({ networkCode: 'max' });
+    okPublish(901);
+    maxVideoMock.mockResolvedValue({ messageId: 'mid.1', url: null });
+
+    const report = await tick(NOW);
+    expect(report.published.sort()).toEqual([tg.id, mx.id].sort());
+  });
+
+  it('ошибка MAX «нет прав» считается как у Telegram: две подряд — сеть max выключается, telegram не трогаем', async () => {
+    await network();
+    await network({ code: 'max', chatId: '-72000000001' });
+    await post({ networkCode: 'max' });
+    maxVideoMock.mockRejectedValue(new MaxPublishError('not_admin', 'Бот MAX не может публиковать в канал'));
+
+    await tick(NOW);
+    const report = await tick(new Date(NOW.getTime() + 10 * 60_000));
+
+    expect(report.stopped).toEqual(['max']);
+    expect((await prisma.socialNetwork.findUniqueOrThrow({ where: { code: 'max' } })).enabled).toBe(false);
+    expect((await prisma.socialNetwork.findUniqueOrThrow({ where: { code: 'telegram' } })).enabled).toBe(true);
+    expect(notifyMock.mock.calls.flatMap((c) => c[1]).join(' ')).toContain('MAX');
+  });
+
+  it('flood от MAX: попытка не засчитывается, пост ждёт', async () => {
+    await network({ code: 'max', chatId: '-72000000001' });
+    const p = await post({ networkCode: 'max' });
+    maxVideoMock.mockRejectedValueOnce(new MaxPublishError('flood', '429', { retryAfterSec: 60 }));
+
+    const report = await tick(NOW);
+    expect(report.held.join(' ')).toContain('лимит MAX');
+    const row = await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } });
+    expect(row.status).toBe('scheduled');
+    expect(row.attempts).toBe(0);
   });
 });

@@ -24,6 +24,8 @@ export const TELEGRAM_DEFAULT_HASHTAGS = '#мышечноетестирован�
 
 /** Лимит подписи к медиа в Telegram (Bot API, знаков). */
 export const TELEGRAM_CAPTION_LIMIT = 1024;
+/** Лимит текста поста в MAX (знаков): подпись к видео — это текст сообщения. */
+export const MAX_CAPTION_LIMIT = 4000;
 
 /** Экранирование для parse_mode=HTML: достаточно &, <, >. */
 export function escapeTelegramHtml(text: string): string {
@@ -31,9 +33,14 @@ export function escapeTelegramHtml(text: string): string {
 }
 
 export type TelegramCaptionInput = {
+  /**
+   * Канал, для которого собираем подпись. MAX понимает то же HTML-подмножество (b, i, a),
+   * отличается только лимит длины. По умолчанию telegram.
+   */
+  networkCode?: 'telegram' | 'max';
   title: string;
   body?: string;
-  /** Метка ?ref=, например tg-01. */
+  /** Метка ?ref=, например tg-01 (для MAX — mx-01). */
   refCode: string;
   /** Ссылка без метки; по умолчанию страница практикума. */
   url?: string;
@@ -49,13 +56,15 @@ export type TelegramCaptionResult = {
   warnings: string[];
 };
 
-/** Подпись для Telegram: проверки правил, экранирование, ссылка с ?ref=. */
+/** Подпись для Telegram и MAX: проверки правил, экранирование, ссылка с ?ref=. */
 export function buildTelegramCaption(input: TelegramCaptionInput): TelegramCaptionResult {
+  const networkCode = input.networkCode ?? 'telegram';
+  const limit = networkCode === 'max' ? MAX_CAPTION_LIMIT : TELEGRAM_CAPTION_LIMIT;
   const url = input.url ?? SCHOOL_COURSE_URL;
   const hashtags = input.hashtags ?? TELEGRAM_DEFAULT_HASHTAGS;
   // Плоская версия прогоняет все проверки buildCaption (заголовок, запрещённые слова, стоп-слова).
   const plain = buildCaption({
-    networkCode: 'telegram',
+    networkCode,
     title: input.title,
     body: input.body,
     url,
@@ -76,9 +85,9 @@ export function buildTelegramCaption(input: TelegramCaptionInput): TelegramCapti
   const caption = parts.join('\n\n');
 
   const warnings = [...plain.warnings];
-  if (caption.length > TELEGRAM_CAPTION_LIMIT) {
+  if (caption.length > limit) {
     warnings.push(
-      `подпись длиннее ${TELEGRAM_CAPTION_LIMIT} знаков после HTML-экранирования (сейчас ${caption.length}): сократите текст`,
+      `подпись длиннее ${limit} знаков после HTML-экранирования (сейчас ${caption.length}): сократите текст`,
     );
   }
   return { caption, warnings: [...new Set(warnings)] };

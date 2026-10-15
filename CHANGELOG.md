@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-15) — Автопубликация в канал MAX
+
+- Коннектор MAX `lib/social/connectors/max.ts`: видео до 250 МБ (загрузка через `/uploads` и отправка поста с токеном), текст до 4000 знаков, HTML-подпись; повтор при `attachment.not.ready`; корневой сертификат Минцифры только для запросов к MAX (`max-ca.ts`, `max-http.ts`).
+- Планировщик публикует в сети `telegram` и `max` (коннектор по коду сети), общая ошибка `SocialPublishError`.
+- Метки `?ref=mx-NN`, токен `max_bot_token` в настройках (или `MAX_BOT_TOKEN`).
+- Скрипты: `scripts/max-connect.sh` / `max-connect.ts` (токен, chat id канала из `bot_added`, права бота, сеть max), `scripts/social-crosspost.ts` (очередь Telegram → MAX), `social-enqueue.ts --network=max`.
+
 ### Added (2026-10-13) — Автопубликация роликов в Telegram-канал
 
 - Планировщик `lib/social/scheduler.ts` и крон `/api/cron/social-publish` (каждые 10 минут): один пост в сутки на сеть (МСК), пауза `paused_all`, две ошибки подряд выключают сеть и шлют алерт владельцу, зависший пост (publishing > 10 мин) уходит в failed без повтора.

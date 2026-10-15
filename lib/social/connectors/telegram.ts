@@ -14,6 +14,7 @@ import path from 'node:path';
 import { getEnvOverrides } from '@/lib/settings';
 import { telegramWebFetch } from '@/lib/telegram-fetch';
 import { TELEGRAM_CAPTION_LIMIT } from '../telegram-caption';
+import { SocialPublishError } from './publish-error';
 
 /** Лимит Bot API на загрузку файла ботом. */
 export const TELEGRAM_UPLOAD_LIMIT_BYTES = 50 * 1024 * 1024;
@@ -34,22 +35,12 @@ export type TelegramErrorKind =
   | 'network'
   | 'api';
 
-export class TelegramPublishError extends Error {
-  readonly kind: TelegramErrorKind;
-  /** Сколько секунд просит подождать Telegram (только для flood). */
-  readonly retryAfterSec?: number;
-  /**
-   * Исход неизвестен: запрос могло получить, но ответа не дождались.
-   * Такой пост нельзя повторять автоматически — в канале может уже лежать.
-   */
-  readonly ambiguous: boolean;
+export class TelegramPublishError extends SocialPublishError {
+  declare readonly kind: TelegramErrorKind;
 
   constructor(kind: TelegramErrorKind, message: string, opts: { retryAfterSec?: number; ambiguous?: boolean } = {}) {
-    super(message);
+    super(kind, message, opts);
     this.name = 'TelegramPublishError';
-    this.kind = kind;
-    this.retryAfterSec = opts.retryAfterSec;
-    this.ambiguous = opts.ambiguous ?? false;
   }
 }
 

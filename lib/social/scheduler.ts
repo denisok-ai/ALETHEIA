@@ -21,8 +21,9 @@
 import type { SocialItem, SocialPost } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { notifyAdminsTelegram } from '@/lib/telegram-admin-notify';
+import * as max from './connectors/max';
+import { SocialPublishError, type SocialPublished } from './connectors/publish-error';
 import * as telegram from './connectors/telegram';
-import { TelegramPublishError } from './connectors/telegram';
 import { DEFAULT_SOCIAL_MEDIA_DIR, resolveSocialMediaPath } from './media-path';
 import { mskDayBounds } from './moscow-day';
 
@@ -40,8 +41,20 @@ export const SCHEDULER_LIMITS = {
   staleLockMs: 10 * 60 * 1000,
 } as const;
 
-/** Сети, для которых есть коннектор. Остальные (vk, youtube…) пока не публикуются. */
-const CONNECTED_NETWORKS = new Set(['telegram']);
+/** Что вернул коннектор: Telegram даёт числовой id сообщения, MAX — строковый mid. */
+type Published = Omit<SocialPublished, 'messageId'> & { messageId: number | string };
+type Connector = {
+  publishVideo(p: { chatId: string; filePath: string; caption: string }): Promise<Published>;
+  publishText(p: { chatId: string; text: string }): Promise<Published>;
+};
+
+/** Коннекторы по коду сети. Остальные сети (vk, youtube…) пока не публикуются. */
+const CONNECTORS: Readonly<Record<string, Connector>> = { telegram, max };
+const CONNECTED_NETWORKS = new Set(Object.keys(CONNECTORS));
+
+/** Название площадки для текстов алертов. */
+const PLATFORM_NAMES: Readonly<Record<string, string>> = { telegram: 'Telegram', max: 'MAX' };
+const platformName = (code: string) => PLATFORM_NAMES[code] ?? code;
 
 export type TickReport = {
   published: number[];
@@ -144,18 +157,15 @@ async function publishClaimed(
   report: TickReport,
 ): Promise<void> {
   try {
-    let messageId: number;
-    let url: string | null;
+    const connector = CONNECTORS[net.code];
+    let res: Published;
     if (post.item.mediaPath) {
       const filePath = resolveSocialMediaPath(post.item.mediaPath, mediaDir);
-      const res = await telegram.publishVideo({ chatId, filePath, caption: post.caption });
-      messageId = res.messageId;
-      url = res.url;
+      res = await connector.publishVideo({ chatId, filePath, caption: post.caption });
     } else {
-      const res = await telegram.publishText({ chatId, text: post.caption });
-      messageId = res.messageId;
-      url = res.url;
+      res = await connector.publishText({ chatId, text: post.caption });
     }
+    const { messageId, url } = res;
     await prisma.socialPost.update({
       where: { id: post.id },
       data: {
@@ -181,8 +191,8 @@ async function handlePublishError(
   now: Date,
   report: TickReport,
 ): Promise<void> {
-  // Лимит Telegram: это не ошибка поста. Попытку не засчитываем, пост ждёт следующего прохода.
-  if (e instanceof TelegramPublishError && e.kind === 'flood') {
+  // Лимит площадки: это не ошибка поста. Попытку не засчитываем, пост ждёт следующего прохода.
+  if (e instanceof SocialPublishError && e.kind === 'flood') {
     await prisma.socialPost.update({
       where: { id: post.id },
       data: {
@@ -193,12 +203,12 @@ async function handlePublishError(
         updatedAt: now,
       },
     });
-    report.held.push(`${net.code}: лимит Telegram, повтор позже (${e.retryAfterSec ?? '?'} с)`);
+    report.held.push(`${net.code}: лимит ${platformName(net.code)}, повтор позже (${e.retryAfterSec ?? '?'} с)`);
     return;
   }
 
   const message = errorText(e);
-  const ambiguous = e instanceof TelegramPublishError && e.ambiguous;
+  const ambiguous = e instanceof SocialPublishError && e.ambiguous;
   const exhausted = post.attempts >= SCHEDULER_LIMITS.maxAttempts;
   const toFailed = ambiguous || exhausted;
 
@@ -215,7 +225,7 @@ async function handlePublishError(
 
   if (ambiguous) {
     await alertOwner([
-      `Публикация в «${net.title}» (пост ${post.id}): ответ Telegram не получен.`,
+      `Публикация в «${net.title}» (пост ${post.id}): ответ ${platformName(net.code)} не получен.`,
       'Пост мог уйти в канал. Проверьте канал вручную; автоматического повтора не будет.',
       message,
     ]);

@@ -12,6 +12,7 @@ export const REF_RE = /^[a-z]{2}-\d{2,3}$/;
 /** Префикс метки → код сети (SocialNetwork.code). */
 export const REF_PREFIX_TO_NETWORK: Readonly<Record<string, string>> = {
   tg: 'telegram',
+  mx: 'max',
   vk: 'vk',
   yt: 'youtube',
   rt: 'rutube',

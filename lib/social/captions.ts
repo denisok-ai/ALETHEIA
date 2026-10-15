@@ -25,7 +25,7 @@ const LINK_IN_BIO_TEXT = 'Ссылка в профиле';
  * Предел подписи: наш, не лимит площадки. Telegram ограничивает подпись к видео/фото 1024 знаками.
  */
 const CAPTION_LIMIT_DEFAULT = 2200;
-const CAPTION_LIMITS: Readonly<Record<string, number>> = { telegram: 1024 };
+const CAPTION_LIMITS: Readonly<Record<string, number>> = { telegram: 1024, max: 4000 };
 
 const PLACEHOLDER_RE = /\{(title|body|link|hashtags)\}/g;
 
