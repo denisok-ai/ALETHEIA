@@ -412,6 +412,8 @@ quick_links:
   faq: "https://avaterra.pro/faq"
   catalog: "https://avaterra.pro"
   support_email: "support@avaterra.pro"
+  telegram_channel: "https://t.me/+ZTTHAJZfS281OGZi"
+  max_channel: "https://max.ru/join/35QekpbyJEHfA_vDvFi0kv-RxE8fqzyXV6tF3glfmyQ"
 
 text_whitelist_terms:
   - "CTA"

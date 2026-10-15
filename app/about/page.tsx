@@ -49,7 +49,7 @@ export default async function AboutPage() {
         url={pageUrl}
         imageUrl={imageAbs}
         jobTitle="Основательница школы кинезиологии АВАТЕРРА"
-        sameAs={[SOCIAL_LINKS.youtube, SOCIAL_LINKS.telegram, SOCIAL_LINKS.instagram, `${base}/blog/tatyana-streltsova`]}
+        sameAs={[SOCIAL_LINKS.youtube, SOCIAL_LINKS.telegram, SOCIAL_LINKS.max, SOCIAL_LINKS.instagram, `${base}/blog/tatyana-streltsova`]}
         knowsAbout={['прикладная кинезиология', 'мышечное тестирование', 'работа со стрессом', 'карта эмоций', 'практики осознанности']}
         worksFor={`${base}/#organization`}
       />

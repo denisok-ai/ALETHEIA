@@ -3,6 +3,7 @@
  */
 import { FAQ_SECTION_ITEMS, PRACTICE_AND_FORMAT_FAQ } from '@/lib/landing-faq';
 import { MT_FAQ } from '@/lib/content/course-mt-landing';
+import { SOCIAL_LINKS } from '@/lib/social-links';
 
 export type FaqCategoryId =
   | 'brand'
@@ -213,6 +214,9 @@ const AUDIENCE_FAQ: { q: string; a: string }[] = [
   },
 ];
 
+/** Каналы школы: те же ссылки, что в шапке и подвале сайта (lib/social-links.ts). */
+const CHANNELS_ANSWER = `Канал в Telegram: ${SOCIAL_LINKS.telegram}\nКанал в MAX: ${SOCIAL_LINKS.max}`;
+
 const TIPS_FAQ: { q: string; a: string }[] = [
   {
     q: '💡 С чего начать сегодня',
@@ -233,6 +237,10 @@ const TIPS_FAQ: { q: string; a: string }[] = [
   {
     q: '💡 Познакомиться со школой',
     a: `Каталог программ и о школе: ${LINK_HOME}`,
+  },
+  {
+    q: '💡 Где вас читать',
+    a: CHANNELS_ANSWER,
   },
   {
     q: '💡 Организационные вопросы',
@@ -294,6 +302,8 @@ export const FAQ_CATEGORIES: FaqCategory[] = [
  * которыми люди реально спрашивают («сколько стоит», «дадите сертификат»).
  */
 export const FAQ_MATCH_ALIASES: { q: string; a: string }[] = [
+  { q: 'Есть ли у вас канал? Канал школы в Telegram, телеграм, MAX, макс', a: CHANNELS_ANSWER },
+  { q: 'Где почитать ваши посты и подписаться на новости школы?', a: CHANNELS_ANSWER },
   {
     q: 'Что такое Тело знает всё? Что это за практикум?',
     a:

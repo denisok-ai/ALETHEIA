@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-15) — Канал MAX на сайте и в боте
+
+- Ссылка на канал школы в MAX: иконка в шапке и подвале (`SOCIAL_LINKS.max`), `sameAs` в разметке, ответ бота «Где вас читать» (Telegram + MAX), `quick_links` в базе знаний.
+
 ### Added (2026-10-15) — Автопубликация в канал MAX
 
 - Коннектор MAX `lib/social/connectors/max.ts`: видео до 250 МБ (загрузка через `/uploads` и отправка поста с токеном), текст до 4000 знаков, HTML-подпись; повтор при `attachment.not.ready`; корневой сертификат Минцифры только для запросов к MAX (`max-ca.ts`, `max-http.ts`).

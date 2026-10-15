@@ -1,5 +1,5 @@
 /**
- * Иконки-ссылки на Instagram, YouTube и Telegram AVATERRA.
+ * Иконки-ссылки на Instagram, YouTube, Telegram и MAX AVATERRA.
  */
 import { Instagram, Youtube } from 'lucide-react';
 import { SOCIAL_LINKS } from '@/lib/social-links';
@@ -18,10 +18,20 @@ function TelegramIcon({ className }: { className?: string }) {
   );
 }
 
+/** У MAX нет иконки в lucide и общепринятого глифа — пишем название словом. */
+function MaxIcon({ className }: { className?: string }) {
+  return (
+    <span className={cn('inline-flex items-center justify-center text-[10px] font-bold leading-none tracking-tight', className)} aria-hidden>
+      MAX
+    </span>
+  );
+}
+
 const items = [
   { key: 'instagram' as const, label: 'Instagram AVATERRA', Icon: Instagram },
   { key: 'youtube' as const, label: 'YouTube AVATERRA', Icon: Youtube },
   { key: 'telegram' as const, label: 'Telegram AVATERRA', Icon: TelegramIcon },
+  { key: 'max' as const, label: 'Канал AVATERRA в MAX', Icon: MaxIcon },
 ];
 
 export function SocialLinks({ className, iconClassName = 'h-5 w-5' }: SocialLinksProps) {

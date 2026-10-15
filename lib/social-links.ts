@@ -5,6 +5,8 @@ export const SOCIAL_LINKS = {
   instagram: 'https://www.instagram.com/avaterrapro/',
   youtube: 'https://www.youtube.com/@AVATERRAPRO',
   telegram: 'https://t.me/+ZTTHAJZfS281OGZi',
+  /** Канал школы в MAX (ссылка из описания канала @avaterrapro, 15.10.2026). */
+  max: 'https://max.ru/join/35QekpbyJEHfA_vDvFi0kv-RxE8fqzyXV6tF3glfmyQ',
 } as const;
 
 export type SocialNetwork = keyof typeof SOCIAL_LINKS;
