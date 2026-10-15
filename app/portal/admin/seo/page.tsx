@@ -162,11 +162,12 @@ export default async function AdminSeoPage() {
   }
 
   const w = dashboardWindows(new Date());
-  const [rowsTotal, gscTotal, gscQuery, gscPage, metTotal, runs, webmasterOkCount] = await Promise.all([
+  const [rowsTotal, gscTotal, gscQuery, gscPage, gscQueryPage, metTotal, runs, webmasterOkCount] = await Promise.all([
     prisma.seoMetric.count({ where: { host: SEO_HOST } }),
     getSeoMetrics({ source: 'gsc', dimension: 'total', dateFrom: w.gsc28.from, dateTo: w.gsc28.to }),
     getSeoMetrics({ source: 'gsc', dimension: 'query', dateFrom: w.gsc28.from, dateTo: w.gsc28.to }),
     getSeoMetrics({ source: 'gsc', dimension: 'page', dateFrom: w.gsc28.from, dateTo: w.gsc28.to }),
+    getSeoMetrics({ source: 'gsc', dimension: 'query_page', dateFrom: w.gsc28.from, dateTo: w.gsc28.to }),
     getSeoMetrics({ source: 'metrika', dimension: 'total', dateFrom: w.metrika14.from, dateTo: w.metrika14.to }),
     lastSeoSyncRuns(),
     prisma.seoSyncRun.count({ where: { source: 'webmaster', state: 'ok' } }),
@@ -178,7 +179,7 @@ export default async function AdminSeoPage() {
   const metrika = buildMetrikaCard(metTotal, w, MIN_WEEK_VISITS);
   const queryRows = buildQueryRows(gscQuery, QUERY_LIMIT);
   const pageRows = buildPageRows(gscPage, PAGE_LIMIT);
-  const topics = buildOpportunityRows(gscQuery, TOPIC_LIMIT);
+  const topics = buildOpportunityRows(gscQuery, TOPIC_LIMIT, gscQueryPage);
   const outliers = buildCtrOutlierRows(gscPage, w, MIN_WEEK_IMPRESSIONS, TOPIC_LIMIT);
 
   return (
@@ -271,7 +272,15 @@ export default async function AdminSeoPage() {
             <ul className="space-y-1 text-sm" style={textStyle}>
               {topics.map((t) => (
                 <li key={t.query} className="flex justify-between gap-3">
-                  <span className="min-w-0 break-words">«{t.query}»</span>
+                  <span className="min-w-0 break-words">
+                    «{t.query}»
+                    {t.page ? (
+                      <span className="text-xs" style={mutedStyle}>
+                        {' '}
+                        → {t.page.replace(/^https?:\/\/[^/]+/, '')}
+                      </span>
+                    ) : null}
+                  </span>
                   <span className="shrink-0 text-xs" style={mutedStyle}>
                     {fmtInt(t.impressions)} пок. · поз. {fmtPos(t.position)}
                   </span>

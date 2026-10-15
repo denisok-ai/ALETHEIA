@@ -6,7 +6,7 @@
  * окна дат повторяют логику недельного дайджеста (GSC — лаг 2 дня, Метрика — до вчера).
  */
 import { addDaysIso, mskIsoDate } from '@/lib/social/moscow-day';
-import { aggregate, ctrOutliers, opportunities, totalAgg, type Opportunity } from './analysis';
+import { aggregate, ctrOutliers, opportunities, queryPagePairs, totalAgg, type Opportunity } from './analysis';
 import type { SeoMetricRow, SeoSource } from './metric-types';
 import type { SeoSyncRunInfo } from './store';
 
@@ -154,9 +154,16 @@ export function buildPageRows(pageRows: SeoMetricRow[], limit: number): PageRow[
     }));
 }
 
-/** «Темы недели»: запросы на 6–20 месте (правило opportunities), топ по показам. */
-export function buildOpportunityRows(queryRows: SeoMetricRow[], limit: number): Opportunity[] {
-  return opportunities(queryRows, { minImpressions: 5 }).slice(0, limit);
+/**
+ * «Темы недели»: запросы на 6–20 месте (правило opportunities), топ по показам.
+ * queryPageRows (разрез query_page) подставляет страницу, по которой Google показывает запрос.
+ */
+export function buildOpportunityRows(
+  queryRows: SeoMetricRow[],
+  limit: number,
+  queryPageRows: SeoMetricRow[] = [],
+): Opportunity[] {
+  return opportunities(queryRows, { minImpressions: 5, pairs: queryPagePairs(queryPageRows) }).slice(0, limit);
 }
 
 export type CtrOutlierRow = { url: string; impressions: number };
