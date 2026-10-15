@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-16) — Скилы ведения соцсетей
+
+- Исследование `docs/research/social-media-skills-2026-10.md`: разбор репозитория `charlie947/social-media-skills` (MIT), таблица 17 скилов, рекомендации по сайтам владельца, приоритеты.
+- Скилы Claude Code `.claude/skills/avaterra-*`: правила школы, посты под площадки, варианты заголовков, контент-план (JSON для `social-enqueue`), сценарии коротких роликов, аналитика переходов по меткам, проверка голоса, монитор инфоповодов.
+- Тест `tests/unit/skills-lint.test.ts`: frontmatter, существование путей к файлам проекта, запрещённые слова в скилах.
+
 ### Fixed (2026-10-16) — Цели Яндекс.Метрики
 
 - JS-цели сайта заведены в счётчике (`scripts/metrika-ensure-goals.ts`): до этого reachGoal не учитывался. Новая цель `payment_success` с суммой заказа на странице успешной оплаты.
