@@ -7,6 +7,7 @@
  */
 import { getGoogleAccessToken, resetGoogleTokenCache } from './google-oauth';
 import { SEO_HOST, type SeoConnectorStatus, type SeoDimension, type SeoMetricRow } from './metric-types';
+import { queryPageKey } from './analysis';
 
 const API = 'https://www.googleapis.com/webmasters/v3';
 /** Ресурс аккаунта — префиксный (https://avaterra.pro/). Доменного sc-domain: пока нет. */
@@ -14,7 +15,10 @@ export const GSC_SITE_URL = 'https://avaterra.pro/';
 const DEFAULT_ROW_LIMIT = 5000;
 /** Максимум строк одним запросом у API. */
 const MAX_ROW_LIMIT = 25000;
-/** Предохранитель пагинации: 5 страниц по 5000 строк на разрез — с запасом для малого сайта. */
+/**
+ * Предохранитель пагинации: 5 страниц по 5000 строк на разрез. Упёрлись в него — хвост молча
+ * не забираем: для query_page за длинный период это возможно, см. отчёт про объём строк.
+ */
 const MAX_PAGES = 5;
 const TIMEOUT_MS = 20_000;
 
@@ -23,11 +27,12 @@ type SearchAnalyticsResponse = { rows?: ApiRow[] };
 
 type Slice = { dimensions: Array<'date' | 'query' | 'page'>; dimension: SeoDimension };
 
-/** Разрезы: итог за день, запросы по дням, страницы по дням. */
+/** Разрезы: итог за день, запросы, страницы и пары «запрос × страница» по дням. */
 const SLICES: Slice[] = [
   { dimensions: ['date'], dimension: 'total' },
   { dimensions: ['date', 'query'], dimension: 'query' },
   { dimensions: ['date', 'page'], dimension: 'page' },
+  { dimensions: ['date', 'query', 'page'], dimension: 'query_page' },
 ];
 
 export type SitemapInfo = {
@@ -121,8 +126,15 @@ function mapRows(apiRows: ApiRow[], slice: Slice): SeoMetricRow[] {
     const keys = row.keys ?? [];
     const date = keys[0] ?? '';
     if (!date) continue;
-    // Для total ключ пустой; для query/page ключ — второй измерение строки.
-    const key = slice.dimension === 'total' ? '' : (keys[1] ?? '');
+    // Для total ключ пустой; для query/page ключ — второе измерение строки;
+    // для query_page — пара «запрос\tстраница». Строка без пары не нужна.
+    let key = '';
+    if (slice.dimension === 'query_page') {
+      if (!keys[1] || !keys[2]) continue;
+      key = queryPageKey(keys[1], keys[2]);
+    } else if (slice.dimension !== 'total') {
+      key = keys[1] ?? '';
+    }
     const measures = [
       ['clicks', row.clicks],
       ['impressions', row.impressions],
@@ -146,7 +158,7 @@ function mapRows(apiRows: ApiRow[], slice: Slice): SeoMetricRow[] {
 
 /**
  * Ежедневные показатели GSC за период (финальные данные, не dataState 'all').
- * Три разреза: total, query, page. Ошибка любого разреза — status error, rows пусты.
+ * Четыре разреза: total, query, page, query_page. Ошибка любого разреза — status error, rows пусты.
  */
 export async function fetchGscDaily(opts: {
   dateFrom: string;

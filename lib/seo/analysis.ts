@@ -30,6 +30,34 @@ export function roundPosition(position: number): number {
   return Math.round(position);
 }
 
+/** Разделитель запроса и страницы в ключе dimension=query_page. В запросах GSC табуляции нет. */
+const QUERY_PAGE_SEP = '\t';
+
+/** Ключ пары «запрос × страница» для dimension=query_page: `${query}\t${page}`. */
+export function queryPageKey(query: string, page: string): string {
+  return `${query}${QUERY_PAGE_SEP}${page}`;
+}
+
+/** Обратно к паре; null, если разделителя нет (ключ не из query_page). */
+export function splitQueryPageKey(key: string): { query: string; page: string } | null {
+  const i = key.indexOf(QUERY_PAGE_SEP);
+  if (i < 0) return null;
+  return { query: key.slice(0, i), page: key.slice(i + 1) };
+}
+
+/**
+ * Пары запрос–страница с суммой показов за период: вход для opportunities.pairs.
+ * Показы суммируются по дням до выбора «главной» страницы для запроса.
+ */
+export function queryPagePairs(rows: SeoMetricRow[]): Array<{ query: string; page: string; impressions: number }> {
+  const out: Array<{ query: string; page: string; impressions: number }> = [];
+  for (const a of aggregate(rows, 'gsc', 'query_page')) {
+    const pair = splitQueryPageKey(a.key);
+    if (pair && pair.page) out.push({ ...pair, impressions: a.impressions });
+  }
+  return out;
+}
+
 /** Суммирует строки одного source/dimension по ключу за период. */
 export function aggregate(rows: SeoMetricRow[], source: SeoSource, dimension: SeoDimension): SeoAgg[] {
   // Сначала — по (дата, ключ): позиция и показы одного дня связываются между собой.

@@ -15,6 +15,7 @@ import {
   opportunities,
   positionBuckets,
   POSITION_BUCKETS,
+  queryPagePairs,
   regressions,
   seoWatchdog,
   totalAgg,
@@ -183,10 +184,12 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
   const gsc28: Range = { from: addDays(gscEnd, -27), to: gscEnd };
   const met14: Range = { from: metrikaPrevWeek.from, to: metrikaWeek.to };
 
-  const [gscTotal, gscQuery, gscPage, webmasterIdx, metTotal, metSources, metGoals, syncRuns, webmasterOkCount] = await Promise.all([
+  const [gscTotal, gscQuery, gscPage, gscQueryPage, webmasterIdx, metTotal, metSources, metGoals, syncRuns, webmasterOkCount] = await Promise.all([
     getSeoMetrics({ source: 'gsc', dimension: 'total', dateFrom: gsc28.from, dateTo: gsc28.to }),
     getSeoMetrics({ source: 'gsc', dimension: 'query', dateFrom: gsc28.from, dateTo: gsc28.to }),
     getSeoMetrics({ source: 'gsc', dimension: 'page', dateFrom: gsc28.from, dateTo: gsc28.to }),
+    // Пары «запрос × страница»: страница для «Тем недели». До деплоя таких строк нет — страницы не будет.
+    getSeoMetrics({ source: 'gsc', dimension: 'query_page', dateFrom: gsc28.from, dateTo: gsc28.to }),
     getSeoMetrics({ source: 'webmaster', dimension: 'indexing', dateFrom: gscPrevWeek.from, dateTo: gscWeek.to }),
     getSeoMetrics({ source: 'metrika', dimension: 'total', dateFrom: met14.from, dateTo: met14.to }),
     getSeoMetrics({ source: 'metrika', dimension: 'traffic_source', dateFrom: metrikaWeek.from, dateTo: metrikaWeek.to }),
@@ -230,7 +233,7 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
     [...pageWeek, ...pagePrevWeek].filter((r) => r.measure === 'clicks' && r.value > 0).map((r) => r.key),
   );
   const outliers = ctrOutliers(pageWeek, { dimension: 'page', minImpressions: MIN_WEEK_IMPRESSIONS, protectedKeys: protectedPages });
-  const opps = opportunities(gscQuery, { minImpressions: 5 }).slice(0, 5);
+  const opps = opportunities(gscQuery, { minImpressions: 5, pairs: queryPagePairs(gscQueryPage) }).slice(0, 5);
 
   // --- Метрика ---
   const visitsCur = sumOf(sumByKey(inRange(metTotal, metrikaWeek), 'metrika', 'total', 'visits'));

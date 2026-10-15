@@ -4,7 +4,16 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { SeoDimension, SeoMetricRow, SeoMeasure, SeoSource } from '@/lib/seo/metric-types';
-import { ctrOutliers, opportunities, positionBuckets, regressions, seoWatchdog } from '@/lib/seo/analysis';
+import {
+  ctrOutliers,
+  opportunities,
+  positionBuckets,
+  queryPageKey,
+  queryPagePairs,
+  regressions,
+  seoWatchdog,
+  splitQueryPageKey,
+} from '@/lib/seo/analysis';
 
 const r = (
   date: string,
@@ -148,5 +157,30 @@ describe('seoWatchdog', () => {
       'Яндекс: страниц в поиске стало 70 (было 100)',
     ]);
     expect(seoWatchdog([idx('2026-10-08', 85)], [idx('2026-10-01', 100)])).toEqual([]);
+  });
+});
+
+describe('queryPageKey / splitQueryPageKey', () => {
+  it('склеивает запрос и страницу табуляцией и разбирает обратно', () => {
+    const key = queryPageKey('на автопилоте это', 'https://avaterra.pro/glossary/avtopilot');
+    expect(key).toBe('на автопилоте это\thttps://avaterra.pro/glossary/avtopilot');
+    expect(splitQueryPageKey(key)).toEqual({ query: 'на автопилоте это', page: 'https://avaterra.pro/glossary/avtopilot' });
+  });
+
+  it('ключ без табуляции не разбирается (строка не из query_page)', () => {
+    expect(splitQueryPageKey('кинезиология')).toBeNull();
+  });
+});
+
+describe('queryPagePairs', () => {
+  it('суммирует показы пары по дням и отбрасывает ключи без страницы', () => {
+    const k = queryPageKey('глоссарий', '/glossary');
+    const rows: SeoMetricRow[] = [
+      r('2026-10-01', 'query_page', k, 'impressions', 4),
+      r('2026-10-02', 'query_page', k, 'impressions', 6),
+      r('2026-10-02', 'query_page', queryPageKey('без страницы', ''), 'impressions', 3),
+      r('2026-10-02', 'query_page', k, 'clicks', 9),
+    ];
+    expect(queryPagePairs(rows)).toEqual([{ query: 'глоссарий', page: '/glossary', impressions: 10 }]);
   });
 });

@@ -16,11 +16,13 @@ export type SeoSource = 'gsc' | 'metrika' | 'webmaster';
  *  - total   — итог за день по сайту (key = имя показателя: clicks, impressions, visits…);
  *  - query   — поисковый запрос (key = текст запроса);
  *  - page    — страница (key = URL);
+ *  - query_page — пара «запрос × страница» из GSC (key = `${query}\t${page}`, табуляция
+ *    как разделитель: в запросах её не бывает; хелперы — lib/seo/analysis.ts);
  *  - traffic_source — источник трафика Метрики (key = organic, direct, social…);
  *  - goal    — цель Метрики (key = id цели);
  *  - indexing — индексация Вебмастера (key = searchable, excluded…).
  */
-export type SeoDimension = 'total' | 'query' | 'page' | 'traffic_source' | 'goal' | 'indexing';
+export type SeoDimension = 'total' | 'query' | 'page' | 'query_page' | 'traffic_source' | 'goal' | 'indexing';
 
 /** Имя показателя. Для query/page у GSC — по строке на показатель. */
 export type SeoMeasure =
