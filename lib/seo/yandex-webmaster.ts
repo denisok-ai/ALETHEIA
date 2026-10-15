@@ -28,7 +28,8 @@ export function getWebmasterToken(): string | null {
   return cachedToken;
 }
 
-async function api<T>(path: string, init?: RequestInit): Promise<T | null> {
+/** GET/POST к API Вебмастера с токеном. null — нет токена, сбой сети или не-2xx (см. webmaster-metrics). */
+export async function api<T>(path: string, init?: RequestInit): Promise<T | null> {
   const token = getWebmasterToken();
   if (!token) return null;
   try {
@@ -55,7 +56,8 @@ async function api<T>(path: string, init?: RequestInit): Promise<T | null> {
   }
 }
 
-async function userId(): Promise<number | null> {
+/** ID пользователя Вебмастера (кешируется после первого успешного ответа). */
+export async function userId(): Promise<number | null> {
   if (cachedUserId !== undefined) return cachedUserId;
   const u = await api<{ user_id: number }>('/user');
   if (!u) return null;
@@ -63,7 +65,8 @@ async function userId(): Promise<number | null> {
   return cachedUserId;
 }
 
-function hostBase(uid: number): string {
+/** Префикс пути ресурса сайта: /user/{uid}/hosts/{HOST_ID}. */
+export function hostBase(uid: number): string {
   return `/user/${uid}/hosts/${HOST_ID}`;
 }
 

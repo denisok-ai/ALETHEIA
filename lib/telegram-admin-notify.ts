@@ -23,6 +23,7 @@ export type AdminTelegramEvent =
   | 'blog_announced'
   | 'email_delivery_failed'
   | 'seo_digest'
+  | 'seo_sync'
   | 'server_health'
   | 'checkout_request'
   | 'social_autopublish';
@@ -43,6 +44,7 @@ const EVENT_LABELS: Record<AdminTelegramEvent, string> = {
   blog_announced: 'Анонс статьи в канал',
   email_delivery_failed: 'Письмо не отправлено',
   seo_digest: 'SEO-дайджест Яндекса',
+  seo_sync: 'Ночной синк SEO-метрик',
   server_health: 'Здоровье сервера',
   checkout_request: 'Заявка на оплату',
   social_autopublish: 'Автопубликация в соцсети',

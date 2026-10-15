@@ -66,6 +66,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # диагностика) + дострел переобхода свежих статей. Понедельник утром.
 0 9 * * 1 root /opt/ALETHEIA/scripts/cron-http-call.sh yandex-webmaster-digest
 
+# Ночной синк SEO-метрик: GSC, Метрика и Вебмастер → таблица SeoMetric — 03:30 МСК.
+# Окна дат и первый запуск (бэкфилл 90 дней) — внутри lib/seo/sync.ts. Не добавлять
+# в список ручного теста ниже: он без ?dry=1 и пишет в БД.
+30 3 * * * root /opt/ALETHEIA/scripts/cron-http-call.sh seo-sync
+
 # Здоровье сервера после даунгрейда до 4 ГБ: память/swap/диск/OOM, алерт в Telegram.
 */15 * * * * root /opt/ALETHEIA/scripts/cron-http-call.sh server-health
 

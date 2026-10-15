@@ -20,3 +20,16 @@ export function formatMsk(date: Date): string {
   const s = new Date(date.getTime() + MSK_OFFSET_MS);
   return `${pad(s.getUTCDate())}.${pad(s.getUTCMonth() + 1)}.${s.getUTCFullYear()} ${pad(s.getUTCHours())}:${pad(s.getUTCMinutes())} МСК`;
 }
+
+/** Календарная дата по Москве в формате YYYY-MM-DD для момента now. */
+export function mskIsoDate(now: Date): string {
+  const s = new Date(now.getTime() + MSK_OFFSET_MS);
+  return `${s.getUTCFullYear()}-${pad(s.getUTCMonth() + 1)}-${pad(s.getUTCDate())}`;
+}
+
+/** Сдвиг даты YYYY-MM-DD на n дней (отрицательное n — назад); календарная арифметика без часовых поясов. */
+export function addDaysIso(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + n));
+  return `${t.getUTCFullYear()}-${pad(t.getUTCMonth() + 1)}-${pad(t.getUTCDate())}`;
+}
