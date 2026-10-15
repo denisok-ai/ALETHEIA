@@ -28,7 +28,9 @@ export const KB_REVISED: Record<string, string> = {
   'emotsionalnyy-zaryad': '2026-10-13',
   'dengi-i-telesnye-ubezhdeniya': '2026-10-13',
   'strah-proyavlyatsya': '2026-10-13',
-  'myshechnoe-testirovanie-na-sebe': '2026-10-13',
+  'myshechnoe-testirovanie-na-sebe': '2026-10-16',
+  // 16.10.2026: переработка под запросы «мышечный тест самостоятельно» и «жизнь на автопилоте»
+  'zhizn-na-avtopilote': '2026-10-16',
   'lobnyy-obhvat': '2026-10-13',
   'starye-obidy-i-otnosheniya': '2026-10-13',
   'myshechnoe-testirovanie-komu-podhodit-i-kogda-nuzhen-vrach': '2026-10-13',
