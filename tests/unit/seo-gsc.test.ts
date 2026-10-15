@@ -92,6 +92,11 @@ describe('fetchGscDaily', () => {
       if (dims.length === 1) {
         return json({ rows: [{ keys: ['2026-10-09'], clicks: 3, impressions: 40, ctr: 0.075, position: 12.5 }] });
       }
+      if (dims.length === 3) {
+        return json({
+          rows: [{ keys: ['2026-10-09', 'кинезиология', 'https://avaterra.pro/glossary/kinezilogiya'], clicks: 1, impressions: 5, ctr: 0.2, position: 7 }],
+        });
+      }
       if (dims[1] === 'query') {
         return json({ rows: [{ keys: ['2026-10-09', 'кинезиология'], clicks: 1, impressions: 5, ctr: 0.2, position: 7 }] });
       }
@@ -100,7 +105,8 @@ describe('fetchGscDaily', () => {
 
     const r = await fetchGscDaily({ dateFrom: '2026-10-01', dateTo: '2026-10-10' });
     expect(r.status.state).toBe('ok');
-    expect(r.rows).toHaveLength(4 + 4);
+    // total + query + query_page по 4 показателя на строку API; page в этом моке пуст.
+    expect(r.rows).toHaveLength(4 * 3);
 
     const total = r.rows.filter((x) => x.dimension === 'total');
     expect(total).toEqual([
@@ -113,6 +119,35 @@ describe('fetchGscDaily', () => {
     const query = r.rows.filter((x) => x.dimension === 'query');
     expect(query.map((x) => x.key)).toEqual(['кинезиология', 'кинезиология', 'кинезиология', 'кинезиология']);
     expect(query.find((x) => x.measure === 'position')?.value).toBe(7);
+  });
+
+  it('разрез query_page: запрос с табуляцией и страницей в ключе, четыре показателя', async () => {
+    const dimsSeen: string[][] = [];
+    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
+      if (isTokenCall(url)) return tokenOk();
+      const dims = bodyOf(init).dimensions as string[];
+      dimsSeen.push(dims);
+      if (dims.length === 3) {
+        return json({
+          rows: [
+            { keys: ['2026-10-09', 'на автопилоте это', 'https://avaterra.pro/glossary/avtopilot'], clicks: 0, impressions: 15, ctr: 0, position: 6.3 },
+            // Строка без страницы — не нужна для связки, пропускаем.
+            { keys: ['2026-10-09', 'без страницы'], clicks: 0, impressions: 2, ctr: 0, position: 9 },
+          ],
+        });
+      }
+      return json({});
+    });
+
+    const r = await fetchGscDaily({ dateFrom: '2026-10-01', dateTo: '2026-10-10' });
+    expect(dimsSeen).toContainEqual(['date', 'query', 'page']);
+    const qp = r.rows.filter((x) => x.dimension === 'query_page');
+    expect(qp).toEqual([
+      { host: 'avaterra.pro', source: 'gsc', date: '2026-10-09', dimension: 'query_page', key: 'на автопилоте это\thttps://avaterra.pro/glossary/avtopilot', measure: 'clicks', value: 0 },
+      { host: 'avaterra.pro', source: 'gsc', date: '2026-10-09', dimension: 'query_page', key: 'на автопилоте это\thttps://avaterra.pro/glossary/avtopilot', measure: 'impressions', value: 15 },
+      { host: 'avaterra.pro', source: 'gsc', date: '2026-10-09', dimension: 'query_page', key: 'на автопилоте это\thttps://avaterra.pro/glossary/avtopilot', measure: 'ctr', value: 0 },
+      { host: 'avaterra.pro', source: 'gsc', date: '2026-10-09', dimension: 'query_page', key: 'на автопилоте это\thttps://avaterra.pro/glossary/avtopilot', measure: 'position', value: 6.3 },
+    ]);
   });
 
   it('пагинация: идёт по startRow, пока страница полная', async () => {

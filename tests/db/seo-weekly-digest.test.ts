@@ -7,6 +7,7 @@ import { prisma } from '@/lib/db';
 import { buildSeoWeeklyDigest } from '@/lib/seo/weekly-digest';
 import { upsertSeoMetrics, startSeoSyncRun, finishSeoSyncRun } from '@/lib/seo/store';
 import type { SeoMetricRow } from '@/lib/seo/metric-types';
+import { queryPageKey } from '@/lib/seo/analysis';
 
 // Названия целей — сетевой вызов Метрики; в тесте его нет.
 vi.mock('@/lib/seo/metrika', () => ({ fetchMetrikaGoals: vi.fn(async () => []) }));
@@ -144,5 +145,39 @@ describe('buildSeoWeeklyDigest', () => {
     await finishSeoSyncRun(id, { state: 'ok', rows: 1 });
     const { lines } = await buildSeoWeeklyDigest(NOW);
     expect(lines.some((l) => l.includes('API Яндекса недоступен'))).toBe(false);
+  });
+});
+
+describe('buildSeoWeeklyDigest: темы недели и страница из пар query_page', () => {
+  it('подставляет страницу из пары «запрос × страница»; без пары строка остаётся без страницы', async () => {
+    await upsertSeoMetrics([
+      // Запрос на 6–20 месте за последние 28 дней (окно GSC заканчивается 12.10).
+      row({ date: '2026-10-08', dimension: 'query', key: 'на автопилоте это', measure: 'impressions', value: 15 }),
+      row({ date: '2026-10-08', dimension: 'query', key: 'на автопилоте это', measure: 'clicks', value: 0 }),
+      row({ date: '2026-10-08', dimension: 'query', key: 'на автопилоте это', measure: 'position', value: 6.3 }),
+      row({ date: '2026-10-08', dimension: 'query', key: 'без страницы', measure: 'impressions', value: 8 }),
+      row({ date: '2026-10-08', dimension: 'query', key: 'без страницы', measure: 'clicks', value: 0 }),
+      row({ date: '2026-10-08', dimension: 'query', key: 'без страницы', measure: 'position', value: 9 }),
+      // Пара: показы за два дня суммируются.
+      row({
+        date: '2026-10-08',
+        dimension: 'query_page',
+        key: queryPageKey('на автопилоте это', 'https://avaterra.pro/glossary/avtopilot'),
+        measure: 'impressions',
+        value: 10,
+      }),
+      row({
+        date: '2026-10-09',
+        dimension: 'query_page',
+        key: queryPageKey('на автопилоте это', 'https://avaterra.pro/glossary/avtopilot'),
+        measure: 'impressions',
+        value: 5,
+      }),
+    ]);
+
+    const { lines } = await buildSeoWeeklyDigest(NOW);
+    expect(lines).toContain('Темы недели (запросы на 6–20 месте, 28 дней):');
+    expect(lines).toContain('· «на автопилоте это» — 15 пок., поз. 6.3 → /glossary/avtopilot');
+    expect(lines).toContain('· «без страницы» — 8 пок., поз. 9.0');
   });
 });
