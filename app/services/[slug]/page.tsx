@@ -32,7 +32,7 @@ function metaDescriptionFor(name: string, card: string, price: number): string {
 export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
   const params = await props.params;
   const product = await getPublicProductBySlug(params.slug);
-  // notFound() в generateMetadata → реальный 404-статус (иначе стриминг успевает отдать 200)
+  // notFound() здесь не даёт 404: layout стримит children, статус 200 уходит раньше. Настоящий 404 — в proxy.ts.
   if (!product) notFound();
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');

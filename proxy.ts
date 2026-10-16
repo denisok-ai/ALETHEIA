@@ -10,11 +10,44 @@ import {
   buildContentSecurityPolicyReportOnly,
 } from '@/lib/csp';
 import { trackRefVisit } from '@/lib/social/ref-tracking';
+import { getBlogPostBySlug } from '@/lib/content/blog-posts';
+import { getGlossaryTerm } from '@/lib/content/glossary';
+import { getPublicProductBySlug } from '@/lib/shop/public-products';
 
 const PORTAL_PREFIX = '/portal';
 const LOGIN_PATH = '/login';
 
 const AUTH_PAGES = ['/login', '/register', '/reset-password'];
+
+/**
+ * Адреса контента с динамическим slug: тариф, статья блога, термин глоссария.
+ * Страницы сами вызывают notFound(), но корневой layout оборачивает children в
+ * <Suspense> — к моменту notFound() статус 200 уже отправлен (мягкий 404 с
+ * noindex). Поэтому существование проверяем здесь, до рендера, и отдаём 404.
+ */
+const CONTENT_PATH = /^\/(services|blog|glossary)\/([^/]+)\/?$/;
+
+/** Внутренний маршрут Next для страницы «не найдено» (app/not-found.tsx) — отдаёт статус 404. */
+const NOT_FOUND_REWRITE = '/_not-found';
+
+async function isMissingContentPage(path: string): Promise<boolean> {
+  const match = CONTENT_PATH.exec(path);
+  if (!match) return false;
+  let slug: string;
+  try {
+    slug = decodeURIComponent(match[2]);
+  } catch {
+    return true;
+  }
+  switch (match[1]) {
+    case 'services':
+      return !(await getPublicProductBySlug(slug));
+    case 'blog':
+      return !(await getBlogPostBySlug(slug));
+    default:
+      return !getGlossaryTerm(slug);
+  }
+}
 
 /**
  * Статика с платным/приватным контентом (SCORM-курсы, медиатека, видео-верификации):
@@ -64,6 +97,12 @@ export async function proxy(request: NextRequest) {
       return new NextResponse('Unauthorized', { status: 401 });
     }
     return withCsp(NextResponse.next());
+  }
+
+  if (!path.startsWith(PORTAL_PREFIX) && (await isMissingContentPage(path))) {
+    const url = request.nextUrl.clone();
+    url.pathname = NOT_FOUND_REWRITE;
+    return withCsp(NextResponse.rewrite(url, { status: 404 }));
   }
 
   if (token && AUTH_PAGES.includes(path)) {

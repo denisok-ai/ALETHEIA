@@ -9,11 +9,16 @@ export {}; // модуль, а не глобальный скрипт: инач�
 
 const BASE = (process.argv[2] || 'https://avaterra.pro').replace(/\/$/, '');
 
-type Check = { name: string; ok: boolean; detail: string };
+/** ok=false — провал; warn=true — предупреждение (не красит итог, но видно в выводе). */
+type Check = { name: string; ok: boolean; warn?: boolean; detail: string };
 const checks: Check[] = [];
 
 function add(name: string, ok: boolean, detail = '') {
   checks.push({ name, ok, detail });
+}
+
+function warn(name: string, detail = '') {
+  checks.push({ name, ok: true, warn: true, detail });
 }
 
 async function head(path: string): Promise<number> {
@@ -97,22 +102,29 @@ async function main() {
   }
 
   // 3b. Несуществующие адреса не должны попадать в индекс.
-  // Из-за стриминга Next 14 статус на /blog/[slug] и /services/[slug] остаётся
-  // 200, поэтому единственный сигнал поисковику — мета-тег noindex. Без него
-  // индексируемой становится любая выдуманная ссылка, а их бесконечно много.
+  // Цель — настоящий 404 (проверка в proxy.ts до рендера). Пока фикс не задеплоен,
+  // прод отдаёт мягкий 404: статус 200 + noindex. Это предупреждение, а не провал:
+  // провал — только если страница открыта для индексации.
   try {
-    const probes = ['/blog/nesuschestvuyuschaya-statya-proverka', '/services/nesuschestvuyuschiy-tarif-proverka'];
+    const probes = [
+      '/blog/nesuschestvuyuschaya-statya-proverka',
+      '/services/nesuschestvuyuschiy-tarif-proverka',
+      '/glossary/nesuschestvuyuschiy-termin-proverka',
+    ];
     const indexable: string[] = [];
+    const soft: string[] = [];
     for (const p of probes) {
-      const html = await fetch(`${BASE}${p}`).then((r) => r.text());
+      const r = await fetch(`${BASE}${p}`);
+      if (r.status === 404) continue;
+      const html = await r.text();
       const robots = html.match(/<meta name="robots" content="([^"]*)"/i)?.[1] ?? '';
-      if (!/noindex/i.test(robots)) indexable.push(`${p} → ${robots || 'тега нет'}`);
+      if (/noindex/i.test(robots)) soft.push(p);
+      else indexable.push(`${p} → ${r.status}, ${robots || 'тега нет'}`);
     }
-    add(
-      'несуществующие страницы закрыты от индексации',
-      indexable.length === 0,
-      indexable.join('; ')
-    );
+    const name = 'несуществующие страницы закрыты от индексации';
+    if (indexable.length) add(name, false, indexable.join('; '));
+    else if (soft.length) warn(name, `мягкий 404 (200 + noindex) на ${soft.join(', ')} — настоящий 404 появится после деплоя фикса`);
+    else add(name, true, '404 или noindex');
   } catch (e) {
     add('несуществующие страницы закрыты от индексации', false, String(e));
   }
@@ -161,10 +173,14 @@ async function main() {
 
   // Итог
   const failed = checks.filter((c) => !c.ok);
+  const warned = checks.filter((c) => c.warn);
   for (const c of checks) {
-    console.log(`  ${c.ok ? 'ok      ' : 'ПРОВАЛ  '} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`);
+    const mark = !c.ok ? 'ПРОВАЛ  ' : c.warn ? 'ПРЕДУП. ' : 'ok      ';
+    console.log(`  ${mark} ${c.name}${c.detail ? ` — ${c.detail}` : ''}`);
   }
-  console.log(failed.length ? `\nПровалов: ${failed.length}` : '\nВсё в порядке.');
+  if (failed.length) console.log(`\nПровалов: ${failed.length}`);
+  else if (warned.length) console.log(`\nПредупреждений: ${warned.length} (провалов нет)`);
+  else console.log('\nВсё в порядке.');
   process.exit(failed.length ? 1 : 0);
 }
 
