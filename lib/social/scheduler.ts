@@ -210,7 +210,14 @@ async function sendReadyPost(
     await prisma.socialNetwork.update({ where: { id: net.id }, data: { failStreak: 0, lastError: null } });
     report.published.push(post.id);
   } catch (e) {
-    await handlePublishError(net, post, e, now, report);
+    // Сбой доставки владельцу — не ошибка площадки: пост ждёт следующего прохода, попытка
+    // не засчитывается и сеть не выключается. Иначе один сбой Telegram выключил бы
+    // все ready_post-сети разом (их включают вручную).
+    await prisma.socialPost.update({
+      where: { id: post.id },
+      data: { status: 'scheduled', attempts: { decrement: 1 }, publishedAt: null, error: errorText(e), updatedAt: now },
+    });
+    report.held.push(`${net.code}: готовый пост не доставлен владельцу, повтор на следующем проходе (${errorText(e)})`);
   }
 }
 

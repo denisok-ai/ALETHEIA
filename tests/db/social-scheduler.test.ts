@@ -476,40 +476,40 @@ describe('готовые посты (mode=ready_post): VK, Дзен, Rutube, You
     expect((await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } })).status).toBe('scheduled');
   });
 
-  it('Telegram не доставил (sent 0): попытка засчитана как ошибка, пост ждёт', async () => {
+  it('Telegram не доставил (sent 0): пост ждёт следующего прохода, попытка не засчитана', async () => {
     await network(READY_NETWORK);
     const p = await post({ networkCode: 'vk', refCode: 'vk-01' });
     notifyMock.mockResolvedValueOnce(FAILED_SEND);
 
     const report = await tick(NOW);
 
-    expect(report.failed).toEqual([p.id]);
+    expect(report.failed).toEqual([]);
+    expect(report.held.join(' ')).toContain('не доставлен владельцу');
     const row = await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } });
     expect(row.status).toBe('scheduled');
-    expect(row.attempts).toBe(1);
+    expect(row.attempts).toBe(0);
     expect(row.publishedAt).toBeNull();
     expect(row.error).toContain('готовый пост не отправлен');
     const net = await prisma.socialNetwork.findUniqueOrThrow({ where: { code: 'vk' } });
-    expect(net.failStreak).toBe(1);
+    expect(net.failStreak).toBe(0);
     expect(net.enabled).toBe(true);
-    expect(notifyMock.mock.calls.filter((c) => c[0] === 'social_autopublish')).toHaveLength(0);
   });
 
-  it('две неудачи подряд: сеть vk выключается и владелец получает алерт', async () => {
+  it('сбой доставки много раз подряд не выключает ready_post-сеть; после восстановления пост уходит', async () => {
     await network(READY_NETWORK);
     const p = await post({ networkCode: 'vk', refCode: 'vk-01' });
-    notifyMock.mockResolvedValueOnce(FAILED_SEND).mockResolvedValueOnce(FAILED_SEND);
+    notifyMock.mockResolvedValueOnce(FAILED_SEND).mockResolvedValueOnce(FAILED_SEND).mockResolvedValueOnce(FAILED_SEND);
 
     await tick(NOW);
     await tick(at('2026-10-14T08:10:00Z'));
-
+    await tick(at('2026-10-14T08:20:00Z'));
     const net = await prisma.socialNetwork.findUniqueOrThrow({ where: { code: 'vk' } });
-    expect(net.enabled).toBe(false);
-    expect(net.failStreak).toBe(0);
-    expect((await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } })).attempts).toBe(2);
-    const stop = notifyMock.mock.calls.filter((c) => c[0] === 'social_autopublish');
-    expect(stop).toHaveLength(1);
-    expect((stop[0][1] as string[])[0]).toMatch(/^Автопубликация в канал остановлена: /);
+    expect(net.enabled).toBe(true);
+    expect(notifyMock.mock.calls.filter((c) => c[0] === 'social_autopublish')).toHaveLength(0);
+
+    await tick(at('2026-10-14T08:30:00Z'));
+    const row = await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } });
+    expect(row.status).toBe('ready_post_sent');
   });
 
   it('готовый пост и Telegram в одном проходе: каждая сеть идёт своим путём', async () => {
