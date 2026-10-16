@@ -30,7 +30,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   const params = await props.params;
   const { slug } = params;
   const post = await getBlogPostBySlug(slug);
-  // notFound() в generateMetadata → реальный 404-статус (иначе стриминг успевает отдать 200)
+  // notFound() здесь не даёт 404: layout стримит children, статус 200 уходит раньше. Настоящий 404 — в proxy.ts.
   if (!post) notFound();
 
   const settings = await getSystemSettings();
