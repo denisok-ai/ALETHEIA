@@ -3,7 +3,7 @@
  * канал. Один компонент для трёх мест: конец статьи блога, секция на главной,
  * страница «Контакты» — вид регулируется пропом variant.
  *
- * Что честно обещаем: бот отвечает на вопросы о методе и школе, помогает выбрать
+ * Что честно обещаем: бот отвечает на вопросы о подходе и школе, помогает выбрать
  * курс, а записавшимся показывает прогресс и сертификат. Без выдуманных функций.
  */
 import { SOCIAL_LINKS, botDeepLink, TELEGRAM_BOT_USERNAME } from '@/lib/social-links';
@@ -51,7 +51,7 @@ export function TelegramPromo({
             <span className="text-sm font-semibold uppercase tracking-widest">Telegram-бот школы</span>
           </div>
           <h2 className="mt-3 font-heading text-2xl font-semibold text-[var(--text)] sm:text-3xl">
-            Задайте вопрос о методе прямо в Telegram
+            Задайте вопрос о подходе прямо в Telegram
           </h2>
           <ul className="mt-4 space-y-2 text-[var(--text-muted)]">
             {BENEFITS.map((b) => (

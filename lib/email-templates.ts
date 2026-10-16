@@ -744,7 +744,7 @@ ${MAILING_UNSUB_FOOTER}`,
 <li>Вопросы по материалам — ИИ-помощник в личном кабинете;</li>
 <li>Стоимость — 5 000 ₽, доступ открывается сразу после оплаты.</li>
 </ul>
-<p>Практикум подойдёт и специалистам (психологам, коучам, массажистам), и тем, кто только знакомится с методом. Попробовать метод на себе можно бесплатно — в знакомстве «Первый тест».</p>
+<p>Практикум подойдёт и специалистам (психологам, коучам, массажистам), и тем, кто только знакомится с подходом. Попробовать подход на себе можно бесплатно — в знакомстве «Первый тест».</p>
 <p><a href="%portalUrl%/course/navyki-myshechnogo-testirovaniya" style="display:inline-block;background:${BRAND.primary};color:${BRAND.white};padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:600;">Программа практикума</a></p>
 <p>С теплом,<br/>%systemtitle%</p>
 <p style="font-size:13px;color:${BRAND.muted};">%date%</p>

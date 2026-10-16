@@ -114,7 +114,7 @@ export default async function ServicesIndexPage() {
           <div className="mt-16 rounded-2xl border border-[var(--border)] bg-[var(--lavender-light)] p-7">
             <h2 className="font-heading text-xl font-semibold">О курсе</h2>
             <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[var(--text-muted)]">
-              Все тарифы дают доступ к мышечному тестированию — методу, который помогает
+              Все тарифы дают доступ к мышечному тестированию — подходу, который помогает
               находить причину проблемы через обратную связь тела. Подробная программа — на{' '}
               <Link
                 href="/course/navyki-myshechnogo-testirovaniya"

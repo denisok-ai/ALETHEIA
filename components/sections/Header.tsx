@@ -22,7 +22,7 @@ type NavLink = {
 };
 
 const navLinks: NavLink[] = [
-  { href: '#method', label: 'О методе' },
+  { href: '#method', label: 'О подходе' },
   { href: '#why', label: 'О курсе' },
   { href: '#formats', label: 'Программа' },
   { href: '#reviews', label: 'Отзывы' },

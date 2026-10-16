@@ -85,7 +85,7 @@ export default async function NewsIndexPage() {
               <Link href="/blog" className="text-plum underline underline-offset-4">
                 блог
               </Link>{' '}
-              — там статьи о методе.
+              — там статьи о подходе.
             </p>
           ) : (
             <ul className="mt-10 space-y-5">

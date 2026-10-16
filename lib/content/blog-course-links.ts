@@ -26,7 +26,7 @@ export const BLOG_TO_COURSE_ANCHORS: Partial<
   'mify-o-myshechnom-testirovanii': [
     {
       href: `${courseBase}#module-1`,
-      label: 'Введение в философию метода на странице курса',
+      label: 'Введение в философию подхода на странице курса',
     },
   ],
   'pervye-shagi-myshechnogo-testirovaniya': [
@@ -62,8 +62,8 @@ export const BLOG_CTA: Partial<
 > = {
   'telo-znaet-otvet': {
     heading: 'Готовы научиться слышать своё тело?',
-    text: 'Начните с бесплатного знакомства с методом или выберите практикум мышечного тестирования.',
-    primary: { href: '/services/kod-tela-start', label: 'Бесплатное знакомство с методом' },
+    text: 'Начните с бесплатного знакомства с подходом или выберите практикум мышечного тестирования.',
+    primary: { href: '/services/kod-tela-start', label: 'Бесплатное знакомство с подходом' },
     secondary: { href: '/services', label: 'Все тарифы и цены' },
   },
   'pochemu-problemy-vozvrashautysya': {
@@ -73,7 +73,7 @@ export const BLOG_CTA: Partial<
     secondary: { href: '/services', label: 'Сравнить тарифы' },
   },
   'mify-o-myshechnom-testirovanii': {
-    heading: 'Проверьте метод на практике',
+    heading: 'Проверьте подход на практике',
     text: 'Мышечное тестирование основано на физиологии. Убедитесь сами на бесплатном знакомстве «Первый тест».',
     primary: { href: '/services/kod-tela-start', label: 'Попробовать бесплатно' },
     secondary: { href: '/services', label: 'Все тарифы' },

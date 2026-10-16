@@ -125,7 +125,7 @@ export default async function CourseNavykiPage() {
           id="audience"
           eyebrow="Для кого этот практикум"
           title="Практикум — для вас, если…"
-          description="Подходит и тем, кто только знакомится с методом, и практикам с опытом — каждому свой формат пользы."
+          description="Подходит и тем, кто только знакомится с подходом, и практикам с опытом — каждому свой формат пользы."
           tone="surface"
         >
           <AudienceBlocks items={MT_AUDIENCES} />
@@ -168,7 +168,7 @@ export default async function CourseNavykiPage() {
           id="format"
           eyebrow="Что внутри"
           title="Формат и доступ к материалам"
-          description="Видео, тексты, чек-листы и аудиопрактики — всё, чтобы освоить метод самостоятельно, в своём темпе."
+          description="Видео, тексты, чек-листы и аудиопрактики — всё, чтобы освоить подход самостоятельно, в своём темпе."
           tone="lavender"
         >
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

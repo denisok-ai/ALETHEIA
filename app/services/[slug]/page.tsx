@@ -89,7 +89,7 @@ export default async function ServicePage(props: { params: Promise<Params> }) {
   /**
    * Чем этот тариф отличается от остальных — считаем по фактическому составу.
    *
-   * Пять страниц тарифов совпадали на 86–89%: одинаковые блоки «О методе»,
+   * Пять страниц тарифов совпадали на 86–89%: одинаковые блоки «О подходе»,
    * «Кому подходит», «Что вы получите» и FAQ давали по 31 общему предложению
    * из 35. Поисковик в такой ситуации оставляет в индексе одну страницу, а
    * остальные считает копиями. Состав тарифов в базе действительно разный —
@@ -200,7 +200,7 @@ export default async function ServicePage(props: { params: Promise<Params> }) {
           </div>
 
           {/* Блоки ниже строятся из состава конкретного тарифа, поэтому у каждой
-              страницы свой текст. Общее описание метода живёт на странице курса
+              страницы свой текст. Общее описание подхода живёт на странице курса
               и в /faq — дублировать его на пяти страницах вредно для индексации. */}
           <section className="mt-14 border-t border-[var(--border)] pt-10">
             <h2 className="font-heading text-2xl font-semibold">
@@ -257,9 +257,9 @@ export default async function ServicePage(props: { params: Promise<Params> }) {
           </section>
 
           <section className="mt-12">
-            <h2 className="font-heading text-2xl font-semibold">О методе и ответы на вопросы</h2>
+            <h2 className="font-heading text-2xl font-semibold">О подходе и ответы на вопросы</h2>
             <p className="mt-3 max-w-3xl leading-relaxed text-[var(--text-muted)]">
-              Мышечное тестирование — прикладной метод кинезиологии: тело отвечает «да/нет»
+              Мышечное тестирование — прикладная техника кинезиологии: тело отвечает «да/нет»
               изменением тонуса мышцы. Как это устроено, кому подходит и что получится в результате —
               подробно на{' '}
               <Link href="/course/navyki-myshechnogo-testirovaniya" className="text-plum underline-offset-4 hover:underline">

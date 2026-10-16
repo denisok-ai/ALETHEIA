@@ -35,7 +35,7 @@ export function HowItWorks() {
           transition={{ duration: 0.5 }}
           className="max-w-3xl"
         >
-          <span className="block text-sm font-semibold uppercase tracking-widest text-plum">Метод</span>
+          <span className="block text-sm font-semibold uppercase tracking-widest text-plum">Подход</span>
           <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">Как это работает?</h2>
           <p className="mt-4 text-[var(--text-muted)] leading-relaxed">
             Три шага взаимодействия с телом. Так вы получаете обратную связь без сложной аппаратуры.

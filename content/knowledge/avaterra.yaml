@@ -50,7 +50,7 @@ author:
     - "Авторская интеграция: мышечное тестирование + Карта эмоций + регресс"
     - "Центральная фигура бренда: подход и материалы выстроены вокруг основательницы"
   voice_rules:
-    - "Делать акцент на опыте и практике: метод проверяется на себе, опора — на собственный отклик тела"
+    - "Делать акцент на опыте и практике: подход проверяется на себе, опора — на собственный отклик тела"
     - "Показывать мастера, который передаёт навык, а не идеального гуру"
     - "Использовать формулировки 'основательница школы', 'ведущий мастер', 'практик и преподаватель'"
 
@@ -318,7 +318,7 @@ theme_bank:
   - {topic: "Почему стресс может жить в теле годами", post_type: "educational", rubric: "body_speaks", audience: "tense_body"}
   - {topic: "Как понять, что вы живёте на автопилоте", post_type: "pain", rubric: "stories", audience: "spiritual"}
   - {topic: "Чем «Тело знает всё» отличается от обычного курса по саморазвитию", post_type: "course", rubric: "soft_sales", audience: "personal_crisis"}
-  - {topic: "Почему работа с методом начинается со сверки баланса", post_type: "practice", rubric: "kinesiology_no_mystics", audience: "skeptics"}
+  - {topic: "Почему работа с подходом начинается со сверки баланса", post_type: "practice", rubric: "kinesiology_no_mystics", audience: "skeptics"}
   - {topic: "Что такое эмоциональный заряд", post_type: "educational", rubric: "emotion_map", audience: "tense_body"}
   - {topic: "Почему усталость не всегда решается отдыхом", post_type: "pain", rubric: "stories", audience: "tense_body"}
   - {topic: "Как тело реагирует на внутренний конфликт", post_type: "educational", rubric: "body_speaks", audience: "personal_crisis"}
