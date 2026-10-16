@@ -120,3 +120,6 @@ tsconfig.tsbuildinfo
 
 # Расшифровки и нарезка платного курса — только вне публичного репозитория (~/projects/AVATERRA-private)
 docs/marketing/clips/
+
+# Кэш инкрементальной проверки типов scripts/ — меняется при каждом прогоне
+*.tsbuildinfo
