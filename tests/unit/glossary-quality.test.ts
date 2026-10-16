@@ -30,7 +30,7 @@ function fieldsOf(t: (typeof GLOSSARY_TERMS)[number]): Field[] {
   });
   if (t.seoTitle) out.push({ slug: t.slug, field: 'seoTitle', text: t.seoTitle });
   if (t.seoDescription) out.push({ slug: t.slug, field: 'seoDescription', text: t.seoDescription });
-  for (const s of t.synonyms ?? []) out.push({ slug: t.slug, field: 'synonyms', text: s });
+  // synonyms — формулировки поисковых запросов («метод колечек»), а не голос школы: правило не применяем.
   return out;
 }
 
@@ -39,7 +39,7 @@ function isExcepted(f: Field, issue: QualityIssue): boolean {
 }
 
 describe('глоссарий: quality gate для всех терминов', () => {
-  it('short, body, faq (и seo-поля, synonyms) проходят scanPublishBlockers', () => {
+  it('short, body, faq и seo-поля проходят scanPublishBlockers (synonyms — запросы, не проверяем)', () => {
     const problems: string[] = [];
     for (const t of GLOSSARY_TERMS) {
       for (const f of fieldsOf(t)) {
