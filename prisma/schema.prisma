@@ -737,6 +737,10 @@ model Lead {
   /// BigInt: ID чатов Telegram давно больше 2^31. Физическая колонка — telegramChatIdBig
   /// (BIGINT, добавлена 23.09.2026): SQLite-колонку INTEGER Prisma читает как int32.
   telegramChatId    BigInt?  @map("telegramChatIdBig")
+  /// Старая INTEGER-колонка telegramChatId (до 23.09.2026). Значения скопированы в telegramChatIdBig,
+  /// в коде не используется. Оставлена в БД намеренно (не удаляем колонку с данными); поле объявлено,
+  /// чтобы схема совпадала с физической таблицей и `prisma migrate diff` был пуст.
+  telegramChatIdLegacy Int? @map("telegramChatId")
   telegramUsername  String?
   /// Сегмент воронки бота: info | warm | hot
   funnelSegment     String?
