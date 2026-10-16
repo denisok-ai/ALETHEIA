@@ -46,14 +46,14 @@ describe('trackRefVisit: cookie и журнал переходов', () => {
     });
   });
 
-  it('по умолчанию хэш IP не пишется (ПДн — только по решению владельца)', () => {
+  it('с SOCIAL_LINK_IP_HASH=0 хэш IP не пишется (выключатель)', () => {
+    vi.stubEnv('SOCIAL_LINK_IP_HASH', '0');
     const res = NextResponse.next();
     trackRefVisit(req('https://avaterra.pro/?ref=tg-01', { headers: { 'x-real-ip': '203.0.113.7' } }), res, true);
     expect(createdData().ipHash).toBeNull();
   });
 
-  it('с SOCIAL_LINK_IP_HASH=1 пишет хэш IP клиента, сырой IP в журнал не попадает', () => {
-    vi.stubEnv('SOCIAL_LINK_IP_HASH', '1');
+  it('по умолчанию пишет хэш IP клиента, сырой IP в журнал не попадает', () => {
     const res = NextResponse.next();
     trackRefVisit(req('https://avaterra.pro/?ref=tg-01', { headers: { 'x-real-ip': '203.0.113.7' } }), res, true);
     const data = createdData();
@@ -63,7 +63,6 @@ describe('trackRefVisit: cookie и журнал переходов', () => {
   });
 
   it('IP берётся через lib/client-ip: подделанный первый элемент X-Forwarded-For игнорируется', () => {
-    vi.stubEnv('SOCIAL_LINK_IP_HASH', '1');
     const res = NextResponse.next();
     trackRefVisit(
       req('https://avaterra.pro/?ref=tg-01', { headers: { 'x-forwarded-for': '6.6.6.6, 203.0.113.7' } }),

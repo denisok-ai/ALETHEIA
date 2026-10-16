@@ -92,13 +92,13 @@ export function trackRefVisit(request: NextRequest, response: NextResponse, isPr
   if (!refFromValue(request.cookies.get(REF_COOKIE)?.value)) {
     response.cookies.set(REF_COOKIE, refCode, refCookieOptions(isProd));
   }
-  // Хэш IP с секретом по 152-ФЗ остаётся персональными данными: пишем его только по явному
-  // решению владельца (SOCIAL_LINK_IP_HASH=1). До решения — null, как было (см. схему SocialLinkEvent).
+  // Хэш IP — ПДн по 152-ФЗ: пишем по решению владельца от 16.10.2026, отражено в /privacy (раздел 9).
+  // Выключатель на случай отзыва решения: SOCIAL_LINK_IP_HASH=0.
   // IP — только через lib/client-ip.ts (первый элемент XFF подделывается).
   const ipHash =
-    process.env.SOCIAL_LINK_IP_HASH === '1'
-      ? socialLinkIpHash(clientIpFromHeaders((n) => request.headers.get(n)))
-      : null;
+    process.env.SOCIAL_LINK_IP_HASH === '0'
+      ? null
+      : socialLinkIpHash(clientIpFromHeaders((n) => request.headers.get(n)));
   void recordSocialLinkVisit(refCode, request.nextUrl.pathname, ipHash);
   return refCode;
 }
