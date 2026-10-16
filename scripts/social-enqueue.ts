@@ -20,6 +20,10 @@
  * запрещённые формулировки) — причина не записывать: при нём скрипт завершается с кодом 1
  * и ничего не пишет. Файл на сервере не обязан существовать при постановке, но
  * если его нет в каталоге соцсетей, скрипт об этом предупреждает.
+ *
+ * Если ролик лежит локально, он проверяется ffprobe (lib/social/video-check.ts): превышение лимита сети,
+ * нет видеопотока, длительность 0, для MAX — формат контейнера. Такие проблемы блокируют очередь;
+ * предупреждения (вертикаль не 9:16, звук, кодек, длина) только печатаются.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -30,6 +34,7 @@ import { formatMsk } from '../lib/social/moscow-day';
 import { parseQueueInput } from '../lib/social/queue-input';
 import { buildTelegramCaption, SCHOOL_COURSE_URL } from '../lib/social/telegram-caption';
 import { getMediaDir } from '../lib/social/scheduler';
+import { checkVideo, probeVideo } from '../lib/social/video-check';
 
 /** Telegram-канал школы: @avaterrapro. Chat id фиксирован; сменить можно флагом --chat-id=… */
 const SCHOOL_CHANNEL = { chatId: '-1003916704986', username: 'avaterrapro' };
@@ -38,6 +43,26 @@ const KB_PATH = path.join(process.cwd(), 'content', 'knowledge', 'avaterra.yaml'
 
 function loadProhibitedPhrases(): string[] {
   return normalizeBrandFromKb(loadKbYamlFromPath(KB_PATH)).prohibitedPhrases;
+}
+
+/**
+ * Проверка ролика ffprobe (T3.7), если файл лежит локально. Проблемы — в общий список (очередь не пишется),
+ * предупреждения только печатаются. Если ffprobe не удалось запустить, это тоже проблема:
+ * не проверенный ролик в очередь не ставим.
+ */
+async function checkVideoFile(ref: string, absPath: string, network: NetworkCode, problems: string[]): Promise<void> {
+  try {
+    const meta = await probeVideo(absPath);
+    const result = checkVideo(meta, { network });
+    console.log(
+      `Ролик: ${(meta.sizeBytes / 1048576).toFixed(1)} МБ, ${meta.durationSec.toFixed(1)} с, ` +
+        `${meta.width}×${meta.height} (${result.profile}), видео ${meta.videoCodec ?? 'нет'}, звук ${meta.hasAudio ? 'есть' : 'нет'}`,
+    );
+    for (const p of result.problems) problems.push(`${ref}: ролик — ${p}`);
+    for (const w of result.warnings) console.log(`Предупреждение ролика ${ref}: ${w}`);
+  } catch (e) {
+    problems.push(`${ref}: ролик не проверен — ${(e as Error).message}`);
+  }
 }
 
 async function main(): Promise<number> {
@@ -106,8 +131,13 @@ async function main(): Promise<number> {
     console.log(`\n=== ${entry.ref} · ${formatMsk(entry.scheduledAt)} · ${material}`);
     console.log(b.caption);
     for (const w of b.warnings) problems.push(`${entry.ref}: ${w}`);
-    if (entry.file && !fs.existsSync(resolveSocialMediaPath(entry.file, mediaDir))) {
-      console.log(`Внимание: файла «${entry.file}» нет в ${mediaDir} (до публикации он должен лежать там).`);
+    if (entry.file) {
+      const abs = resolveSocialMediaPath(entry.file, mediaDir);
+      if (fs.existsSync(abs)) {
+        await checkVideoFile(entry.ref, abs, NETWORK_CODE, problems);
+      } else {
+        console.log(`Внимание: файла «${entry.file}» нет в ${mediaDir} (до публикации он должен лежать там).`);
+      }
     }
   }
 

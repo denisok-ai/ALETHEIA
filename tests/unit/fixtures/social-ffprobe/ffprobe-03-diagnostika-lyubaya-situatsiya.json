@@ -1,0 +1,33 @@
+{
+  "streams": [
+    {
+      "codec_type": "video",
+      "codec_name": "h264",
+      "profile": "High 10",
+      "width": 1080,
+      "height": 1920,
+      "pix_fmt": "yuv420p10le",
+      "sample_aspect_ratio": "1:1",
+      "display_aspect_ratio": "9:16",
+      "avg_frame_rate": "60/1",
+      "duration": "23.000000",
+      "bit_rate": "2576086"
+    },
+    {
+      "codec_type": "audio",
+      "codec_name": "aac",
+      "profile": "LC",
+      "sample_rate": "44100",
+      "channels": 2,
+      "channel_layout": "stereo",
+      "duration": "23.020998",
+      "bit_rate": "128538"
+    }
+  ],
+  "format": {
+    "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+    "duration": "23.020998",
+    "size": "7815783",
+    "bit_rate": "2716053"
+  }
+}
