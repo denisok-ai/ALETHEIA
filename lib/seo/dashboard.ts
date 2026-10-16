@@ -5,39 +5,17 @@
  * тестируются без SQLite. Пороги «мало данных» передаёт страница (из weekly-digest),
  * окна дат повторяют логику недельного дайджеста (GSC — лаг 2 дня, Метрика — до вчера).
  */
-import { addDaysIso, mskIsoDate } from '@/lib/social/moscow-day';
 import { aggregate, ctrOutliers, opportunities, queryPagePairs, totalAgg, type Opportunity } from './analysis';
 import type { SeoMetricRow, SeoSource } from './metric-types';
 import type { SeoSyncRunInfo } from './store';
+import { seoWindows, type DateRange, type SeoWindows } from './windows';
 
-export type DateRange = { from: string; to: string };
+export type { DateRange };
+export type DashboardWindows = SeoWindows;
 
-export type DashboardWindows = {
-  gscWeek: DateRange;
-  gscPrevWeek: DateRange;
-  /** 28 дней GSC, оканчиваются на gscEnd; недельные окна режутся из этой выборки. */
-  gsc28: DateRange;
-  metrikaWeek: DateRange;
-  metrikaPrevWeek: DateRange;
-  /** Метрика за две недели одним запросом. */
-  metrika14: DateRange;
-};
-
-/** Окна как в недельном дайджесте: GSC отстаёт на 2 дня, Метрика — до вчера включительно. */
+/** Окна страницы — общие с недельным дайджестом (lib/seo/windows.ts). */
 export function dashboardWindows(now: Date): DashboardWindows {
-  const today = mskIsoDate(now);
-  const gscEnd = addDaysIso(today, -2);
-  const metEnd = addDaysIso(today, -1);
-  const metrikaWeek = { from: addDaysIso(metEnd, -6), to: metEnd };
-  const metrikaPrevWeek = { from: addDaysIso(metEnd, -13), to: addDaysIso(metEnd, -7) };
-  return {
-    gscWeek: { from: addDaysIso(gscEnd, -6), to: gscEnd },
-    gscPrevWeek: { from: addDaysIso(gscEnd, -13), to: addDaysIso(gscEnd, -7) },
-    gsc28: { from: addDaysIso(gscEnd, -27), to: gscEnd },
-    metrikaWeek,
-    metrikaPrevWeek,
-    metrika14: { from: metrikaPrevWeek.from, to: metrikaWeek.to },
-  };
+  return seoWindows(now);
 }
 
 export function inRange(rows: SeoMetricRow[], range: DateRange): SeoMetricRow[] {

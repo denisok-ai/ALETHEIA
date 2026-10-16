@@ -25,14 +25,14 @@ import {
   type SeoAgg,
 } from './analysis';
 import { networkForRef } from '@/lib/social/refs';
+import { addDaysIso } from '@/lib/social/moscow-day';
+import { seoWindows, type DateRange } from './windows';
 import { fetchMetrikaGoals } from './metrika';
 
 /** Порог показов за неделю, ниже которого сравнения GSC не интерпретируем. */
 export const MIN_WEEK_IMPRESSIONS = 20;
 /** Порог визитов за неделю для Метрики. */
 export const MIN_WEEK_VISITS = 20;
-
-const MSK_OFFSET_MS = 3 * 60 * 60 * 1000;
 
 /** Подписи сетей для текста (код сети из lib/social/refs.ts). */
 const NETWORK_LABEL: Record<string, string> = {
@@ -60,17 +60,6 @@ const TRAFFIC_LABEL: Record<string, string> = {
 
 const SOURCE_LABEL: Record<string, string> = { gsc: 'GSC', metrika: 'Метрика', webmaster: 'Вебмастер' };
 
-/** Календарная дата по Москве (без перехода на летнее время: МСК = UTC+3 круглый год). */
-export function mskDate(now: Date): string {
-  return new Date(now.getTime() + MSK_OFFSET_MS).toISOString().slice(0, 10);
-}
-
-function addDays(ymd: string, days: number): string {
-  const d = new Date(`${ymd}T00:00:00Z`);
-  d.setUTCDate(d.getUTCDate() + days);
-  return d.toISOString().slice(0, 10);
-}
-
 /** Начало календарного дня по Москве как момент времени. */
 function mskStart(ymd: string): Date {
   return new Date(`${ymd}T00:00:00+03:00`);
@@ -81,9 +70,7 @@ function dm(ymd: string): string {
   return `${ymd.slice(8, 10)}.${ymd.slice(5, 7)}`;
 }
 
-type Range = { from: string; to: string };
-
-function inRange(rows: SeoMetricRow[], range: Range): SeoMetricRow[] {
+function inRange(rows: SeoMetricRow[], range: DateRange): SeoMetricRow[] {
   return rows.filter((r) => r.date >= range.from && r.date <= range.to);
 }
 
@@ -149,7 +136,7 @@ function pickTopRegressions(list: Regression[], n: number): string[] {
 }
 
 export type SeoWeeklyDigestData = {
-  period: { weekMsk: Range; gscWeek: Range; gscPrevWeek: Range; metrikaWeek: Range; metrikaPrevWeek: Range };
+  period: { weekMsk: DateRange; gscWeek: DateRange; gscPrevWeek: DateRange; metrikaWeek: DateRange; metrikaPrevWeek: DateRange };
   gsc: { current: SeoAgg; previous: SeoAgg; enough: boolean };
   positions: { buckets: Record<PositionBucket, { queries: number; impressions: number }>; withoutPosition: number };
   regressions: { queries: Regression[]; pages: Regression[] };
@@ -175,16 +162,8 @@ export type SeoWeeklyDigestData = {
  * Окна: GSC — последние 7 дней с лагом 2 дня, Метрика и продажи — 7 полных дней до вчера.
  */
 export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]; data: SeoWeeklyDigestData }> {
-  const today = mskDate(now);
-  const gscEnd = addDays(today, -2);
-  const metEnd = addDays(today, -1);
-  const gscWeek: Range = { from: addDays(gscEnd, -6), to: gscEnd };
-  const gscPrevWeek: Range = { from: addDays(gscEnd, -13), to: addDays(gscEnd, -7) };
-  const metrikaWeek: Range = { from: addDays(metEnd, -6), to: metEnd };
-  const metrikaPrevWeek: Range = { from: addDays(metEnd, -13), to: addDays(metEnd, -7) };
-  // 28 дней GSC для возможностей; недельные окна режем из той же выборки.
-  const gsc28: Range = { from: addDays(gscEnd, -27), to: gscEnd };
-  const met14: Range = { from: metrikaPrevWeek.from, to: metrikaWeek.to };
+  // Окна общие с дашбордом (lib/seo/windows.ts): лаг GSC 2 дня, Метрика — до вчера.
+  const { gscWeek, gscPrevWeek, gsc28, metrikaWeek, metrikaPrevWeek, metrika14: met14 } = seoWindows(now);
 
   const [gscTotal, gscQuery, gscPage, gscQueryPage, webmasterIdx, metTotal, metSources, metGoals, syncRuns, webmasterOkCount] = await Promise.all([
     getSeoMetrics({ source: 'gsc', dimension: 'total', dateFrom: gsc28.from, dateTo: gsc28.to }),
@@ -206,17 +185,17 @@ export async function buildSeoWeeklyDigest(now: Date): Promise<{ lines: string[]
     prisma.order.findMany({
       where: {
         status: 'paid',
-        paidAt: { gte: mskStart(metrikaWeek.from), lt: mskStart(addDays(metrikaWeek.to, 1)) },
+        paidAt: { gte: mskStart(metrikaWeek.from), lt: mskStart(addDaysIso(metrikaWeek.to, 1)) },
       },
       select: { acqRef: true, amount: true },
     }),
     prisma.lead.findMany({
-      where: { createdAt: { gte: mskStart(metrikaWeek.from), lt: mskStart(addDays(metrikaWeek.to, 1)) } },
+      where: { createdAt: { gte: mskStart(metrikaWeek.from), lt: mskStart(addDaysIso(metrikaWeek.to, 1)) } },
       select: { acqRef: true },
     }),
     prisma.socialLinkEvent.groupBy({
       by: ['refCode'],
-      where: { createdAt: { gte: mskStart(metrikaWeek.from), lt: mskStart(addDays(metrikaWeek.to, 1)) } },
+      where: { createdAt: { gte: mskStart(metrikaWeek.from), lt: mskStart(addDaysIso(metrikaWeek.to, 1)) } },
       _count: { _all: true },
     }),
   ]);

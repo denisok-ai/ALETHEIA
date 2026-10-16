@@ -141,6 +141,21 @@ export async function finishSeoSyncRun(
   });
 }
 
+/** Прогон без finishedAt моложе этого срока считаем идущим; старше — зависшим (падение процесса). */
+export const SYNC_RUN_STALE_MS = 10 * 60 * 1000;
+
+/**
+ * Есть ли прогон синка, который ещё идёт: открыт (finishedAt пуст) и начат не раньше 10 минут назад.
+ * Защищает ручную кнопку от параллельного запуска; зависший прогон через 10 минут перестаёт блокировать.
+ */
+export async function hasRunningSeoSync(now: Date = new Date()): Promise<boolean> {
+  const run = await prisma.seoSyncRun.findFirst({
+    where: { finishedAt: null, startedAt: { gte: new Date(now.getTime() - SYNC_RUN_STALE_MS) } },
+    select: { id: true },
+  });
+  return run !== null;
+}
+
 /** Последний прогон по каждому источнику (источники без прогонов не попадают в ответ). */
 export async function lastSeoSyncRuns(): Promise<Record<string, SeoSyncRunInfo>> {
   const result: Record<string, SeoSyncRunInfo> = {};

@@ -10,7 +10,9 @@
  * node_modules/next/dist/build/index.js: isProxyFile → runtime 'nodejs'), поэтому
  * запись в БД делаем прямо оттуда, без HTTP-вызова к API-маршруту.
  */
+import { createHmac } from 'node:crypto';
 import type { NextRequest, NextResponse } from 'next/server';
+import { clientIpFromHeaders } from '@/lib/client-ip';
 import { prisma } from '@/lib/db';
 import { networkForRef, refFromValue } from './refs';
 
@@ -36,6 +38,22 @@ export function acqRefFromRequest(request: { cookies: { get(name: string): { val
   return refFromValue(request.cookies.get(REF_COOKIE)?.value);
 }
 
+/** Минимальная длина секрета для хэша IP (как у шифрования секретов в lib/encrypt.ts). */
+const IP_HASH_SECRET_MIN = 16;
+
+/**
+ * Хэш IP для уникальных посетителей по меткам: HMAC-SHA256 с секретом сервера (NEXTAUTH_SECRET),
+ * первые 48 hex-символов. Сырой IP нигде не сохраняем; без IP или без секрета — null.
+ * Node crypto: proxy.ts в Next 16 работает на Node.js runtime (см. комментарий в шапке файла).
+ */
+export function socialLinkIpHash(
+  ip: string | null,
+  secret: string | undefined = process.env.NEXTAUTH_SECRET,
+): string | null {
+  if (!ip || !secret || secret.length < IP_HASH_SECRET_MIN) return null;
+  return createHmac('sha256', secret).update(ip, 'utf8').digest('hex').slice(0, 48);
+}
+
 /** Переход считаем только для «живого» открытия страницы: не prefetch и не служебные запросы. */
 function isNavigationVisit(request: NextRequest): boolean {
   if (request.method !== 'GET') return false;
@@ -49,12 +67,12 @@ function isNavigationVisit(request: NextRequest): boolean {
  * Пишет переход в SocialLinkEvent. Ошибки глотаем: учёт не должен ломать страницу.
  * Вызывать без await из proxy (fire-and-forget).
  */
-export async function recordSocialLinkVisit(refCode: string, path: string): Promise<void> {
+export async function recordSocialLinkVisit(refCode: string, path: string, ipHash: string | null = null): Promise<void> {
   const networkCode = networkForRef(refCode);
   if (!networkCode) return;
   try {
     await prisma.socialLinkEvent.create({
-      data: { refCode, networkCode, path: path.slice(0, PATH_MAX) },
+      data: { refCode, networkCode, path: path.slice(0, PATH_MAX), ipHash },
     });
   } catch (e) {
     console.error('[social-ref] запись перехода:', e);
@@ -74,6 +92,8 @@ export function trackRefVisit(request: NextRequest, response: NextResponse, isPr
   if (!refFromValue(request.cookies.get(REF_COOKIE)?.value)) {
     response.cookies.set(REF_COOKIE, refCode, refCookieOptions(isProd));
   }
-  void recordSocialLinkVisit(refCode, request.nextUrl.pathname);
+  // IP — только через lib/client-ip.ts (первый элемент XFF подделывается); в журнал идёт хэш.
+  const ipHash = socialLinkIpHash(clientIpFromHeaders((n) => request.headers.get(n)));
+  void recordSocialLinkVisit(refCode, request.nextUrl.pathname, ipHash);
   return refCode;
 }

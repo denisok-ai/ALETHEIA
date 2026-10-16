@@ -20,7 +20,7 @@ export type SeoSource = 'gsc' | 'metrika' | 'webmaster';
  *    как разделитель: в запросах её не бывает; хелперы — lib/seo/analysis.ts);
  *  - traffic_source — источник трафика Метрики (key = organic, direct, social…);
  *  - goal    — цель Метрики (key = id цели);
- *  - indexing — индексация Вебмастера (key = searchable, excluded…).
+ *  - indexing — индексация Вебмастера (key = http_2xx, http_3xx, http_4xx, http_5xx, other; measure = pages).
  */
 export type SeoDimension = 'total' | 'query' | 'page' | 'query_page' | 'traffic_source' | 'goal' | 'indexing';
 
