@@ -105,8 +105,11 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!path.startsWith(PORTAL_PREFIX) && (await isMissingContentPage(path))) {
-    const url = request.nextUrl.clone();
-    url.pathname = NOT_FOUND_REWRITE;
+    // Адрес — от request.url, НЕ от nextUrl.clone(): NextURL нормализует 127.0.0.1 → localhost,
+    // а Next сравнивает origin перезаписи со своим initUrl (протокол из X-Forwarded-Proto + хост
+    // из `next start -H 127.0.0.1`). При несовпадении перезапись считается внешней и Next
+    // пытается проксировать на https://localhost:3000 — за nginx это 500 (EPROTO), 16.10.2026.
+    const url = new URL(NOT_FOUND_REWRITE, request.url);
     return withCsp(NextResponse.rewrite(url, { status: 404 }));
   }
 
