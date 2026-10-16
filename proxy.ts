@@ -27,8 +27,17 @@ const AUTH_PAGES = ['/login', '/register', '/reset-password'];
  */
 const CONTENT_PATH = /^\/(services|blog|glossary)\/([^/]+)\/?$/;
 
-/** Внутренний маршрут Next для страницы «не найдено» (app/not-found.tsx) — отдаёт статус 404. */
-const NOT_FOUND_REWRITE = '/_not-found';
+/** Короткая страница 404 для несуществующих услуг/статей/терминов (стили — inline: CSP разрешает). */
+const NOT_FOUND_HTML = `<!doctype html><html lang="ru"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>Страница не найдена | АВАТЕРРА</title></head>
+<body style="margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#faf8f5;color:#2b2233">
+<main style="max-width:560px;margin:15vh auto;padding:0 16px;text-align:center">
+<p style="font-size:56px;margin:0;color:#6b4a7a">404</p>
+<h1 style="font-size:24px;font-weight:600">Страница не найдена</h1>
+<p style="color:#6b6372">Возможно, материал переехал или адрес набран с ошибкой.</p>
+<p><a href="/" style="color:#6b4a7a">На главную</a> · <a href="/blog" style="color:#6b4a7a">Блог</a> · <a href="/glossary" style="color:#6b4a7a">Глоссарий</a> · <a href="/services" style="color:#6b4a7a">Программы</a></p>
+</main></body></html>`;
 
 async function isMissingContentPage(path: string): Promise<boolean> {
   const match = CONTENT_PATH.exec(path);
@@ -105,12 +114,14 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!path.startsWith(PORTAL_PREFIX) && (await isMissingContentPage(path))) {
-    // Адрес — от request.url, НЕ от nextUrl.clone(): NextURL нормализует 127.0.0.1 → localhost,
-    // а Next сравнивает origin перезаписи со своим initUrl (протокол из X-Forwarded-Proto + хост
-    // из `next start -H 127.0.0.1`). При несовпадении перезапись считается внешней и Next
-    // пытается проксировать на https://localhost:3000 — за nginx это 500 (EPROTO), 16.10.2026.
-    const url = new URL(NOT_FOUND_REWRITE, request.url);
-    return withCsp(NextResponse.rewrite(url, { status: 404 }));
+    // Отдаём 404 прямо отсюда, без перезаписи на /_not-found: за nginx Next считал такую
+    // перезапись внешней и проксировал на https://localhost:3000 → 500 (EPROTO), 16.10.2026.
+    return withCsp(
+      new NextResponse(NOT_FOUND_HTML, {
+        status: 404,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'noindex' },
+      }),
+    );
   }
 
   if (token && AUTH_PAGES.includes(path)) {
