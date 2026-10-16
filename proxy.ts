@@ -12,7 +12,7 @@ import {
 import { trackRefVisit } from '@/lib/social/ref-tracking';
 import { getBlogPostBySlug } from '@/lib/content/blog-posts';
 import { getGlossaryTerm } from '@/lib/content/glossary';
-import { getPublicProductBySlug } from '@/lib/shop/public-products';
+import { getPublicProducts } from '@/lib/shop/public-products';
 
 const PORTAL_PREFIX = '/portal';
 const LOGIN_PATH = '/login';
@@ -40,8 +40,13 @@ async function isMissingContentPage(path: string): Promise<boolean> {
     return true;
   }
   switch (match[1]) {
-    case 'services':
-      return !(await getPublicProductBySlug(slug));
+    case 'services': {
+      // getPublicProducts() при сбое БД молча отдаёт []: пустой каталог считаем деградацией,
+      // а не «товара нет» — иначе поисковик получил бы 404 на все живые тарифы.
+      const products = await getPublicProducts();
+      if (products.length === 0) return false;
+      return !products.some((p) => p.slug === slug);
+    }
     case 'blog':
       return !(await getBlogPostBySlug(slug));
     default:
