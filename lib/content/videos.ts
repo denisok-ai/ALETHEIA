@@ -43,7 +43,7 @@ export const VIDEO_CLIPS: readonly VideoClip[] = [
     durationSec: 45,
     width: 1080,
     height: 1920,
-    uploadDate: '2026-10-17T12:00:00+03:00',
+    uploadDate: '2026-10-16T16:30:00+03:00',
     placements: ['practicum', 'stress-reaktsiya'],
   },
   {
@@ -56,7 +56,7 @@ export const VIDEO_CLIPS: readonly VideoClip[] = [
     durationSec: 38,
     width: 1080,
     height: 1920,
-    uploadDate: '2026-10-17T12:00:00+03:00',
+    uploadDate: '2026-10-16T16:30:00+03:00',
     placements: ['practicum'],
   },
   // Ролик 08 «Готовы ли вы меняться?» — добавить, когда появятся mp4 и json в AVATERRA-private/clips/:
@@ -69,7 +69,7 @@ export const VIDEO_CLIPS: readonly VideoClip[] = [
   //   durationSec: 0,
   //   width: 1080,
   //   height: 1920,
-  //   uploadDate: '2026-10-17T12:00:00+03:00',
+  //   uploadDate: '2026-10-16T16:30:00+03:00',
   //   placements: ['practicum', 'emotsionalnyy-zaryad'],
   // },
 ];
