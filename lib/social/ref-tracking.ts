@@ -92,8 +92,13 @@ export function trackRefVisit(request: NextRequest, response: NextResponse, isPr
   if (!refFromValue(request.cookies.get(REF_COOKIE)?.value)) {
     response.cookies.set(REF_COOKIE, refCode, refCookieOptions(isProd));
   }
-  // IP — только через lib/client-ip.ts (первый элемент XFF подделывается); в журнал идёт хэш.
-  const ipHash = socialLinkIpHash(clientIpFromHeaders((n) => request.headers.get(n)));
+  // Хэш IP с секретом по 152-ФЗ остаётся персональными данными: пишем его только по явному
+  // решению владельца (SOCIAL_LINK_IP_HASH=1). До решения — null, как было (см. схему SocialLinkEvent).
+  // IP — только через lib/client-ip.ts (первый элемент XFF подделывается).
+  const ipHash =
+    process.env.SOCIAL_LINK_IP_HASH === '1'
+      ? socialLinkIpHash(clientIpFromHeaders((n) => request.headers.get(n)))
+      : null;
   void recordSocialLinkVisit(refCode, request.nextUrl.pathname, ipHash);
   return refCode;
 }

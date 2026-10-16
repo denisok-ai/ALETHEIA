@@ -13,7 +13,8 @@ vi.mock('@/lib/auth', () => ({ requireAdminSession }));
 vi.mock('@/lib/seo/sync', () => ({ runSeoSync }));
 vi.mock('@/lib/seo/store', () => ({ hasRunningSeoSync }));
 
-import { POST, SYNC_BUSY_MESSAGE } from '@/app/api/portal/admin/seo/sync/route';
+import { POST } from '@/app/api/portal/admin/seo/sync/route';
+import { SYNC_BUSY_MESSAGE } from '@/lib/seo/sync-messages';
 
 const REPORT = { sources: {} };
 

@@ -9,10 +9,9 @@ import { NextResponse } from 'next/server';
 import { requireAdminSession } from '@/lib/auth';
 import { hasRunningSeoSync } from '@/lib/seo/store';
 import { runSeoSync } from '@/lib/seo/sync';
+import { SYNC_BUSY_MESSAGE } from '@/lib/seo/sync-messages';
 
 export const dynamic = 'force-dynamic';
-
-export const SYNC_BUSY_MESSAGE = 'Синк уже идёт. Дождитесь окончания (обычно 1–2 минуты) и обновите страницу.';
 
 /** Флаг на уровне процесса: закрывает окно между проверкой журнала и открытием прогона. */
 let localRunInFlight = false;
