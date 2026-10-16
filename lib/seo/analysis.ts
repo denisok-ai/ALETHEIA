@@ -261,9 +261,15 @@ export function opportunities(rows: SeoMetricRow[], opts: OpportunityOpts = {}):
     .sort((a, b) => b.impressions - a.impressions || a.query.localeCompare(b.query));
 }
 
-/** Значение индексации (Вебмастер, key=searchable) на последний день периода; null, если данных нет. */
+/** Минимальная база индексации (страниц http_2xx), с которой сравниваем падение; меньше — молчим. */
+export const WATCHDOG_MIN_INDEXED_PAGES = 20;
+
+/**
+ * Страниц, успешно загруженных роботом (Вебмастер, key=http_2xx), на последний день периода;
+ * null, если данных нет. Значения http_3xx/4xx/5xx/other сюда не попадают.
+ */
 function indexingValue(rows: SeoMetricRow[]): number | null {
-  const idx = rows.filter((r) => r.source === 'webmaster' && r.dimension === 'indexing' && r.key === 'searchable');
+  const idx = rows.filter((r) => r.source === 'webmaster' && r.dimension === 'indexing' && r.key === 'http_2xx');
   if (idx.length === 0) return null;
   const last = idx.reduce((max, r) => (r.date > max ? r.date : max), idx[0].date);
   return idx.filter((r) => r.date === last).reduce((sum, r) => sum + r.value, 0);
@@ -272,7 +278,8 @@ function indexingValue(rows: SeoMetricRow[]): number | null {
 /**
  * Сторож: тревоги за неделю против прошлой недели.
  *  - GSC: клики или показы упали ≥ 50 %, при показах прошлой недели ≥ 50;
- *  - индексация (Вебмастер, searchable): упала ≥ 20 %.
+ *  - индексация (Вебмастер, http_2xx — страницы, успешно загруженные роботом): упала ≥ 20 %,
+ *    при базе прошлой недели ≥ WATCHDOG_MIN_INDEXED_PAGES страниц.
  * Если данных за текущую неделю нет вовсе — молчим: это проблема синка (см. журнал синков), не падение.
  */
 export function seoWatchdog(current: SeoMetricRow[], previous: SeoMetricRow[]): string[] {
@@ -291,8 +298,8 @@ export function seoWatchdog(current: SeoMetricRow[], previous: SeoMetricRow[]): 
 
   const idxCur = indexingValue(current);
   const idxPrev = indexingValue(previous);
-  if (idxCur !== null && idxPrev !== null && idxPrev > 0 && idxCur <= idxPrev * 0.8) {
-    alerts.push(`Яндекс: страниц в поиске стало ${idxCur} (было ${idxPrev})`);
+  if (idxCur !== null && idxPrev !== null && idxPrev >= WATCHDOG_MIN_INDEXED_PAGES && idxCur <= idxPrev * 0.8) {
+    alerts.push(`Яндекс: страниц, загруженных роботом, стало ${idxCur} (было ${idxPrev})`);
   }
   return alerts;
 }

@@ -8,12 +8,22 @@ import { NextRequest, NextResponse } from 'next/server';
 const { create } = vi.hoisted(() => ({ create: vi.fn(async () => ({})) }));
 vi.mock('@/lib/db', () => ({ prisma: { socialLinkEvent: { create } } }));
 
-import { acqRefFromRequest, refCookieOptions, trackRefVisit } from '@/lib/social/ref-tracking';
+import {
+  acqRefFromRequest,
+  refCookieOptions,
+  socialLinkIpHash,
+  trackRefVisit,
+} from '@/lib/social/ref-tracking';
 
 function req(url: string, init: { cookie?: string; headers?: Record<string, string> } = {}): NextRequest {
   const headers = new Headers(init.headers ?? {});
   if (init.cookie) headers.set('cookie', init.cookie);
   return new NextRequest(url, { headers });
+}
+
+/** data первого вызова prisma.socialLinkEvent.create (мок без типов аргументов). */
+function createdData(): Record<string, unknown> {
+  return (create.mock.calls as unknown as Array<[{ data: Record<string, unknown> }]>)[0][0].data;
 }
 
 function setCookieOf(res: NextResponse): string | undefined {
@@ -31,8 +41,27 @@ describe('trackRefVisit: cookie и журнал переходов', () => {
     expect(ref).toBe('tg-01');
     expect(setCookieOf(res)).toBe('tg-01');
     expect(create).toHaveBeenCalledWith({
-      data: { refCode: 'tg-01', networkCode: 'telegram', path: '/lufs-checker' },
+      data: { refCode: 'tg-01', networkCode: 'telegram', path: '/lufs-checker', ipHash: null },
     });
+  });
+
+  it('пишет хэш IP клиента, сырой IP в журнал не попадает', () => {
+    const res = NextResponse.next();
+    trackRefVisit(req('https://avaterra.pro/?ref=tg-01', { headers: { 'x-real-ip': '203.0.113.7' } }), res, true);
+    const data = createdData();
+    expect(data.ipHash).toBe(socialLinkIpHash('203.0.113.7'));
+    expect(data.ipHash).toMatch(/^[0-9a-f]{48}$/);
+    expect(JSON.stringify(data)).not.toContain('203.0.113.7');
+  });
+
+  it('IP берётся через lib/client-ip: подделанный первый элемент X-Forwarded-For игнорируется', () => {
+    const res = NextResponse.next();
+    trackRefVisit(
+      req('https://avaterra.pro/?ref=tg-01', { headers: { 'x-forwarded-for': '6.6.6.6, 203.0.113.7' } }),
+      res,
+      true,
+    );
+    expect(createdData().ipHash).toBe(socialLinkIpHash('203.0.113.7'));
   });
 
   it('первое касание: существующая валидная cookie не перезаписывается, переход всё равно пишется', () => {
@@ -81,5 +110,21 @@ describe('acqRefFromRequest: метка для лида и заказа', () => 
     expect(acqRefFromRequest(req('https://avaterra.pro/api/x', { cookie: 'av_ref=rt-01' }))).toBe('rt-01');
     expect(acqRefFromRequest(req('https://avaterra.pro/api/x', { cookie: 'av_ref=bad' }))).toBeNull();
     expect(acqRefFromRequest(req('https://avaterra.pro/api/x'))).toBeNull();
+  });
+});
+
+describe('socialLinkIpHash', () => {
+  const secret = 'test-secret-for-unit-tests';
+
+  it('детерминирован для одного IP и разный для разных IP и секретов', () => {
+    expect(socialLinkIpHash('198.51.100.1', secret)).toBe(socialLinkIpHash('198.51.100.1', secret));
+    expect(socialLinkIpHash('198.51.100.1', secret)).not.toBe(socialLinkIpHash('198.51.100.2', secret));
+    expect(socialLinkIpHash('198.51.100.1', secret)).not.toBe(socialLinkIpHash('198.51.100.1', 'another-secret-value'));
+  });
+
+  it('без IP или без достаточного секрета хэша нет (ничего не пишем вместо незащищённого значения)', () => {
+    expect(socialLinkIpHash(null, secret)).toBeNull();
+    expect(socialLinkIpHash('198.51.100.1', '')).toBeNull();
+    expect(socialLinkIpHash('198.51.100.1', 'short')).toBeNull();
   });
 });

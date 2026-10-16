@@ -6,6 +6,7 @@ import { prisma } from '@/lib/db';
 import {
   finishSeoSyncRun,
   getSeoMetrics,
+  hasRunningSeoSync,
   latestSeoDate,
   lastSeoSyncRuns,
   startSeoSyncRun,
@@ -119,5 +120,19 @@ describe('журнал прогонов', () => {
     expect(runs.gsc.finishedAt).toBeInstanceOf(Date);
     expect(runs.webmaster).toMatchObject({ state: 'not_configured', message: 'нет токена' });
     expect(runs.metrika).toBeUndefined();
+  });
+
+  it('hasRunningSeoSync: открытый прогон моложе 10 минут блокирует; закрытый или зависший — нет', async () => {
+    const now = new Date();
+    expect(await hasRunningSeoSync(now)).toBe(false);
+
+    const id = await startSeoSyncRun('gsc');
+    expect(await hasRunningSeoSync(now)).toBe(true);
+    await finishSeoSyncRun(id, { state: 'ok', rows: 1 });
+    expect(await hasRunningSeoSync(now)).toBe(false);
+
+    // Открытый прогон, которому больше 10 минут: процесс упал до finish — не блокируем навсегда.
+    await startSeoSyncRun('metrika');
+    expect(await hasRunningSeoSync(new Date(now.getTime() + 11 * 60 * 1000))).toBe(false);
   });
 });

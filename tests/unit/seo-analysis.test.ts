@@ -151,12 +151,40 @@ describe('seoWatchdog', () => {
     expect(seoWatchdog([], week('2026-10-01', 60, 4))).toEqual([]);
   });
 
-  it('срабатывает на падении индексации Вебмастера ≥ 20 %', () => {
-    const idx = (date: string, value: number) => r(date, 'indexing', 'searchable', 'pages', value, 'webmaster');
-    expect(seoWatchdog([idx('2026-10-08', 70)], [idx('2026-10-01', 100)])).toEqual([
-      'Яндекс: страниц в поиске стало 70 (было 100)',
-    ]);
-    expect(seoWatchdog([idx('2026-10-08', 85)], [idx('2026-10-01', 100)])).toEqual([]);
+  describe('индексация Вебмастера (key = http_2xx)', () => {
+    const idx = (date: string, value: number, key = 'http_2xx') =>
+      r(date, 'indexing', key, 'pages', value, 'webmaster');
+
+    it('срабатывает на падении http_2xx ≥ 20 % при базе ≥ 20 страниц', () => {
+      expect(seoWatchdog([idx('2026-10-08', 70)], [idx('2026-10-01', 100)])).toEqual([
+        'Яндекс: страниц, загруженных роботом, стало 70 (было 100)',
+      ]);
+      expect(seoWatchdog([idx('2026-10-08', 80)], [idx('2026-10-01', 100)])).toHaveLength(1);
+    });
+
+    it('молчит при падении меньше 20 %', () => {
+      expect(seoWatchdog([idx('2026-10-08', 85)], [idx('2026-10-01', 100)])).toEqual([]);
+    });
+
+    it('молчит, если база прошлой недели меньше 20 страниц', () => {
+      expect(seoWatchdog([idx('2026-10-08', 5)], [idx('2026-10-01', 19)])).toEqual([]);
+      expect(seoWatchdog([idx('2026-10-08', 0)], [idx('2026-10-01', 20)])).toHaveLength(1);
+    });
+
+    it('не смотрит на ключ searchable и на коды ошибок (4xx/5xx)', () => {
+      expect(
+        seoWatchdog(
+          [idx('2026-10-08', 10, 'searchable'), idx('2026-10-08', 500, 'http_4xx')],
+          [idx('2026-10-01', 100, 'searchable'), idx('2026-10-01', 10, 'http_4xx')],
+        ),
+      ).toEqual([]);
+    });
+
+    it('сравнивает последний день каждой недели, а не сумму дней', () => {
+      const cur = [idx('2026-10-07', 100), idx('2026-10-08', 90)];
+      const prev = [idx('2026-10-01', 100), idx('2026-10-02', 100)];
+      expect(seoWatchdog(cur, prev)).toEqual([]);
+    });
   });
 });
 
