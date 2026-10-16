@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { JsonLdFaqPage } from '@/components/JsonLdFaqPage';
+import { VideoClips } from '@/components/VideoClips';
 import { GLOSSARY_TERMS, getGlossarySorted, getGlossaryTerm } from '@/lib/content/glossary';
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 import { getSystemSettings } from '@/lib/settings';
@@ -123,6 +124,8 @@ export default async function GlossaryTermPage(props: Props) {
               {t.body}
             </ReactMarkdown>
           </div>
+
+          <VideoClips placement={t.slug} baseUrl={base} headingId="glossary-clips" />
 
           {articles.length > 0 ? (
             <section className="mt-10">

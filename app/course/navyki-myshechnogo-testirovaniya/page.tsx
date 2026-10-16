@@ -13,6 +13,7 @@ import { AuthorMiniBlock } from '@/components/course-landing/AuthorMiniBlock';
 import { FaqBlock } from '@/components/course-landing/FaqBlock';
 import { FinalCTA } from '@/components/course-landing/FinalCTA';
 import { WaitlistForm } from '@/components/course-landing/WaitlistForm';
+import { VideoClips } from '@/components/VideoClips';
 import { COURSE_SLUG } from '@/lib/content/course-lynda-teaser';
 import {
   MT_AUDIENCES,
@@ -204,6 +205,15 @@ export default async function CourseNavykiPage() {
           tone="bg"
         >
           <ModulesAccordionRich modules={MT_MODULES} />
+        </LandingSection>
+
+        <LandingSection
+          id="clips"
+          eyebrow="Видео"
+          description="Короткие ролики школы о практикуме. Запускаются по нажатию."
+          tone="surface"
+        >
+          <VideoClips placement="practicum" baseUrl={base} headingId="clips-heading" />
         </LandingSection>
 
         <LandingSection
