@@ -39,12 +39,14 @@ async function resetDb() {
 }
 
 async function network(
-  overrides: Partial<{ code: string; enabled: boolean; mode: string; chatId: string | null }> = {},
+  overrides: Partial<{ code: string; enabled: boolean; mode: string; chatId: string | null; title: string }> = {},
 ) {
   return prisma.socialNetwork.create({
     data: {
       code: overrides.code ?? 'telegram',
-      title: overrides.code === 'max' ? 'Канал школы в MAX' : 'Telegram-канал школы',
+      title:
+        overrides.title ??
+        (overrides.code === 'max' ? 'Канал школы в MAX' : 'Telegram-канал школы'),
       enabled: overrides.enabled ?? true,
       mode: overrides.mode ?? 'auto',
       chatId: overrides.chatId === undefined ? '-1003916704986' : overrides.chatId,
@@ -62,6 +64,8 @@ async function post(opts: {
   updatedAt?: Date;
   mediaPath?: string | null;
   networkCode?: string;
+  caption?: string;
+  refCode?: string;
 }) {
   n += 1;
   const item = await prisma.socialItem.create({
@@ -76,8 +80,8 @@ async function post(opts: {
     data: {
       itemId: item.id,
       networkCode: opts.networkCode ?? 'telegram',
-      caption: `<b>Ролик ${n}</b>`,
-      refCode: `tg-${String(n).padStart(2, '0')}`,
+      caption: opts.caption ?? `<b>Ролик ${n}</b>`,
+      refCode: opts.refCode ?? `tg-${String(n).padStart(2, '0')}`,
       status: opts.status ?? 'scheduled',
       scheduledAt: opts.scheduledAt ?? at('2026-10-14T05:00:00Z'),
       attempts: opts.attempts ?? 0,
@@ -391,5 +395,142 @@ describe('сеть MAX', () => {
     const row = await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } });
     expect(row.status).toBe('scheduled');
     expect(row.attempts).toBe(0);
+  });
+});
+
+describe('готовые посты (mode=ready_post): VK, Дзен, Rutube, YouTube', () => {
+  const COURSE = 'https://avaterra.pro/course/navyki-myshechnogo-testirovaniya';
+  const READY_CAPTION =
+    'Тело знает всё\n\nКороткая заметка для стены.\n\n' +
+    `${COURSE}?ref=vk-01\n#мышечноетестирование #кинезиология #аватэрра`;
+  const READY_NETWORK = { code: 'vk', mode: 'ready_post', chatId: null, title: 'ВКонтакте (школа)' };
+  const FAILED_SEND = { sent: 0, failed: 1, skipped: false };
+  const readyCalls = () => notifyMock.mock.calls.filter((c) => c[0] === 'social_ready_post');
+
+  it('уходит владельцу текстом, статус ready_post_sent; chat id и API не нужны', async () => {
+    await network(READY_NETWORK);
+    const p = await post({ networkCode: 'vk', caption: READY_CAPTION, refCode: 'vk-01', mediaPath: 'clip-vk.mp4' });
+
+    const report = await tick(NOW);
+
+    expect(report.published).toEqual([p.id]);
+    expect(report.failed).toEqual([]);
+    expect(publishVideoMock).not.toHaveBeenCalled();
+    expect(vi.mocked(publishText)).not.toHaveBeenCalled();
+    expect(maxVideoMock).not.toHaveBeenCalled();
+
+    const item = await prisma.socialItem.findUniqueOrThrow({ where: { id: p.itemId } });
+    expect(readyCalls()).toHaveLength(1);
+    expect(readyCalls()[0][1]).toEqual([
+      'Площадка: ВКонтакте (школа) (vk)',
+      `Заголовок: ${item.title}`,
+      `Ссылка с меткой: ${COURSE}?ref=vk-01`,
+      'Текст подписи (плоский, копируется как есть):',
+      READY_CAPTION,
+      'Файл ролика: clip-vk.mp4',
+      expect.stringMatching(/^Лежит на сервере: .*clip-vk\.mp4$/),
+      'Опубликуйте вручную. Пост в очереди отмечен как ready_post_sent.',
+    ]);
+
+    const row = await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } });
+    expect(row.status).toBe('ready_post_sent');
+    expect(row.publishedAt?.toISOString()).toBe(NOW.toISOString());
+    expect(row.externalId).toBeNull();
+    expect(row.error).toBeNull();
+    expect((await prisma.socialNetwork.findUniqueOrThrow({ where: { code: 'vk' } })).failStreak).toBe(0);
+  });
+
+  it('текстовый пост без ролика: строка «Ролика нет», строки файла нет', async () => {
+    await network(READY_NETWORK);
+    await post({ networkCode: 'vk', mediaPath: null, refCode: 'vk-01' });
+    await tick(NOW);
+    const lines = readyCalls()[0][1] as string[];
+    expect(lines).toContain('Ролика нет: текстовый пост.');
+    expect(lines.some((l) => l.startsWith('Файл ролика'))).toBe(false);
+  });
+
+  it('один пост в день на сеть: второй ждёт следующего дня (МСК)', async () => {
+    await network(READY_NETWORK);
+    const first = await post({ networkCode: 'vk', refCode: 'vk-01', scheduledAt: at('2026-10-14T05:00:00Z') });
+    const second = await post({ networkCode: 'vk', refCode: 'vk-02', scheduledAt: at('2026-10-14T05:30:00Z') });
+
+    expect((await tick(NOW)).published).toEqual([first.id]);
+    const r2 = await tick(at('2026-10-14T09:00:00Z'));
+    expect(r2.held.join(' ')).toContain('сегодня уже публиковали');
+    expect(readyCalls()).toHaveLength(1);
+    expect((await prisma.socialPost.findUniqueOrThrow({ where: { id: second.id } })).status).toBe('scheduled');
+
+    expect((await tick(at('2026-10-15T09:00:00Z'))).published).toEqual([second.id]);
+    expect(readyCalls()).toHaveLength(2);
+  });
+
+  it('пауза всех сетей: готовый пост владельцу не уходит', async () => {
+    await network(READY_NETWORK);
+    await prisma.socialRule.create({ data: { key: 'paused_all', value: '1' } });
+    const p = await post({ networkCode: 'vk', refCode: 'vk-01' });
+
+    const report = await tick(NOW);
+
+    expect(report.held.join(' ')).toContain('paused_all');
+    expect(readyCalls()).toHaveLength(0);
+    expect((await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } })).status).toBe('scheduled');
+  });
+
+  it('Telegram не доставил (sent 0): попытка засчитана как ошибка, пост ждёт', async () => {
+    await network(READY_NETWORK);
+    const p = await post({ networkCode: 'vk', refCode: 'vk-01' });
+    notifyMock.mockResolvedValueOnce(FAILED_SEND);
+
+    const report = await tick(NOW);
+
+    expect(report.failed).toEqual([p.id]);
+    const row = await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } });
+    expect(row.status).toBe('scheduled');
+    expect(row.attempts).toBe(1);
+    expect(row.publishedAt).toBeNull();
+    expect(row.error).toContain('готовый пост не отправлен');
+    const net = await prisma.socialNetwork.findUniqueOrThrow({ where: { code: 'vk' } });
+    expect(net.failStreak).toBe(1);
+    expect(net.enabled).toBe(true);
+    expect(notifyMock.mock.calls.filter((c) => c[0] === 'social_autopublish')).toHaveLength(0);
+  });
+
+  it('две неудачи подряд: сеть vk выключается и владелец получает алерт', async () => {
+    await network(READY_NETWORK);
+    const p = await post({ networkCode: 'vk', refCode: 'vk-01' });
+    notifyMock.mockResolvedValueOnce(FAILED_SEND).mockResolvedValueOnce(FAILED_SEND);
+
+    await tick(NOW);
+    await tick(at('2026-10-14T08:10:00Z'));
+
+    const net = await prisma.socialNetwork.findUniqueOrThrow({ where: { code: 'vk' } });
+    expect(net.enabled).toBe(false);
+    expect(net.failStreak).toBe(0);
+    expect((await prisma.socialPost.findUniqueOrThrow({ where: { id: p.id } })).attempts).toBe(2);
+    const stop = notifyMock.mock.calls.filter((c) => c[0] === 'social_autopublish');
+    expect(stop).toHaveLength(1);
+    expect((stop[0][1] as string[])[0]).toMatch(/^Автопубликация в канал остановлена: /);
+  });
+
+  it('готовый пост и Telegram в одном проходе: каждая сеть идёт своим путём', async () => {
+    await network();
+    await network(READY_NETWORK);
+    const tg = await post({});
+    const vk = await post({ networkCode: 'vk', refCode: 'vk-01' });
+    okPublish(910);
+
+    const report = await tick(NOW);
+
+    expect(report.published.sort()).toEqual([tg.id, vk.id].sort());
+    expect(publishVideoMock).toHaveBeenCalledTimes(1);
+    expect(readyCalls()).toHaveLength(1);
+  });
+
+  it('сеть vk в режиме auto без коннектора по-прежнему не публикуется', async () => {
+    await network({ code: 'vk', mode: 'auto', chatId: null });
+    await post({ networkCode: 'vk', refCode: 'vk-01' });
+    const report = await tick(NOW);
+    expect(report.held.join(' ')).toContain('vk: нет коннектора');
+    expect(readyCalls()).toHaveLength(0);
   });
 });

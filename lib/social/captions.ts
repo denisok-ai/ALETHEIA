@@ -171,3 +171,62 @@ export function buildCaption(input: CaptionInput): CaptionResult {
 
   return { caption, link, warnings };
 }
+
+/** Сети «готовых постов»: владелец публикует вручную, подпись хранится плоским текстом (не HTML). */
+export const READY_POST_NETWORKS = ['vk', 'dzen', 'rutube', 'youtube'] as const;
+export type ReadyPostNetwork = (typeof READY_POST_NETWORKS)[number];
+
+/** Хештеги по умолчанию для плоских подписей (без Telegram-HTML). */
+export const PLAIN_DEFAULT_HASHTAGS = '#мышечноетестирование #кинезиология #аватэрра';
+/** VK: не больше трёх хештегов в подписи (скил avaterra-post-writer). */
+const VK_MAX_HASHTAGS = 3;
+/** VK: короткий текст к клипу или ссылке, 300–600 знаков. */
+const VK_CAPTION_MAX = 600;
+
+export type PlainCaptionInput = {
+  networkCode: ReadyPostNetwork;
+  title: string;
+  body?: string;
+  /** Ссылка на страницу (без метки); метка добавится из refCode. */
+  url: string;
+  refCode: string;
+  /** Строка хештегов; для VK обрежется до трёх, для Дзена не используется. */
+  hashtags?: string;
+  prohibitedPhrases?: readonly string[];
+  /** Есть ли ролик (по умолчанию true). */
+  hasMedia?: boolean;
+};
+
+/**
+ * Плоская подпись для готового поста (VK, Дзен, Rutube, YouTube Shorts).
+ * Шаблон по площадке: VK — текст + ссылка + до 3 хештегов; Дзен — текст + ссылка, без хештегов;
+ * Rutube и YouTube — текст + ссылка + хештеги (#shorts для YouTube добавляет hashtagsFor).
+ * Все проверки правил — в buildCaption; здесь только выбор шаблона и лимит VK.
+ */
+export function buildPlainCaption(input: PlainCaptionInput): CaptionResult {
+  const network = input.networkCode;
+  let hashtags = input.hashtags ?? PLAIN_DEFAULT_HASHTAGS;
+  if (network === 'dzen') {
+    hashtags = '';
+  } else if (network === 'vk') {
+    hashtags = hashtagsOf(hashtags).slice(0, VK_MAX_HASHTAGS).join(' ');
+  }
+
+  const template = network === 'dzen' ? '{title}\n\n{body}\n\n{link}' : DEFAULT_CAPTION_TEMPLATE;
+  const result = buildCaption({
+    networkCode: network,
+    title: input.title,
+    body: input.body,
+    url: input.url,
+    refCode: input.refCode,
+    hashtags,
+    template,
+    prohibitedPhrases: input.prohibitedPhrases,
+    hasMedia: input.hasMedia,
+  });
+
+  if (network === 'vk' && result.caption.length > VK_CAPTION_MAX) {
+    result.warnings.push(`VK: подпись длиннее ${VK_CAPTION_MAX} знаков (сейчас ${result.caption.length}): сократите текст`);
+  }
+  return result;
+}

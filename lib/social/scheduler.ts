@@ -5,6 +5,9 @@
  *  - стоит пауза всех сетей (SocialRule paused_all = '1') → ничего не делаем;
  *  - для каждой включённой сети с mode=auto берём самый ранний пост status=scheduled,
  *    scheduledAt <= now, материал в статусе ready;
+ *  - сети mode=ready_post (VK, Дзен, Rutube, YouTube — без API) тоже проходят tick, но вместо публикации
+ *    владельцу уходит «готовый пост» (событие social_ready_post): текст плоский, ссылка с меткой, путь к ролику;
+ *    успешная отправка — статус ready_post_sent;
  *  - не больше ОДНОЙ публикации в сеть за календарный день по Москве;
  *  - неудача: attempts+1; после 3 попыток — failed. Две неудачи подряд в сети —
  *    сеть выключается (enabled=false) и владелец получает алерт в Telegram.
@@ -26,6 +29,8 @@ import { SocialPublishError, type SocialPublished } from './connectors/publish-e
 import * as telegram from './connectors/telegram';
 import { DEFAULT_SOCIAL_MEDIA_DIR, resolveSocialMediaPath } from './media-path';
 import { mskDayBounds } from './moscow-day';
+import { trackedUrl } from './refs';
+import { SCHOOL_COURSE_URL } from './telegram-caption';
 
 export const PAUSE_ALL_RULE = 'paused_all';
 export const MEDIA_DIR_RULE = 'social_media_dir';
@@ -97,7 +102,7 @@ async function claimPost(networkCode: string, postId: number, now: Date): Promis
     const takenToday = await tx.socialPost.count({
       where: {
         networkCode,
-        status: { in: ['publishing', 'published'] },
+        status: { in: ['publishing', 'published', 'ready_post_sent'] },
         publishedAt: { gte: start, lt: end },
       },
     });
@@ -148,15 +153,81 @@ async function recoverStalePosts(now: Date, report: TickReport): Promise<void> {
   }
 }
 
-async function publishClaimed(
+/** Ссылка с меткой для готового поста: та же логика, что в подписи (страница материала или курс). */
+function readyPostLink(post: SocialPost & { item: SocialItem }): string {
+  const base = post.item.sourceUrl?.trim() || SCHOOL_COURSE_URL;
+  try {
+    return trackedUrl(base, post.refCode ?? '');
+  } catch {
+    return base;
+  }
+}
+
+/** Текст алерта «готовый пост»: всё, что нужно владельцу, чтобы опубликовать вручную. Без HTML: escape делает оповещение. */
+export function readyPostLines(
+  net: { code: string; title: string },
+  post: SocialPost & { item: SocialItem },
+  mediaDir: string,
+): string[] {
+  const lines = [
+    `Площадка: ${net.title} (${net.code})`,
+    `Заголовок: ${post.item.title}`,
+    `Ссылка с меткой: ${readyPostLink(post)}`,
+    'Текст подписи (плоский, копируется как есть):',
+    post.caption,
+  ];
+  if (post.item.mediaPath) {
+    lines.push(`Файл ролика: ${post.item.mediaPath}`);
+    lines.push(`Лежит на сервере: ${resolveSocialMediaPath(post.item.mediaPath, mediaDir)}`);
+  } else {
+    lines.push('Ролика нет: текстовый пост.');
+  }
+  lines.push('Опубликуйте вручную. Пост в очереди отмечен как ready_post_sent.');
+  return lines;
+}
+
+/** Готовый пост владельцу вместо публикации через API. Успех — sent > 0 у оповещения админам. */
+async function sendReadyPost(
   net: { id: number; code: string; title: string },
-  chatId: string,
   post: SocialPost & { item: SocialItem },
   now: Date,
   mediaDir: string,
   report: TickReport,
 ): Promise<void> {
   try {
+    const res = await notifyAdminsTelegram('social_ready_post', readyPostLines(net, post, mediaDir));
+    if (res.sent === 0) {
+      throw new Error(
+        res.skipped
+          ? 'готовый пост не отправлен: не заданы chat ID админов'
+          : 'готовый пост не отправлен: Telegram не доставил сообщение администраторам',
+      );
+    }
+    await prisma.socialPost.update({
+      where: { id: post.id },
+      data: { status: 'ready_post_sent', publishedAt: now, error: null, updatedAt: now },
+    });
+    await prisma.socialNetwork.update({ where: { id: net.id }, data: { failStreak: 0, lastError: null } });
+    report.published.push(post.id);
+  } catch (e) {
+    await handlePublishError(net, post, e, now, report);
+  }
+}
+
+async function publishClaimed(
+  net: { id: number; code: string; title: string; mode: string },
+  chatId: string | null,
+  post: SocialPost & { item: SocialItem },
+  now: Date,
+  mediaDir: string,
+  report: TickReport,
+): Promise<void> {
+  if (net.mode === 'ready_post') {
+    await sendReadyPost(net, post, now, mediaDir, report);
+    return;
+  }
+  try {
+    if (!chatId) throw new Error('не задан chat id канала');
     const connector = CONNECTORS[net.code];
     let res: Published;
     if (post.item.mediaPath) {
@@ -247,12 +318,13 @@ async function handlePublishError(
 }
 
 async function tickNetwork(
-  net: { id: number; code: string; title: string; chatId: string | null },
+  net: { id: number; code: string; title: string; chatId: string | null; mode: string },
   now: Date,
   mediaDir: string,
   report: TickReport,
 ): Promise<void> {
-  if (!net.chatId) {
+  // chat id нужен только для публикации через API; готовому посту владельцу он не нужен.
+  if (net.mode === 'auto' && !net.chatId) {
     report.held.push(`${net.code}: не задан chat id канала`);
     return;
   }
@@ -290,12 +362,12 @@ export async function tick(now: Date = new Date()): Promise<TickReport> {
   await recoverStalePosts(now, report);
   const mediaDir = await getMediaDir();
   const networks = await prisma.socialNetwork.findMany({
-    where: { enabled: true, mode: 'auto' },
-    select: { id: true, code: true, title: true, chatId: true },
+    where: { enabled: true, mode: { in: ['auto', 'ready_post'] } },
+    select: { id: true, code: true, title: true, chatId: true, mode: true },
   });
 
   for (const net of networks) {
-    if (!CONNECTED_NETWORKS.has(net.code)) {
+    if (net.mode === 'auto' && !CONNECTED_NETWORKS.has(net.code)) {
       report.held.push(`${net.code}: нет коннектора`);
       continue;
     }

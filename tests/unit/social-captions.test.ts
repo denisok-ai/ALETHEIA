@@ -4,6 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildCaption,
+  buildPlainCaption,
   hashtagsFor,
   hashtagsOf,
   linkTextFor,
@@ -124,6 +125,72 @@ describe('buildCaption', () => {
     });
     expect(r.caption).toBe(`Цена $& скидка | Текст {link} внутри | ${URL_BASE}?ref=vk-01`);
   });
+});
+
+describe('buildPlainCaption: плоская подпись готового поста', () => {
+  const COURSE = 'https://avaterra.pro/course/navyki-myshechnogo-testirovaniya';
+
+  it('VK: текст, ссылка с ?ref=vk-01, не больше трёх хештегов, без HTML', () => {
+    const r = buildPlainCaption({
+      networkCode: 'vk',
+      title: 'Тело знает всё',
+      body: 'Короткая заметка для стены.',
+      url: COURSE,
+      refCode: 'vk-01',
+      hashtags: '#мышечноетестирование #кинезиология #аватэрра #лишний',
+    });
+    expect(r.link).toBe(`${COURSE}?ref=vk-01`);
+    expect(r.caption).toBe(
+      `Тело знает всё\n\nКороткая заметка для стены.\n\n${COURSE}?ref=vk-01\n#мышечноетестирование #кинезиология #аватэрра`,
+    );
+    expect(r.caption).not.toMatch(/<|>|&lt;|&amp;/);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it('Дзен: без хештегов даже если их передали', () => {
+    const r = buildPlainCaption({
+      networkCode: 'dzen',
+      title: 'Тело знает всё',
+      body: 'Текст статьи.',
+      url: COURSE,
+      refCode: 'dz-01',
+      hashtags: '#мышечноетестирование',
+    });
+    expect(r.caption).not.toContain('#');
+    expect(r.caption).toBe(`Тело знает всё\n\nТекст статьи.\n\n${COURSE}?ref=dz-01`);
+    expect(r.warnings).toEqual([]);
+  });
+
+  it('YouTube Shorts: #shorts добавляется в конец', () => {
+    const r = buildPlainCaption({
+      networkCode: 'youtube',
+      title: 'Тело знает всё',
+      url: COURSE,
+      refCode: 'yt-01',
+      hashtags: '#кинезиология',
+    });
+    expect(r.caption.endsWith('#кинезиология #shorts')).toBe(true);
+    expect(r.caption).toContain(`${COURSE}?ref=yt-01`);
+  });
+
+  it('VK: подпись длиннее 600 знаков — предупреждение', () => {
+    const r = buildPlainCaption({
+      networkCode: 'vk',
+      title: 'Тело знает всё',
+      body: 'а'.repeat(620),
+      url: COURSE,
+      refCode: 'vk-01',
+    });
+    expect(r.warnings.some((w) => /VK: подпись длиннее 600/.test(w))).toBe(true);
+  });
+
+  it('правила школы: частица «не» в заголовке проверяется и здесь', () => {
+    const r = buildPlainCaption({ networkCode: 'vk', title: 'Тело — не машина', url: COURSE, refCode: 'vk-01' });
+    expect(r.warnings.some((w) => /«не»/.test(w))).toBe(true);
+  });
+});
+
+describe('buildCaption: проверки и предупреждения', () => {
 
   it('некорректная метка: предупреждение и ссылка без ?ref=, без исключения', () => {
     const r = buildCaption({
