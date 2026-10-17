@@ -63,7 +63,8 @@ export function normalizeBrandFromKb(kb: BrandKb) {
     safeReplacements: kb.safe_replacements ?? {},
     disclaimer: kb.disclaimer ?? {},
     quickLinks: (kb.quick_links ?? {}) as Record<string, string>,
-    textWhitelist: kb.text_whitelist ?? [],
+    // В yaml ключ называется text_whitelist_terms; text_whitelist — прежнее имя.
+    textWhitelist: kb.text_whitelist_terms ?? kb.text_whitelist ?? [],
   };
 }
 

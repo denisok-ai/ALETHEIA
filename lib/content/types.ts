@@ -16,6 +16,8 @@ export type BrandKb = {
   theme_bank?: Array<Record<string, unknown>>;
   quick_links?: Record<string, string>;
   text_whitelist?: string[];
+  /** Имя ключа в content/knowledge/avaterra.yaml. */
+  text_whitelist_terms?: string[];
   templates?: Array<Record<string, unknown>>;
 };
 

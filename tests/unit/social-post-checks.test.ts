@@ -63,7 +63,7 @@ describe('checkQueuedPost: стоп-слова публикации (по исх
   // Известный дефект lib/content/quality-gates.ts: METHOD_WORD = /\bметод…\b/i без флага u.
   // В JS \b не работает на кириллице, поэтому «метод» по-русски не ловится (ни здесь, ни в evaluateText).
   // Правило gate не меняли по задаче; тест помечен как fails и станет красным, когда дефект починят.
-  it.fails('«метод» — проблема (известный дефект \\b в quality-gates, см. отчёт)', () => {
+  it('«метод» — проблема', () => {
     const r = check({ body: 'Это метод самонаблюдения, без оценок. ' + CLEAN_BODY });
     expect(r.problems.some((p) => p.includes('метод'))).toBe(true);
   });
@@ -108,7 +108,7 @@ describe('checkQueuedPost: окно длины и CTA по postType', () => {
 
   // Известный дефект quality-gates.ts: CTA_HINT_PATTERNS с \b не срабатывают на кириллических словах
   // («Подробнее», «курс», «сохраните»). Только ссылка или avaterra.pro снимают предупреждение.
-  it.fails('призыв словом «Подробнее» снимает CTA-предупреждение (известный дефект \\b, см. отчёт)', () => {
+  it('призыв словом «Подробнее» снимает CTA-предупреждение', () => {
     const r = check({ postType: 'pain', body: CLEAN_BODY + ' Подробнее в описании курса.' });
     expect(r.warnings.some((w) => w.includes('ждёт CTA'))).toBe(false);
   });

@@ -30,16 +30,18 @@ const DEFAULT_WHITELIST = new Set(['CTA', 'Telegram', 'VIP', 'URL', 'DM']);
 const CTA_HINT_PATTERNS = [
   /https?:\/\//i,
   /avaterra\.pro/i,
-  /\bкурс[аеуы]?\b/i,
-  /\b(?:сохраните|поделитесь|напишите|задайте)\b/i,
-  /\bподробнее\b/i,
-  /\b(?:программ[ау]|каталог)\b/i,
+  /(?<![\p{L}\p{N}])курс[аеуы]?(?![\p{L}\p{N}])/iu,
+  /(?<![\p{L}\p{N}])(?:сохраните|поделитесь|напишите|задайте)(?![\p{L}\p{N}])/iu,
+  /(?<![\p{L}\p{N}])подробнее(?![\p{L}\p{N}])/iu,
+  /(?<![\p{L}\p{N}])(?:программ[ау]|каталог)(?![\p{L}\p{N}])/iu,
   /support@avaterra\.pro/i,
 ];
 
 const FAQ_ACRONYM = /\bFAQ\b/;
 const CALIBRATION = /калибр/i;
-const METHOD_WORD = /\bметод(?:а|у|ом|е|ы|ов|ам|ами|ах)?\b/i;
+// \b в JS без флага u не видит кириллицу: границы слова — через \p{L} (до 17.10.2026 «метод»
+// и CTA-подсказки молча не срабатывали, найдено живой проверкой скилов).
+const METHOD_WORD = /(?<![\p{L}\p{N}])метод(?:а|у|ом|е|ы|ов|ам|ами|ах)?(?![\p{L}\p{N}])/iu;
 const LATIN_BRAND = /\b[Aa][Vv][Aa][Tt][Ee][Rr][Rr][Aa]\b/;
 const URL_PATTERN = /https?:\/\/[^\s)\]}>,;]+/gi;
 const URL_OR_EMAIL = /(https?:\/\/\S+|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/gi;
