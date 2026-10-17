@@ -1,0 +1,238 @@
+<title>Согласование контента Аватэрры</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Literata:opsz,wght@7..72,500;7..72,600&family=Golos+Text:wght@400;500;600&display=swap">
+<style>
+/* Лента согласования: одна колонка карточек по датам, липкая шапка с прогрессом и фильтрами */
+:root {
+  --bg: #f6f4fa;
+  --surface: #ffffff;
+  --ink: #2a2233;
+  --muted: #6c6478;
+  --line: #e2dcea;
+  --plum: #6b3f7a;
+  --plum-soft: #efe6f3;
+  --ok: #2f7a4d; --ok-soft: #e3f2e8;
+  --warn: #9a6200; --warn-soft: #fbefd9;
+  --bad: #a3333a; --bad-soft: #f8e3e4;
+  --display: "Literata", Georgia, "Times New Roman", serif;
+  --body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #17141c; --surface: #211d28; --ink: #ece7f2; --muted: #a79fb2; --line: #3a3343;
+  --plum: #c9a2d8; --plum-soft: #34283b;
+  --ok: #7fcb9b; --ok-soft: #1f3327; --warn: #e6b45f; --warn-soft: #3a2f1a; --bad: #ef8e94; --bad-soft: #3d2124;
+  color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #17141c; --surface: #211d28; --ink: #ece7f2; --muted: #a79fb2; --line: #3a3343;
+  --plum: #c9a2d8; --plum-soft: #34283b;
+  --ok: #7fcb9b; --ok-soft: #1f3327; --warn: #e6b45f; --warn-soft: #3a2f1a; --bad: #ef8e94; --bad-soft: #3d2124;
+  color-scheme: dark }
+
+* { box-sizing: border-box }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--body); }
+.wrap { max-width: 860px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; }
+h1 { font: 600 clamp(1.5rem, 4vw, 2rem)/1.2 var(--display); margin: 0; text-wrap: balance }
+.intro { padding-block: 28px 8px; display: grid; gap: 10px }
+.intro p { margin: 0; color: var(--muted); max-width: 64ch }
+.how { display: grid; gap: 6px; margin: 0; padding-left: 1.2em; color: var(--muted); max-width: 64ch }
+
+.bar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); margin-inline: calc(-1 * max(16px, env(safe-area-inset-left, 0px))); padding: 10px max(16px, env(safe-area-inset-left, 0px)); display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center }
+.tally { display: flex; flex-wrap: wrap; gap: 6px; font-variant-numeric: tabular-nums }
+.pill { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 2px 10px; font-size: 13px; font-weight: 500; background: var(--plum-soft); color: var(--plum); white-space: nowrap }
+.pill.ok { background: var(--ok-soft); color: var(--ok) } .pill.warn { background: var(--warn-soft); color: var(--warn) } .pill.bad { background: var(--bad-soft); color: var(--bad) } .pill.wait { background: transparent; color: var(--muted); border: 1px solid var(--line) }
+.filters { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto }
+.filters button { font: 500 13px var(--body); border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 5px 10px; cursor: pointer }
+.filters button[aria-pressed="true"] { background: var(--plum); color: var(--surface); border-color: var(--plum) }
+
+.week { display: grid; gap: 14px; margin-top: 26px }
+.week h2 { font: 600 1.05rem/1.3 var(--display); margin: 0; color: var(--muted) }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 12px }
+.card.st-approved { border-left: 4px solid var(--ok) } .card.st-changes { border-left: 4px solid var(--warn) } .card.st-rejected { border-left: 4px solid var(--bad) }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted) }
+.date { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums }
+.net { font-weight: 600; color: var(--plum) }
+.ref { font-variant-numeric: tabular-nums }
+.grid { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px }
+@media (max-width: 640px) { .grid { grid-template-columns: minmax(0, 1fr) } .grid video { max-width: 240px } }
+.grid > * { min-width: 0 }
+video { width: 100%; max-width: 100%; aspect-ratio: 9 / 16; background: #000; border-radius: 10px; display: block }
+.fields { display: grid; gap: 10px; min-width: 0 }
+label { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--muted) }
+input[type=text], textarea { width: 100%; font: 15px/1.5 var(--body); color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px }
+input[type=text] { font: 600 16px/1.35 var(--display) }
+textarea { resize: vertical; min-height: 6.5em }
+textarea.comment { min-height: 3.2em }
+input:focus-visible, textarea:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--plum); outline-offset: 2px }
+.variants { display: flex; flex-wrap: wrap; gap: 6px }
+.variants button { font: 13px var(--body); border: 1px dashed var(--line); background: transparent; color: var(--ink); border-radius: 8px; padding: 3px 8px; cursor: pointer; text-align: left }
+.variants button:hover { border-color: var(--plum) }
+.risks { margin: 0; padding: 10px 12px 10px 28px; background: var(--warn-soft); color: var(--warn); border-radius: 8px; font-size: 14px }
+.notes { margin: 0; font-size: 14px; color: var(--muted) }
+details { font-size: 14px } summary { cursor: pointer; color: var(--plum); font-weight: 500 }
+details p { margin: 8px 0 0; color: var(--muted); max-width: 70ch }
+.link { font-size: 13px; color: var(--muted); overflow-wrap: anywhere }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center }
+.actions button { font: 600 14px var(--body); border-radius: 8px; padding: 8px 14px; cursor: pointer; border: 1px solid transparent }
+.b-ok { background: var(--ok); color: var(--surface) } .b-warn { background: var(--warn-soft); color: var(--warn); border-color: var(--warn) } .b-bad { background: transparent; color: var(--bad); border-color: var(--bad) }
+.actions button[disabled] { opacity: .5; cursor: default }
+.saved { font-size: 13px; color: var(--muted) }
+.state { padding: 24px; border: 1px dashed var(--line); border-radius: 12px; color: var(--muted); margin-top: 24px }
+@media (prefers-reduced-motion: no-preference) { .card { transition: border-color .2s } }
+</style>
+
+<div class="wrap">
+  <header class="intro">
+    <h1>Согласование контента Аватэрры</h1>
+    <p>План публикаций школы на 19 октября — 15 ноября: ролики из курса и тексты для Telegram, MAX, ВКонтакте и Дзена. Здесь можно посмотреть каждый пункт, поправить заголовок и текст и отметить решение.</p>
+    <ol class="how">
+      <li>Посмотрите ролик или прочитайте текст. Правьте прямо в полях.</li>
+      <li>Нажмите «Согласовано», «Нужны правки» или «Отклонить». Правки и комментарий сохранятся вместе с решением.</li>
+      <li>Решение можно поменять в любой момент. Публикуем только согласованное.</li>
+    </ol>
+    <p>Посты в Telegram и MAX заканчиваются ссылкой «Практикум «Тело знает всё» →» и хештегами — их добавляем сами, в тексте поста писать не нужно. Даты предварительные: публикация начнётся после подключения каналов.</p>
+  </header>
+
+  <div class="bar" role="region" aria-label="Итоги и фильтры">
+    <div class="tally" id="tally"></div>
+    <div class="filters" id="filters">
+      <button type="button" data-f="all" aria-pressed="true">Все</button>
+      <button type="button" data-f="video" aria-pressed="false">Ролики</button>
+      <button type="button" data-f="text" aria-pressed="false">Тексты</button>
+      <button type="button" data-f="open" aria-pressed="false">Без решения</button>
+    </div>
+  </div>
+
+  <main id="list"><div class="state" id="state">Загружаю план публикаций…</div></main>
+</div>
+
+<script>
+(() => {
+  const NET = { telegram: 'Telegram', max: 'MAX', vk: 'ВКонтакте', dzen: 'Дзен' };
+  const KIND = { 'video-queued': 'Ролик · уже в очереди', 'video-candidate': 'Ролик · кандидат', 'video-slot': 'Место под ролик', text: 'Текст' };
+  const STATUS = { approved: ['Согласовано', 'ok'], changes: ['Нужны правки', 'warn'], rejected: ['Отклонено', 'bad'] };
+  const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+  let items = [], decisions = {}, filter = 'all', db = null, me = null, canWrite = true;
+  const drafts = {};
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const el = (tag, cls, text) => { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; };
+  const fmtDate = (d) => { if (!d) return 'Дата позже'; const t = new Date(d + 'T12:00:00+03:00'); return `${WD[t.getDay()]} ${String(t.getDate()).padStart(2, '0')}.${String(t.getMonth() + 1).padStart(2, '0')}`; };
+  const weekOf = (d) => { if (!d) return 'Без даты'; const t = new Date(d + 'T12:00:00+03:00'); const day = (t.getDay() + 6) % 7; const mon = new Date(t); mon.setDate(t.getDate() - day); const sun = new Date(mon); sun.setDate(mon.getDate() + 6); const f = (x) => `${x.getDate()}.${String(x.getMonth() + 1).padStart(2, '0')}`; return `Неделя ${f(mon)} — ${f(sun)}`; };
+  const isVideo = (it) => String(it.kind || '').startsWith('video');
+
+  function tally() {
+    const c = { approved: 0, changes: 0, rejected: 0, open: 0 };
+    for (const it of items) { const s = decisions[it.id]?.status; if (s && c[s] != null) c[s]++; else c.open++; }
+    const t = $('#tally'); t.replaceChildren(
+      el('span', 'pill ok', `Согласовано ${c.approved}`), el('span', 'pill warn', `Правки ${c.changes}`),
+      el('span', 'pill bad', `Отклонено ${c.rejected}`), el('span', 'pill wait', `Ждут ${c.open}`));
+  }
+
+  function card(it) {
+    const d = decisions[it.id] || {};
+    const draft = drafts[it.id] || {};
+    const c = el('article', 'card' + (d.status ? ' st-' + d.status : '')); c.id = 'item-' + it.id;
+    const meta = el('div', 'meta');
+    meta.append(el('span', 'date', fmtDate(it.date)), el('span', 'net', NET[it.network] || it.network || ''), el('span', null, KIND[it.kind] || it.kind || ''));
+    if (it.ref) meta.append(el('span', 'ref', it.ref));
+    if (it.durationSec) meta.append(el('span', null, `${Math.round(it.durationSec)} с`));
+    if (d.status) { const [txt, cls] = STATUS[d.status]; meta.append(el('span', 'pill ' + cls, txt)); }
+    c.append(meta);
+
+    const grid = el('div', isVideo(it) && it.videoUrl ? 'grid' : '');
+    if (isVideo(it) && it.videoUrl) {
+      const v = el('video'); v.controls = true; v.preload = 'none'; v.playsInline = true; v.src = it.videoUrl; if (it.poster) v.poster = it.poster;
+      v.setAttribute('aria-label', 'Ролик: ' + (it.title || ''));
+      grid.append(v);
+    }
+    const f = el('div', 'fields');
+
+    const tl = el('label', null, 'Заголовок'); tl.htmlFor = 't-' + it.id;
+    const ti = el('input'); ti.type = 'text'; ti.id = 't-' + it.id; ti.value = draft.title ?? d.title ?? it.title ?? ''; ti.disabled = !canWrite;
+    ti.addEventListener('input', () => { (drafts[it.id] ||= {}).title = ti.value; });
+    f.append(tl, ti);
+    if (Array.isArray(it.titleVariants) && it.titleVariants.length) {
+      const vs = el('div', 'variants');
+      for (const t of it.titleVariants) { const b = el('button', null, t); b.type = 'button'; b.title = 'Взять этот вариант'; b.disabled = !canWrite; b.addEventListener('click', () => { ti.value = t; (drafts[it.id] ||= {}).title = t; }); vs.append(b); }
+      f.append(vs);
+    }
+
+    if (it.kind !== 'video-slot') {
+      const bl = el('label', null, isVideo(it) ? 'Подпись к ролику' : 'Текст поста'); bl.htmlFor = 'b-' + it.id;
+      const bt = el('textarea'); bt.id = 'b-' + it.id; bt.value = draft.body ?? d.body ?? it.body ?? ''; bt.disabled = !canWrite; bt.rows = Math.min(16, Math.max(5, Math.ceil((bt.value.length || 1) / 70)));
+      bt.addEventListener('input', () => { (drafts[it.id] ||= {}).body = bt.value; });
+      f.append(bl, bt);
+    }
+    if (it.url) f.append(el('div', 'link', 'Ссылка в посте: ' + it.url));
+    if (Array.isArray(it.risks) && it.risks.length) { const r = el('ul', 'risks'); for (const x of it.risks) r.append(el('li', null, x)); f.append(r); }
+    if (Array.isArray(it.notes) && it.notes.length) { for (const n of it.notes) f.append(el('p', 'notes', n)); }
+    if (it.transcript) { const dt = el('details'); dt.append(el('summary', null, 'Что звучит в ролике'), el('p', null, it.transcript)); f.append(dt); }
+    if (it.lesson) f.append(el('p', 'notes', 'Из урока: ' + it.lesson + (it.sourceTimecodes ? ', ' + it.sourceTimecodes : '')));
+
+    const cl = el('label', null, 'Комментарий'); cl.htmlFor = 'c-' + it.id;
+    const ct = el('textarea', 'comment'); ct.id = 'c-' + it.id; ct.placeholder = 'Что поправить или почему нет'; ct.value = draft.comment ?? d.comment ?? ''; ct.disabled = !canWrite;
+    ct.addEventListener('input', () => { (drafts[it.id] ||= {}).comment = ct.value; });
+    f.append(cl, ct);
+
+    const act = el('div', 'actions');
+    const saved = el('span', 'saved', d.updatedAt ? 'Сохранено ' + new Date(d.updatedAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '');
+    const mk = (status, text, cls) => { const b = el('button', cls, text); b.type = 'button'; b.disabled = !canWrite; b.addEventListener('click', () => decide(it, status, ti, $('#b-' + it.id, c), ct, saved, act)); return b; };
+    act.append(mk('approved', 'Согласовано', 'b-ok'), mk('changes', 'Нужны правки', 'b-warn'), mk('rejected', 'Отклонить', 'b-bad'), saved);
+    f.append(act);
+
+    grid.append(f); c.append(grid);
+    return c;
+  }
+
+  async function decide(it, status, ti, bt, ct, saved, act) {
+    if (!db) return;
+    const buttons = act.querySelectorAll('button'); buttons.forEach((b) => (b.disabled = true));
+    saved.textContent = 'Сохраняю…';
+    const body = { status, title: ti.value.trim(), body: bt ? bt.value : '', comment: ct.value.trim(), updatedAt: new Date().toISOString(), updatedBy: me };
+    try { await db.doc('decisions/' + it.id).set(body); delete drafts[it.id]; }
+    catch (e) {
+      if (e && e.code === 'invalid_argument') { canWrite = false; saved.textContent = 'Нет прав на сохранение. Попросите владельца выдать доступ «Редактор».'; }
+      else saved.textContent = 'Не сохранилось, нажмите ещё раз.';
+      buttons.forEach((b) => (b.disabled = !canWrite));
+    }
+  }
+
+  function render() {
+    tally();
+    const list = $('#list');
+    const shown = items.filter((it) => filter === 'all' || (filter === 'video' && isVideo(it)) || (filter === 'text' && !isVideo(it)) || (filter === 'open' && !decisions[it.id]?.status));
+    if (!items.length) { list.replaceChildren(el('div', 'state', 'План ещё не загружен. Он появится здесь, как только будет готов.')); return; }
+    if (!shown.length) { list.replaceChildren(el('div', 'state', 'В этом фильтре пусто.')); return; }
+    const groups = new Map();
+    for (const it of shown) { const w = it.kind === 'video-candidate' ? 'Ролики-кандидаты: выберите, какие поставить на свободные места' : weekOf(it.date); if (!groups.has(w)) groups.set(w, []); groups.get(w).push(it); }
+    const frag = document.createDocumentFragment();
+    for (const [w, arr] of groups) { const s = el('section', 'week'); s.append(el('h2', null, w)); for (const it of arr) s.append(card(it)); frag.append(s); }
+    // Сохраняем фокус и прокрутку при обновлении снимков
+    const active = document.activeElement && document.activeElement.id;
+    list.replaceChildren(frag);
+    if (active) { const a = document.getElementById(active); if (a) a.focus({ preventScroll: true }); }
+  }
+
+  document.getElementById('filters').addEventListener('click', (e) => {
+    const b = e.target.closest('button[data-f]'); if (!b) return;
+    filter = b.dataset.f; document.querySelectorAll('#filters button').forEach((x) => x.setAttribute('aria-pressed', String(x === b))); render();
+  });
+
+  async function start() {
+    const claudeApi = window.claude;
+    if (!claudeApi || !claudeApi.use) { $('#state').textContent = 'Откройте страницу в Claude, чтобы видеть план и отмечать решения.'; return; }
+    db = await claudeApi.use('db');
+    const user = await claudeApi.use('user');
+    if (!db) { $('#state').textContent = 'Войдите в Claude, чтобы видеть план и отмечать решения.'; return; }
+    me = user ? await user.id() : null;
+    const w = user ? await user.can('data.write') : null;
+    if (w === false) canWrite = false;
+    const sortKey = (it) => (it.date || '9999') + String(it.order ?? 0).padStart(4, '0');
+    db.collection('items').onSnapshot((s) => { items = s.docs.map((d) => ({ id: d.id, ...d.data() })).sort((a, b) => sortKey(a).localeCompare(sortKey(b))); render(); },
+      () => { $('#list').replaceChildren(el('div', 'state', 'План не загрузился. Обновите страницу.')); });
+    db.collection('decisions').onSnapshot((s) => { decisions = {}; for (const d of s.docs) decisions[d.id] = d.data(); render(); }, () => {});
+  }
+  start();
+})();
+</script>
