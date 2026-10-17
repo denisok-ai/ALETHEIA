@@ -15,6 +15,8 @@
  * scheduledAt без смещения — московское время. "hashtags" необязательно.
  * "url" необязательно: ссылка подписи (https://avaterra.pro/…, без ?ref= — метка добавится сама).
  * Без "url" ведёт на страницу практикума.
+ * "postType" необязательно: тип поста из post_types avaterra.yaml (educational, pain, course…) —
+ * по нему проверяются окно длины и CTA; предупреждения печатаются, очередь от них не блокируется.
  * Текстовый пост (без ролика): без "file", с "body" — это текст поста. Лимит текста
  * длиннее лимита подписи к видео (Telegram 4096, MAX 4000).
  *
@@ -34,6 +36,7 @@ import { loadKbYamlFromPath, normalizeBrandFromKb } from '../lib/content/brand-k
 import { resolveSocialMediaPath } from '../lib/social/media-path';
 import { formatMsk } from '../lib/social/moscow-day';
 import { parseQueueInput } from '../lib/social/queue-input';
+import { checkQueuedPost } from '../lib/social/post-checks';
 import { buildTelegramCaption, SCHOOL_COURSE_URL } from '../lib/social/telegram-caption';
 import { getMediaDir } from '../lib/social/scheduler';
 import { checkVideo, probeVideo } from '../lib/social/video-check';
@@ -43,8 +46,8 @@ const SCHOOL_CHANNEL = { chatId: '-1003916704986', username: 'avaterrapro' };
 type NetworkCode = 'telegram' | 'max';
 const KB_PATH = path.join(process.cwd(), 'content', 'knowledge', 'avaterra.yaml');
 
-function loadProhibitedPhrases(): string[] {
-  return normalizeBrandFromKb(loadKbYamlFromPath(KB_PATH)).prohibitedPhrases;
+function loadBrand() {
+  return normalizeBrandFromKb(loadKbYamlFromPath(KB_PATH));
 }
 
 /**
@@ -102,22 +105,28 @@ async function main(): Promise<number> {
   }
 
   const mediaDir = await getMediaDir();
-  const { entries, errors } = parseQueueInput(raw, { mediaDir, networkCode: NETWORK_CODE });
+  const brand = loadBrand();
+  const { entries, errors } = parseQueueInput(raw, {
+    mediaDir,
+    networkCode: NETWORK_CODE,
+    postTypes: brand.templates.map((t) => String(t.id)),
+  });
   const problems: string[] = [...errors];
-  const prohibited = loadProhibitedPhrases();
+  const warnings: string[] = [];
 
   const built = entries.map((e) => ({
     entry: e,
-    ...buildTelegramCaption({
+    // Подпись нужна для записи; её предупреждения входят в checkQueuedPost ниже.
+    caption: buildTelegramCaption({
       networkCode: NETWORK_CODE,
       title: e.title,
       body: e.body,
       refCode: e.ref,
       url: e.url,
       hashtags: e.hashtags,
-      prohibitedPhrases: prohibited,
+      prohibitedPhrases: brand.prohibitedPhrases,
       hasMedia: e.file !== null,
-    }),
+    }).caption,
   }));
 
   if (entries.length > 0) {
@@ -133,7 +142,19 @@ async function main(): Promise<number> {
     const material = entry.file ?? 'текстовый пост, без медиа';
     console.log(`\n=== ${entry.ref} · ${formatMsk(entry.scheduledAt)} · ${material}`);
     console.log(b.caption);
-    for (const w of b.warnings) problems.push(`${entry.ref}: ${w}`);
+    const check = checkQueuedPost({
+      networkCode: NETWORK_CODE,
+      title: entry.title,
+      body: entry.body,
+      hasMedia: entry.file !== null,
+      refCode: entry.ref,
+      url: entry.url,
+      hashtags: entry.hashtags,
+      postType: entry.postType,
+      brand,
+    });
+    for (const p of check.problems) problems.push(`${entry.ref}: ${p}`);
+    for (const w of check.warnings) warnings.push(`${entry.ref}: ${w}`);
     if (entry.file) {
       const abs = resolveSocialMediaPath(entry.file, mediaDir);
       if (fs.existsSync(abs)) {
@@ -148,6 +169,7 @@ async function main(): Promise<number> {
     console.log(`\nВнимание: сеть ${NETWORK_CODE} выключена (enabled=false). Посты встанут в очередь, пока её не включат.`);
   }
 
+  for (const w of warnings) console.log(`Предупреждение: ${w}`);
   if (problems.length > 0) {
     console.error('\nОчередь НЕ записана. Проверки:');
     for (const p of problems) console.error(`  - ${p}`);
