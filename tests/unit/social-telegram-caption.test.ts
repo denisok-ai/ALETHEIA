@@ -120,3 +120,47 @@ describe('buildTelegramCaption: текстовый пост без медиа', 
     expect(r.warnings.some((w) => w.includes('4000'))).toBe(true);
   });
 });
+
+describe('buildTelegramCaption: ссылка из поля url очереди', () => {
+  it('без url ссылка ведёт на практикум с ?ref=', () => {
+    const { caption } = buildTelegramCaption({ title: 'Заголовок', refCode: 'tg-20' });
+    expect(caption).toContain(`<a href="${SCHOOL_COURSE_URL}?ref=tg-20">`);
+  });
+
+  it('переданный url становится основой ссылки, ?ref= строится от него', () => {
+    const url = 'https://avaterra.pro/glossary/myshechnoe-testirovanie';
+    const { caption, warnings } = buildTelegramCaption({ title: 'Заголовок', refCode: 'tg-21', url });
+    expect(warnings).toEqual([]);
+    expect(caption).toContain(`<a href="${url}?ref=tg-21">`);
+    expect(caption).not.toContain(SCHOOL_COURSE_URL);
+  });
+
+  it('у url уже есть query: ref добавляется через &, экранированный в href', () => {
+    const { caption } = buildTelegramCaption({
+      title: 'Заголовок',
+      refCode: 'tg-22',
+      url: 'https://avaterra.pro/blog/statya?utm=x',
+    });
+    expect(caption).toContain('<a href="https://avaterra.pro/blog/statya?utm=x&amp;ref=tg-22">');
+  });
+
+  it('якорь в url остаётся последним, ref ставится перед ним', () => {
+    const { caption } = buildTelegramCaption({
+      title: 'Заголовок',
+      refCode: 'tg-23',
+      url: 'https://avaterra.pro/glossary/x#faq',
+    });
+    expect(caption).toContain('<a href="https://avaterra.pro/glossary/x?ref=tg-23#faq">');
+  });
+
+  it('текст поста без url и с url — одинаковая структура, меняется только ссылка', () => {
+    const plain = buildTelegramCaption({ title: 'Заголовок', body: 'Текст.', refCode: 'tg-24' });
+    const withUrl = buildTelegramCaption({
+      title: 'Заголовок',
+      body: 'Текст.',
+      refCode: 'tg-24',
+      url: 'https://avaterra.pro/blog/statya',
+    });
+    expect(withUrl.caption.replace(/<a href="[^"]*">/, '<a>')).toBe(plain.caption.replace(/<a href="[^"]*">/, '<a>'));
+  });
+});

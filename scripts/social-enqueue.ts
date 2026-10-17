@@ -13,6 +13,8 @@
  *   [{ "file": "2026-10-14-test.mp4", "title": "Почему дрожат руки",
  *      "body": "Короткий текст поста.", "ref": "tg-01", "scheduledAt": "2026-10-14 10:00" }]
  * scheduledAt без смещения — московское время. "hashtags" необязательно.
+ * "url" необязательно: ссылка подписи (https://avaterra.pro/…, без ?ref= — метка добавится сама).
+ * Без "url" ведёт на страницу практикума.
  * Текстовый пост (без ролика): без "file", с "body" — это текст поста. Лимит текста
  * длиннее лимита подписи к видео (Telegram 4096, MAX 4000).
  *
@@ -111,6 +113,7 @@ async function main(): Promise<number> {
       title: e.title,
       body: e.body,
       refCode: e.ref,
+      url: e.url,
       hashtags: e.hashtags,
       prohibitedPhrases: prohibited,
       hasMedia: e.file !== null,
@@ -180,7 +183,7 @@ async function main(): Promise<number> {
           title: b.entry.title,
           body: b.entry.body || null,
           mediaPath: b.entry.file,
-          sourceUrl: SCHOOL_COURSE_URL,
+          sourceUrl: b.entry.url ?? SCHOOL_COURSE_URL,
           status: 'ready',
         },
       });

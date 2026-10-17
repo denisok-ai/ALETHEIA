@@ -10,7 +10,8 @@ description: >
 
 ## Входные данные
 
-- 3–5 образцов текста школы: статьи в `lib/content/kb-seo-articles.ts`, шаблоны постов в `docs/Telegram-Content-Knowledge-Base.md` (раздел 9), опубликованные посты владельца;
+- 3–5 образцов текста школы: опубликованные статьи блога (`lib/content/kb-seo-articles.ts`), страницы глоссария (`lib/content/glossary.ts`), опубликованные посты владельца, если он их дал;
+- `docs/Telegram-Content-Knowledge-Base.md` — только как вспомогательный источник: после чистки 17.10 (слова «метод», «калибровка» и старое название курса заменены). Шаблоны из него сверять с yaml, на образец они не годятся без проверки;
 - новый текст для проверки (необязательно);
 - что нужно: разбор голоса, проверка текста или переписывание в голос.
 
@@ -59,6 +60,7 @@ description: >
 ## Файлы проекта
 
 - `content/knowledge/avaterra.yaml` — тон, `author.voice_rules`, `prohibited_phrases`.
-- `docs/Telegram-Content-Knowledge-Base.md` — разделы 3 («Тон Telegram-канала»), 4 (о Татьяне), 9 (шаблоны), 12 (формулировки).
+- `docs/Telegram-Content-Knowledge-Base.md` — разделы 3 («Тон Telegram-канала»), 4 (о Татьяне), 9 (шаблоны), 12 (формулировки); после чистки 17.10.
+- `lib/content/glossary.ts` — образцы короткой формы (определения терминов).
 - `lib/content/kb-seo-articles.ts` — статьи блога, образцы длинной формы.
 - `avaterra-school-rules` — чек-лист правил.

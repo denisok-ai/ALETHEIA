@@ -129,10 +129,53 @@ function checkLatinBrand(text: string): QualityIssue | null {
   return { code: 'latin_brand', message: 'Avaterra латиницей', suggestion: 'замени на «Аватэрра»' };
 }
 
+/**
+ * Русские окончания, которые могут стоять после основы триггера (до 3 букв): падежи, числа, краткие формы.
+ * «ше», «шинство» в списке нет: поэтому «больше» и «большинство» не срабатывают на триггер «боль».
+ */
+const RU_TRIGGER_ENDINGS = [
+  '', 'а', 'я', 'у', 'ю', 'ь', 'и', 'ы', 'о', 'е',
+  'ой', 'ей', 'ью', 'ам', 'ям', 'ах', 'ях', 'ом', 'ем', 'ою', 'ею',
+  'ия', 'ии', 'ию', 'ией', 'ика', 'ики', 'ике', 'ику',
+  'ов', 'ев', 'ий', 'ая', 'ое', 'ые', 'ых', 'ым', 'ую',
+  'ной', 'ная', 'ную', 'ные', 'ным', 'ных', 'но',
+  'ами', 'ями', 'ими', 'ыми',
+];
+
+const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const triggerPatterns = new Map<string, RegExp>();
+
+/**
+ * Регэксп для одного триггера disclaimer.triggers: основа + русское окончание, на границах слова.
+ * «боль» → боль, боли, болью, болей; не «больше», не «большой».
+ * Основа на «а»/«я» (травма, паника) обрезается, чтобы ловить падежи: травмой, паникой.
+ * Многословный триггер: все слова, кроме последнего, точно; последнее — основа с окончанием.
+ */
+function triggerPattern(trigger: string): RegExp {
+  const cached = triggerPatterns.get(trigger);
+  if (cached) return cached;
+  const words = trigger.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (!words.length) return /(?!)/u;
+  const last = words.pop() as string;
+  let stem = /[ая]$/.test(last) && last.length > 3 ? last.slice(0, -1) : last;
+  // Мягкий знак выпадает в формах: боль → боли, болей. Поэтому основа «бол» тоже допустима.
+  const stems = [stem, ...(stem.endsWith('ь') && stem.length > 1 ? [stem.slice(0, -1)] : [])];
+  stem = stems.map(escapeRegExp).join('|');
+  const endings = RU_TRIGGER_ENDINGS.map(escapeRegExp).join('|');
+  const head = words.map((w) => `${escapeRegExp(w)}\\s+`).join('');
+  const re = new RegExp(`(?<!\\p{L})${head}(?:${stem})(?:${endings})(?!\\p{L})`, 'iu');
+  triggerPatterns.set(trigger, re);
+  return re;
+}
+
+/** Есть ли в тексте слово или форма слова из одного триггера disclaimer.triggers. */
+export function matchesDisclaimerTrigger(text: string, trigger: string): boolean {
+  return triggerPattern(trigger).test(text);
+}
+
 function disclaimerNeeded(topic: string, brand: BrandNorm): boolean {
   const triggers = (brand.disclaimer.triggers as string[] | undefined) ?? [];
-  const hay = topic.toLowerCase();
-  return triggers.some((t) => hay.includes(t.toLowerCase()));
+  return triggers.some((t) => matchesDisclaimerTrigger(topic, t));
 }
 
 function checkDisclaimer(text: string, topic: string, brand: BrandNorm): QualityIssue | null {

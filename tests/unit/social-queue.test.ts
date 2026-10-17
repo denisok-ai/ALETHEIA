@@ -171,3 +171,63 @@ describe('parseQueueInput: текстовые посты без file', () => {
     expect(r.entries.map((e) => e.file)).toEqual(['clip-01.mp4', null]);
   });
 });
+
+describe('parseQueueInput: необязательное поле url', () => {
+  const base = {
+    file: 'clip-01.mp4',
+    title: 'Заголовок',
+    body: 'Текст',
+    ref: 'tg-01',
+    scheduledAt: '2026-10-14 10:00',
+  };
+
+  it('без url запись разбирается как раньше, url в entry не появляется', () => {
+    const r = parseQueueInput([base], { mediaDir: DIR });
+    expect(r.errors).toEqual([]);
+    expect(r.entries[0]).not.toHaveProperty('url');
+  });
+
+  it('валидный https-адрес на avaterra.pro проходит и попадает в entry', () => {
+    const url = 'https://avaterra.pro/glossary/myshechnoe-testirovanie';
+    const r = parseQueueInput([{ ...base, url }], { mediaDir: DIR });
+    expect(r.errors).toEqual([]);
+    expect(r.entries[0].url).toBe(url);
+  });
+
+  it('чужой домен — ошибка разбора', () => {
+    const r = parseQueueInput([{ ...base, url: 'https://example.com/page' }], { mediaDir: DIR });
+    expect(r.entries).toEqual([]);
+    expect(r.errors[0]).toContain('example.com');
+    expect(r.errors[0]).toContain('avaterra.pro');
+  });
+
+  it('домен-подделка (avaterra.pro.evil.ru) — ошибка', () => {
+    const r = parseQueueInput([{ ...base, url: 'https://avaterra.pro.evil.ru/x' }], { mediaDir: DIR });
+    expect(r.entries).toEqual([]);
+    expect(r.errors[0]).toContain('не разрешён');
+  });
+
+  it('http вместо https — ошибка', () => {
+    const r = parseQueueInput([{ ...base, url: 'http://avaterra.pro/glossary/x' }], { mediaDir: DIR });
+    expect(r.entries).toEqual([]);
+    expect(r.errors[0]).toContain('https');
+  });
+
+  it('относительный путь и не строка — ошибка', () => {
+    expect(parseQueueInput([{ ...base, url: '/glossary/x' }], { mediaDir: DIR }).errors[0]).toContain('абсолютный');
+    expect(parseQueueInput([{ ...base, url: 42 }], { mediaDir: DIR }).errors[0]).toContain('строкой');
+  });
+
+  it('пустая строка url — как отсутствующий', () => {
+    const r = parseQueueInput([{ ...base, url: '   ' }], { mediaDir: DIR });
+    expect(r.errors).toEqual([]);
+    expect(r.entries[0]).not.toHaveProperty('url');
+  });
+
+  it('текстовый пост тоже принимает url', () => {
+    const text = { title: 'Вопрос', body: 'Текст', ref: 'tg-02', scheduledAt: '2026-10-14 10:00' };
+    const r = parseQueueInput([{ ...text, url: 'https://avaterra.pro/blog/some-article' }], { mediaDir: DIR });
+    expect(r.errors).toEqual([]);
+    expect(r.entries[0].url).toBe('https://avaterra.pro/blog/some-article');
+  });
+});

@@ -3,9 +3,11 @@
  *
  * Формат — массив объектов:
  *   [{ "file": "2026-10-14-test.mp4", "title": "…", "body": "…", "ref": "tg-01",
- *      "scheduledAt": "2026-10-14 10:00" }]
+ *      "scheduledAt": "2026-10-14 10:00", "url": "https://avaterra.pro/glossary/…" }]
  * Без "file" запись — текстовый пост (SocialItem.kind 'news', без медиа): тогда "body" обязателен,
  * это и есть текст поста.
+ * "url" необязателен: куда ведёт ссылка в подписи (абсолютный https-адрес на avaterra.pro, без метки ?ref=
+ * — метку добавит сборка подписи). Без "url" ссылка ведёт на страницу практикума.
  * scheduledAt без смещения — московское время (МСК, UTC+3); с «Z» или «+03:00» — как есть.
  */
 import { isValidRefCode, networkForRef } from './refs';
@@ -20,12 +22,36 @@ export type QueueEntry = {
   scheduledAt: Date;
   /** Необязательная строка хештегов; по умолчанию — из telegram-caption. */
   hashtags?: string;
+  /** Необязательная ссылка для подписи (https://avaterra.pro/…, без метки); по умолчанию — практикум. */
+  url?: string;
 };
 
 export type QueueParseResult = {
   entries: QueueEntry[];
   errors: string[];
 };
+
+/** Домен, на котором разрешены ссылки поста очереди. Иные домены — ошибка разбора. */
+export const QUEUE_URL_HOST = 'avaterra.pro';
+
+/**
+ * Проверка ссылки поста: абсолютный https-адрес на avaterra.pro без учётных данных.
+ * Возвращает исходную строку (без изменений) или причину отказа.
+ */
+export function checkQueueUrl(raw: string): { ok: true; url: string } | { ok: false; reason: string } {
+  let parsed: URL;
+  try {
+    parsed = new URL(raw);
+  } catch {
+    return { ok: false, reason: 'не абсолютный адрес (нужен https://avaterra.pro/…)' };
+  }
+  if (parsed.protocol !== 'https:') return { ok: false, reason: 'нужен https:// (http не принимаем)' };
+  if (parsed.hostname.toLowerCase() !== QUEUE_URL_HOST) {
+    return { ok: false, reason: `домен ${parsed.hostname} не разрешён, только ${QUEUE_URL_HOST}` };
+  }
+  if (parsed.username || parsed.password) return { ok: false, reason: 'адрес с логином и паролем не принимаем' };
+  return { ok: true, url: raw };
+}
 
 const MSK_NAIVE_RE = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/;
 const HAS_OFFSET_RE = /(Z|[+-]\d{2}:?\d{2})$/i;
@@ -79,7 +105,20 @@ export function parseQueueInput(
     const ref = str('ref');
     const scheduledRaw = str('scheduledAt');
     const hashtags = typeof rec.hashtags === 'string' ? rec.hashtags : undefined;
+    const urlRaw = rec.url === undefined || rec.url === null ? '' : typeof rec.url === 'string' ? rec.url.trim() : null;
     let ok = true;
+    let url: string | undefined;
+    if (urlRaw === null) {
+      errors.push(`${at}: url должен быть строкой (абсолютный https-адрес на ${QUEUE_URL_HOST})`);
+      ok = false;
+    } else if (urlRaw) {
+      const checked = checkQueueUrl(urlRaw);
+      if (checked.ok) url = checked.url;
+      else {
+        errors.push(`${at}: url «${urlRaw}» — ${checked.reason}`);
+        ok = false;
+      }
+    }
 
     if (!file && !body) {
       errors.push(`${at}: текстовый пост без file: нужен body (текст поста)`);
@@ -119,6 +158,7 @@ export function parseQueueInput(
         ref,
         scheduledAt,
         ...(hashtags !== undefined ? { hashtags } : {}),
+        ...(url !== undefined ? { url } : {}),
       });
     }
   });
