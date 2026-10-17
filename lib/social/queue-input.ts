@@ -8,6 +8,8 @@
  * это и есть текст поста.
  * "url" необязателен: куда ведёт ссылка в подписи (абсолютный https-адрес на avaterra.pro, без метки ?ref=
  * — метку добавит сборка подписи). Без "url" ссылка ведёт на страницу практикума.
+ * "postType" необязателен: тип поста из post_types avaterra.yaml (educational, pain, course…). По нему
+ * проверяются окно длины и CTA (lib/social/post-checks.ts). Без него эти проверки пропускаются.
  * scheduledAt без смещения — московское время (МСК, UTC+3); с «Z» или «+03:00» — как есть.
  */
 import { isValidRefCode, networkForRef } from './refs';
@@ -24,6 +26,8 @@ export type QueueEntry = {
   hashtags?: string;
   /** Необязательная ссылка для подписи (https://avaterra.pro/…, без метки); по умолчанию — практикум. */
   url?: string;
+  /** Необязательный тип поста из post_types avaterra.yaml. */
+  postType?: string;
 };
 
 export type QueueParseResult = {
@@ -77,7 +81,7 @@ const REF_EXAMPLE: Readonly<Record<string, string>> = { telegram: 'Telegram ви
 /** Проверка структуры и путей. Подписи и БД проверяет вызывающий код. */
 export function parseQueueInput(
   raw: unknown,
-  opts: { mediaDir: string; networkCode?: 'telegram' | 'max' },
+  opts: { mediaDir: string; networkCode?: 'telegram' | 'max'; postTypes?: readonly string[] },
 ): QueueParseResult {
   const networkCode = opts.networkCode ?? 'telegram';
   const errors: string[] = [];
@@ -105,8 +109,13 @@ export function parseQueueInput(
     const ref = str('ref');
     const scheduledRaw = str('scheduledAt');
     const hashtags = typeof rec.hashtags === 'string' ? rec.hashtags : undefined;
+    const postType = str('postType');
     const urlRaw = rec.url === undefined || rec.url === null ? '' : typeof rec.url === 'string' ? rec.url.trim() : null;
     let ok = true;
+    if (postType && opts.postTypes && !opts.postTypes.includes(postType)) {
+      errors.push(`${at}: postType «${postType}» нет в post_types avaterra.yaml (${opts.postTypes.join(', ')})`);
+      ok = false;
+    }
     let url: string | undefined;
     if (urlRaw === null) {
       errors.push(`${at}: url должен быть строкой (абсолютный https-адрес на ${QUEUE_URL_HOST})`);
@@ -159,6 +168,7 @@ export function parseQueueInput(
         scheduledAt,
         ...(hashtags !== undefined ? { hashtags } : {}),
         ...(url !== undefined ? { url } : {}),
+        ...(postType ? { postType } : {}),
       });
     }
   });

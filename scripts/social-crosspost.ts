@@ -20,6 +20,7 @@ import { prisma } from '../lib/db';
 import { loadKbYamlFromPath, normalizeBrandFromKb } from '../lib/content/brand-kb';
 import { buildPlainCaption, READY_POST_NETWORKS, type ReadyPostNetwork } from '../lib/social/captions';
 import { formatMsk } from '../lib/social/moscow-day';
+import { checkQueuedPost } from '../lib/social/post-checks';
 import { isValidRefCode, NETWORK_TO_REF_PREFIX } from '../lib/social/refs';
 import { buildTelegramCaption, SCHOOL_COURSE_URL } from '../lib/social/telegram-caption';
 
@@ -74,7 +75,7 @@ async function main(): Promise<number> {
     return 1;
   }
 
-  const prohibited = normalizeBrandFromKb(loadKbYamlFromPath(KB_PATH)).prohibitedPhrases;
+  const brand = normalizeBrandFromKb(loadKbYamlFromPath(KB_PATH));
   const source = await prisma.socialPost.findMany({
     where: { networkCode: from, status: 'scheduled', item: { posts: { none: { networkCode: to } } } },
     include: { item: true },
@@ -86,9 +87,12 @@ async function main(): Promise<number> {
   }
 
   const problems: string[] = [];
+  const warnings: string[] = [];
   const planned = source.map((p) => {
     const num = p.refCode && isValidRefCode(p.refCode) ? p.refCode.slice(3) : String(p.itemId).padStart(2, '0');
     const refCode = `${NETWORK_TO_REF_PREFIX[to]}-${num}`;
+    // Подпись для записи; её предупреждения входят в checkQueuedPost (тип поста у источника не хранится,
+    // поэтому окно длины и CTA здесь не проверяются).
     const built = isReady
       ? buildPlainCaption({
           networkCode: to as ReadyPostNetwork,
@@ -96,7 +100,7 @@ async function main(): Promise<number> {
           body: p.item.body ?? undefined,
           url: p.item.sourceUrl ?? SCHOOL_COURSE_URL,
           refCode,
-          prohibitedPhrases: prohibited,
+          prohibitedPhrases: brand.prohibitedPhrases,
           hasMedia: Boolean(p.item.mediaPath),
         })
       : buildTelegramCaption({
@@ -105,9 +109,19 @@ async function main(): Promise<number> {
           body: p.item.body ?? undefined,
           refCode,
           url: p.item.sourceUrl ?? undefined,
-          prohibitedPhrases: prohibited,
+          prohibitedPhrases: brand.prohibitedPhrases,
         });
-    for (const w of built.warnings) problems.push(`${refCode}: ${w}`);
+    const check = checkQueuedPost({
+      networkCode: to,
+      title: p.item.title,
+      body: p.item.body ?? undefined,
+      hasMedia: Boolean(p.item.mediaPath),
+      refCode,
+      url: p.item.sourceUrl ?? undefined,
+      brand,
+    });
+    for (const x of check.problems) problems.push(`${refCode}: ${x}`);
+    for (const x of check.warnings) warnings.push(`${refCode}: ${x}`);
     console.log(`\n=== ${refCode} · ${p.scheduledAt ? formatMsk(p.scheduledAt) : 'без времени'} · ${p.item.mediaPath ?? 'текст'}`);
     console.log(built.caption);
     return { itemId: p.itemId, scheduledAt: p.scheduledAt, refCode, caption: built.caption };
@@ -119,6 +133,7 @@ async function main(): Promise<number> {
   });
   for (const t of taken) problems.push(`метка ${t.refCode} уже занята в ${to}`);
 
+  for (const w of warnings) console.log(`Предупреждение: ${w}`);
   if (problems.length > 0) {
     console.error('\nНичего не записано. Проверки:');
     for (const p of problems) console.error(`  - ${p}`);
