@@ -64,7 +64,7 @@ function httpStatusError(code: number): SeoConnectorStatus {
 }
 
 /** Один вызов Search Console API с токеном. 204 возвращает data = null. */
-async function gscCall<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown): Promise<Result<T | null>> {
+export async function gscCall<T>(method: 'GET' | 'POST' | 'PUT', path: string, body?: unknown): Promise<Result<T | null>> {
   const auth = await getGoogleAccessToken();
   if (!auth.token) return { ok: false, status: auth.status };
 
