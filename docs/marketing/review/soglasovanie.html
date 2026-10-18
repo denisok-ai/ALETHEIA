@@ -84,7 +84,7 @@ details p { margin: 8px 0 0; color: var(--muted); max-width: 70ch }
 <div class="wrap">
   <header class="intro">
     <h1>Согласование контента Аватэрры</h1>
-    <p>План публикаций школы на 19 октября — 15 ноября: ролики из курса и тексты для Telegram, MAX, ВКонтакте и Дзена. Здесь можно посмотреть каждый пункт, поправить заголовок и текст и отметить решение.</p>
+    <p>План публикаций школы на 19 октября — 15 ноября: ролики из курса и тексты для Telegram, MAX, ВКонтакте и Дзена. Здесь можно посмотреть каждый пункт, поправить заголовок и текст и отметить решение. На свободных местах — короткие сценарии роликов на 20–30 секунд, которые можно записать на телефон: текст для чтения вслух тоже можно править.</p>
     <ol class="how">
       <li>Посмотрите ролик или прочитайте текст. Правьте прямо в полях.</li>
       <li>Нажмите «Согласовано», «Нужны правки» или «Отклонить». Правки и комментарий сохранятся вместе с решением.</li>
@@ -109,7 +109,7 @@ details p { margin: 8px 0 0; color: var(--muted); max-width: 70ch }
 <script>
 (() => {
   const NET = { telegram: 'Telegram', max: 'MAX', vk: 'ВКонтакте', dzen: 'Дзен' };
-  const KIND = { 'video-queued': 'Ролик · уже в очереди', 'video-candidate': 'Ролик · кандидат', 'video-slot': 'Место под ролик', text: 'Текст' };
+  const KIND = { 'video-queued': 'Ролик · уже в очереди', 'video-candidate': 'Ролик · кандидат', 'video-slot': 'Место под ролик', 'video-script': 'Ролик · сценарий для записи', text: 'Текст' };
   const STATUS = { approved: ['Согласовано', 'ok'], changes: ['Нужны правки', 'warn'], rejected: ['Отклонено', 'bad'] };
   const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
   let items = [], decisions = {}, filter = 'all', db = null, me = null, canWrite = true;
@@ -158,6 +158,12 @@ details p { margin: 8px 0 0; color: var(--muted); max-width: 70ch }
       f.append(vs);
     }
 
+    if (it.kind === 'video-script') {
+      const sl = el('label', null, 'Текст для чтения вслух'); sl.htmlFor = 's-' + it.id;
+      const st = el('textarea'); st.id = 's-' + it.id; st.value = draft.speech ?? d.speech ?? it.speech ?? ''; st.disabled = !canWrite; st.rows = Math.min(12, Math.max(4, Math.ceil((st.value.length || 1) / 70)));
+      st.addEventListener('input', () => { (drafts[it.id] ||= {}).speech = st.value; });
+      f.append(sl, st);
+    }
     if (it.kind !== 'video-slot') {
       const bl = el('label', null, isVideo(it) ? 'Подпись к ролику' : 'Текст поста'); bl.htmlFor = 'b-' + it.id;
       const bt = el('textarea'); bt.id = 'b-' + it.id; bt.value = draft.body ?? d.body ?? it.body ?? ''; bt.disabled = !canWrite; bt.rows = Math.min(16, Math.max(5, Math.ceil((bt.value.length || 1) / 70)));
@@ -190,6 +196,7 @@ details p { margin: 8px 0 0; color: var(--muted); max-width: 70ch }
     const buttons = act.querySelectorAll('button'); buttons.forEach((b) => (b.disabled = true));
     saved.textContent = 'Сохраняю…';
     const body = { status, title: ti.value.trim(), body: bt ? bt.value : '', comment: ct.value.trim(), updatedAt: new Date().toISOString(), updatedBy: me };
+    const sp = document.getElementById('s-' + it.id); if (sp) body.speech = sp.value;
     try { await db.doc('decisions/' + it.id).set(body); delete drafts[it.id]; }
     catch (e) {
       if (e && e.code === 'invalid_argument') { canWrite = false; saved.textContent = 'Нет прав на сохранение. Попросите владельца выдать доступ «Редактор».'; }
@@ -205,7 +212,7 @@ details p { margin: 8px 0 0; color: var(--muted); max-width: 70ch }
     if (!items.length) { list.replaceChildren(el('div', 'state', 'План ещё не загружен. Он появится здесь, как только будет готов.')); return; }
     if (!shown.length) { list.replaceChildren(el('div', 'state', 'В этом фильтре пусто.')); return; }
     const groups = new Map();
-    for (const it of shown) { const w = it.kind === 'video-candidate' ? 'Ролики-кандидаты: выберите, какие поставить на свободные места' : weekOf(it.date); if (!groups.has(w)) groups.set(w, []); groups.get(w).push(it); }
+    for (const it of shown) { const w = it.kind === 'video-candidate' ? 'Ролики-кандидаты из курса: можно поставить вместо любого сценария или в дополнение' : weekOf(it.date); if (!groups.has(w)) groups.set(w, []); groups.get(w).push(it); }
     const frag = document.createDocumentFragment();
     for (const [w, arr] of groups) { const s = el('section', 'week'); s.append(el('h2', null, w)); for (const it of arr) s.append(card(it)); frag.append(s); }
     // Сохраняем фокус и прокрутку при обновлении снимков
