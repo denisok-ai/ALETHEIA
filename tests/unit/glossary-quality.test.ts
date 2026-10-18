@@ -14,7 +14,7 @@ type Field = { slug: string; field: string; text: string };
 /**
  * Исключения из проверки scanPublishBlockers. Каждое — с причиной.
  * Сейчас пусто: все поля глоссария проходят gate.
- * Заголовок термина «Границы метода» (slug granitsy-metoda) не входит в проверку —
+ * Заголовок термина «Границы подхода» (slug granitsy-podhoda) не входит в проверку —
  * это название термина, а не текст школы; меняется отдельным решением владельца.
  */
 const QUALITY_EXCEPTIONS: Array<{ slug: string; field: string; code: string; reason: string }> = [];

@@ -551,7 +551,8 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     course: 'navyki-myshechnogo-testirovaniya',
   },
   {
-    slug: 'granitsy-metoda',
+    slug: 'granitsy-podhoda',
+    revised: '2026-10-19',
     term: 'Границы подхода',
     synonyms: ['противопоказания', 'когда нужен врач'],
     short: 'То, чего мышечное тестирование не делает: не ставит диагнозы, не лечит, не заменяет врача и психотерапевта.',
@@ -561,7 +562,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
     articles: ['myshechnoe-testirovanie-komu-podhodit-i-kogda-nuzhen-vrach'],
   },
   {
-    slug: 'kurs-telo-ne-vret',
+    slug: 'kurs-telo-znaet-vse',
     term: 'Практикум «Тело знает всё»',
     synonyms: ['навыки мышечного тестирования', 'практикум мышечного тестирования'],
     short: 'Практикум школы Аватэрра для самостоятельной работы: освоение мышечного тестирования и работы с подсознанием — на себе, для близких или в практике.',
@@ -570,7 +571,7 @@ export const GLOSSARY_TERMS: GlossaryTerm[] = [
 Подходит и новичкам, и помогающим специалистам, которым нужен инструмент для практики.`,
     articles: ['myshechnoe-testirovanie-obuchenie', 'kak-vybrat-kurs-avaterra', 'chem-otlichaetsya-ot-kursov-samorazvitiya'],
     course: 'navyki-myshechnogo-testirovaniya',
-    revised: '2026-10-13',
+    revised: '2026-10-19',
   },
   {
     slug: 'kurs-probuzhdenie',

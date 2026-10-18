@@ -15,7 +15,7 @@
 import { GLOSSARY_TERMS, type GlossaryTerm } from './glossary';
 
 /** Термины-сущности (курсы, автор) статьи и так ведут в курс/на /about. */
-const SKIP = new Set(['kurs-telo-ne-vret', 'kurs-probuzhdenie', 'tatyana-streltsova']);
+const SKIP = new Set(['kurs-telo-znaet-vse', 'kurs-probuzhdenie', 'tatyana-streltsova']);
 
 function stem(word: string): string {
   const w = word.toLowerCase().replace(/ё/g, 'е');

@@ -101,6 +101,26 @@ const nextConfig = {
         destination: '/services/telo-znaet-vse',
         permanent: true,
       },
+      /**
+       * Адреса без слова «метод» и без старого названия «Тело не врёт» (19.10.2026).
+       * Старые URL уже в индексе и в ссылках — постоянный редирект переносит вес на новые.
+       * Делаем здесь, а не через rewrite в proxy.ts (за nginx это даёт 500).
+       */
+      {
+        source: '/glossary/granitsy-metoda',
+        destination: '/glossary/granitsy-podhoda',
+        permanent: true,
+      },
+      {
+        source: '/glossary/kurs-telo-ne-vret',
+        destination: '/glossary/kurs-telo-znaet-vse',
+        permanent: true,
+      },
+      {
+        source: '/blog/kurs-telo-ne-vret-eto-obuchenie-myshechnomu-testirovaniyu',
+        destination: '/blog/praktikum-telo-znaet-vse-obuchenie-myshechnomu-testirovaniyu',
+        permanent: true,
+      },
     ];
   },
   images: {

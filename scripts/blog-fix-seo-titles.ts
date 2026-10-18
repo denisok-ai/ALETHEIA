@@ -61,7 +61,7 @@ const FIXES: Array<{ slug: string; title: string; description?: string }> = [
   },
 
   // Просто длинные — укоротить
-  { slug: 'kurs-telo-ne-vret-eto-obuchenie-myshechnomu-testirovaniyu', title: 'Курс «Тело не врёт»: чему учит и кому подходит' },
+  { slug: 'praktikum-telo-znaet-vse-obuchenie-myshechnomu-testirovaniyu', title: 'Практикум «Тело знает всё»: чему учит и кому подходит' },
   { slug: 'probuzhdenie-21-den-osoznannosti', title: 'Курс «Пробуждение»: 21 день практик осознанности' },
   { slug: 'pochemu-problemy-vozvrashautysya', title: 'Почему проблемы возвращаются: заряд в теле' },
 ];
