@@ -19,6 +19,7 @@ import { PageHeader } from '@/components/portal/PageHeader';
 import { CourseCoverPlaceholder } from '@/components/portal/CourseCoverPlaceholder';
 import { CourseVerificationBlock } from './CourseVerificationBlock';
 import { CourseMediaBlock, type CourseMediaItem } from './CourseMediaBlock';
+import { PracticeSafetyNote } from '@/components/PracticeSafetyNote';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PORTAL_PATH } from '@/lib/portal-paths';
@@ -260,6 +261,9 @@ export function StudentCourseDetailView({
           )}
         </div>
       )}
+
+      {/* Связь Course↔тариф ненадёжна (Service.courseId опционален), текст общий — показываем для всех самостоятельных курсов */}
+      {hasScorm && !isLive && <PracticeSafetyNote variant="portal" />}
 
       {isLive && !hasScorm && (
         <div className="portal-card p-5 border border-dashed border-[#CBD5E1] bg-[#F8FAFC]">

@@ -13,6 +13,8 @@ import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { JsonLdProduct } from '@/components/JsonLdProduct';
+import { PracticeSafetyNote } from '@/components/PracticeSafetyNote';
+import { PRACTICE_SAFETY_PRODUCT_SLUG } from '@/lib/content/practice-safety';
 import { ServiceBuyButton } from '@/components/ServiceBuyButton';
 import type { TariffItem } from '@/components/sections/Pricing';
 
@@ -215,6 +217,8 @@ export default async function ServicePage(props: { params: Promise<Params> }) {
               </p>
             </div>
           </div>
+
+          {product.slug === PRACTICE_SAFETY_PRODUCT_SLUG && <PracticeSafetyNote />}
 
           {/* Блоки ниже строятся из состава конкретного тарифа, поэтому у каждой
               страницы свой текст. Общее описание подхода живёт на странице курса
