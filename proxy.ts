@@ -5,6 +5,7 @@
 import { getToken } from 'next-auth/jwt';
 import { NextResponse, type NextRequest } from 'next/server';
 import { getPortalHomeForRole } from '@/lib/portal-role-home';
+import { isValidServerActionId } from '@/lib/next-action';
 import {
   buildContentSecurityPolicy,
   buildContentSecurityPolicyReportOnly,
@@ -78,6 +79,12 @@ export async function proxy(request: NextRequest) {
       : process.env.NEXTAUTH_SECRET ?? 'avaterra-dev-secret';
   if (process.env.NODE_ENV === 'production' && !secret) {
     return new NextResponse('Server misconfiguration: NEXTAUTH_SECRET required', { status: 500 });
+  }
+  // Битый Next-Action (сканеры шлют «x»): Next отвергает его только после рендера, с ошибкой
+  // в журнале. Настоящие ID — 42 hex-символа (lib/next-action.ts). Ответ — напрямую, без rewrite.
+  const nextAction = request.headers.get('next-action');
+  if (nextAction !== null && !isValidServerActionId(nextAction)) {
+    return new NextResponse(null, { status: 400 });
   }
   const token = await getToken({ req: request, secret });
   const role = (token?.role as string) ?? 'user';
