@@ -60,7 +60,7 @@ export function CourseCheckoutCTA({
           )}
           onClick={() => trackGa4AndYm(ANALYTICS.CLICK_ENROLL, ANALYTICS.CLICK_ENROLL)}
         >
-          Начать курс — 2 месяца практики
+          Начать практикум — доступ 3 месяца
         </Link>
       </div>
     </aside>
