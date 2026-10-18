@@ -8,7 +8,7 @@ import { getPdnOperatorPublic } from '@/lib/pdn-public';
 import { PDN_DOCS_VERSION } from '@/lib/consent-log';
 
 const DESCRIPTION =
-  'Политика в отношении обработки персональных данных на сайте AVATERRA (avaterra.pro): цели, состав данных, cookies, аналитика, права субъектов, порядок обращений.';
+  'Политика обработки персональных данных на сайте AVATERRA (avaterra.pro): цели, состав данных, cookies, аналитика, права субъектов, порядок обращений.';
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();

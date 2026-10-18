@@ -87,11 +87,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       '/course/probuzhdenie': '2026-08-11',
       '/about': '2026-10-13',
       '/faq': '2026-07-16',
-      '/obuchenie-kineziologii-onlajn': '2026-10-13',
+      '/obuchenie-kineziologii-onlajn': '2026-10-18',
       '/contacts': '2026-10-13',
       '/news': '2026-07-19',
       '/oferta': '2026-10-13',
-      '/privacy': '2026-10-16',
+      '/privacy': '2026-10-18',
       '/pd-consent': '2026-10-13',
     };
 

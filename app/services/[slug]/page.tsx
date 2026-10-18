@@ -23,10 +23,27 @@ const RELATED_ARTICLES = ['telo-znaet-otvet', 'mify-o-myshechnom-testirovanii', 
 
 type Params = { slug: string };
 
-function metaDescriptionFor(name: string, card: string, price: number): string {
+/** Лимит meta description для сниппета (SEO-правило: 140–160 символов). */
+const META_DESCRIPTION_MAX = 160;
+
+/** Обрезка по границе слова с многоточием, не длиннее max. */
+function cutAtWord(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const head = text.slice(0, max - 1);
+  const lastSpace = head.lastIndexOf(' ');
+  const base = (lastSpace > 0 ? head.slice(0, lastSpace) : head).replace(/[\s,;:–—-]+$/, '');
+  return `${base}…`;
+}
+
+/**
+ * Карточка тарифа + цена; бренд-хвост добавляется, только если влезает в лимит.
+ */
+function metaDescriptionFor(card: string, price: number): string {
   const priceText = price <= 0 ? 'Бесплатно' : `Цена ${price.toLocaleString('ru-RU')} ₽`;
-  const text = `${card} ${priceText}. Онлайн-школа мышечного тестирования АВАТЕРРА.`;
-  return text.length > 300 ? `${text.slice(0, 297)}…` : text;
+  const head = `${card} ${priceText}.`;
+  const full = `${head} Онлайн-школа мышечного тестирования АВАТЕРРА.`;
+  if (full.length <= META_DESCRIPTION_MAX) return full;
+  return cutAtWord(head, META_DESCRIPTION_MAX);
 }
 
 export async function generateMetadata(props: { params: Promise<Params> }): Promise<Metadata> {
@@ -43,7 +60,7 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
     : undefined;
   return buildPublicPageMetadata({
     title: product.name,
-    description: metaDescriptionFor(product.name, product.cardDescription, product.price),
+    description: metaDescriptionFor(product.cardDescription, product.price),
     canonical: `${base}/services/${product.slug}`,
     ogImageUrl,
   });
@@ -118,7 +135,7 @@ export default async function ServicePage(props: { params: Promise<Params> }) {
       />
       <JsonLdProduct
         name={product.name}
-        description={metaDescriptionFor(product.name, product.cardDescription, product.price)}
+        description={metaDescriptionFor(product.cardDescription, product.price)}
         pageUrl={pageUrl}
         price={product.price}
         imageUrl={product.imageUrl}
