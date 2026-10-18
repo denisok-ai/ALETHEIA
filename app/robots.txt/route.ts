@@ -16,7 +16,7 @@ import { normalizeSiteUrl } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
 
-const DISALLOW = ['/portal', '/portal/', '/api/', '/auth/'];
+const DISALLOW = ['/portal', '/portal/', '/api/', '/auth/', '/soglasovanie/'];
 
 /**
  * Исключения из Disallow. `/api/og/` — OG-карточки статей (og:image указывает
