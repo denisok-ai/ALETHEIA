@@ -30,7 +30,8 @@ function fieldsOf(t: (typeof GLOSSARY_TERMS)[number]): Field[] {
   });
   if (t.seoTitle) out.push({ slug: t.slug, field: 'seoTitle', text: t.seoTitle });
   if (t.seoDescription) out.push({ slug: t.slug, field: 'seoDescription', text: t.seoDescription });
-  // synonyms — формулировки поисковых запросов («метод колечек»), а не голос школы: правило не применяем.
+  // synonyms — формулировки поисковых запросов: весь gate не применяем, но «метод» проверяем отдельно
+  // (синонимы выводятся на странице «Также: …» и в DefinedTerm.alternateName).
   return out;
 }
 
@@ -50,6 +51,11 @@ describe('глоссарий: quality gate для всех терминов', ()
       }
     }
     expect(problems).toEqual([]);
+  });
+
+  it('синонимы без слова «метод» — они видны на странице термина', () => {
+    const bad = GLOSSARY_TERMS.flatMap((t) => (t.synonyms ?? []).filter((s) => /метод/i.test(s)).map((s) => `${t.slug}: ${s}`));
+    expect(bad).toEqual([]);
   });
 
   it('GLOSSARY_INTRO проходит scanPublishBlockers', () => {
