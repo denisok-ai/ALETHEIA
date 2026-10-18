@@ -51,7 +51,9 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T | null
     }
     return (await res.json()) as T;
   } catch (e) {
-    console.warn('[yandex-webmaster] запрос не удался:', path, e instanceof Error ? e.message : e);
+    // undici прячет причину сетевого сбоя в cause (ConnectTimeoutError, ENOTFOUND…) — пишем её код.
+    const cause = e instanceof Error ? (e.cause as { code?: string } | undefined)?.code : undefined;
+    console.warn('[yandex-webmaster] запрос не удался:', path, e instanceof Error ? e.message : e, cause ? `(${cause})` : '');
     return null;
   }
 }
