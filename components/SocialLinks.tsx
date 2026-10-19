@@ -36,7 +36,7 @@ const items = [
 
 export function SocialLinks({ className, iconClassName = 'h-5 w-5' }: SocialLinksProps) {
   return (
-    <ul className={cn('flex items-center gap-1.5', className)} aria-label="Соцсети AVATERRA">
+    <ul className={cn('flex items-center gap-1.5', className)} aria-label="Соцсети Аватэрры">
       {items.map(({ key, label, Icon }) => (
         <li key={key}>
           <a

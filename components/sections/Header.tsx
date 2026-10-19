@@ -33,8 +33,8 @@ const navLinks: NavLink[] = [
     children: [
       {
         href: '/course/navyki-myshechnogo-testirovaniya',
-        label: 'Навыки мышечного тестирования',
-        description: 'Авторская методика, 6 модулей, доступ 3 месяца',
+        label: 'Практикум «Тело знает всё»',
+        description: 'Мышечное тестирование: 6 модулей, доступ 3 месяца, в своём темпе',
       },
       {
         href: '/course/probuzhdenie',
@@ -140,7 +140,9 @@ export function Header() {
             const compact = link.shortLabel ?? link.label;
             const useTitle = link.shortLabel != null && link.shortLabel !== link.label;
             const desktopOnly =
-              link.href === '#method' ? 'hidden 2xl:inline-flex' : undefined;
+              // «О подходе» — только в мобильном меню: на десктопе пунктам не хватает места,
+            // и прижатое вправо меню наезжало на логотип (≈1600px, 19.10).
+            link.href === '#method' ? 'hidden' : undefined;
             if (link.children && link.children.length > 0) {
               const key = link.label;
               const isOpen = openSub === key;
@@ -218,7 +220,7 @@ export function Header() {
           >
             Задать вопрос
           </Button>
-          <SocialLinks className="ml-1 shrink-0" iconClassName="h-[1.125rem] w-[1.125rem]" />
+          <SocialLinks className="ml-1 hidden shrink-0 2xl:flex" iconClassName="h-[1.125rem] w-[1.125rem]" />
         </nav>
 
         <button
