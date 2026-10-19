@@ -23,7 +23,7 @@ export function JsonLdOrganization({
     '@context': 'https://schema.org',
     '@type': 'EducationalOrganization',
     '@id': `${url}/#organization`,
-    name: 'Школа «AVATERRA»',
+    name: 'Школа «Аватэрра»',
     // Юридическое лицо, которое продаёт курсы школы (Организация: legalName, taxID)
     legalName: SELLER_LEGAL_NAME,
     taxID: SELLER_INN,

@@ -848,7 +848,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 });
-export const DEFAULT_TAGLINE = 'Школа «AVATERRA» · мышечное тестирование';
+export const DEFAULT_TAGLINE = 'Школа «Аватэрра» · мышечное тестирование';
 
 export function taglineFor(data: CertificateData) {
   return (data.tagline && data.tagline.trim()) || DEFAULT_TAGLINE;

@@ -262,7 +262,7 @@ export function CertificateHeritage({ data }: { data: CertificateData }) {
         <CertificateSiteBrandMark marginBottom={10} />
         <Text style={styles.heritageTagline}>{taglineFor(data)}</Text>
         <HeritageOrnamentBar />
-        <Text style={styles.heritageMicroLine}>Официальный документ об образовании · Школа «AVATERRA»</Text>
+        <Text style={styles.heritageMicroLine}>Официальный документ об образовании · Школа «Аватэрра»</Text>
         <Text style={styles.heritageCertLabel}>СЕРТИФИКАТ</Text>
         <Text style={styles.heritageTitle}>О прохождении обучения</Text>
         <View style={styles.heritageHairline} />
@@ -435,7 +435,7 @@ export function CertificateElegant({ data }: { data: CertificateData }) {
         </View>
         {exp ? <Text style={styles.elegantExpiry}>Действителен до {exp}</Text> : null}
         <ElegantFlourishFooter />
-        <Text style={styles.elegantBottomNote}>Школа «AVATERRA» · мышечное тестирование</Text>
+        <Text style={styles.elegantBottomNote}>Школа «Аватэрра» · мышечное тестирование</Text>
       </View>
     </Page>
   );

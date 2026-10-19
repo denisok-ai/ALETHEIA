@@ -6,7 +6,7 @@
  */
 export const BRAND_SITE_NAME = 'АВАТЕРРА';
 /** Строка над заголовком на главной и в hero. */
-export const BRAND_SCHOOL_LINE = 'Школа «AVATERRA»';
+export const BRAND_SCHOOL_LINE = 'Школа «Аватэрра»';
 
 /**
  * Порядок для сайта (BrandLogo, фавикон): как до отдельного золотого знака для сертификатов.

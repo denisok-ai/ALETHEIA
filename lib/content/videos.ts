@@ -117,7 +117,7 @@ export function buildVideoObject(clip: VideoClip, base: string) {
     publisher: {
       '@type': 'Organization',
       '@id': `${origin}/#organization`,
-      name: 'Школа «AVATERRA»',
+      name: 'Школа «Аватэрра»',
       url: origin,
     },
   };
