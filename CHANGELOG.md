@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cron `telegram-egress` (каждые 5 мин): проба Telegram API через прокси. После 3 неудач подряд — письмо админу на почту (Telegram в этот момент недоступен), повтор не чаще раза в 6 часов; при восстановлении — сообщение в Telegram. Переходы состояния — `lib/telegram-egress-health.ts`, тесты — `tests/unit/telegram-egress-health.test.ts`.
 - Расписание: строка в `scripts/install-aletheia-http-cron.sh`, интервал `telegram-egress` в `lib/cron-heartbeat.ts` и в `scripts/cron-heartbeat-watchdog.sh`.
 
+### Removed (2026-10-23) — Чистка репозитория: DenisBot1, .playwright-mcp, vercel.json
+
+- Удалены `DenisBot1/` (старый Python SMM-бот, снят с сервера 03.10; бэклог остался в истории git, коммит `cbcd0d0`), `.playwright-mcp/` (снимки браузера) и `vercel.json` (прод на VPS, Vercel не используется; заголовки безопасности задаёт `next.config.mjs` и nginx).
+- `eslint.config.mjs`: убраны игноры удалённых путей.
+- `docs/Tasktracker.md`: ссылка на бэклог SMM-бота переведена на историю git.
+
 ### Fixed (2026-10-23) — Почтовые порты закрыты и после перезагрузки
 
 - `scripts/security-hardening-prod.sh`: правила DOCKER-USER для 110/143/995/4190 сохраняются в `/etc/ufw/after.rules` (в блок dev-портов), а не через netfilter-persistent, которого на сервере нет. Раньше после перезагрузки порты снова открывались наружу.

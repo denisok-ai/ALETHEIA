@@ -11,6 +11,14 @@
 - Отозванный токен бота тоже даст эту тревогу (в тексте письма будет `Unauthorized`). Это ожидаемо: связи с Telegram для бота нет.
 - Не проверено на проде: деплой и первая проба — после пуша через CI. Почтовый канал — проверить вручную через `?dry=1` (он показывает решение без отправки).
 
+## 2026-10-23 — Чистка репозитория: DenisBot1, .playwright-mcp, vercel.json
+
+- Перед удалением проверены все ссылки (`git grep`). Живых зависимостей нет: `package.json`, tsconfig, vitest, CI, `scripts/*.sh`, rsync-исключения от этих путей не зависят. Единственная живая ссылка — `docs/Tasktracker.md` (переведена на историю git). Комментарии-происхождение в `lib/telegram-bot/faq.ts`, `lib/telegram-bot/funnel.ts`, `lib/content/quality-gates.ts` и `.env.example` оставлены как есть.
+- `DenisBot1/` — Python SMM-бот, снят с сервера 03.10 (см. `docs/Plan-SEO-Social-2026-10.md`). Код и бэклог остаются в истории git (коммит `cbcd0d0`).
+- `vercel.json` никем не читается: Next.js берёт заголовки из `next.config.mjs`, nginx на проде отдаёт `X-Frame-Options: SAMEORIGIN`.
+- `.playwright-mcp/` уже был в `.gitignore`, повторно не добавлялся.
+- **Открыто для владельца:** файлы `.playwright-mcp/` (снимки портала от 23.09) содержат ПДн третьих лиц (имена, e-mail, Telegram-ники). Из дерева удалены, но в истории git остались. Переписывание истории — решение владельца, здесь не делалось. Персональные данные есть и в других tracked-файлах (`docs/Diary.md`, `docs/notes/`).
+
 ## 2026-10-23 (вечер, 2) — Telegram с прода: VPN сменил сертификат
 
 - С 16:43 до 18:41 прод не мог писать в Telegram: туннель `openconnect-telegram` падал по кругу (672 рестарта) с «Error in the certificate». VPN-сервер nodevonly.freemyip.com (89.110.127.47, ocserv) в 16:42 перезапустился и стал отдавать сертификат Let's Encrypt (YR1 → Root YR, выпущен 22.09, до 21.12) вместо прежнего, закреплённого `--servercert` в `/usr/local/bin/openconnect-telegram.sh`. OpenSSL цепочку подтверждает (Verify 0, имя совпадает), openconnect/GnuTLS сам ей не доверяет («signer not found»), поэтому пин нужен.

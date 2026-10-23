@@ -31,9 +31,7 @@ export default defineConfig([
     'out/**',
     'build/**',
     'next-env.d.ts',
-    'DenisBot1/**',
     '.vitest-db/**',
     'public/**',
-    '.playwright-mcp/**',
   ]),
 ]);
