@@ -126,17 +126,42 @@ echo "=== Docker/ufw bypass: закрыть неиспользуемые поч�
 # localhost и docker-подсети; 25/587/465 (приём + отправка приложением по
 # localhost) и 993 (IMAPS, TLS) не трогаем. Правила в цепочке DOCKER-USER,
 # которую Docker не сбрасывает при рестарте контейнеров; персист — через
-# netfilter-persistent (см. ниже). Идемпотентно.
+# /etc/ufw/after.rules (см. ниже). Идемпотентно.
 if command -v iptables >/dev/null 2>&1; then
   for PORT in 110 143 995 4190; do
     iptables -C DOCKER-USER -p tcp -s 127.0.0.0/8 --dport "$PORT" -j RETURN 2>/dev/null || iptables -I DOCKER-USER 1 -p tcp -s 127.0.0.0/8 --dport "$PORT" -j RETURN
     iptables -C DOCKER-USER -p tcp -s 172.16.0.0/12 --dport "$PORT" -j RETURN 2>/dev/null || iptables -I DOCKER-USER 2 -p tcp -s 172.16.0.0/12 --dport "$PORT" -j RETURN
     iptables -C DOCKER-USER -p tcp --dport "$PORT" -j DROP 2>/dev/null || iptables -A DOCKER-USER -p tcp --dport "$PORT" -j DROP
   done
-  if command -v netfilter-persistent >/dev/null 2>&1; then
-    netfilter-persistent save >/dev/null 2>&1 && echo "iptables-правила сохранены (netfilter-persistent)"
-  else
-    mkdir -p /etc/iptables && iptables-save > /etc/iptables/rules.v4 2>/dev/null && echo "iptables-правила сохранены в /etc/iptables/rules.v4"
+  # Персист. iptables-persistent на сервере нет и ставить его нельзя (конфликтует
+  # с ufw, см. security-phase2-prod.sh), поэтому прежняя запись в rules.v4 при
+  # загрузке никем не читалась: после перезагрузки 19.10.2026 эти порты 4 дня
+  # были открыты. Правила DOCKER-USER переживают перезагрузку только в
+  # /etc/ufw/after.rules. Строки идут в тот же блок *filter, что и dev-порты
+  # (restore-ufw-prod.sh): второе объявление :DOCKER-USER в отдельном блоке
+  # сбросило бы цепочку вместе с правилами первого блока.
+  AFTER=/etc/ufw/after.rules
+  MAIL_MARKER='# AVATERRA DOCKER-USER mail port blocks'
+  if [ -f "$AFTER" ] && ! grep -q "$MAIL_MARKER" "$AFTER"; then
+    cp -a "$AFTER" "$BACKUP_DIR/ufw-after.rules.bak"
+    MAIL_RULES="$MAIL_MARKER"
+    for PORT in 110 143 995 4190; do
+      MAIL_RULES="$MAIL_RULES
+-A DOCKER-USER -p tcp -s 127.0.0.0/8 --dport $PORT -j RETURN
+-A DOCKER-USER -p tcp -s 172.16.0.0/12 --dport $PORT -j RETURN
+-A DOCKER-USER -p tcp --dport $PORT -j DROP"
+    done
+    if grep -q '^# AVATERRA DOCKER-USER dev port blocks' "$AFTER"; then
+      MAIL_RULES="$MAIL_RULES" awk '
+        /^# AVATERRA DOCKER-USER dev port blocks/ { inblk = 1 }
+        inblk && /^COMMIT/ { print ENVIRON["MAIL_RULES"]; inblk = 0 }
+        { print }' "$AFTER" > "$AFTER.tmp"
+    else
+      { cat "$AFTER"; printf '\n*filter\n:DOCKER-USER - [0:0]\n%s\nCOMMIT\n' "$MAIL_RULES"; } > "$AFTER.tmp"
+    fi
+    # cat, а не mv: сохранить права и владельца after.rules
+    cat "$AFTER.tmp" > "$AFTER" && rm -f "$AFTER.tmp"
+    echo "почтовые правила DOCKER-USER сохранены в $AFTER"
   fi
   echo "почтовые порты 110/143/995/4190 закрыты наружу (localhost/docker разрешены)"
 fi

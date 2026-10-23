@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed (2026-10-23) — Почтовые порты закрыты и после перезагрузки
+
+- `scripts/security-hardening-prod.sh`: правила DOCKER-USER для 110/143/995/4190 сохраняются в `/etc/ufw/after.rules` (в блок dev-портов), а не через netfilter-persistent, которого на сервере нет. Раньше после перезагрузки порты снова открывались наружу.
+
 ### Added (2026-10-23) — Общий план и промпт для новой сессии
 
 - `docs/Plan-2026-Q4.md` — общий план развития: эксперимент «Тысяча», публикации, VK, ролики, SEO, юридическое, техдолг.
