@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Заливка роликов и постеров на прод: AVATERRA-private/clips/ → /opt/ALETHEIA/public/uploads/clips/.
+# Заливка роликов и постеров на прод: AVATERRA/private/clips/ → /opt/ALETHEIA/public/uploads/clips/.
 # Видео в git не кладём (репозиторий публичный): файлы отдаёт nginx из /uploads/ (alias на public/uploads/).
 #
 # Что заливается: только файлы, перечисленные в lib/content/videos.ts (поля file и poster):
@@ -15,7 +15,7 @@
 #   CLIPS_DRY_RUN=1 bash scripts/clips-upload.sh   # только проверка и показ того, что уйдёт
 #
 # Переменные окружения:
-#   CLIPS_LOCAL_DIR      локальный каталог роликов (по умолчанию ~/projects/AVATERRA-private/clips)
+#   CLIPS_LOCAL_DIR      локальный каталог роликов (по умолчанию ~/projects/AVATERRA/private/clips)
 #   DEPLOY_SSH           user@host (по умолчанию root@95.181.224.70)
 #   DEPLOY_SSH_IDENTITY  приватный ключ SSH (по умолчанию как в deploy-rsync-from-local.sh)
 #   CLIPS_REMOTE_DIR     каталог на сервере (по умолчанию /opt/ALETHEIA/public/uploads/clips)
@@ -27,7 +27,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CATALOG="$ROOT_DIR/lib/content/videos.ts"
 
-LOCAL_DIR="${CLIPS_LOCAL_DIR:-$HOME/projects/AVATERRA-private/clips}"
+LOCAL_DIR="${CLIPS_LOCAL_DIR:-$HOME/projects/AVATERRA/private/clips}"
 DEPLOY_SSH="${DEPLOY_SSH:-root@95.181.224.70}"
 REMOTE_DIR="${CLIPS_REMOTE_DIR:-/opt/ALETHEIA/public/uploads/clips}"
 DRY_RUN="${CLIPS_DRY_RUN:-0}"

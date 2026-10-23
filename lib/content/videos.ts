@@ -59,7 +59,7 @@ export const VIDEO_CLIPS: readonly VideoClip[] = [
     uploadDate: '2026-10-16T16:30:00+03:00',
     placements: ['practicum'],
   },
-  // Ролик 08 «Готовы ли вы меняться?» — добавить, когда появятся mp4 и json в AVATERRA-private/clips/:
+  // Ролик 08 «Готовы ли вы меняться?» — добавить, когда появятся mp4 и json в AVATERRA/private/clips/:
   // {
   //   slug: '08-gotovy-li-vy-menyatsya',
   //   title: 'Готовы ли вы меняться?',

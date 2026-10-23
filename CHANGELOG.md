@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-23) — Общий план и промпт для новой сессии
+
+- `docs/Plan-2026-Q4.md` — общий план развития: эксперимент «Тысяча», публикации, VK, ролики, SEO, юридическое, техдолг.
+- `docs/prompts/next-session.md` — стартовый промпт для новой сессии Claude.
+- Путь к приватным материалам `~/projects/AVATERRA-private` → `~/projects/AVATERRA/private` в документах, скилах и `scripts/clips-upload.sh`.
+
 ### Changed (2026-10-22) — Глоссарий под запросы «автопилот» и «телесная память»
 
 - `lib/content/glossary.ts`: термины `avtopilot` и `telesnaya-pamyat` дополнены: определение в первом предложении, ссылки на смежные термины и практикумы («Пробуждение», «Тело знает всё»), поле `revised` обновлено.
