@@ -4,7 +4,7 @@
  * manual-register-student.ts — НЕ создаёт платный Order (нет фейковой выручки
  * в отчётах): только User + Profile + Enrollment + подробное письмо-инструкция.
  *
- *   TEST_EMAIL=my-loft@yandex.ru TEST_NAME="Тестовая Ирина" \
+ *   TEST_EMAIL=test@example.com TEST_NAME="Тестовая Ирина" \
  *     TEST_COURSE_ID=course-avaterra-praktik \
  *     npx tsx scripts/register-test-user.ts
  *

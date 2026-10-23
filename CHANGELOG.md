@@ -282,7 +282,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added (2026-08-14) — Telegram-уведомление о новых письмах в ящиках
 
-- `scripts/mail-inbox-notify.py` (cron 10 мин): сообщает в Telegram о новых входящих в ящиках avaterra.pro (admin/info/support/tatyana/yarik), КРОМЕ служебных (DMARC-отчёты, mailer-daemon, no-reply, свой домен). Отслеживает по UID (state.json), декодирует темы. Повод: письмо клиента (Елизавета, жалоба на демо-курс) висело непрочитанным в admin@ — теперь живая почта видна сразу. Ответ Елизавете отправлен (демо→полный курс исправлен 11.08).
+- `scripts/mail-inbox-notify.py` (cron 10 мин): сообщает в Telegram о новых входящих в ящиках avaterra.pro (admin/info/support/tatyana/yarik), КРОМЕ служебных (DMARC-отчёты, mailer-daemon, no-reply, свой домен). Отслеживает по UID (state.json), декодирует темы. Повод: письмо клиента (студентка Е., жалоба на демо-курс) висело непрочитанным в admin@ — теперь живая почта видна сразу. Ответ студентке Е. отправлен (демо→полный курс исправлен 11.08).
 
 ### Changed (2026-08-14) — CI-деплой: сборка в Actions + rsync артефактов (без серверной сборки)
 
@@ -294,7 +294,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Google Search Console нашёл в Product/Offer (`/services/[slug]`) отсутствие `shippingDetails` (некритичная рекомендация). Добавлен `OfferShippingDetails` с нулевой стоимостью и мгновенной «доставкой» — курсы цифровые, физической доставки нет. `hasMerchantReturnPolicy`, `aggregateRating`, `review` СОЗНАТЕЛЬНО не добавлены: политика возврата в блоге (7 дней) и оферте (для цифрового контента ограничена) противоречат друг другу — нужна правда от владельца; отзывы/рейтинг фабриковать нельзя (правила Google о self-serving reviews).
 
-### Added (2026-08-12) — Контроль доставки критичных писем (после инцидента Руденко)
+### Added (2026-08-12) — Контроль доставки критичных писем (после инцидента Р.)
 
 - **Детектор bounce** (`scripts/mail-bounce-watch.sh`, cron каждые 15 мин): сканирует логи Postfix на `status=bounced` исходящих писем, шлёт Telegram-алерт админам с получателем и причиной, дедуп по queue-id. Закрывает корень инцидента: приложение помечает письмо «sent», как только локальный Postfix принял его, а асинхронный отлуп Gmail (`550 unauthenticated / no PTR`) в приложении не виден — клиент 3 недели не мог войти, узнали от него.
 - **Алерт при синхронном сбое** критичных писем: флаг `critical` в `sendTransactionalEmail` — при неудачной отправке письма пароля/доступа (payments, auth-reset, crm-convert) сразу уходит Telegram-алерт «письмо не отправлено». Вместе с детектором bounce покрывают оба режима отказа.

@@ -34,7 +34,7 @@ async function sendPaymentEmail(params: {
       entityId: String(params.order.id),
       userId: params.userId,
       // Письмо после оплаты несёт доступ к курсу и установку пароля —
-      // если оно не уйдёт, клиент останется без входа (инцидент Руденко).
+      // если оно не уйдёт, клиент останется без входа (инцидент Р.).
       critical: true,
     },
   });

@@ -51,6 +51,6 @@
 
 **Повторная проверка 2026-07-23 (~после добавления nic.ru support):** все почтовые записи уже отдаются публичным резолвером Google (dns.google / 8.8.8.8, TTL MX/TXT ~300s) и auth NS nic.ru (`ns*-l2.nic.ru` / `ns*-cloud.nic.ru`). Пропагация завершена — ждать час не нужно.
 
-**Повторная отправка welcome/access (2026-07-23 ~11:33–11:34 MSK)** после того, как DNS стал live: `rudenkoelena7667@gmail.com` и `sev-2101@mail.ru` — `EmailDeliveryLog.status=sent` (SMTP), Postfix `status=sent` / DSN 2.0.0 (Gmail gsmtp + Mail.ru), очередь пуста, bounce не зафиксирован. Пароли клиентов не менялись. Админам ушло краткое Telegram-оповещение.
+**Повторная отправка welcome/access (2026-07-23 ~11:33–11:34 MSK)** после того, как DNS стал live: `<почта студентки — в private>` и `<почта студентки — в private>` — `EmailDeliveryLog.status=sent` (SMTP), Postfix `status=sent` / DSN 2.0.0 (Gmail gsmtp + Mail.ru), очередь пуста, bounce не зафиксирован. Пароли клиентов не менялись. Админам ушло краткое Telegram-оповещение.
 
 NS домена: `ns3-l2.nic.ru` / `ns4-l2.nic.ru` / `ns8-l2.nic.ru` / `ns*-cloud.nic.ru`. Точные значения записей — [Mail-DNS-avaterra.pro.md](Mail-DNS-avaterra.pro.md).
