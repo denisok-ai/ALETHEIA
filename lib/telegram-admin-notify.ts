@@ -29,7 +29,8 @@ export type AdminTelegramEvent =
   | 'checkout_request'
   | 'social_autopublish'
   | 'social_ready_post'
-  | 'content_review';
+  | 'content_review'
+  | 'telegram_egress';
 
 const EVENT_LABELS: Record<AdminTelegramEvent, string> = {
   contact_lead: 'Новая заявка с сайта',
@@ -54,6 +55,7 @@ const EVENT_LABELS: Record<AdminTelegramEvent, string> = {
   social_autopublish: 'Автопубликация в соцсети',
   social_ready_post: 'Готовый пост для площадки',
   content_review: 'Согласование контента',
+  telegram_egress: 'Связь с Telegram',
 };
 
 /** Разбор списка chat ID из настроек (через запятую). */
@@ -71,7 +73,8 @@ export async function getTelegramAdminChatIds(): Promise<string[]> {
   return parseTelegramChatIds(row?.value);
 }
 
-function escapeHtml(text: string): string {
+/** Экранирование для HTML (Telegram и письма). */
+export function escapeHtml(text: string): string {
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

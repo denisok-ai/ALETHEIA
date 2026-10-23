@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-23) — Сторож связи с Telegram
+
+- Cron `telegram-egress` (каждые 5 мин): проба Telegram API через прокси. После 3 неудач подряд — письмо админу на почту (Telegram в этот момент недоступен), повтор не чаще раза в 6 часов; при восстановлении — сообщение в Telegram. Переходы состояния — `lib/telegram-egress-health.ts`, тесты — `tests/unit/telegram-egress-health.test.ts`.
+- Расписание: строка в `scripts/install-aletheia-http-cron.sh`, интервал `telegram-egress` в `lib/cron-heartbeat.ts` и в `scripts/cron-heartbeat-watchdog.sh`.
+
 ### Fixed (2026-10-23) — Почтовые порты закрыты и после перезагрузки
 
 - `scripts/security-hardening-prod.sh`: правила DOCKER-USER для 110/143/995/4190 сохраняются в `/etc/ufw/after.rules` (в блок dev-портов), а не через netfilter-persistent, которого на сервере нет. Раньше после перезагрузки порты снова открывались наружу.

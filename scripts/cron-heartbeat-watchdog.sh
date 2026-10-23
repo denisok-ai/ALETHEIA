@@ -27,6 +27,7 @@ declare -A EXPECTED=(
   [installment-payments]=60
   [reconcile-enrollments]=10
   [paykeeper-health]=5
+  [telegram-egress]=5
   [social-publish]=10
 )
 

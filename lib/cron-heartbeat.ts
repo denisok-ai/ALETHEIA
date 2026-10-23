@@ -23,6 +23,9 @@ export const CRON_EXPECTED_INTERVAL_MIN: Record<string, number> = {
   'installment-payments': 60,
   'reconcile-enrollments': 10,
   'paykeeper-health': 5,
+  // Сторож связи с Telegram (api.telegram.org через туннель) — каждые 5 минут.
+  // Отметка ставится после каждой пробы, в том числе при падении связи.
+  'telegram-egress': 5,
   // Раз в сутки; сторож поднимет тревогу, если пропущено двое суток подряд.
   'blog-telegram-sync': 1440,
   // Напоминание «записались, но курс не открыли» — раз в сутки (как blog-sync,
