@@ -5,6 +5,8 @@
  * Запуск: npx tsx scripts/prod-verify.ts [https://avaterra.pro]
  * Код возврата 1 — есть провалы (годится для cron/CI).
  */
+import { extractSitemapLocs, fetchSitemapText } from '../lib/seo/sitemap-read';
+
 export {}; // модуль, а не глобальный скрипт: иначе BASE/main конфликтуют между файлами
 
 const BASE = (process.argv[2] || 'https://avaterra.pro').replace(/\/$/, '');
@@ -93,7 +95,10 @@ async function main() {
   // 3d. Свежие статьи должны быть в карте сайта: блог пополняется ежедневно,
   // и если sitemap отстаёт, робот узнаёт о статье через недели.
   try {
-    const xml = await fetch(`${BASE}/sitemap.xml`).then((r) => r.text());
+    // /sitemap.xml — индекс: статьи лежат в дочерней карте /sitemaps/blog.xml
+    const index = await fetchSitemapText(`${BASE}/sitemap.xml`);
+    const blogMap = extractSitemapLocs(index).find((u) => u.endsWith('/sitemaps/blog.xml'));
+    const xml = blogMap ? await fetchSitemapText(blogMap) : '';
     const blogUrls = (xml.match(/<loc>[^<]*\/blog\/[^<]*<\/loc>/g) ?? []).length;
     const hasLastmod = /<loc>[^<]*\/blog\/[^<]*<\/loc>\s*<lastmod>/.test(xml);
     add('sitemap: статьи блога с датами', blogUrls > 0 && hasLastmod, `${blogUrls} статей`);

@@ -7,6 +7,7 @@ import { JsonLdFaqPage } from '@/components/JsonLdFaqPage';
 import { VideoClips } from '@/components/VideoClips';
 import { GLOSSARY_TERMS, getGlossarySorted, getGlossaryTerm } from '@/lib/content/glossary';
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
+import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
@@ -41,12 +42,14 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
   // Бренд добавит шаблон layout — иначе двойной суффикс
   const title = t.seoTitle ?? `${t.term} — что это простыми словами`;
   const description = t.seoDescription ?? t.short;
-  return {
+  // OG-карточка с названием термина: /api/og/glossary/<slug> (app/api/og/glossary/[slug]/route.ts)
+  return buildPublicPageMetadata({
     title,
     description,
-    alternates: { canonical },
-    openGraph: { title, description, url: canonical, type: 'article', locale: 'ru_RU' },
-  };
+    canonical,
+    ogType: 'article',
+    ogImageUrl: `${base}/api/og/glossary/${t.slug}`,
+  });
 }
 
 export default async function GlossaryTermPage(props: Props) {

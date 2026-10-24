@@ -3,6 +3,7 @@
  */
 import { prisma } from '@/lib/db';
 import { notifyAdminsTelegram } from '@/lib/telegram-admin-notify';
+import { expandSitemapXml, fetchSitemapText } from '@/lib/seo/sitemap-read';
 import { getContentConfig } from '../config';
 import { categorizeUrl } from './categorizer';
 import { diffVersions } from './diff';
@@ -99,6 +100,9 @@ export async function runSiteRadarCycle(priorityOnly = false): Promise<RadarCycl
     sitemapXml = (await fetchText(sitemapUrl)) ?? '';
   }
 
+  // /sitemap.xml — индекс: без раскрытия адреса самих файлов карт (/sitemaps/*.xml) сочли бы страницами.
+  // Ошибка дочерней карты бросает исключение: иначе пропавшие страницы деактивировались бы как удалённые.
+  sitemapXml = (await expandSitemapXml(sitemapXml, fetchSitemapText)).join('\n');
   let entries = normalizeSitemapHost(parseSitemap(sitemapXml), host);
   entries = filterEntriesByRobots(entries, robots, host);
 

@@ -11,20 +11,18 @@
 import { prisma } from '@/lib/db';
 import { pingIndexNow } from '@/lib/indexnow';
 import { recrawlUrl } from '@/lib/seo/yandex-webmaster';
+import { fetchSitemapText, readSitemapUrls } from '@/lib/seo/sitemap-read';
 
 const KNOWN_KEY = 'sitemap_known_urls';
 const MAX_PER_RUN = 50;
 
-export function extractSitemapUrls(xml: string): string[] {
-  return [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/g)].map((m) => m[1]);
-}
+// /sitemap.xml — индекс: адреса страниц берутся из дочерних карт (lib/seo/sitemap-read.ts).
+export { extractSitemapLocs as extractSitemapUrls } from '@/lib/seo/sitemap-read';
 
 export type SitemapRecrawlResult = { total: number; fresh: string[]; recrawled: number; indexNow: boolean; initialized: boolean };
 
 export async function recrawlNewSitemapUrls(base: string, opts: { dryRun?: boolean } = {}): Promise<SitemapRecrawlResult> {
-  const res = await fetch(`${base}/sitemap.xml`, { signal: AbortSignal.timeout(20_000), cache: 'no-store' });
-  if (!res.ok) throw new Error(`sitemap HTTP ${res.status}`);
-  const current = extractSitemapUrls(await res.text());
+  const current = await readSitemapUrls(`${base}/sitemap.xml`, fetchSitemapText);
 
   const row = await prisma.systemSetting.findUnique({ where: { key: KNOWN_KEY } });
   let known: string[] | null = null;

@@ -23,7 +23,7 @@ Phygital-школа кинезиологии «Аватэрра» (avaterra.pro)
 - Title страниц: бренд добавляет шаблон layout (`%s | АВАТЕРРА`) — вручную не дописывать (двойной суффикс).
 - IP клиента — только через `lib/client-ip.ts` (первый элемент XFF подделывается).
 - Prisma 5.22: `tariffId: { not: null }` падает в рантайме — фильтровать null в коде.
-- Правишь статическую страницу — обнови дату в `CONTENT_REVISED` (`app/sitemap.ts`).
+- Правишь статическую страницу — обнови дату в `CONTENT_REVISED` (`lib/seo/sitemap-entries.ts`).
 - `Order.userId` проставляется ТОЛЬКО вместе с созданием Enrollment — на этом держится сверка платежей, не ломать.
 - robots.txt закрывает `/api/`, но OG-карточки `/api/og/` явно разрешены — не потеряй `ALLOW_EXCEPTIONS` при правках.
 - Установщик крона `scripts/install-aletheia-http-cron.sh` перезаписывает `/etc/cron.d/aletheia-http-cron` целиком: новые записи добавлять В УСТАНОВЩИК.

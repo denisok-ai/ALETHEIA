@@ -45,7 +45,7 @@
 | Компонент | Где |
 |-----------|-----|
 | `robots.txt` (dynamic, AI bots, Yandex Clean-param, ссылки на llms) | `app/robots.txt/route.ts` |
-| `sitemap.xml` (force-dynamic, безопасные даты, fallback без 500, `/news`) | `app/sitemap.ts` |
+| `sitemap.xml` — индекс на карты разделов `/sitemaps/{pages,services,blog,glossary}.xml` (force-dynamic, безопасные даты, без 500; `/news` не входит) | `app/sitemap.xml/route.ts`, `app/sitemaps/[file]/route.ts`, отбор адресов и дат — `lib/seo/sitemap-entries.ts` |
 | Metadata (title/description/OG/Twitter), `lang=ru` | `app/layout.tsx`, `lib/seo/*`, публичные `page.tsx` |
 | Canonical **только на страницах** (не в корневом layout) | публичные `generateMetadata` |
 | JSON-LD: Organization, WebSite, Course, FAQ, Product, Person, Blog… | `components/JsonLd*.tsx` |

@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { GLOSSARY_INTRO, getGlossarySorted } from '@/lib/content/glossary';
+import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
+import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
 import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
@@ -13,13 +15,13 @@ export async function generateMetadata(): Promise<Metadata> {
   const canonical = `${base}/glossary`;
   const description =
     'Глоссарий кинезиологии и мышечного тестирования: короткие честные определения терминов — от сверки баланса и лобного обхвата до эмоционального заряда.';
-  return {
+  return buildPublicPageMetadata({
     // Бренд добавит шаблон layout — иначе двойной суффикс
     title: 'Глоссарий кинезиологии и мышечного тестирования',
     description,
-    alternates: { canonical },
-    openGraph: { title: 'Глоссарий кинезиологии', description, url: canonical, type: 'website', locale: 'ru_RU' },
-  };
+    canonical,
+    ogImageUrl: `${base}${DEFAULT_OG_IMAGE_PATH}`,
+  });
 }
 
 export default async function GlossaryIndexPage() {

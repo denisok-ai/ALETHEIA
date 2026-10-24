@@ -1,11 +1,8 @@
 import { absoluteCourseCheckoutUrl, COURSE_SLUG } from '@/lib/content/course-lynda-teaser';
 import { jsonLdString } from '@/lib/json-ld';
-import { LANDING_REVIEWS } from '@/lib/content/testimonials';
 import { BRAND_LOGO_URL } from '@/lib/brand';
 
-/**
- * Schema.org: курс, преподаватель и отзывы (главная страница).
- */
+/** Schema.org: курс и преподаватель. Рейтинг и отзывы не выводим: отзывы в lib/content/testimonials.ts не о практикуме «Тело знает всё», рейтинг по ним — вводящая в заблуждение разметка (риск ручных мер Google). */
 export type CourseOfferInput = { name: string; price: number; url: string };
 
 export function JsonLdCourse({
@@ -22,17 +19,6 @@ export function JsonLdCourse({
   const courseUrl = `${base}/course/${COURSE_SLUG}`;
   const courseDescription =
     'Практикум мышечного тестирования «Тело знает всё» для самостоятельного освоения: причина проблемы за 30 секунд, работа с телом и подсознанием, измеримая обратная связь.';
-
-  const reviewsJsonLd = LANDING_REVIEWS.map((r) => ({
-    '@type': 'Review',
-    reviewRating: { '@type': 'Rating', ratingValue: r.rating, bestRating: 5 },
-    author: { '@type': 'Person', name: r.author },
-    reviewBody: r.text,
-  }));
-
-  const n = LANDING_REVIEWS.length;
-  const sum = LANDING_REVIEWS.reduce((acc, r) => acc + r.rating, 0);
-  const avg = n > 0 ? (sum / n).toFixed(1) : '5';
 
   const data = {
     '@context': 'https://schema.org',
@@ -85,14 +71,6 @@ export function JsonLdCourse({
                 url: offerUrl,
                 availability: 'https://schema.org/InStock',
               },
-        aggregateRating: {
-          '@type': 'AggregateRating',
-          ratingValue: avg,
-          bestRating: 5,
-          ratingCount: n,
-          reviewCount: n,
-        },
-        review: reviewsJsonLd,
       },
     ],
   };

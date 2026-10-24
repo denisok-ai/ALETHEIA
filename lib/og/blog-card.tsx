@@ -49,7 +49,8 @@ function titleFontSize(len: number): number {
 
 const MAX_TITLE_CHARS = 140;
 
-export function renderBlogCard(rawTitle: string): ImageResponse {
+/** kicker — подпись над заголовком карточки: у статей блога и у терминов глоссария разная. */
+export function renderBlogCard(rawTitle: string, kicker = 'Аватэрра · Блог школы'): ImageResponse {
   const title =
     rawTitle.length > MAX_TITLE_CHARS ? `${rawTitle.slice(0, MAX_TITLE_CHARS - 1).trimEnd()}…` : rawTitle;
 
@@ -113,7 +114,7 @@ export function renderBlogCard(rawTitle: string): ImageResponse {
               color: '#D0C3AB',
             }}
           >
-            Аватэрра · Блог школы
+            {kicker}
           </span>
         </div>
 

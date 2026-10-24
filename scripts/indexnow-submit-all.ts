@@ -3,16 +3,15 @@
  * Запуск (локально или на сервере): npx tsx scripts/indexnow-submit-all.ts [https://avaterra.pro]
  */
 import { pingIndexNow } from '../lib/indexnow';
+import { fetchSitemapText, readSitemapUrls } from '../lib/seo/sitemap-read';
 
 const base = (process.argv[2] || 'https://avaterra.pro').replace(/\/$/, '');
 
 async function main() {
-  const res = await fetch(`${base}/sitemap.xml`);
-  if (!res.ok) throw new Error(`sitemap.xml HTTP ${res.status}`);
-  const xml = await res.text();
-  const urls = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  // /sitemap.xml — индекс: адреса страниц лежат в дочерних картах разделов.
+  const urls = await readSitemapUrls(`${base}/sitemap.xml`, fetchSitemapText);
   if (urls.length === 0) throw new Error('В sitemap не найдено URL');
-  console.log(`Отправляем ${urls.length} URL из ${base}/sitemap.xml…`);
+  console.log(`Отправляем ${urls.length} URL из ${base}/sitemap.xml (с дочерними картами)…`);
   const out = await pingIndexNow(base, urls);
   console.log(out.ok ? `OK (HTTP ${out.status})` : `FAIL (HTTP ${out.status ?? 'network'})`);
   if (!out.ok) process.exit(1);

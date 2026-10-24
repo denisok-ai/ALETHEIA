@@ -10,7 +10,8 @@ import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
-const DESCRIPTION = 'Статьи о мышечном тестировании, теле и подсознании — школы АВАТЕРРА.';
+const DESCRIPTION =
+  'Блог школы Аватэрра о мышечном тестировании, работе с телом, стрессе и эмоциях. Разбираем практики и вопросы для тех, кто учится слышать своё тело.';
 
 /** Статей на странице. Список пополняется ежедневно из Telegram-канала. */
 const PAGE_SIZE = 9;
