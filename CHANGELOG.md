@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-10-25) — Хаб словаря, noindex пустых новостей, проверки «не»/«метод»
+
+- `/glossary`: вводный текст (как пользоваться, с чего начать, где учиться, оговорки) и 5 тем с подзаголовками (`lib/content/glossary-groups.ts`, тест: каждый термин ровно в одной теме).
+- `/news`: `noindex, follow`, пока нет ни одной публикации (`buildPublicPageMetadata` получил `index`).
+- Тесты «нет „не“ в seoTitle» и «нет „метод“ в статьях» не работали (`\b` в JS не видит кириллицу) — границы через `\p{L}` + позитивный контроль.
+
 ### Changed (2026-10-25) — E-E-A-T: даты статей, ProfilePage, лёгкая OG-картинка
 
 - Статьи блога: `dateModified` и видимая строка «Обновлено …» — самая свежая из KB_REVISED и `BlogPost.updatedAt`, строка только при разнице больше суток (`lib/content/article-dates.ts`); та же дата в `lastmod` карты сайта.
