@@ -36,7 +36,8 @@ const bgSvg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg
 await mkdir('public/images/og', { recursive: true });
 await sharp(Buffer.from(bgSvg))
   .composite([{ input: photo, left: W - PHOTO_W, top: 0 }])
-  .png()
+  // Палитра 256 цветов без дизеринга: ~95 КБ вместо ~385 КБ при той же картинке (25.10.2026).
+  .png({ palette: true, colors: 256, dither: 0 })
   .toFile('public/images/og/og-default.png');
 
 console.log('OK: public/images/og/og-default.png');
