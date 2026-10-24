@@ -8,7 +8,8 @@ import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
 import { TelegramPromo } from '@/components/TelegramPromo';
 import { JsonLdBlogArticle } from '@/components/JsonLdBlogArticle';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
-import { blogModifiedAt } from '@/lib/content/kb-revisions';
+import { KB_REVISED, blogModifiedAt } from '@/lib/content/kb-revisions';
+import { articleDates, formatArticleDate } from '@/lib/content/article-dates';
 import { articleTerms } from '@/lib/content/article-terms';
 import { findGlossaryTerms } from '@/lib/content/glossary-links';
 import { currentAcqRef } from '@/lib/social/current-ref';
@@ -52,7 +53,7 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
       type: 'article',
       locale: 'ru_RU',
       publishedTime: post.publishedAt,
-      modifiedTime: blogModifiedAt(post.slug, post.publishedAt),
+      modifiedTime: blogModifiedAt(post.slug, post.publishedAt, post.updatedAt),
       images: [{ url: ogImageAbs, width: 1200, height: 630, alt: post.title }],
     },
     twitter: {
@@ -78,11 +79,13 @@ export default async function BlogArticlePage(props: Props) {
   const pageUrl = `${base}/blog/${slug}`;
   const ogPath = post.ogImage;
   const imageUrlAbs = `${base}${ogPath}`;
-  const publishedLabel = new Date(post.publishedAt).toLocaleDateString('ru-RU', {
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
+  const dates = articleDates({
+    publishedAt: post.publishedAt,
+    updatedAt: post.updatedAt,
+    kbRevised: KB_REVISED[slug],
   });
+  const publishedLabel = formatArticleDate(dates.published);
+  const updatedLabel = formatArticleDate(dates.modified);
 
   /**
    * «Читайте также» — тематическая перелинковка (topical authority, SEO-2026):
@@ -112,8 +115,8 @@ export default async function BlogArticlePage(props: Props) {
         headline={post.h1}
         description={post.description}
         pageUrl={pageUrl}
-        datePublished={post.publishedAt}
-        dateModified={blogModifiedAt(post.slug, post.publishedAt)}
+        datePublished={dates.published}
+        dateModified={dates.modified}
         imageUrl={imageUrlAbs}
       />
       <main className="mx-auto max-w-3xl px-4 pb-16 pt-20 font-body md:pt-24">
@@ -138,7 +141,13 @@ export default async function BlogArticlePage(props: Props) {
             {post.h1}
           </h1>
           <p className="mt-2 text-sm text-[var(--text-soft)]">
-            Опубликовано: {publishedLabel} · Автор:{' '}
+            Опубликовано: <time dateTime={dates.published}>{publishedLabel}</time>
+            {dates.showUpdated ? (
+              <>
+                {' · '}Обновлено: <time dateTime={dates.modified}>{updatedLabel}</time>
+              </>
+            ) : null}
+            {' · '}Автор:{' '}
             <Link href="/about" rel="author" className="text-plum underline-offset-2 hover:underline">
               Татьяна Стрельцова
             </Link>

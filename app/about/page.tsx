@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
-import { JsonLdPerson } from '@/components/JsonLdPerson';
+import { JsonLdProfilePage } from '@/components/JsonLdProfilePage';
 import { SOCIAL_LINKS } from '@/lib/social-links';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { cn } from '@/lib/utils';
@@ -33,6 +33,9 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
+/** Синхронно с CONTENT_REVISED['/about'] в lib/seo/sitemap-entries.ts. */
+const ABOUT_CONTENT_REVISED = '2026-10-13';
+
 export default async function AboutPage() {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
@@ -42,12 +45,13 @@ export default async function AboutPage() {
 
   return (
     <>
-      <JsonLdPerson
+      <JsonLdProfilePage
         id={personId}
         name={ABOUT_MASTER.name}
         description={ABOUT_MASTER.paragraphs.join(' ')}
         url={pageUrl}
         imageUrl={imageAbs}
+        dateModified={ABOUT_CONTENT_REVISED}
         jobTitle="Основательница школы кинезиологии АВАТЕРРА"
         sameAs={[SOCIAL_LINKS.youtube, SOCIAL_LINKS.telegram, SOCIAL_LINKS.max, SOCIAL_LINKS.instagram, `${base}/blog/tatyana-streltsova`]}
         knowsAbout={['прикладная кинезиология', 'мышечное тестирование', 'работа со стрессом', 'карта эмоций', 'практики осознанности']}

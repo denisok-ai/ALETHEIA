@@ -1,10 +1,15 @@
+import { articleDates } from '@/lib/content/article-dates';
+
 /**
- * Даты существенной переработки статей блога.
+ * Даты существенной переработки статей блога (ручные, для статей базы знаний).
  *
- * `BlogPost.updatedAt` для lastmod/dateModified не годится: он меняется и от
- * технических правок (обложка, пересохранение в админке) — поисковик видел бы
- * «обновление» без нового текста. Сюда дата вносится вручную, когда текст
- * статьи действительно расширен (см. `--refresh` в blog-publish-kb-articles).
+ * Для lastmod в sitemap берётся только эта дата: `BlogPost.updatedAt` меняется и от
+ * технических правок (обложка, пересохранение в админке), и поисковик увидел бы
+ * «обновление» без нового текста. Сюда дата вносится вручную, когда текст статьи
+ * действительно расширен (см. `--refresh` в blog-publish-kb-articles).
+ *
+ * dateModified и строка «Обновлено» на странице статьи учитывают и `updatedAt`,
+ * см. lib/content/article-dates.ts.
  */
 export const KB_REVISED: Record<string, string> = {
   'myshechnoe-testirovanie-dlya-psihologov': '2026-10-18',
@@ -38,9 +43,7 @@ export const KB_REVISED: Record<string, string> = {
   'praktiki-osoznannosti-s-chego-nachat': '2026-10-18',
 };
 
-/** Дата последнего изменения статьи для dateModified/lastmod (ISO). */
-export function blogModifiedAt(slug: string, publishedAt: string | Date): string {
-  const published = new Date(publishedAt);
-  const revised = KB_REVISED[slug] ? new Date(`${KB_REVISED[slug]}T12:00:00+03:00`) : null;
-  return (revised && revised > published ? revised : published).toISOString();
+/** Дата последнего изменения статьи для dateModified и modifiedTime (ISO). Логика — в article-dates. */
+export function blogModifiedAt(slug: string, publishedAt: string | Date, updatedAt?: string | Date | null): string {
+  return articleDates({ publishedAt, updatedAt, kbRevised: KB_REVISED[slug] ?? null }).modified;
 }

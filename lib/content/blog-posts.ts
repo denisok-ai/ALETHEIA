@@ -34,6 +34,8 @@ export type BlogPostView = {
   /** Иллюстрация в теле статьи и в карточке списка. null — показывать нечего. */
   coverImage: string | null;
   publishedAt: string;
+  /** Последнее изменение записи в БД (ISO). У статей из файла кода его нет. */
+  updatedAt?: string;
 };
 
 function parseBody(raw: string, format: string): BlogPostBody {
@@ -96,6 +98,7 @@ export async function getPublishedBlogPosts(): Promise<BlogPostView[]> {
       ogImage: r.ogImage ?? `/api/og/blog/${r.slug}`,
       coverImage: r.coverImage,
       publishedAt: (r.publishedAt ?? r.createdAt).toISOString(),
+      updatedAt: r.updatedAt.toISOString(),
     }));
   } catch (e) {
     console.error('[blog] БД недоступна, отдаю статьи из файла:', e);
