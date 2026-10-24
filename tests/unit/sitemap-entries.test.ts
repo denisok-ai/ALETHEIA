@@ -111,7 +111,13 @@ describe('карта сайта: отбор адресов по разделам
   it('раздел блога и главная берут самую свежую дату из своих записей', () => {
     const s = buildSitemapSections(fixture());
     expect(find(s.blog, `${BASE}/blog`)?.lastModified?.toISOString()).toBe('2026-10-20T08:00:00.000Z');
-    expect(find(s.pages, `${BASE}/`)?.lastModified?.toISOString()).toBe('2026-10-20T08:00:00.000Z');
+    // У главной есть «этаж» HOME_TEMPLATE_REVISED (правка секций 24.10): статьи старше — берётся он.
+    expect(find(s.pages, `${BASE}/`)?.lastModified?.toISOString()).toBe('2026-10-24T00:00:00.000Z');
+  });
+
+  it('главная берёт статью, если она свежее «этажа» шаблона', () => {
+    const s = buildSitemapSections(fixture({ blogPosts: [{ slug: 'fresh', publishedAt: '2026-11-02T09:00:00.000Z' }] }));
+    expect(find(s.pages, `${BASE}/`)?.lastModified?.toISOString()).toBe('2026-11-02T09:00:00.000Z');
   });
 
   it('без статей /blog выходит без lastmod и не падает', () => {

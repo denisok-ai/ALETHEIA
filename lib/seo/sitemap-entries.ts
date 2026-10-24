@@ -89,6 +89,13 @@ const CONTENT_REVISED: Record<string, string> = {
  */
 const PRODUCT_TEMPLATE_REVISED = new Date('2026-08-13');
 
+/**
+ * «Этаж» lastmod главной: её дата берётся из самой свежей статьи/услуги, а правка
+ * самих секций главной (24.10.2026 — блоки «Словарь» и «Свежее в блоге») туда не
+ * попадает. Обновлять при каждой правке содержимого главной.
+ */
+const HOME_TEMPLATE_REVISED = new Date('2026-10-24');
+
 /** Базовая дата словаря; переписанный термин несёт свою `revised`, индекс — самую свежую. */
 const GLOSSARY_REVISED = new Date('2026-09-24');
 
@@ -128,7 +135,7 @@ export function buildSitemapSections(src: SitemapSource): Record<SitemapSectionI
   const derived: Record<string, Date | undefined> = {
     '/blog': newestPost,
     '/services': newestProduct,
-    '': newestOf([newestPost, newestProduct]),
+    '': newestOf([newestPost, newestProduct, HOME_TEMPLATE_REVISED]),
   };
   const sectionLastmod = (path: string): Date | undefined =>
     derived[path] ?? (CONTENT_REVISED[path] ? safeDate(CONTENT_REVISED[path]) : undefined);
