@@ -103,6 +103,37 @@ export async function getPublishedBlogPosts(): Promise<BlogPostView[]> {
   }
 }
 
+export type BlogPostCard = Pick<BlogPostView, 'slug' | 'title' | 'description' | 'publishedAt'>;
+
+/**
+ * Карточки последних статей для главной: только поля карточки и limit строк.
+ * Главная рендерится на каждый запрос — тела всех статей ей не нужны.
+ * При пустой или недоступной БД — статьи из файла, как у getPublishedBlogPosts.
+ */
+export async function getLatestBlogPostCards(limit: number): Promise<BlogPostCard[]> {
+  try {
+    const rows = await prisma.blogPost.findMany({
+      where: { status: 'published' },
+      orderBy: { publishedAt: 'desc' },
+      take: limit,
+      select: { slug: true, title: true, description: true, publishedAt: true, createdAt: true },
+    });
+    if (rows.length > 0) {
+      return rows.map((r) => ({
+        slug: r.slug,
+        title: r.title,
+        description: r.description,
+        publishedAt: (r.publishedAt ?? r.createdAt).toISOString(),
+      }));
+    }
+  } catch (e) {
+    console.error('[blog] БД недоступна, карточки главной — из файла:', e);
+  }
+  return [...staticPosts()]
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, limit);
+}
+
 /** Одна опубликованная статья по slug. null — страницы нет (отдаём 404). */
 export async function getBlogPostBySlug(slug: string): Promise<BlogPostView | null> {
   const posts = await getPublishedBlogPosts();

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
+import { getLatestBlogPostCards } from '@/lib/content/blog-posts';
 
 /** Сколько статей на главной: шесть — ровно две строки в сетке из трёх колонок. */
 const HOME_POSTS_LIMIT = 6;
@@ -16,14 +16,11 @@ function formatPublished(iso: string) {
 
 /**
  * Свежие опубликованные статьи блога — превью на главной (без изображений).
- * Берём те же статьи, что и страница /blog (getPublishedBlogPosts): при пустой или
- * недоступной базе функция сама отдаёт статьи из файла (тизеры курса).
+ * Те же статьи, что на /blog, но лёгким запросом (getLatestBlogPostCards: только
+ * поля карточки); при пустой или недоступной базе — статьи из файла (тизеры курса).
  */
 export async function LandingBlog() {
-  const posts = await getPublishedBlogPosts();
-  const latestPosts = [...posts]
-    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-    .slice(0, HOME_POSTS_LIMIT);
+  const latestPosts = await getLatestBlogPostCards(HOME_POSTS_LIMIT);
   if (!latestPosts.length) return null;
 
   return (
