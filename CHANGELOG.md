@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-10-25) — E-E-A-T: даты статей, ProfilePage, лёгкая OG-картинка
+
+- Статьи блога: `dateModified` и видимая строка «Обновлено …» — самая свежая из KB_REVISED и `BlogPost.updatedAt`, строка только при разнице больше суток (`lib/content/article-dates.ts`); та же дата в `lastmod` карты сайта.
+- `/about`: JSON-LD `ProfilePage` с `mainEntity` Person, дата — из `CONTENT_REVISED` (`contentRevisedDate`).
+- `og-default.png` 385 → 95 КБ (PNG с палитрой), генератор `scripts/generate-og-image.mjs` пишет так же.
+
 ### Added (2026-10-25) — GA4: покупка и заявки; глоссарий под запросы Google
 
 - GA4: `purchase` (номер заказа, сумма, товар) на `/success`, `generate_lead` после успешной заявки — чат, «Первый тест», заявка на оплату, персональная ссылка, лист ожидания (`lib/analytics-events.ts`, без персональных данных, без повторов при перезагрузке). Метрика без изменений.
