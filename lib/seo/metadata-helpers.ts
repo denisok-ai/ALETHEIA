@@ -10,8 +10,10 @@ export function buildPublicPageMetadata(opts: {
   ogType?: 'website' | 'article';
   /** Абсолютный URL OG-изображения (по умолчанию — брендовый баннер 1200×630) */
   ogImageUrl?: string;
+  /** false — не индексировать (follow сохраняется); по умолчанию страница индексируется */
+  index?: boolean;
 }): Metadata {
-  const { title, description, canonical, ogType = 'website', ogImageUrl } = opts;
+  const { title, description, canonical, ogType = 'website', ogImageUrl, index = true } = opts;
   const images = ogImageUrl
     ? [{ url: ogImageUrl, width: 1200, height: 630, alt: title }]
     : undefined;
@@ -34,6 +36,6 @@ export function buildPublicPageMetadata(opts: {
       description,
       ...(ogImageUrl ? { images: [ogImageUrl] } : {}),
     },
-    robots: { index: true, follow: true },
+    robots: { index, follow: true },
   };
 }

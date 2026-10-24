@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { GLOSSARY_INTRO, getGlossarySorted } from '@/lib/content/glossary';
+import { GLOSSARY_GROUPS, GLOSSARY_HUB_INTRO } from '@/lib/content/glossary-groups';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
 import { getSystemSettings } from '@/lib/settings';
@@ -28,6 +30,13 @@ export default async function GlossaryIndexPage() {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   const terms = getGlossarySorted();
+
+  // Темы хаба: термины внутри темы — по алфавиту (порядок getGlossarySorted).
+  // Что каждый термин стоит ровно в одной теме, проверяет tests/unit/glossary-hub.test.ts.
+  const groups = GLOSSARY_GROUPS.map((g) => ({
+    title: g.title,
+    terms: terms.filter((t) => g.slugs.includes(t.slug)),
+  }));
 
   // DefinedTermSet — одна сущность на весь словарь, термины — отдельными страницами.
   const jsonLd = {
@@ -63,23 +72,46 @@ export default async function GlossaryIndexPage() {
         <h1 className="font-heading text-3xl font-semibold text-[var(--text)] md:text-4xl">
           Глоссарий кинезиологии и мышечного тестирования
         </h1>
-        <p className="mt-4 text-[var(--text-muted)] leading-relaxed">{GLOSSARY_INTRO}</p>
+        <div className="mt-4 space-y-4 leading-relaxed text-[var(--text-muted)]">
+          <ReactMarkdown
+            components={{
+              a({ href, children }) {
+                return href?.startsWith('/') ? (
+                  <Link href={href} className="font-medium text-plum underline-offset-2 hover:underline">
+                    {children}
+                  </Link>
+                ) : (
+                  <a href={href} className="font-medium text-plum underline-offset-2 hover:underline" rel="noopener">
+                    {children}
+                  </a>
+                );
+              },
+            }}
+          >
+            {GLOSSARY_HUB_INTRO}
+          </ReactMarkdown>
+        </div>
 
-        <dl className="mt-10 divide-y divide-[var(--border)]">
-          {terms.map((t) => (
-            <div key={t.slug} className="py-5">
-              <dt>
-                <Link
-                  href={`/glossary/${t.slug}`}
-                  className="font-heading text-xl font-semibold text-plum underline-offset-2 hover:underline"
-                >
-                  {t.term}
-                </Link>
-              </dt>
-              <dd className="mt-1 text-[var(--text-muted)] leading-relaxed">{t.short}</dd>
-            </div>
-          ))}
-        </dl>
+        {groups.map((g) => (
+          <section key={g.title} className="mt-12">
+            <h2 className="font-heading text-2xl font-semibold text-[var(--text)]">{g.title}</h2>
+            <dl className="mt-4 divide-y divide-[var(--border)]">
+              {g.terms.map((t) => (
+                <div key={t.slug} className="py-5">
+                  <dt>
+                    <Link
+                      href={`/glossary/${t.slug}`}
+                      className="font-heading text-xl font-semibold text-plum underline-offset-2 hover:underline"
+                    >
+                      {t.term}
+                    </Link>
+                  </dt>
+                  <dd className="mt-1 text-[var(--text-muted)] leading-relaxed">{t.short}</dd>
+                </div>
+              ))}
+            </dl>
+          </section>
+        ))}
 
         <p className="mt-12 text-sm text-[var(--text-muted)]">
           Не нашли термин? Спросите в{' '}

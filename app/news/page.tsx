@@ -22,11 +22,15 @@ const DESCRIPTION =
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
+  const pubs = await getActivePublications();
   return buildPublicPageMetadata({
     title: SEO_TITLE,
     description: DESCRIPTION,
     canonical: `${base}/news`,
     ogImageUrl: `${base}${DEFAULT_OG_IMAGE_PATH}`,
+    // Пока опубликованных новостей нет, страница пустая: в индекс не берём.
+    // Как только появится первая публикация, индексируется как обычно.
+    index: pubs.length > 0,
   });
 }
 
