@@ -98,6 +98,21 @@ export const BLOG_CTA: Partial<
   },
 };
 
+/**
+ * Запасная ссылка на курс для статей без своих якорей: ведёт на страницу программы,
+ * анкор нейтральный. Так каждая статья блога ведёт на курс.
+ */
+export const COURSE_FALLBACK_LINK: { href: string; label: string } = {
+  href: courseBase,
+  label: 'Программа практикума «Тело знает всё»',
+};
+
+/** Ссылки блока «Связь с программой курса»: свои якоря статьи, а без них — запасная ссылка на курс. */
+export function courseLinksFor(slug: string): { href: string; label: string }[] {
+  const own = BLOG_TO_COURSE_ANCHORS[slug];
+  return own?.length ? own : [COURSE_FALLBACK_LINK];
+}
+
 /** Слаги статей для блока «По теме» на странице курса. */
 export const COURSE_PAGE_BLOG_HIGHLIGHTS = [
   'stress-hronika-ili-signal-tela',

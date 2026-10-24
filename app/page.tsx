@@ -6,6 +6,7 @@ import { JsonLdCourse } from '@/components/JsonLdCourse';
 import { JsonLdLandingFaq } from '@/components/JsonLdLandingFaq';
 import { LandingBlog } from '@/components/sections/LandingBlog';
 import { LandingFAQ } from '@/components/sections/LandingFAQ';
+import { LandingGlossary } from '@/components/sections/LandingGlossary';
 import { TelegramPromo } from '@/components/TelegramPromo';
 import { getSystemSettings } from '@/lib/settings';
 import { currentAcqRef } from '@/lib/social/current-ref';
@@ -86,6 +87,7 @@ export default async function HomePage() {
       <Author />
       <Testimonials />
       <LandingBlog />
+      <LandingGlossary />
       <TelegramPromo variant="section" source="landing" acqRef={acqRef} />
       <LandingFAQ />
       <Pricing initialProducts={tariffs.length ? tariffs : undefined} />

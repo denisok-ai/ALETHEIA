@@ -9,6 +9,7 @@ import { TelegramPromo } from '@/components/TelegramPromo';
 import { JsonLdBlogArticle } from '@/components/JsonLdBlogArticle';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { blogModifiedAt } from '@/lib/content/kb-revisions';
+import { articleTerms } from '@/lib/content/article-terms';
 import { findGlossaryTerms } from '@/lib/content/glossary-links';
 import { currentAcqRef } from '@/lib/social/current-ref';
 import { getBlogPostBySlug, getPublishedBlogPosts } from '@/lib/content/blog-posts';
@@ -93,7 +94,10 @@ export default async function BlogArticlePage(props: Props) {
 
   // Термины глоссария, упомянутые в статье, — перелинковка статья → глоссарий
   // (lib/content/glossary-links.ts, покрыто тестами).
-  const terms = findGlossaryTerms(body.kind === 'markdown' ? body.markdown : body.paragraphs.join('\n'));
+  const bodyText = body.kind === 'markdown' ? body.markdown : body.paragraphs.join('\n');
+  const terms = findGlossaryTerms(bodyText);
+  // Термины по теме статьи — связь из глоссария и кластер (lib/content/article-terms.ts, с тестами).
+  const relatedTerms = articleTerms(slug, bodyText);
 
   return (
     <>
@@ -190,6 +194,11 @@ export default async function BlogArticlePage(props: Props) {
             </div>
           )}
           <BlogArticleCourseLinks slug={slug} />
+          <p className="mt-6 text-sm text-[var(--text-muted)]">
+            <Link href="/faq" className="text-plum underline-offset-2 hover:underline">
+              Частые вопросы о практикуме и подходе
+            </Link>
+          </p>
         </article>
 
         {terms.length > 0 ? (
@@ -199,6 +208,27 @@ export default async function BlogArticlePage(props: Props) {
             </h2>
             <ul className="mt-3 flex flex-wrap gap-2">
               {terms.map((t) => (
+                <li key={t.slug}>
+                  <Link
+                    href={`/glossary/${t.slug}`}
+                    title={t.short}
+                    className="inline-block rounded-full border border-[var(--border)] bg-[var(--surface)] px-3 py-1 text-sm text-plum hover:border-plum"
+                  >
+                    {t.term}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </aside>
+        ) : null}
+
+        {relatedTerms.length > 0 ? (
+          <aside className="mt-10" aria-labelledby="article-related-terms">
+            <h2 id="article-related-terms" className="font-heading text-lg font-semibold text-[var(--text)]">
+              Термины по теме
+            </h2>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {relatedTerms.map((t) => (
                 <li key={t.slug}>
                   <Link
                     href={`/glossary/${t.slug}`}

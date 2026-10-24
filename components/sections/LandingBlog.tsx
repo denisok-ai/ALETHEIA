@@ -1,9 +1,8 @@
 import Link from 'next/link';
-import { blogPostsMeta } from '@/lib/content/course-lynda-teaser';
+import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
 
-const latestPosts = [...blogPostsMeta]
-  .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
-  .slice(0, 3);
+/** Сколько статей на главной: шесть — ровно две строки в сетке из трёх колонок. */
+const HOME_POSTS_LIMIT = 6;
 
 function formatPublished(iso: string) {
   try {
@@ -15,8 +14,18 @@ function formatPublished(iso: string) {
   }
 }
 
-/** Три последние статьи блога — превью на главной (без изображений). */
-export function LandingBlog() {
+/**
+ * Свежие опубликованные статьи блога — превью на главной (без изображений).
+ * Берём те же статьи, что и страница /blog (getPublishedBlogPosts): при пустой или
+ * недоступной базе функция сама отдаёт статьи из файла (тизеры курса).
+ */
+export async function LandingBlog() {
+  const posts = await getPublishedBlogPosts();
+  const latestPosts = [...posts]
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, HOME_POSTS_LIMIT);
+  if (!latestPosts.length) return null;
+
   return (
     <section
       id="blog"
@@ -27,10 +36,10 @@ export function LandingBlog() {
           <div>
             <span className="block text-sm font-semibold uppercase tracking-widest text-plum">Блог</span>
             <h2 className="mt-2 font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">
-              Свежие материалы
+              Свежее в блоге
             </h2>
             <p className="mt-3 max-w-2xl text-[var(--text-muted)] leading-relaxed">
-              Статьи о мышечном тестировании, телесной обратной связи и практике школы AVATERRA.
+              Статьи о мышечном тестировании, телесной обратной связи и практике школы Аватэрра.
             </p>
           </div>
           <Link
