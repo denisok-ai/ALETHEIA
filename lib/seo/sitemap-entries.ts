@@ -29,7 +29,8 @@ export type SitemapSource = {
   /** Базовый адрес сайта без слэша на конце */
   base: string;
   products: { slug: string; updatedAt: Date | string | null | undefined }[];
-  blogPosts: { slug: string; publishedAt: Date | string | null | undefined }[];
+  /** updatedAt — правка статьи в БД (BlogPost.updatedAt); у статей из файла его нет. */
+  blogPosts: { slug: string; publishedAt: Date | string | null | undefined; updatedAt?: Date | string | null }[];
   publications: { id: string; updatedAt: Date | string | null | undefined }[];
   glossaryTerms: readonly GlossaryTerm[];
   kbRevised: Readonly<Record<string, string | undefined>>;
@@ -79,6 +80,11 @@ const CONTENT_REVISED: Record<string, string> = {
   '/privacy': '2026-10-18',
   '/pd-consent': '2026-10-13',
 };
+
+/** Дата правки статической страницы из CONTENT_REVISED (для dateModified в разметке страницы). */
+export function contentRevisedDate(path: string): string | undefined {
+  return CONTENT_REVISED[path];
+}
 
 /**
  * «Этаж» lastmod для страниц тарифов: их дата берётся из Service.updatedAt
@@ -162,7 +168,9 @@ export function buildSitemapSections(src: SitemapSource): Record<SitemapSectionI
     ...src.blogPosts.map((p) =>
       item(
         abs(`/blog/${p.slug}`),
-        newestOf([safeDate(p.publishedAt), safeDate(src.kbRevised[p.slug] ?? null)]),
+        // Та же дата правки, что в dateModified статьи (lib/content/article-dates.ts):
+        // публикация, KB_REVISED и правка в БД — самая свежая.
+        newestOf([safeDate(p.publishedAt), safeDate(src.kbRevised[p.slug] ?? null), safeDate(p.updatedAt ?? null)]),
         'monthly',
         0.65
       )

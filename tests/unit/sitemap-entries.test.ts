@@ -115,6 +115,13 @@ describe('карта сайта: отбор адресов по разделам
     expect(find(s.pages, `${BASE}/`)?.lastModified?.toISOString()).toBe('2026-10-24T00:00:00.000Z');
   });
 
+  it('lastmod статьи учитывает правку в БД (updatedAt), как dateModified на странице', () => {
+    const s = buildSitemapSections(
+      fixture({ blogPosts: [{ slug: 'edited', publishedAt: '2026-09-01T09:00:00.000Z', updatedAt: '2026-10-21T15:00:00.000Z' }] })
+    );
+    expect(find(s.blog, `${BASE}/blog/edited`)?.lastModified?.toISOString()).toBe('2026-10-21T15:00:00.000Z');
+  });
+
   it('главная берёт статью, если она свежее «этажа» шаблона', () => {
     const s = buildSitemapSections(fixture({ blogPosts: [{ slug: 'fresh', publishedAt: '2026-11-02T09:00:00.000Z' }] }));
     expect(find(s.pages, `${BASE}/`)?.lastModified?.toISOString()).toBe('2026-11-02T09:00:00.000Z');

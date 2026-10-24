@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { JsonLdProfilePage } from '@/components/JsonLdProfilePage';
+import { contentRevisedDate } from '@/lib/seo/sitemap-entries';
 import { SOCIAL_LINKS } from '@/lib/social-links';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { cn } from '@/lib/utils';
@@ -33,8 +34,8 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-/** Синхронно с CONTENT_REVISED['/about'] в lib/seo/sitemap-entries.ts. */
-const ABOUT_CONTENT_REVISED = '2026-10-13';
+/** Та же дата, что в карте сайта (CONTENT_REVISED['/about'] в lib/seo/sitemap-entries.ts). */
+const ABOUT_CONTENT_REVISED = contentRevisedDate('/about');
 
 export default async function AboutPage() {
   const settings = await getSystemSettings();

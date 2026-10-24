@@ -25,8 +25,8 @@ export function JsonLdProfilePage({
   url: string;
   imageUrl: string;
   jobTitle: string;
-  /** Дата последней правки содержимого страницы, YYYY-MM-DD */
-  dateModified: string;
+  /** Дата последней правки содержимого страницы, YYYY-MM-DD; без неё поле не выводится. */
+  dateModified?: string;
   /** E-E-A-T: публичные профили автора/школы — связывают сущность с внешними источниками. */
   sameAs?: string[];
   /** Области экспертизы — для понимания тематики автора поисковиками и ИИ. */
@@ -38,7 +38,7 @@ export function JsonLdProfilePage({
     '@context': 'https://schema.org',
     '@type': 'ProfilePage',
     url,
-    dateModified,
+    ...(dateModified ? { dateModified } : {}),
     inLanguage: 'ru-RU',
     mainEntity: {
       '@type': 'Person',
