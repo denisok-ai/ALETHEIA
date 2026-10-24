@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label';
 import type { TariffItem } from '@/components/sections/Pricing';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { ANALYTICS, trackGa4AndYm } from '@/lib/analytics-events';
+import { ANALYTICS, trackGa4AndYm, trackGa4Lead } from '@/lib/analytics-events';
 import { PersonalDataConsentCheckbox } from '@/components/forms/PersonalDataConsentCheckbox';
 
 interface PaymentModalProps {
@@ -88,6 +88,7 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
         trackGa4AndYm(ANALYTICS.FORM_SUBMIT, ANALYTICS.FORM_SUBMIT, {
           tariff_slug: tariff.slug ?? tariff.id,
         });
+        trackGa4Lead('checkout_request');
         setRequestMessage(data.message || 'Заявка принята! Мы свяжемся с вами и пришлём способ оплаты.');
         return;
       }
@@ -95,6 +96,8 @@ function PaymentModalForm({ tariff }: { tariff: TariffItem }) {
         trackGa4AndYm(ANALYTICS.FORM_SUBMIT, ANALYTICS.FORM_SUBMIT, {
           tariff_slug: tariff.slug ?? tariff.id,
         });
+        // Бесплатный доступ сервер оформляет сразу (paymentUrl ведёт на /success): это заявка, не покупка.
+        if (tariff.price <= 0) trackGa4Lead('first_test');
         window.location.href = data.paymentUrl;
       } else {
         const msg = data?.error || (res.ok ? '' : 'Ошибка сервера. Попробуйте позже или свяжитесь с нами.');

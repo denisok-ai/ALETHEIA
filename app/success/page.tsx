@@ -4,7 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/db';
 import { buttonVariants } from '@/components/ui/button-variants';
 import { cn } from '@/lib/utils';
-import { findActiveServiceForOrderTariff } from '@/lib/order-service';
+import { findActiveServiceForOrderTariff, findServiceForOrderTariff } from '@/lib/order-service';
 import { AnalyticsPaymentSuccess } from '@/components/AnalyticsPaymentSuccess';
 
 function maskEmail(email: string): string {
@@ -28,8 +28,13 @@ export default async function SuccessPage({
   const paidOrder = orderNumber
     ? await prisma.order.findFirst({
         where: { orderNumber, status: 'paid' },
-        select: { orderNumber: true, amount: true },
+        select: { orderNumber: true, amount: true, tariffId: true },
       })
+    : null;
+  // Название товара для GA4 (items). Без isActive: товар мог снять с продажи после оплаты.
+  // Ошибка здесь не должна ронять страницу оплаты — аналитика без названия переживёт.
+  const paidService = paidOrder
+    ? await findServiceForOrderTariff(paidOrder.tariffId).catch(() => null)
     : null;
 
   const session = await getServerSession(authOptions);
@@ -83,7 +88,14 @@ export default async function SuccessPage({
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-dark px-4">
-      {paidOrder ? <AnalyticsPaymentSuccess orderNumber={paidOrder.orderNumber} amountRub={paidOrder.amount} /> : null}
+      {paidOrder ? (
+        <AnalyticsPaymentSuccess
+          orderNumber={paidOrder.orderNumber}
+          amountRub={paidOrder.amount}
+          itemId={paidOrder.tariffId}
+          itemName={paidService?.name ?? null}
+        />
+      ) : null}
       <div className="text-center max-w-lg">
         <h1 className="font-heading text-3xl font-semibold text-[#f5f0e8]">
           Оплата прошла успешно

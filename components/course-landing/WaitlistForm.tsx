@@ -4,6 +4,7 @@ import { useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { trackGa4Lead } from '@/lib/analytics-events';
 
 export const WAITLIST_SUCCESS_TEXT =
   'Спасибо! Мы записали вас в лист ожидания. Мастер свяжется, когда откроется запись — без обязательств с вашей стороны.';
@@ -36,6 +37,7 @@ export function WaitlistForm() {
         setError(typeof data.error === 'string' ? data.error : 'Не удалось отправить. Попробуйте ещё раз.');
         return;
       }
+      trackGa4Lead('waitlist');
       setDone(true);
     } catch {
       setError('Нет связи с сервером. Попробуйте ещё раз.');

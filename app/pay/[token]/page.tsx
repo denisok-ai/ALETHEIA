@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { trackGa4Lead } from '@/lib/analytics-events';
 
 interface CheckoutData {
   status: string;
@@ -57,6 +58,7 @@ export default function PayCheckoutPage() {
         return;
       }
       if (result.requestAccepted) {
+        trackGa4Lead('checkout_request');
         setRequestMessage(result.message || 'Заявка принята! Мы свяжемся с вами и пришлём способ оплаты.');
         setPaying(false);
         return;

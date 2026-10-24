@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import { AVATERRA_OPEN_CHAT_EVENT } from '@/lib/chat-events';
 import { botDeepLink } from '@/lib/social-links';
 import { isMinimalPublicShell } from '@/lib/public-shell-paths';
+import { trackGa4Lead } from '@/lib/analytics-events';
 
 type Message = { role: 'user' | 'bot'; text: string };
 
@@ -49,6 +50,7 @@ export function ChatBot({ acqRef = null }: { acqRef?: string | null }) {
         setContactError(data?.error || 'Не удалось отправить. Попробуйте позже.');
         return;
       }
+      trackGa4Lead('chat');
       setContactState('sent');
       setContact('');
     } catch {
