@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-10-24) — SEO: первый пакет по аудиту Google
+
+- Разметка курса без `aggregateRating`/`review`: отзывы не о практикуме «Тело знает всё», рейтинг по ним вводил в заблуждение (риск ручных мер).
+- Карта сайта: `/sitemap.xml` — индекс, разделы `/sitemaps/{pages,services,blog,glossary}.xml` (`lib/seo/sitemap-entries.ts`, `sitemap-source.ts`, общий чтец `sitemap-read.ts` для prod-verify, IndexNow, перепроверки и радара); `/news` убрана из карты; у главной «этаж» lastmod при правке секций.
+- Главная: блок «Словарь телесных практик» (8 терминов, которые уже получают показы в Google) и «Свежее в блоге» — 6 настоящих последних статей из БД лёгким запросом (`getLatestBlogPostCards`).
+- Статьи блога: «Термины по теме» (`lib/content/article-terms.ts`), ссылка на программу курса у каждой статьи, ссылка на FAQ.
+- `og:image` для глоссария: карточка `/api/og/glossary/<slug>`; описание `/blog` 147 знаков.
+
 ### Added (2026-10-23) — Сторож связи с Telegram
 
 - Cron `telegram-egress` (каждые 5 мин): проба Telegram API через прокси. После 3 неудач подряд — письмо админу на почту (Telegram в этот момент недоступен), повтор не чаще раза в 6 часов; при восстановлении — сообщение в Telegram. Переходы состояния — `lib/telegram-egress-health.ts`, тесты — `tests/unit/telegram-egress-health.test.ts`.
