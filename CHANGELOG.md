@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-10-25) — GA4: покупка и заявки; глоссарий под запросы Google
+
+- GA4: `purchase` (номер заказа, сумма, товар) на `/success`, `generate_lead` после успешной заявки — чат, «Первый тест», заявка на оплату, персональная ссылка, лист ожидания (`lib/analytics-events.ts`, без персональных данных, без повторов при перезагрузке). Метрика без изменений.
+- Глоссарий: 6 терминов, которые Google уже показывает (`samotestirovanie`, `myshechnoe-testirovanie`, `emotsionalnyy-zaryad`, `praktika-prisutstviya`, `otvet-tela`, `podsoznanie`), расширены до ≈ 210 слов + FAQ, новые seoTitle/seoDescription; прошли экспертную проверку (юрист, психолог, редактор, корректор).
+
 ### Changed (2026-10-24) — SEO: первый пакет по аудиту Google
 
 - Разметка курса без `aggregateRating`/`review`: отзывы не о практикуме «Тело знает всё», рейтинг по ним вводил в заблуждение (риск ручных мер).
