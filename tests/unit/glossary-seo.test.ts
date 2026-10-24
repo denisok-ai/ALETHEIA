@@ -60,8 +60,15 @@ describe('glossary SEO-поля', () => {
     for (const slug of SEO_TERMS) {
       const title = getGlossaryTerm(slug)?.seoTitle;
       expect(title, slug).toBeDefined();
-      expect(title!, slug).not.toMatch(/\bне\b/i);
+      expect(title!, slug).not.toMatch(/(?<!\p{L})не(?!\p{L})/iu);
     }
+  });
+
+  it('проверка «не» срабатывает на кириллице (\\b в JS кириллицу не видит)', () => {
+    const ne = /(?<!\p{L})не(?!\p{L})/iu;
+    expect('Курс не для всех').toMatch(ne);
+    expect('Не путать с мышечной памятью').toMatch(ne);
+    expect('Нежность и внимание').not.toMatch(ne);
   });
 });
 

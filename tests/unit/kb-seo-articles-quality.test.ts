@@ -68,7 +68,9 @@ describe.each(ARTICLES)('статья $slug', ({ slug, links }) => {
     const text = fullText(a);
     expect(text).not.toMatch(/avaterra/i);
     expect(text).not.toMatch(/калибр/i);
-    expect(text).not.toMatch(/\bметод/i);
+    // Позитивный контроль: регулярка ловит кириллицу (\b в JS — только ASCII).
+    expect('Наш метод и методика').toMatch(/(?<!\p{L})метод/iu);
+    expect(text).not.toMatch(/(?<!\p{L})метод/iu);
     expect(text).not.toMatch(/₽|\d\s?000/);
   });
 
