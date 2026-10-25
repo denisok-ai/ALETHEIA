@@ -1,4 +1,6 @@
-/* Лента согласования. Палитра спокойная (сливовая, без красно-рыжих акцентов), светлая и тёмная тема. */
+/* Лента согласования. Палитра спокойная (сливовая, без красно-рыжих акцентов), светлая и тёмная тема.
+   Телефон: базовый шрифт 17px, кнопки не ниже 44px, поля ввода 17px (на iOS шрифт меньше 16px
+   приближает страницу при фокусе, поэтому меньше нельзя). */
 
 .page {
   --bg: #f6f4fa;
@@ -19,7 +21,7 @@
   background: var(--bg);
   color: var(--ink);
   color-scheme: light;
-  font: 15px/1.55 var(--font-body, 'Inter'), system-ui, sans-serif;
+  font: 17px/1.6 var(--font-body, 'Inter'), system-ui, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -68,7 +70,7 @@
 .intro {
   padding: 28px 0 8px;
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .intro p {
@@ -84,6 +86,48 @@
   padding-left: 1.2em;
   color: var(--muted);
   max-width: 64ch;
+}
+
+/* Строка прогресса сразу под заголовком. */
+.progressRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+}
+
+.progress {
+  font-size: 17px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.jump {
+  font: 600 16px / 1.2 var(--font-body, system-ui), system-ui, sans-serif;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--plum);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--plum);
+  cursor: pointer;
+}
+
+.allDone {
+  font-weight: 600;
+  color: var(--ok);
+}
+
+/* Подсказки и пояснения спрятаны в details; абзацы внутри разделяем отступом. */
+.howto summary {
+  cursor: pointer;
+  color: var(--plum);
+  font-weight: 600;
+  padding: 10px 0;
+}
+
+.intro .howto > * + * {
+  margin-top: 10px;
 }
 
 .bar {
@@ -114,7 +158,7 @@
   gap: 4px;
   border-radius: 999px;
   padding: 2px 10px;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 500;
   background: var(--plum-soft);
   color: var(--plum);
@@ -134,12 +178,13 @@
 }
 
 .filters button {
-  font: 500 13px var(--font-body, system-ui), system-ui, sans-serif;
+  font: 500 15px / 1.2 var(--font-body, system-ui), system-ui, sans-serif;
+  min-height: 44px;
   border: 1px solid var(--line);
   background: var(--surface);
   color: var(--ink);
   border-radius: 8px;
-  padding: 5px 10px;
+  padding: 8px 14px;
   cursor: pointer;
 }
 
@@ -163,6 +208,8 @@
   display: grid;
   gap: 12px;
   min-width: 0;
+  /* Прокрутка к карточке не прячет её под липкой панелью (высоту пишет ReviewBoard в --bar-h). */
+  scroll-margin-top: calc(var(--bar-h, 0px) + 12px);
 }
 
 .stApproved { border-left: 4px solid var(--ok); }
@@ -174,7 +221,7 @@
   flex-wrap: wrap;
   gap: 6px 10px;
   align-items: center;
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
 }
 
@@ -213,15 +260,6 @@
   display: block;
 }
 
-@media (max-width: 640px) {
-  .grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .grid video {
-    max-width: 240px;
-  }
-}
-
 .fields {
   display: grid;
   gap: 10px;
@@ -229,35 +267,47 @@
 }
 
 .label {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
   color: var(--muted);
 }
 
 .titleInput,
 .fields textarea {
   width: 100%;
-  font: 15px / 1.5 var(--font-body, system-ui), system-ui, sans-serif;
+  font: 17px / 1.5 var(--font-body, system-ui), system-ui, sans-serif;
   color: var(--ink);
   background: var(--bg);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 10px 12px;
 }
 
 .titleInput {
-  font: 600 16px / 1.35 var(--font-heading, Georgia), Georgia, serif;
+  font: 600 18px / 1.35 var(--font-heading, Georgia), Georgia, serif;
 }
 
 .fields textarea {
+  /* Высота растёт по тексту; rows в разметке остаётся запасным путём для браузеров без поддержки. */
+  field-sizing: content;
   resize: vertical;
   min-height: 6.5em;
 }
 
+/* Заголовок — тоже textarea (переносится на телефоне), но без высоты текстового поля. */
+.fields textarea.titleInput {
+  min-height: 0;
+  resize: none;
+}
+
 .fields .comment {
   min-height: 3.2em;
+}
+
+.hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--muted);
 }
 
 .page input:focus-visible,
@@ -275,12 +325,13 @@
 }
 
 .variants button {
-  font: 13px var(--font-body, system-ui), system-ui, sans-serif;
+  font: 16px / 1.3 var(--font-body, system-ui), system-ui, sans-serif;
+  min-height: 44px;
   border: 1px dashed var(--line);
   background: transparent;
   color: var(--ink);
   border-radius: 8px;
-  padding: 3px 8px;
+  padding: 10px 12px;
   cursor: pointer;
   text-align: left;
   overflow-wrap: anywhere;
@@ -290,29 +341,79 @@
   border-color: var(--plum);
 }
 
+/* Готовые ответы над комментарием. */
+.quick {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.quickHint {
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  font: 500 15px / 1.3 var(--font-body, system-ui), system-ui, sans-serif;
+  min-height: 44px;
+  max-width: 100%;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.chip[aria-pressed='true'] {
+  background: var(--plum);
+  color: var(--surface);
+  border-color: var(--plum);
+}
+
+.chip:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.quickNote {
+  margin: 0;
+  font-size: 14px;
+  color: var(--warn);
+}
+
 .risks {
   margin: 0;
   padding: 10px 12px 10px 28px;
   background: var(--warn-soft);
   color: var(--warn);
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .notes {
   margin: 0;
-  font-size: 14px;
+  font-size: 15px;
   color: var(--muted);
 }
 
 .details {
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .details summary {
   cursor: pointer;
   color: var(--plum);
   font-weight: 500;
+  padding: 10px 0;
 }
 
 .details p {
@@ -322,7 +423,7 @@
 }
 
 .link {
-  font-size: 13px;
+  font-size: 14px;
   color: var(--muted);
   overflow-wrap: anywhere;
 }
@@ -335,9 +436,10 @@
 }
 
 .actions button {
-  font: 600 14px var(--font-body, system-ui), system-ui, sans-serif;
+  font: 600 16px / 1.2 var(--font-body, system-ui), system-ui, sans-serif;
+  min-height: 44px;
   border-radius: 8px;
-  padding: 8px 14px;
+  padding: 10px 16px;
   cursor: pointer;
   border: 1px solid transparent;
 }
@@ -359,13 +461,19 @@
   border-color: var(--bad);
 }
 
+.actions .nextBtn {
+  background: var(--surface);
+  color: var(--plum);
+  border-color: var(--plum);
+}
+
 .actions button:disabled {
   opacity: 0.5;
   cursor: default;
 }
 
 .saved {
-  font-size: 13px;
+  font-size: 15px;
   color: var(--muted);
 }
 
@@ -375,6 +483,34 @@
   border-radius: 12px;
   color: var(--muted);
   margin-top: 24px;
+}
+
+/* Телефон: видео на всю ширину (но не выше 70% экрана), решения — столбиком во всю ширину. */
+@media (max-width: 640px) {
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .grid video {
+    max-height: 70vh;
+    margin: 0 auto;
+    object-fit: contain;
+  }
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .actions button {
+    width: 100%;
+    min-height: 48px;
+    font-size: 17px;
+  }
+  /* Панель итогов и фильтров на телефоне занимает ~180px — не прилипает, чтобы не закрывать карточку. */
+  .bar {
+    position: static;
+  }
+  .card {
+    scroll-margin-top: 12px;
+  }
 }
 
 @media (max-width: 420px) {

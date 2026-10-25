@@ -11,10 +11,13 @@
  */
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { COOKIE_CONSENT_EVENT, COOKIE_CONSENT_STORAGE_KEY } from '@/lib/cookie-consent';
+import { isPrivateToolPage } from '@/lib/public-shell-paths';
 
 export function CookieConsentBanner() {
+  const pathname = usePathname();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -39,7 +42,8 @@ export function CookieConsentBanner() {
     setVisible(false);
   }
 
-  if (!visible) return null;
+  // На странице согласования счётчиков нет — и сообщать о них незачем (см. isPrivateToolPage).
+  if (!visible || isPrivateToolPage(pathname)) return null;
 
   return (
     <div

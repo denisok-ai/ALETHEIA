@@ -11,18 +11,21 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { REVIEW_LIMITS } from './content-review-shared';
+
+// Клиентски-безопасная часть (лимиты, готовые ответы) живёт в content-review-shared.ts.
+export {
+  hasQuickReply,
+  quickRepliesFor,
+  REVIEW_LIMITS,
+  REVIEW_QUICK_REPLIES,
+  toggleQuickReply,
+} from './content-review-shared';
 
 export const REVIEW_TOKEN_MIN_LENGTH = 32;
 export const REVIEW_DECISIONS_KEY = 'content-review:decisions';
 export const REVIEW_STATUSES = ['approved', 'changes', 'rejected'] as const;
 export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
-
-export const REVIEW_LIMITS = {
-  title: 300,
-  body: 6000,
-  speech: 3000,
-  comment: 2000,
-} as const;
 
 /** Имя файла медиа: 32 hex-символа (uuid без дефисов) и расширение. Ничего больше. */
 const MEDIA_NAME_RE = /^[0-9a-f]{32}\.(mp4|jpg|jpeg|png)$/;

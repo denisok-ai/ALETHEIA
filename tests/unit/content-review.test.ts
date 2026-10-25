@@ -2,6 +2,7 @@ import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   getConfiguredReviewToken,
+  hasQuickReply,
   isSafeMediaName,
   isValidReviewToken,
   mediaContentType,
@@ -9,8 +10,12 @@ import {
   parseByteRange,
   parseDecisions,
   parseReviewItems,
+  quickRepliesFor,
   resolveReviewDir,
+  REVIEW_LIMITS,
+  REVIEW_QUICK_REPLIES,
   reviewNotificationLines,
+  toggleQuickReply,
   validateDecisionInput,
 } from '@/lib/content-review';
 
@@ -258,5 +263,71 @@ describe('resolveReviewDir', () => {
 
   it('CONTENT_REVIEW_DIR имеет приоритет', () => {
     expect(resolveReviewDir({ CONTENT_REVIEW_DIR: '/srv/review' }, '/app')).toBe(path.resolve('/srv/review'));
+  });
+});
+
+describe('готовые ответы', () => {
+  const video: string[] = [...REVIEW_QUICK_REPLIES.video];
+  const text: string[] = [...REVIEW_QUICK_REPLIES.text];
+  const common: string[] = [...REVIEW_QUICK_REPLIES.common];
+  const P = 'Нравится, можно публиковать';
+
+  it('для ролика — сначала фразы про видео, в конце общие', () => {
+    const list = quickRepliesFor('video-queued');
+    expect(list.slice(0, video.length)).toEqual(video);
+    expect(list.slice(video.length)).toEqual(common);
+  });
+
+  it('для текста — сначала фразы про текст, в конце общие', () => {
+    const list = quickRepliesFor('text');
+    expect(list.slice(0, text.length)).toEqual(text);
+    expect(list.slice(text.length)).toEqual(common);
+    expect(list.some((p) => video.includes(p))).toBe(false);
+  });
+
+  it('все видеотипы (кандидат, место, сценарий) получают фразы про видео', () => {
+    for (const kind of ['video-candidate', 'video-slot', 'video-script']) {
+      expect(quickRepliesFor(kind)).toEqual([...video, ...common]);
+    }
+  });
+
+  it('toggle добавляет фразу новой строкой в конец', () => {
+    expect(toggleQuickReply('', P)).toBe(P);
+    expect(toggleQuickReply('Первая строка.\nВторая строка.', P)).toBe('Первая строка.\nВторая строка.\n' + P);
+  });
+
+  it('второе касание убирает строку и возвращает исходный текст', () => {
+    const src = 'Текст пользователя, с точкой.\nЕщё строка.';
+    expect(toggleQuickReply(toggleQuickReply(src, P), P)).toBe(src);
+  });
+
+  it('убирает только строку с фразой, остальной текст не трогает', () => {
+    const src = 'Начало  \n' + P + '\nКонец, с запятой,\nВидео не подходит, но...';
+    expect(toggleQuickReply(src, P)).toBe('Начало  \nКонец, с запятой,\nВидео не подходит, но...');
+  });
+
+  it('фраза внутри чужой строки не считается отмеченной', () => {
+    const src = 'Нравится, можно публиковать, но поправьте заголовок';
+    expect(hasQuickReply(src, P)).toBe(false);
+    expect(toggleQuickReply(src, P)).toBe(src + '\n' + P);
+  });
+
+  it('пустые строки по краям не остаются', () => {
+    expect(toggleQuickReply('\n\nТекст\n\n', P)).toBe('Текст\n' + P);
+    expect(toggleQuickReply('Текст\n' + P + '\n\n', P)).toBe('Текст');
+  });
+
+  it('hasQuickReply сравнивает строки по trim', () => {
+    expect(hasQuickReply('x\n   ' + P + '  \ny', P)).toBe(true);
+    expect(hasQuickReply('', P)).toBe(false);
+  });
+
+  it('результат не длиннее REVIEW_LIMITS.comment', () => {
+    const fit = 'я'.repeat(REVIEW_LIMITS.comment - P.length - 1);
+    expect(toggleQuickReply(fit, P).length).toBe(REVIEW_LIMITS.comment);
+
+    const over = 'я'.repeat(REVIEW_LIMITS.comment - P.length);
+    expect(toggleQuickReply(over, P)).toBe(over);
+    expect(toggleQuickReply(over, P).length).toBeLessThanOrEqual(REVIEW_LIMITS.comment);
   });
 });

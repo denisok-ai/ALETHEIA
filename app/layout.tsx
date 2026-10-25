@@ -11,6 +11,7 @@ import { JsonLdOrganization } from '@/components/JsonLdOrganization';
 import { CookieConsentBanner } from '@/components/CookieConsentBanner';
 import { YandexMetrika } from '@/components/YandexMetrika';
 import { SiteAnalytics } from '@/components/SiteAnalytics';
+import { AnalyticsGate } from '@/components/AnalyticsGate';
 import { JsonLdWebSite } from '@/components/JsonLdWebSite';
 import { RootMain } from '@/components/RootMain';
 import { ChatBotLazy } from '@/components/ChatBotLazy';
@@ -137,8 +138,10 @@ export default async function RootLayout({
           offers={orgOffers.length ? orgOffers : undefined}
         />
         <JsonLdWebSite siteUrl={siteUrl} name={BRAND_SITE_NAME} />
-        <YandexMetrika />
-        <SiteAnalytics />
+        <AnalyticsGate>
+          <YandexMetrika />
+          <SiteAnalytics />
+        </AnalyticsGate>
         <CookieConsentBanner />
         <ChunkLoadRecovery />
         <SessionProvider>

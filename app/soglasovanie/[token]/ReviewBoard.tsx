@@ -4,9 +4,11 @@
  * Лента согласования: группы по неделям, фильтры, карточка на каждый пункт плана.
  * Поведение повторяет образец docs/marketing/review/soglasovanie.html; вместо
  * window.claude db данные идут через /api/review/<token>/data и /decision.
+ * Из lib импортируем только content-review-shared: lib/content-review тянет node-модули.
  */
-import { useEffect, useId, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import styles from './review.module.css';
+import { hasQuickReply, quickRepliesFor, toggleQuickReply } from '@/lib/content-review-shared';
 
 type Network = 'telegram' | 'max' | 'vk' | 'dzen' | string;
 type Status = 'approved' | 'changes' | 'rejected';
@@ -59,6 +61,7 @@ const STATUS: Record<Status, { text: string; pill: string; card: string }> = {
 const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
 const CANDIDATE_GROUP =
   'Ролики-кандидаты из курса: можно поставить вместо любого сценария или в дополнение';
+const DICTATION_HINT = 'Можно надиктовать: значок микрофона на клавиатуре телефона';
 
 const isVideo = (it: Item) => String(it.kind || '').startsWith('video');
 
@@ -91,11 +94,18 @@ function savedAt(iso: string): string {
   );
 }
 
+/** Прокрутка к карточке id="item-<id>". Отступ сверху задаёт --bar-h (высота липкой панели). */
+function scrollToItem(id: string) {
+  document.getElementById(`item-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 export default function ReviewBoard({ token }: { token: string }) {
   const [items, setItems] = useState<Item[] | null>(null);
   const [decisions, setDecisions] = useState<Record<string, Decision>>({});
   const [filter, setFilter] = useState<Filter>('all');
   const [loadFailed, setLoadFailed] = useState(false);
+  const pageRef = useRef<HTMLDivElement>(null);
+  const barRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let alive = true;
@@ -117,6 +127,18 @@ export default function ReviewBoard({ token }: { token: string }) {
     };
   }, [token]);
 
+  // Липкая панель фильтров закрывает верх экрана: при прокрутке к карточке отступаем на её высоту.
+  useEffect(() => {
+    const bar = barRef.current;
+    const page = pageRef.current;
+    if (!bar || !page || typeof ResizeObserver === 'undefined') return;
+    const apply = () => page.style.setProperty('--bar-h', `${bar.offsetHeight}px`);
+    apply();
+    const ro = new ResizeObserver(apply);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, []);
+
   const tally = useMemo(() => {
     const c = { approved: 0, changes: 0, rejected: 0, open: 0 };
     for (const it of items ?? []) {
@@ -126,6 +148,9 @@ export default function ReviewBoard({ token }: { token: string }) {
     }
     return c;
   }, [items, decisions]);
+
+  const done = tally.approved + tally.changes + tally.rejected;
+  const total = items?.length ?? 0;
 
   const shown = useMemo(() => {
     if (!items) return [];
@@ -147,6 +172,19 @@ export default function ReviewBoard({ token }: { token: string }) {
     }
     return [...map.entries()];
   }, [shown]);
+
+  // Порядок на экране (группы подряд): от него считаем «первый без решения» и «следующий».
+  const ordered = useMemo(() => groups.flatMap(([, arr]) => arr), [groups]);
+  const firstOpenId = ordered.find((it) => !decisions[it.id]?.status)?.id ?? null;
+  const nextOpenAfter = useMemo(() => {
+    const map: Record<string, string | null> = {};
+    let following: string | null = null;
+    for (let i = ordered.length - 1; i >= 0; i--) {
+      map[ordered[i].id] = following;
+      if (!decisions[ordered[i].id]?.status) following = ordered[i].id;
+    }
+    return map;
+  }, [ordered, decisions]);
 
   const filters: Array<[Filter, string]> = [
     ['all', 'Все'],
@@ -176,6 +214,7 @@ export default function ReviewBoard({ token }: { token: string }) {
             item={it}
             decision={decisions[it.id]}
             token={token}
+            nextOpenId={nextOpenAfter[it.id] ?? null}
             onSaved={(id, d) => setDecisions((prev) => ({ ...prev, [id]: d }))}
           />
         ))}
@@ -184,29 +223,46 @@ export default function ReviewBoard({ token }: { token: string }) {
   }
 
   return (
-    <div className={styles.page}>
+    <div className={styles.page} ref={pageRef}>
       <div className={styles.wrap}>
         <header className={styles.intro}>
           <h1>Согласование контента Аватэрры</h1>
-          <p>
-            План публикаций школы на 19 октября — 15 ноября: ролики из курса и тексты для Telegram, MAX,
-            ВКонтакте и Дзена. Здесь можно посмотреть каждый пункт, поправить заголовок и текст и отметить
-            решение. На свободных местах — короткие сценарии роликов на 20–30 секунд, которые можно записать
-            на телефон: текст для чтения вслух тоже можно править.
-          </p>
-          <ol className={styles.how}>
-            <li>Посмотрите ролик или прочитайте текст. Правьте прямо в полях.</li>
-            <li>Нажмите «Согласовано», «Нужны правки» или «Отклонить». Правки и комментарий сохранятся вместе с решением.</li>
-            <li>Решение можно поменять в любой момент. Публикуем только согласованное.</li>
-          </ol>
-          <p>
-            Посты в Telegram и MAX заканчиваются ссылкой «Практикум «Тело знает всё» →» и хештегами — их
-            добавляем сами, в тексте поста писать не нужно. Даты предварительные: публикация начнётся после
-            подключения каналов.
-          </p>
+          {total > 0 && (
+            <div className={styles.progressRow}>
+              <span className={styles.progress}>
+                Разобрано {done} из {total}
+              </span>
+              {firstOpenId ? (
+                <button type="button" className={styles.jump} onClick={() => scrollToItem(firstOpenId)}>
+                  К первому без решения ↓
+                </button>
+              ) : done === total ? (
+                <span className={styles.allDone}>Все позиции разобраны</span>
+              ) : null}
+            </div>
+          )}
+          <details className={styles.howto}>
+            <summary>Как пользоваться страницей</summary>
+            <p>
+              План публикаций школы на 19 октября — 15 ноября: ролики из курса и тексты для Telegram, MAX,
+              ВКонтакте и Дзена. Здесь можно посмотреть каждый пункт, поправить заголовок и текст и отметить
+              решение. На свободных местах — короткие сценарии роликов на 20–30 секунд, которые можно записать
+              на телефон: текст для чтения вслух тоже можно править.
+            </p>
+            <ol className={styles.how}>
+              <li>Посмотрите ролик или прочитайте текст. Правьте прямо в полях.</li>
+              <li>Нажмите «Согласовано», «Нужны правки» или «Отклонить». Правки и комментарий сохранятся вместе с решением.</li>
+              <li>Решение можно поменять в любой момент. Публикуем только согласованное.</li>
+            </ol>
+            <p>
+              Посты в Telegram и MAX заканчиваются ссылкой «Практикум «Тело знает всё» →» и хештегами — их
+              добавляем сами, в тексте поста писать не нужно. Даты предварительные: публикация начнётся после
+              подключения каналов.
+            </p>
+          </details>
         </header>
 
-        <div className={styles.bar} role="region" aria-label="Итоги и фильтры">
+        <div ref={barRef} className={styles.bar} role="region" aria-label="Итоги и фильтры">
           <div className={styles.tally}>
             <span className={`${styles.pill} ${styles.pillOk}`}>Согласовано {tally.approved}</span>
             <span className={`${styles.pill} ${styles.pillWarn}`}>Правки {tally.changes}</span>
@@ -237,11 +293,13 @@ function ItemCard({
   item,
   decision,
   token,
+  nextOpenId,
   onSaved,
 }: {
   item: Item;
   decision: Decision | undefined;
   token: string;
+  nextOpenId: string | null;
   onSaved: (id: string, d: Decision) => void;
 }) {
   const uid = useId();
@@ -255,6 +313,14 @@ function ItemCard({
   const video = isVideo(item) && !!item.videoUrl;
   const status = decision?.status;
   const statusInfo = status ? STATUS[status] : undefined;
+
+  // Готовые ответы: blocked — добавить нельзя (комментарий упёрся в лимит, функция вернула текст как был).
+  const chips = quickRepliesFor(item.kind).map((p) => {
+    const on = hasQuickReply(comment, p);
+    const next = toggleQuickReply(comment, p);
+    return { p, on, next, blocked: !on && next === comment };
+  });
+  const nextId = !busy && !error && decision?.updatedAt ? nextOpenId : null;
 
   async function decide(next: Status) {
     setBusy(true);
@@ -291,16 +357,18 @@ function ItemCard({
   const idSpeech = `${uid}-s`;
   const idBody = `${uid}-b`;
   const idComment = `${uid}-c`;
+  const idQuick = `${uid}-q`;
 
   const fields = (
     <div className={styles.fields}>
       <label htmlFor={idTitle} className={styles.label}>Заголовок</label>
-      <input
+      {/* Многострочное поле: на телефоне длинный заголовок виден целиком. Перенос строки в заголовке не нужен. */}
+      <textarea
         id={idTitle}
-        type="text"
         className={styles.titleInput}
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => setTitle(e.target.value.replace(/\s*\n+\s*/g, ' '))}
+        rows={2}
         disabled={busy}
       />
       {item.titleVariants.length > 0 && (
@@ -366,6 +434,31 @@ function ItemCard({
         </p>
       )}
 
+      <div className={styles.quick}>
+        <span id={idQuick} className={styles.quickHint}>
+          Готовые ответы — нажмите, чтобы добавить в комментарий
+        </span>
+        <div className={styles.chips} role="group" aria-labelledby={idQuick}>
+          {chips.map((c) => (
+            <button
+              key={c.p}
+              type="button"
+              className={styles.chip}
+              aria-pressed={c.on}
+              disabled={busy || c.blocked}
+              onClick={() => setComment(c.next)}
+            >
+              {c.p}
+            </button>
+          ))}
+        </div>
+        {chips.some((c) => c.blocked) && (
+          <p className={styles.quickNote}>
+            Комментарий почти полный: сократите его, чтобы добавить готовый ответ.
+          </p>
+        )}
+      </div>
+
       <label htmlFor={idComment} className={styles.label}>Комментарий</label>
       <textarea
         id={idComment}
@@ -375,6 +468,7 @@ function ItemCard({
         onChange={(e) => setComment(e.target.value)}
         disabled={busy}
       />
+      <p className={styles.hint}>{DICTATION_HINT}</p>
 
       <div className={styles.actions}>
         <button type="button" className={styles.bOk} onClick={() => decide('approved')} disabled={busy}>
@@ -389,6 +483,11 @@ function ItemCard({
         <span className={styles.saved} role="status" aria-live="polite">
           {error || (busy ? 'Сохраняю…' : decision?.updatedAt ? savedAt(decision.updatedAt) : '')}
         </span>
+        {nextId && (
+          <button type="button" className={styles.nextBtn} onClick={() => scrollToItem(nextId)}>
+            Следующий без решения ↓
+          </button>
+        )}
       </div>
     </div>
   );
