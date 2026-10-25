@@ -42,4 +42,17 @@ describe('glossary-links: составные синонимы', () => {
     expect(slugs('Как отличить жизнь от автопилота? Простой телесный тест.')).not.toContain('otvet-tela');
     expect(slugs('Телесный тест «да/нет» показывает отклик.')).toContain('otvet-tela');
   });
+
+  it('общая основа «кинезиолог»/«кинезиология»: на одном месте — термин с точной формой слова', () => {
+    // 25.10.2026: «кинезиолог» первым вёл на «Прикладную кинезиологию» (синоним «кинезиология»).
+    const kinesiologist = slugs('Кинезиолог работает с откликом тела на стресс.');
+    expect(kinesiologist[0]).toBe('kineziolog');
+    expect(kinesiologist).not.toContain('prikladnaya-kineziologiya');
+    expect(slugs('Кинезиология изучает отклик мышц.')[0]).toBe('prikladnaya-kineziologiya');
+    expect(slugs('Основы кинезиологии простыми словами.')[0]).toBe('prikladnaya-kineziologiya');
+    expect(slugs('Записаться к кинезиологу на консультацию.')[0]).toBe('kineziolog');
+    expect(slugs('Кинезиология помогает, а кинезиолог ведёт сессию.')).toEqual(
+      expect.arrayContaining(['prikladnaya-kineziologiya', 'kineziolog'])
+    );
+  });
 });

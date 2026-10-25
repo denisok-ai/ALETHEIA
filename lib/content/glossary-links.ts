@@ -24,38 +24,80 @@ function stem(word: string): string {
   return cut.length >= 4 ? cut : w;
 }
 
-function phraseRegex(phrase: string): RegExp | null {
+type PhraseMatcher = {
+  re: RegExp;
+  /** Первое слово фразы (нижний регистр, ё → е) и его основа — для оценки совпадения. */
+  first: string;
+  firstStem: string;
+};
+
+function phraseMatcher(phrase: string): PhraseMatcher | null {
   const words = phrase
     .replace(/[«»"“”()]/g, ' ')
     .split(/[\s/-]+/)
     .filter((w) => /^[а-яё]+$/i.test(w));
   if (!words.length || words.join('').length < 5) return null;
   const parts = words.map((w) => `${stem(w).replace(/е/g, '[её]')}[а-яё]{0,4}`);
-  return new RegExp(`(^|[^а-яё])${parts.join('[\\s«»"“”/-]+')}(?![а-яё])`, 'iu');
+  const first = words[0].toLowerCase().replace(/ё/g, 'е');
+  return {
+    re: new RegExp(`(^|[^а-яё])${parts.join('[\\s«»"“”/-]+')}(?![а-яё])`, 'giu'),
+    first,
+    firstStem: stem(first),
+  };
 }
 
-const MATCHERS: Array<{ term: GlossaryTerm; res: RegExp[] }> = GLOSSARY_TERMS.filter((t) => !SKIP.has(t.slug)).map(
-  (term) => ({
-    term,
-    res: [term.term, ...(term.synonyms ?? [])].map(phraseRegex).filter((r): r is RegExp => r !== null),
-  })
-);
+/**
+ * Насколько форма слова в тексте похожа на слово термина. Нужно, когда на одном
+ * месте совпадают два термина с общей основой: «кинезиология» (синоним прикладной
+ * кинезиологии) после отрезания окончания даёт ту же основу, что «кинезиолог»
+ * (25.10.2026 слово «кинезиолог» в статьях первым вело на прикладную кинезиологию).
+ * 3 — слово совпало целиком; 2 — окончание той же «семьи», что у слова термина
+ * («кинезиологии» для «кинезиология»); 1 — у слова термина окончание не отрезалось,
+ * хвост любой; 0 — окончание чужое («кинезиолог» для «кинезиология»).
+ */
+function formScore(m: PhraseMatcher, textFromMatch: string): number {
+  const word = textFromMatch.match(/^[а-яё]+/u)?.[0] ?? '';
+  if (word === m.first) return 3;
+  const removed = m.first.slice(m.firstStem.length);
+  if (!removed) return 1;
+  const tail = word.slice(m.firstStem.length);
+  return tail !== '' && tail[0] === removed[0] ? 2 : 0;
+}
+
+const MATCHERS: Array<{ term: GlossaryTerm; matchers: PhraseMatcher[] }> = GLOSSARY_TERMS.filter(
+  (t) => !SKIP.has(t.slug)
+).map((term) => ({
+  term,
+  matchers: [term.term, ...(term.synonyms ?? [])]
+    .map(phraseMatcher)
+    .filter((m): m is PhraseMatcher => m !== null),
+}));
 
 /** Термины в порядке первого упоминания в тексте; ссылки уже на этот термин не дублируются. */
 export function findGlossaryTerms(text: string, limit = 6): GlossaryTerm[] {
   const plain = text.toLowerCase().replace(/ё/g, 'е');
-  const found: Array<{ term: GlossaryTerm; at: number }> = [];
-  for (const { term, res } of MATCHERS) {
+  // На одном месте текста — один термин: тот, чья форма слова ближе (formScore);
+  // при равенстве — первый по порядку словаря, как и раньше.
+  const best = new Map<number, { term: GlossaryTerm; score: number }>();
+  for (const { term, matchers } of MATCHERS) {
     if (plain.includes(`/glossary/${term.slug}`)) continue;
-    let at = -1;
-    for (const re of res) {
-      const m = re.exec(plain);
-      if (m && (at < 0 || m.index < at)) at = m.index;
+    for (const m of matchers) {
+      m.re.lastIndex = 0;
+      for (let hit = m.re.exec(plain); hit; hit = m.re.exec(plain)) {
+        const at = hit.index + hit[1].length;
+        const score = formScore(m, plain.slice(at));
+        const cur = best.get(at);
+        if (!cur || score > cur.score) best.set(at, { term, score });
+      }
     }
-    if (at >= 0) found.push({ term, at });
   }
-  return found
-    .sort((a, b) => a.at - b.at)
-    .slice(0, limit)
-    .map((f) => f.term);
+  const seen = new Set<string>();
+  const ordered: GlossaryTerm[] = [];
+  for (const at of [...best.keys()].sort((a, b) => a - b)) {
+    const { term } = best.get(at)!;
+    if (seen.has(term.slug)) continue;
+    seen.add(term.slug);
+    ordered.push(term);
+  }
+  return ordered.slice(0, limit);
 }
