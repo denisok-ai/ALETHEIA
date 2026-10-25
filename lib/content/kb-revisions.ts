@@ -27,7 +27,7 @@ export const KB_REVISED: Record<string, string> = {
   'chto-takoe-myshechnoe-testirovanie': '2026-10-18',
   'prikladnaya-kineziologiya-prostymi-slovami': '2026-10-18',
   'kto-takoy-kineziolog': '2026-10-18',
-  'stress-nakaplivaetsya-v-tele': '2026-10-18',
+  'stress-nakaplivaetsya-v-tele': '2026-10-25',
   'karta-emotsiy': '2026-10-18',
   'kak-vybrat-kurs-avaterra': '2026-10-18',
   'emotsionalnyy-zaryad': '2026-10-18',
