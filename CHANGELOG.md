@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-10-25) — Глоссарий партия 3
+
+- `prikladnaya-kineziologiya`, `sverka-balansa`, `indikatornaya-myshtsa`, `vnutrenniy-konflikt`, `zazemlenie`, `tatyana-streltsova`: ≈ 195–230 слов, FAQ, seoTitle/seoDescription; техники без пошаговых инструкций (правило о платных протоколах), термин об авторе — только по фактам `about-master.ts`/`avaterra.yaml`; экспертная проверка (1 blocker исправлен).
+
 ### Changed (2026-10-25) — Курс — главная посадочная практикума
 
 - `/services/telo-znaet-vse`: title «Оплата практикума «Тело знает всё» — условия доступа», description и H1 «оплата и условия доступа», ссылка «Программа практикума» на `/course/navyki-myshechnogo-testirovaniya` (`lib/seo/service-seo.ts`). Название товара не меняется. CTA статей с анкором практикума — на курс.
