@@ -69,8 +69,8 @@ function newestOf(dates: (Date | null | undefined)[]): Date | undefined {
  * не узнает об изменении.
  */
 const CONTENT_REVISED: Record<string, string> = {
-  '/course/navyki-myshechnogo-testirovaniya': '2026-10-16',
-  '/course/probuzhdenie': '2026-08-11',
+  '/course/navyki-myshechnogo-testirovaniya': '2026-10-25',
+  '/course/probuzhdenie': '2026-10-25',
   '/about': '2026-10-25',
   '/faq': '2026-07-16',
   '/obuchenie-kineziologii-onlajn': '2026-10-18',
