@@ -67,14 +67,14 @@ export const BLOG_CTA: Partial<
     secondary: { href: '/services', label: 'Все тарифы и цены' },
   },
   'pochemu-problemy-vozvrashautysya': {
-    heading: 'Дойти до причины и убрать её',
-    text: 'В практикуме «Тело знает всё» вы научитесь находить корень проблемы и работать с ним — на себе и с близкими, в своём темпе.',
+    heading: 'Научитесь замечать заряд и работать с ним бережно',
+    text: 'В практикуме «Тело знает всё» вы учитесь присматриваться к телесному и эмоциональному напряжению через обратную связь мышц — на себе и с близкими, в своём темпе.',
     primary: { href: '/course/navyki-myshechnogo-testirovaniya', label: 'Практикум «Тело знает всё»' },
     secondary: { href: '/services', label: 'Сравнить тарифы' },
   },
   'mify-o-myshechnom-testirovanii': {
     heading: 'Проверьте подход на практике',
-    text: 'Мышечное тестирование основано на физиологии. Убедитесь сами на бесплатном знакомстве «Первый тест».',
+    text: 'Научного подтверждения точности теста пока нет, поэтому честнее всего проверить подход на себе. Начните с бесплатного знакомства «Первый тест».',
     primary: { href: '/services/kod-tela-start', label: 'Попробовать бесплатно' },
     secondary: { href: '/services', label: 'Все тарифы' },
   },
@@ -85,7 +85,7 @@ export const BLOG_CTA: Partial<
     secondary: { href: '/services', label: 'Тарифы и цены' },
   },
   'pervye-shagi-myshechnogo-testirovaniya': {
-    heading: 'Сделайте первые шаги с поддержкой',
+    heading: 'Сделайте первые шаги в своём темпе',
     text: 'Бесплатное знакомство «Первый тест» проведёт вас через первый самотест, а практикум — через всю систему.',
     primary: { href: '/services/kod-tela-start', label: 'Начать бесплатно' },
     secondary: { href: '/services', label: 'Выбрать тариф' },
