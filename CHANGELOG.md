@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-10-25) — «Присматриваться к напряжению» вместо «находить причину»
+
+- По решению владельца после экспертизы: описание школы (`lib/seo/entity.ts`), био Татьяны (`about-master.ts`, без «за десятки секунд увидеть скрытую причину»), блок «О школе» на главной, страница тарифов, `llms-full.txt` — «учит присматриваться к телесному и эмоциональному напряжению через обратную связь мышц».
+
 ### Changed (2026-10-25) — Глоссарий партия 3
 
 - `prikladnaya-kineziologiya`, `sverka-balansa`, `indikatornaya-myshtsa`, `vnutrenniy-konflikt`, `zazemlenie`, `tatyana-streltsova`: ≈ 195–230 слов, FAQ, seoTitle/seoDescription; техники без пошаговых инструкций (правило о платных протоколах), термин об авторе — только по фактам `about-master.ts`/`avaterra.yaml`; экспертная проверка (1 blocker исправлен).
