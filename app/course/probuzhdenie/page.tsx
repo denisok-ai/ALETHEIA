@@ -248,10 +248,10 @@ export default async function ProbuzhdeniePage() {
           })}
         </div>
 
-        <LandingSection id="author" eyebrow="Основательница школы AVATERRA" title="Татьяна Стрельцова" tone="lavender">
+        <LandingSection id="author" eyebrow="Основательница школы «Аватэрра»" title="Татьяна Стрельцова" tone="lavender">
           <AuthorMiniBlock
             name="Татьяна Стрельцова"
-            roleLabel="Основательница школы AVATERRA"
+            roleLabel="Основательница школы «Аватэрра»"
             quote="Если ты это читаешь — ты уже готов(а) к пробуждению. Этот курс — путь к себе через осознанность и тело."
             facts={[
               '22 года практики работы с подсознанием и телесными практиками',

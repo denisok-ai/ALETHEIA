@@ -16,7 +16,7 @@ type Props = {
 /** Компактный блок «Автор курса» с фото, цитатой и фактами; используется в продающих лендингах. */
 export function AuthorMiniBlock({
   imageSrc = '/images/tatiana/tatiana-about.png',
-  imageAlt = 'Татьяна Стрельцова — основательница школы AVATERRA',
+  imageAlt = 'Татьяна Стрельцова — основательница школы «Аватэрра»',
   name,
   roleLabel,
   quote,
