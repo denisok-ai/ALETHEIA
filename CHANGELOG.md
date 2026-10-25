@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-10-25) — Глоссарий партия 2, автоссылки «кинезиолог»
+
+- Шесть терминов под запросы Google (`kineziolog`, `trigger`, `obratnaya-svyaz-tela`, `resursnoe-sostoyanie`, `karta-emotsiy`, `stress-reaktsiya`): ≈ 205–265 слов, FAQ, seoTitle/seoDescription; экспертная проверка (2 blocker по безопасности исправлены: «сжатие в груди» и скорая 103/112).
+- Автоссылки на термины в статьях (`lib/content/glossary-links.ts`): «кинезиолог» вёл на «Прикладную кинезиологию» — теперь на одном месте текста побеждает термин с ближайшей формой слова.
+
 ### Changed (2026-10-25) — Хаб словаря, noindex пустых новостей, проверки «не»/«метод»
 
 - `/glossary`: вводный текст (как пользоваться, с чего начать, где учиться, оговорки) и 5 тем с подзаголовками (`lib/content/glossary-groups.ts`, тест: каждый термин ровно в одной теме).
