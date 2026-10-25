@@ -71,7 +71,7 @@ function newestOf(dates: (Date | null | undefined)[]): Date | undefined {
 const CONTENT_REVISED: Record<string, string> = {
   '/course/navyki-myshechnogo-testirovaniya': '2026-10-16',
   '/course/probuzhdenie': '2026-08-11',
-  '/about': '2026-10-13',
+  '/about': '2026-10-25',
   '/faq': '2026-07-16',
   '/obuchenie-kineziologii-onlajn': '2026-10-18',
   '/contacts': '2026-10-13',
@@ -100,7 +100,7 @@ const PRODUCT_TEMPLATE_REVISED = new Date('2026-10-25');
  * самих секций главной (24.10.2026 — блоки «Словарь» и «Свежее в блоге») туда не
  * попадает. Обновлять при каждой правке содержимого главной.
  */
-const HOME_TEMPLATE_REVISED = new Date('2026-10-24');
+const HOME_TEMPLATE_REVISED = new Date('2026-10-25');
 
 /** Базовая дата словаря; переписанный термин несёт свою `revised`, индекс — самую свежую. */
 const GLOSSARY_REVISED = new Date('2026-09-24');
