@@ -100,6 +100,8 @@ products:
   telo_znaet_vse:
     name: "Тело знает всё"
     short: "Практикум мышечного тестирования для самостоятельной работы: телесная обратная связь для работы со стрессом, эмоциями и подсознательными установками."
+    # url — программа практикума (главная страница для поиска и для «подробнее»);
+    # product_page — оплата и условия доступа (решение владельца 25.10.2026).
     url: "https://avaterra.pro/course/navyki-myshechnogo-testirovaniya"
     product_page: "https://avaterra.pro/services/telo-znaet-vse"
     price_rub: 5000

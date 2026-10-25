@@ -16,6 +16,7 @@ import { JsonLdProduct } from '@/components/JsonLdProduct';
 import { PracticeSafetyNote } from '@/components/PracticeSafetyNote';
 import { PRACTICE_SAFETY_PRODUCT_SLUG } from '@/lib/content/practice-safety';
 import { ServiceBuyButton } from '@/components/ServiceBuyButton';
+import { serviceSeoOverride } from '@/lib/seo/service-seo';
 import type { TariffItem } from '@/components/sections/Pricing';
 
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
@@ -60,9 +61,11 @@ export async function generateMetadata(props: { params: Promise<Params> }): Prom
       ? product.imageUrl
       : `${base}${product.imageUrl}`
     : undefined;
+  // У витрины практикума свой заголовок «оплата и условия доступа» (lib/seo/service-seo.ts).
+  const seo = serviceSeoOverride(product.slug);
   return buildPublicPageMetadata({
-    title: product.name,
-    description: metaDescriptionFor(product.cardDescription, product.price),
+    title: seo?.title ?? product.name,
+    description: seo?.description ?? metaDescriptionFor(product.cardDescription, product.price),
     canonical: `${base}/services/${product.slug}`,
     ogImageUrl,
   });
@@ -72,6 +75,7 @@ export default async function ServicePage(props: { params: Promise<Params> }) {
   const params = await props.params;
   const product = await getPublicProductBySlug(params.slug);
   if (!product) notFound();
+  const seo = serviceSeoOverride(product.slug);
 
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
@@ -172,8 +176,18 @@ export default async function ServicePage(props: { params: Promise<Params> }) {
               </div>
             ) : null}
             <div className="p-7 md:p-10">
-              <h1 className="font-heading text-3xl font-semibold sm:text-4xl">{product.name}</h1>
+              <h1 className="font-heading text-3xl font-semibold sm:text-4xl">{seo?.h1 ?? product.name}</h1>
               <p className="mt-4 leading-relaxed text-[var(--text-muted)]">{product.cardDescription}</p>
+              {seo?.programLink ? (
+                <p className="mt-4">
+                  <Link
+                    href={seo.programLink.href}
+                    className="inline-flex items-center gap-1 font-semibold text-plum underline underline-offset-4 hover:opacity-90"
+                  >
+                    {seo.programLink.label} →
+                  </Link>
+                </p>
+              ) : null}
 
               {product.features.length > 0 && (
                 <>

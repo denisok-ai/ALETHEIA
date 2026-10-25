@@ -111,8 +111,8 @@ describe('карта сайта: отбор адресов по разделам
   it('раздел блога и главная берут самую свежую дату из своих записей', () => {
     const s = buildSitemapSections(fixture());
     expect(find(s.blog, `${BASE}/blog`)?.lastModified?.toISOString()).toBe('2026-10-20T08:00:00.000Z');
-    // У главной есть «этаж» HOME_TEMPLATE_REVISED (правка секций 24.10): статьи старше — берётся он.
-    expect(find(s.pages, `${BASE}/`)?.lastModified?.toISOString()).toBe('2026-10-24T00:00:00.000Z');
+    // Главная — самая свежая из статей, услуг (с «этажом» шаблона тарифов, 25.10) и своего «этажа» (24.10).
+    expect(find(s.pages, `${BASE}/`)?.lastModified?.toISOString()).toBe('2026-10-25T00:00:00.000Z');
   });
 
   it('lastmod статьи учитывает правку в БД (updatedAt), как dateModified на странице', () => {

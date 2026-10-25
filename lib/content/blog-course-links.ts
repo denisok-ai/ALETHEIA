@@ -69,7 +69,7 @@ export const BLOG_CTA: Partial<
   'pochemu-problemy-vozvrashautysya': {
     heading: 'Дойти до причины и убрать её',
     text: 'В практикуме «Тело знает всё» вы научитесь находить корень проблемы и работать с ним — на себе и с близкими, в своём темпе.',
-    primary: { href: '/services/telo-znaet-vse', label: 'Практикум «Тело знает всё»' },
+    primary: { href: '/course/navyki-myshechnogo-testirovaniya', label: 'Практикум «Тело знает всё»' },
     secondary: { href: '/services', label: 'Сравнить тарифы' },
   },
   'mify-o-myshechnom-testirovanii': {
@@ -81,7 +81,7 @@ export const BLOG_CTA: Partial<
   'stress-hronika-ili-signal-tela': {
     heading: 'Научитесь распознавать сигналы тела',
     text: 'Практикум даёт практический навык: материалы доступны 3 месяца, а сам навык остаётся с вами.',
-    primary: { href: '/services/telo-znaet-vse', label: 'Практикум «Тело знает всё»' },
+    primary: { href: '/course/navyki-myshechnogo-testirovaniya', label: 'Практикум «Тело знает всё»' },
     secondary: { href: '/services', label: 'Тарифы и цены' },
   },
   'pervye-shagi-myshechnogo-testirovaniya': {

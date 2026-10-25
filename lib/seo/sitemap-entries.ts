@@ -93,7 +93,7 @@ export function contentRevisedDate(path: string): string | undefined {
  * меняется — и краулеры не переобходят обновление. Обновлять при каждой
  * правке шаблона страниц /services/*.
  */
-const PRODUCT_TEMPLATE_REVISED = new Date('2026-08-13');
+const PRODUCT_TEMPLATE_REVISED = new Date('2026-10-25');
 
 /**
  * «Этаж» lastmod главной: её дата берётся из самой свежей статьи/услуги, а правка
