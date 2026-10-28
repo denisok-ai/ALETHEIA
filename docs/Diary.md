@@ -2,6 +2,15 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-10-29 — Telegram с прода снова ходит: VPN через Финляндию вместо NL
+
+- Причина: исходящий канал с прод-сервера умер. NL (`nodevonly.freemyip.com`) заблокирован из РФ по IP, outline `nl.shadowvpn.ru` мёртв с 03.08. `openconnect-telegram` падал с 00:00 28.10 (899 перезапусков). Cron `aletheia-telegram` перезапускал outline при падении пробы 18080.
+- Решение владельца (28.10): переводим канал на FI. Сессия VPN 2610 подняла ocserv на FI на порту 4444 (443 занят xray и AWG), учётка `avaterra-telegram` создана на FI. Пароль переносили только напрямую между серверами, в чат он не попадал.
+- На AVATERRA: бэкапы `/etc/openconnect-telegram.env.bak-20261029-000502` и `/usr/local/bin/openconnect-telegram.sh.bak-20261029-000323`. Адрес `103.110.64.230:4444`, новый пин, логин `avaterra-telegram`. Промежуточный `/root/avaterra-telegram.cred` удалён.
+- Две ошибки по пути: (1) в `OC_PASS` записали всю строку «логин пароль» из файла, вход давал `Login failed` — исправлено, в поле только пароль; (2) туннель поднимался, но трафик за ним не шёл: на FI не было NAT для `10.10.10.0/24`. Добавлен MASQUERADE на `eth0` (правило `ocserv-nat`, закреплено в `ensure-firewall.sh` на FI).
+- Проверка 29.10 ~00:20 МСК: SOCKS 1091 и прокси 18080 отвечают 302 на `api.telegram.org`; `getMe` через прокси — `ok: true`, `AvaterraProBot`. Служба `openconnect-telegram` активна.
+- Открыто: в логе остаётся строка `Failed to set vring #0 RX backend` — трафик при этом идёт, тема отдельная. Скрипт `telegram-webhook-health.sh` по-прежнему умеет перезапускать `outline-ss-local`; служба выключена, решение «снять» не принято.
+
 ## 2026-10-27 — SEO: тематические хабы блога /temy/<slug> (пункт 7 плана)
 
 - Что сделано: три хаба по кластерам `topicsOf` из `lib/content/blog-related.ts` — `/temy/myshechnoe-testirovanie` (12 статей), `/temy/emotsii-i-telo` (8), `/temy/telo-i-stress` (9). Вводный текст 300–500 слов, ссылки на словарь и курс, оговорка школы. Код: `lib/content/topic-hubs.ts` (тексты и списки статей), `app/temy/[slug]/page.tsx` (страница, JSON-LD `CollectionPage`, хлебные крошки), блок «Темы блога» на `/blog`, хабы в карте сайта (раздел blog, дата — поле `revised`).
