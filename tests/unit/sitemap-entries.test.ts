@@ -59,6 +59,9 @@ describe('карта сайта: отбор адресов по разделам
     expect(urlsOf(s.services)).toEqual([`${BASE}/services`, `${BASE}/services/navyki-prakt`, `${BASE}/services/probuzhdenie-pro`]);
     expect(urlsOf(s.blog)).toEqual([
       `${BASE}/blog`,
+      `${BASE}/temy/myshechnoe-testirovanie`,
+      `${BASE}/temy/emotsii-i-telo`,
+      `${BASE}/temy/telo-i-stress`,
       `${BASE}/blog/obychnaya-statya`,
       `${BASE}/blog/karta-emotsiy`,
       `${BASE}/blog/novaya-statya`,
@@ -95,10 +98,10 @@ describe('карта сайта: отбор адресов по разделам
 
   it('число адресов по разделам: страницы, услуги, статьи, словарь', () => {
     const s = buildSitemapSections(fixture());
-    // главная + 9 статических + 1 новость; /services + 2 услуги; /blog + 3 статьи; /glossary + термины
+    // главная + 9 статических + 1 новость; /services + 2 услуги; /blog + 3 статьи + 3 хаба тем; /glossary + термины
     expect(s.pages).toHaveLength(11);
     expect(s.services).toHaveLength(3);
-    expect(s.blog).toHaveLength(4);
+    expect(s.blog).toHaveLength(7);
     expect(s.glossary).toHaveLength(GLOSSARY_TERMS.length + 1);
   });
 
@@ -152,7 +155,8 @@ describe('карта сайта: XML', () => {
       expect(xml).toContain(`<loc>${BASE}/sitemaps/${id}.xml</loc>`);
     }
     const blogBlock = blocks.find((b) => b.includes('/sitemaps/blog.xml'))!;
-    expect(blogBlock).toContain('<lastmod>2026-10-20T08:00:00.000Z</lastmod>');
+    // Хабы тем датированы 27.10 (поле revised): они свежее статей, поэтому раздел блога — с этой даты.
+    expect(blogBlock).toContain('<lastmod>2026-10-27T00:00:00.000Z</lastmod>');
   });
 
   it('дочерняя карта: <urlset> с тем же числом <url>, что и в разделе', () => {

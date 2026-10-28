@@ -5,6 +5,7 @@ import { JsonLdBreadcrumbList } from '@/components/JsonLdBreadcrumbList';
 import { JsonLdBlogIndex } from '@/components/JsonLdBlogIndex';
 import { CourseCheckoutCTA } from '@/components/CourseCheckoutCTA';
 import { getPublishedBlogPosts } from '@/lib/content/blog-posts';
+import { TOPIC_HUBS } from '@/lib/content/topic-hubs';
 import { getSystemSettings } from '@/lib/settings';
 import { buildPublicPageMetadata } from '@/lib/seo/metadata-helpers';
 import { DEFAULT_OG_IMAGE_PATH } from '@/lib/seo/pages';
@@ -86,6 +87,19 @@ export default async function BlogIndexPage(props: Props) {
 
       <h1 className="font-heading text-3xl font-semibold text-[var(--text)] sm:text-4xl">Блог</h1>
       <p className="mt-4 text-[var(--text-muted)]">Материалы для тех, кто хочет глубже слышать тело и работать с причиной, а не только со следствием.</p>
+
+      {/* Темы блога: ссылки на хабы /temy (аудит SEO, пункт 7 плана) — статьи по теме связаны между собой. */}
+      <nav aria-label="Темы блога" className="mt-6 flex flex-wrap gap-2">
+        {TOPIC_HUBS.map((hub) => (
+          <Link
+            key={hub.slug}
+            href={`/temy/${hub.slug}`}
+            className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm text-[var(--text)] transition-colors hover:border-plum/40 hover:text-plum"
+          >
+            {hub.label}
+          </Link>
+        ))}
+      </nav>
 
       <ul className="mt-8 space-y-5">
         {posts.map((post) => (

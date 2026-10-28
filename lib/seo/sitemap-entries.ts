@@ -11,6 +11,7 @@
  * blog (статьи), glossary (термины). Страница /news исключена: она пустая.
  */
 import type { GlossaryTerm } from '@/lib/content/glossary';
+import { TOPIC_HUBS } from '@/lib/content/topic-hubs';
 
 export const SITEMAP_SECTION_IDS = ['pages', 'services', 'blog', 'glossary'] as const;
 export type SitemapSectionId = (typeof SITEMAP_SECTION_IDS)[number];
@@ -165,6 +166,8 @@ export function buildSitemapSections(src: SitemapSource): Record<SitemapSectionI
 
   const blog: SitemapItem[] = [
     item(abs('/blog'), sectionLastmod('/blog'), 'weekly', 0.75),
+    // Тематические хабы блога (lib/content/topic-hubs.ts): дата правки — поле revised.
+    ...TOPIC_HUBS.map((hub) => item(abs(`/temy/${hub.slug}`), safeDate(hub.revised), 'weekly', 0.7)),
     ...src.blogPosts.map((p) =>
       item(
         abs(`/blog/${p.slug}`),
