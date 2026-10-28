@@ -14,6 +14,7 @@ import { trackRefVisit } from '@/lib/social/ref-tracking';
 import { getBlogPostBySlug } from '@/lib/content/blog-posts';
 import { getGlossaryTerm } from '@/lib/content/glossary';
 import { getPublicProducts } from '@/lib/shop/public-products';
+import { findTopicHub } from '@/lib/content/topic-hubs';
 
 const PORTAL_PREFIX = '/portal';
 const LOGIN_PATH = '/login';
@@ -21,12 +22,12 @@ const LOGIN_PATH = '/login';
 const AUTH_PAGES = ['/login', '/register', '/reset-password'];
 
 /**
- * Адреса контента с динамическим slug: тариф, статья блога, термин глоссария.
+ * Адреса контента с динамическим slug: тариф, статья блога, термин глоссария, хаб темы.
  * Страницы сами вызывают notFound(), но корневой layout оборачивает children в
  * <Suspense> — к моменту notFound() статус 200 уже отправлен (мягкий 404 с
  * noindex). Поэтому существование проверяем здесь, до рендера, и отдаём 404.
  */
-const CONTENT_PATH = /^\/(services|blog|glossary)\/([^/]+)\/?$/;
+const CONTENT_PATH = /^\/(services|blog|glossary|temy)\/([^/]+)\/?$/;
 
 /** Короткая страница 404 для несуществующих услуг/статей/терминов (стили — inline: CSP разрешает). */
 const NOT_FOUND_HTML = `<!doctype html><html lang="ru"><head><meta charset="utf-8">
@@ -59,6 +60,8 @@ async function isMissingContentPage(path: string): Promise<boolean> {
     }
     case 'blog':
       return !(await getBlogPostBySlug(slug));
+    case 'temy':
+      return !findTopicHub(slug);
     default:
       return !getGlossaryTerm(slug);
   }

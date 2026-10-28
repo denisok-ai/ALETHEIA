@@ -11,6 +11,8 @@ import { getSystemSettings } from '@/lib/settings';
 import { normalizeSiteUrl } from '@/lib/site-url';
 
 export const revalidate = 3600;
+// Только известные хабы: остальные адреса отдают 404 (не 200 с пустой страницей).
+export const dynamicParams = false;
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -21,7 +23,8 @@ export function generateStaticParams() {
 export async function generateMetadata(props: Props): Promise<Metadata> {
   const { slug } = await props.params;
   const hub = findTopicHub(slug);
-  if (!hub) notFound();
+  // Неизвестный адрес: метаданные не отдаём, 404 отдаёт сама страница (как у статей блога).
+  if (!hub) return { robots: { index: false, follow: false } };
   const settings = await getSystemSettings();
   const base = normalizeSiteUrl(settings.site_url || 'https://avaterra.pro').replace(/\/$/, '');
   return buildPublicPageMetadata({
