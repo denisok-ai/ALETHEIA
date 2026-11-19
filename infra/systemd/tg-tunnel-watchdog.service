@@ -1,0 +1,6 @@
+[Unit]
+Description=AVATERRA: сторож туннеля Telegram (openconnect-telegram), тревога письмом
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/tg-tunnel-watchdog

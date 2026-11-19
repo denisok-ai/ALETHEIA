@@ -1,0 +1,6 @@
+# /etc/default/tg-tunnel-watchdog — настройки scripts/tg-tunnel-watchdog.sh
+ALERT_TO=owner@example.com
+# адреса ocserv NL5 (один сертификат и пин), по кругу
+CANDIDATES="89.110.127.47 91.84.101.45"
+# сколько неудач подряд (по 2 минуты) до письма
+ALERT_AFTER=6
