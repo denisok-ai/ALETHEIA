@@ -179,6 +179,7 @@ async function readOomVictims(windowMinutes: number): Promise<string[] | null> {
  */
 const DNS_PROBE_HOST = 'mail.avaterra.pro';
 const DNS_TIMEOUT_MS = 2500;
+const DNS_PROBE_TRIES = 3;
 
 export function parseResolvConfNameservers(text: string): string[] {
   return text
@@ -206,11 +207,18 @@ async function checkDns(): Promise<{ dnsSystemOk: boolean | null; dnsDeadServers
     servers.map(async (ip) => {
       const r = new dns.Resolver({ timeout: DNS_TIMEOUT_MS, tries: 1 });
       r.setServers([ip]);
-      try {
-        await withTimeout(r.resolve4(DNS_PROBE_HOST), DNS_TIMEOUT_MS + 500);
-      } catch {
-        dead.push(ip);
+      // Мёртв — только если не ответил ни разу из DNS_PROBE_TRIES: потеря одного
+      // пакета (у AdGuard 1 из 20) иначе давала бы ложную тревогу и дёрганье
+      // «тревога / в норме» каждые 15 минут.
+      for (let i = 0; i < DNS_PROBE_TRIES; i++) {
+        try {
+          await withTimeout(r.resolve4(DNS_PROBE_HOST), DNS_TIMEOUT_MS + 500);
+          return;
+        } catch {
+          /* следующая попытка */
+        }
       }
+      dead.push(ip);
     })
   );
   let systemOk = true;
