@@ -9,6 +9,7 @@ import { describe, expect, it } from 'vitest';
 import {
   evaluateHealthProblems,
   parseOomVictims,
+  parseResolvConfNameservers,
   shortContainerName,
   topComponentsLine,
   type ComponentMemory,
@@ -26,6 +27,8 @@ const base = {
   oomKillsRecent: 0,
   oomVictims: [] as string[],
   components: [] as ComponentMemory[],
+  dnsSystemOk: true as boolean | null,
+  dnsDeadServers: [] as string[],
 };
 
 const texts = (h: typeof base) => evaluateHealthProblems(h).map((p) => p.text);
@@ -83,6 +86,29 @@ describe('server-health: бюджет памяти компонентов', () =
 
   it('имена контейнеров mailcow укорачиваются', () => {
     expect(shortContainerName('/mailcowdockerized-rspamd-mailcow-1')).toBe('rspamd');
+  });
+});
+
+describe('server-health: DNS (20.11.2026 — резолверы хостера IHC умерли разом)', () => {
+  it('nameserver-ы из resolv.conf, комментарии и options пропускаются', () => {
+    expect(parseResolvConfNameservers('# x\noptions timeout:1\nnameserver 77.88.8.8\n nameserver 8.8.8.8 \n')).toEqual([
+      '77.88.8.8',
+      '8.8.8.8',
+    ]);
+  });
+
+  it('мёртвый резервный сервер — предупреждение с его адресом', () => {
+    expect(keys({ ...base, dnsDeadServers: ['77.88.8.1'] })).toEqual(['dns:77.88.8.1']);
+  });
+
+  it('системный резолв лёг — одна тревога dns:system, без перечня серверов', () => {
+    const p = evaluateHealthProblems({ ...base, dnsSystemOk: false, dnsDeadServers: ['77.88.8.8', '8.8.8.8'] });
+    expect(p.map((x) => x.key)).toEqual(['dns:system']);
+    expect(p[0].text).toContain('/etc/resolv.conf');
+  });
+
+  it('проверка не выполнялась (null) — не проблема', () => {
+    expect(keys({ ...base, dnsSystemOk: null })).toEqual([]);
   });
 });
 

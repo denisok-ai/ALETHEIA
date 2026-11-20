@@ -15,6 +15,7 @@
  * а не валит проверку.
  */
 import fs from 'node:fs';
+import dns from 'node:dns/promises';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -47,6 +48,10 @@ export type ServerHealth = {
   oomKillsRecent: number | null; // null — журнал недоступен
   oomVictims: string[]; // имена убитых процессов
   components: ComponentMemory[]; // по убыванию anon + swap
+  /** Системный резолв (getaddrinfo, как у IMAP/fetch); null — проверка не выполнялась. */
+  dnsSystemOk: boolean | null;
+  /** Серверы из /etc/resolv.conf, не ответившие на запрос. */
+  dnsDeadServers: string[];
   problems: string[]; // человекочитаемые пробитые пороги
   problemKeys: string[];
 };
@@ -166,6 +171,57 @@ async function readOomVictims(windowMinutes: number): Promise<string[] | null> {
   }
 }
 
+/**
+ * DNS (20.11.2026): оба резолвера хостера IHC разом перестали отвечать — узнали
+ * по алерту синка почты «ошибок 5 из 5». Проверяем каждый сервер из
+ * /etc/resolv.conf отдельно (мёртвый резерв видно заранее, пока живы другие)
+ * и системный резолв целиком (он и есть то, что ломает приложение).
+ */
+const DNS_PROBE_HOST = 'mail.avaterra.pro';
+const DNS_TIMEOUT_MS = 2500;
+
+export function parseResolvConfNameservers(text: string): string[] {
+  return text
+    .split('\n')
+    .map((l) => l.trim().match(/^nameserver\s+(\S+)/)?.[1])
+    .filter((s): s is string => Boolean(s));
+}
+
+function withTimeout<T>(p: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    p,
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error('timeout')), ms)),
+  ]);
+}
+
+async function checkDns(): Promise<{ dnsSystemOk: boolean | null; dnsDeadServers: string[] }> {
+  let servers: string[] = [];
+  try {
+    servers = parseResolvConfNameservers(fs.readFileSync('/etc/resolv.conf', 'utf8'));
+  } catch {
+    return { dnsSystemOk: null, dnsDeadServers: [] }; // не Linux / нет файла — пропускаем
+  }
+  const dead: string[] = [];
+  await Promise.all(
+    servers.map(async (ip) => {
+      const r = new dns.Resolver({ timeout: DNS_TIMEOUT_MS, tries: 1 });
+      r.setServers([ip]);
+      try {
+        await withTimeout(r.resolve4(DNS_PROBE_HOST), DNS_TIMEOUT_MS + 500);
+      } catch {
+        dead.push(ip);
+      }
+    })
+  );
+  let systemOk = true;
+  try {
+    await withTimeout(dns.lookup(DNS_PROBE_HOST), DNS_TIMEOUT_MS * 2);
+  } catch {
+    systemOk = false;
+  }
+  return { dnsSystemOk: systemOk, dnsDeadServers: dead.sort() };
+}
+
 export async function checkServerHealth(windowMinutes = 20): Promise<ServerHealth> {
   const mi = readMeminfo();
   const memTotalMb = mi.MemTotal ?? 0;
@@ -187,7 +243,7 @@ export async function checkServerHealth(windowMinutes = 20): Promise<ServerHealt
     /* statfs недоступен — пропускаем диск */
   }
 
-  const victims = await readOomVictims(windowMinutes);
+  const [victims, dnsState] = await Promise.all([readOomVictims(windowMinutes), checkDns()]);
 
   const metrics = {
     memTotalMb: Math.round(memTotalMb),
@@ -201,6 +257,7 @@ export async function checkServerHealth(windowMinutes = 20): Promise<ServerHealt
     oomKillsRecent: victims == null ? null : victims.length,
     oomVictims: victims ?? [],
     components: readComponents(),
+    ...dnsState,
   };
   const evaluated = evaluateHealthProblems(metrics, windowMinutes);
   return { ...metrics, problems: evaluated.map((p) => p.text), problemKeys: evaluated.map((p) => p.key) };
@@ -245,6 +302,17 @@ export function evaluateHealthProblems(
   }
   if (h.diskUsedPct > DISK_USED_MAX_PCT) {
     problems.push({ key: 'disk', text: `диск: занято ${h.diskUsedPct} %, свободно ${h.diskFreeGb} ГБ` });
+  }
+  if (h.dnsSystemOk === false) {
+    problems.push({
+      key: 'dns:system',
+      text: `DNS: сервер не резолвит адреса (${DNS_PROBE_HOST}) — почта, оплаты и Telegram из приложения стоят; смени nameserver в /etc/resolv.conf`,
+    });
+  } else if (h.dnsDeadServers.length) {
+    problems.push({
+      key: `dns:${h.dnsDeadServers.join(',')}`,
+      text: `DNS: не отвечает ${h.dnsDeadServers.join(', ')} из /etc/resolv.conf — пока работают остальные, замени его`,
+    });
   }
   if (h.oomKillsRecent) {
     const names = Array.from(new Set(h.oomVictims));
