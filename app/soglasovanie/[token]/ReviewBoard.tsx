@@ -59,8 +59,7 @@ const STATUS: Record<Status, { text: string; pill: string; card: string }> = {
   rejected: { text: 'Отклонено', pill: 'pillBad', card: 'stRejected' },
 };
 const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
-const CANDIDATE_GROUP =
-  'Ролики-кандидаты из курса: можно поставить вместо любого сценария или в дополнение';
+const CANDIDATE_GROUP = 'Ролики-кандидаты из курса: можно поставить вместо любого сценария или в дополнение';
 const DICTATION_HINT = 'Можно надиктовать: значок микрофона на клавиатуре телефона';
 
 const isVideo = (it: Item) => String(it.kind || '').startsWith('video');
@@ -159,7 +158,7 @@ export default function ReviewBoard({ token }: { token: string }) {
         filter === 'all' ||
         (filter === 'video' && isVideo(it)) ||
         (filter === 'text' && !isVideo(it)) ||
-        (filter === 'open' && !decisions[it.id]?.status),
+        (filter === 'open' && !decisions[it.id]?.status)
     );
   }, [items, decisions, filter]);
 
@@ -199,9 +198,7 @@ export default function ReviewBoard({ token }: { token: string }) {
   } else if (!items) {
     content = <div className={styles.state}>Загружаю план публикаций…</div>;
   } else if (items.length === 0) {
-    content = (
-      <div className={styles.state}>План ещё не загружен. Он появится здесь, как только будет готов.</div>
-    );
+    content = <div className={styles.state}>План ещё не загружен. Он появится здесь, как только будет готов.</div>;
   } else if (shown.length === 0) {
     content = <div className={styles.state}>В этом фильтре пусто.</div>;
   } else {
@@ -244,20 +241,22 @@ export default function ReviewBoard({ token }: { token: string }) {
           <details className={styles.howto}>
             <summary>Как пользоваться страницей</summary>
             <p>
-              План публикаций школы на 19 октября — 15 ноября: ролики из курса и тексты для Telegram, MAX,
-              ВКонтакте и Дзена. Здесь можно посмотреть каждый пункт, поправить заголовок и текст и отметить
-              решение. На свободных местах — короткие сценарии роликов на 20–30 секунд, которые можно записать
-              на телефон: текст для чтения вслух тоже можно править.
+              План публикаций школы на 19 октября — 15 ноября: ролики из курса и тексты для Telegram, MAX, ВКонтакте и
+              Дзена. Здесь можно посмотреть каждый пункт, поправить заголовок и текст и отметить решение. На свободных
+              местах — короткие сценарии роликов на 20–30 секунд, которые можно записать на телефон: текст для чтения
+              вслух тоже можно править.
             </p>
             <ol className={styles.how}>
               <li>Посмотрите ролик или прочитайте текст. Правьте прямо в полях.</li>
-              <li>Нажмите «Согласовано», «Нужны правки» или «Отклонить». Правки и комментарий сохранятся вместе с решением.</li>
+              <li>
+                Нажмите «Согласовано», «Нужны правки» или «Отклонить». Правки и комментарий сохранятся вместе с
+                решением.
+              </li>
               <li>Решение можно поменять в любой момент. Публикуем только согласованное.</li>
             </ol>
             <p>
-              Посты в Telegram и MAX заканчиваются ссылкой «Практикум «Тело знает всё» →» и хештегами — их
-              добавляем сами, в тексте поста писать не нужно. Даты предварительные: публикация начнётся после
-              подключения каналов.
+              Посты в Telegram и MAX заканчиваются ссылкой «Практикум «Тело знает всё» →» и хештегами — их добавляем
+              сами, в тексте поста писать не нужно. Даты предварительные: публикация начнётся после подключения каналов.
             </p>
           </details>
         </header>
@@ -271,12 +270,7 @@ export default function ReviewBoard({ token }: { token: string }) {
           </div>
           <div className={styles.filters}>
             {filters.map(([key, label]) => (
-              <button
-                key={key}
-                type="button"
-                aria-pressed={filter === key}
-                onClick={() => setFilter(key)}
-              >
+              <button key={key} type="button" aria-pressed={filter === key} onClick={() => setFilter(key)}>
                 {label}
               </button>
             ))}
@@ -361,7 +355,9 @@ function ItemCard({
 
   const fields = (
     <div className={styles.fields}>
-      <label htmlFor={idTitle} className={styles.label}>Заголовок</label>
+      <label htmlFor={idTitle} className={styles.label}>
+        Заголовок
+      </label>
       {/* Многострочное поле: на телефоне длинный заголовок виден целиком. Перенос строки в заголовке не нужен. */}
       <textarea
         id={idTitle}
@@ -383,7 +379,9 @@ function ItemCard({
 
       {item.kind === 'video-script' && (
         <>
-          <label htmlFor={idSpeech} className={styles.label}>Текст для чтения вслух</label>
+          <label htmlFor={idSpeech} className={styles.label}>
+            Текст для чтения вслух
+          </label>
           <textarea
             id={idSpeech}
             value={speech}
@@ -419,7 +417,9 @@ function ItemCard({
         </ul>
       )}
       {item.notes.map((n) => (
-        <p key={n} className={styles.notes}>{n}</p>
+        <p key={n} className={styles.notes}>
+          {n}
+        </p>
       ))}
       {item.transcript && (
         <details className={styles.details}>
@@ -453,13 +453,13 @@ function ItemCard({
           ))}
         </div>
         {chips.some((c) => c.blocked) && (
-          <p className={styles.quickNote}>
-            Комментарий почти полный: сократите его, чтобы добавить готовый ответ.
-          </p>
+          <p className={styles.quickNote}>Комментарий почти полный: сократите его, чтобы добавить готовый ответ.</p>
         )}
       </div>
 
-      <label htmlFor={idComment} className={styles.label}>Комментарий</label>
+      <label htmlFor={idComment} className={styles.label}>
+        Комментарий
+      </label>
       <textarea
         id={idComment}
         className={styles.comment}
@@ -504,6 +504,8 @@ function ItemCard({
       </div>
       {video ? (
         <div className={styles.grid}>
+          {/* Внутренняя страница согласования (владелец и бренд-мастер): субтитры не нужны. */}
+          {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
           <video
             controls
             preload="none"

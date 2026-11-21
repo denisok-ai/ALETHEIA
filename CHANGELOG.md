@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-11-21) — Порядок в репозитории и стандарты разработки
+
+- `docs/Development-Standards.md`, указатели `docs/README.md` и `scripts/README.md`; 33 исторических документа → `docs/archive/`; 32 разовых скрипта удалены.
+- `.editorconfig`, Prettier (только для изменённых файлов: `npm run format:changed`), `npm run check` (линтер + типы + тесты); в CI добавлены линтер и проверка типов.
+- Линтер: 0 ошибок (переход к результатам участника — через `router.push`).
+
 ### Added (2026-11-20) — Проверка DNS в мониторинге сервера
 
 - `server-health` опрашивает каждый nameserver из `/etc/resolv.conf` и системный резолв: тревога `dns:<ip>` при умершем резервном сервере и `dns:system`, если сервер не резолвит адреса совсем. Повод — 20.11 оба DNS хостера IHC остановились, и это проявилось только алертом синка почты «ошибок 5 из 5».
@@ -244,7 +250,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`poweredByHeader:false`** — убран заголовок `X-Powered-By: Next.js` (информационное раскрытие).
 - **Почтовые порты закрыты наружу** (110/143/995/4190): mailcow публиковал их на 0.0.0.0 в обход ufw (Docker пишет iptables перед фильтром) — их уже щупали сканеры. Закрыты правилами DROP в `DOCKER-USER` (идемпотентно в `scripts/security-hardening-prod.sh`, бэкап + персист); 25/587/465/993 оставлены. На почту заходят только через вебмейл. Связка почта↔админка не пострадала.
 - **Нормальный TLS-сертификат почты:** `mail.avaterra.pro` отдавал самоподписанный snakeoil (mailcow за хостовым nginx, `SKIP_LETS_ENCRYPT=y`). Хостовый LE (certbot) теперь копируется в mailcow через certbot deploy-hook (`/etc/letsencrypt/renewal-hooks/deploy/mailcow-cert.sh`, авто на обновлениях) + рестарт dovecot/postfix. Приложение переведено на строгую проверку TLS (`MAIL_IMAP_TLS_REJECT_UNAUTHORIZED=true`, IMAP+SMTP). Проверено: 993/587/25 — Let's Encrypt, `Verify return code: 0`.
-- Отчёт — `docs/Security-Audit-2026-08-31.md`.
+- Отчёт — `docs/archive/Security-Audit-2026-08-31.md`.
 
 ### Fixed (2026-08-31…09-01) — SCORM: пустые экраны в курсах (блок eval в CSP)
 
@@ -673,7 +679,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Настройки AI: несколько моделей и API-ключей:** в блоке «Подключение LLM и параметры чат-бота» — раздел «Сохранённые API ключи» (добавление/удаление ключей с названием и провайдером); выбор сохранённого ключа или ввод своего для чат-бота и тьютора; выбор провайдера (DeepSeek, OpenAI, Anthropic, Другой) и модели из списка (или произвольная для «Другой»). Модель данных: LlmApiKey, LlmSetting.apiKeyId; API: GET/POST/DELETE `/api/portal/admin/llm-settings/api-keys`, POST с `api_key_id` в llm-settings.
 - **Страница группы:** `/portal/admin/groups/[id]` — просмотр группы (название, описание, родитель, тип), редактирование (GroupFormModal), состав: курсы/медиа/участники в зависимости от moduleType с добавлением (модалка выбора из всех курсов, медиа или пользователей) и удалением из группы. В дереве групп — ссылка на страницу группы (иконка при наведении). GET `/api/portal/admin/media` для списка медиа в пикерах.
 - **Рассылки и коммуникации: добавление и исключение по группам:** в рассылках (recipientConfig) и в отправке коммуникаций — тип получателей «По группам пользователей» (включить участников выбранных групп) и блок «Исключить группы» (убрать из списка получателей участников выбранных групп). Валидация: groupIds, excludeGroupIds в lib/validations; логика в lib/mailing-send.ts и app/api/portal/admin/comms/send/route.ts.
-- **Группы в Медиатеке и Пользователях:** сайдбар с деревом групп на страницах «Медиатека» и «Пользователи» (фильтрация по группе); в диалоге редактирования ресурса медиа — блок «Группы ресурса»; в карточке пользователя — вкладка «Группы» (роль участник/модератор). API: GET/POST/DELETE `/api/portal/admin/media/[id]/groups`, `/api/portal/admin/users/[id]/groups`. См. docs/Groups-Plan.md.
+- **Группы в Медиатеке и Пользователях:** сайдбар с деревом групп на страницах «Медиатека» и «Пользователи» (фильтрация по группе); в диалоге редактирования ресурса медиа — блок «Группы ресурса»; в карточке пользователя — вкладка «Группы» (роль участник/модератор). API: GET/POST/DELETE `/api/portal/admin/media/[id]/groups`, `/api/portal/admin/users/[id]/groups`. См. docs/archive/Groups-Plan.md.
 - **Группы: редактирование и удаление из дерева:** в сайдбаре групп (Курсы, Медиатека, Пользователи) при наведении на группу отображаются кнопки «Редактировать» и «Удалить»; редактирование открывает модалку формы группы, удаление — диалог подтверждения (дочерние группы отвязываются, связи снимаются). Дерево обновляется после операций.
 - **Health check:** GET /api/health — возвращает 200 и `{ ok: true }` для мониторинга и балансировщиков (см. Deploy.md).
 - **Prisma + SQLite:** локальная БД (prisma/schema.prisma, lib/db.ts). Миграции, seed.
@@ -681,7 +687,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **docs/Local-Prisma.md:** инструкция локального запуска.
 - **Оферта и политика конфиденциальности:** полноценный контент на страницах /oferta и /privacy (разделы по предмету договора, оплате, ПД, правам пользователей).
 - **SEO:** метаданные (title, description, openGraph) для /oferta и /privacy; app/sitemap.ts и app/robots.ts (sitemap.xml, robots.txt с disallow для /portal/, /api/, /auth/).
-- **Редизайн админки (план docs/Admin-Redesign-Plan.md):** PageHeader и единая навигация; компонент Card, табы в карточке пользователя; колонка №, пагинация +5/+10/+50, поиск «Найти в списке», ConfirmDialog при конвертации лида; EmptyState во всех таблицах и табах, TableSkeleton при загрузке; каталог /portal/admin/notification-sets; форма «Добавить пользователя» (POST /api/portal/admin/users); aria-label для доступности; раздел «Админ-панель» в docs/Support.md.
+- **Редизайн админки (план docs/archive/Admin-Redesign-Plan.md):** PageHeader и единая навигация; компонент Card, табы в карточке пользователя; колонка №, пагинация +5/+10/+50, поиск «Найти в списке», ConfirmDialog при конвертации лида; EmptyState во всех таблицах и табах, TableSkeleton при загрузке; каталог /portal/admin/notification-sets; форма «Добавить пользователя» (POST /api/portal/admin/users); aria-label для доступности; раздел «Админ-панель» в docs/Support.md.
 
 ### Notes (деплой)
 - После релиза блока ПДн на проде выполните **`npx prisma migrate deploy`**, чтобы создать таблицу журнала согласий (`ConsentLog`). Задайте **`NEXT_PUBLIC_PDN_*`** в окружении сборки/рантайма для корректных реквизитов на сайте.
@@ -741,7 +747,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.1.0] - 2026-03-10
 
 ### Added
-- **Аудит пользовательского пути (docs/User-Journey-Audit.md):** привязка оплаченных заказов при регистрации и при первом входе в ЛК (claimPaidOrdersForUser); письмо «Заявка принята» после формы контакта; экран «Заявка отправлена» с CTA на оплату; письмо при оплате без курса (консультация); письмо при конвертации лида со ссылкой «Установить пароль»; страница /set-password по токену (PasswordToken, 48 ч); welcome-уведомление после регистрации; уведомление менеджеру и автоответ студенту при создании тикета; персонализация /success для авторизованных; сброс пароля по email (/reset-password, /api/auth/forgot-password); шаблоны писем об оплате в Настройках (email_payment_course_*, email_payment_generic_*); онбординг-подсказка на дашборде студента (localStorage); /success?order= для гостя с маскированным email; шаблоны быстрых ответов в тикете для менеджера; связь Lead ↔ Order (lastOrderNumber при оплате, отображение в CRM); авто-тикет «Нет доступа» (Ticket.orderNumber, тема и привязка заказа); ссылка на заказ в тикете для админа (payments?search=); поиск по заказу на странице Оплаты через ?search=.
+- **Аудит пользовательского пути (docs/archive/User-Journey-Audit.md):** привязка оплаченных заказов при регистрации и при первом входе в ЛК (claimPaidOrdersForUser); письмо «Заявка принята» после формы контакта; экран «Заявка отправлена» с CTA на оплату; письмо при оплате без курса (консультация); письмо при конвертации лида со ссылкой «Установить пароль»; страница /set-password по токену (PasswordToken, 48 ч); welcome-уведомление после регистрации; уведомление менеджеру и автоответ студенту при создании тикета; персонализация /success для авторизованных; сброс пароля по email (/reset-password, /api/auth/forgot-password); шаблоны писем об оплате в Настройках (email_payment_course_*, email_payment_generic_*); онбординг-подсказка на дашборде студента (localStorage); /success?order= для гостя с маскированным email; шаблоны быстрых ответов в тикете для менеджера; связь Lead ↔ Order (lastOrderNumber при оплате, отображение в CRM); авто-тикет «Нет доступа» (Ticket.orderNumber, тема и привязка заказа); ссылка на заказ в тикете для админа (payments?search=); поиск по заказу на странице Оплаты через ?search=.
 
 ---
 

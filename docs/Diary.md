@@ -2,6 +2,32 @@
 
 Подробный дневник наблюдений: технические решения, проблемы и их решения. Обеспечивает преемственность для разных разработчиков.
 
+## 2026-11-21 — Порядок в проекте и стандарты разработки
+
+Запрос владельца: «привести проект в порядок, всё в одной папке, порядок в коде и стандартах».
+Решения владельца: мёртвые скрипты — удалить (история в git); Prettier — только для новых правок.
+
+- **scripts/:** удалено 32 разовых/мёртвых скрипта (`_tmp-prod-*`, `patch-*`, `fix-*`, старые `prod-*-remote.sh`,
+  `delete-all-courses.ts` …). Кандидаты сверены с кодом, CI, всеми документами, памятью сессий и **ссылками на
+  сервере** (`/etc/cron.d`, systemd, `/usr/local/bin`): `jobs-daemon.ts` и `mail-inbox-notify.py` выглядели
+  мёртвыми, но работают на сервере — оставлены. Оставлены и диагностические инструменты без ссылок. Подпапки
+  НЕ вводились: сервер вызывает скрипты по путям `/opt/ALETHEIA/scripts/<имя>`. Вместо этого — каталог
+  `scripts/README.md` по назначению (240 скриптов).
+- **docs/:** 33 завершённых плана модулей, датированных аудита, отчёта и передачи дел → `docs/archive/` (`git mv`);
+  ссылки переписаны (16 файлов), плюс исправлено 17 битых относительных ссылок (часть — давние, в `docs/marketing`).
+  Битых ссылок в `*.md` — 0. Новый указатель `docs/README.md`.
+- **Корень:** бэкапы БД `prisma/dev.db.bak-*` и демо-файлы «для друга» → `private/archive/` (были вне git, в корне).
+  Удалены влитые локальные ветки (5).
+- **Стандарты:** `docs/Development-Standards.md` (структура, проверки, код, скрипты, документы, git, прод);
+  `.editorconfig`, `.prettierrc.json` (параметры подобраны замером: меньше всего расхождений с текущим кодом —
+  120 символов, `es5`), `.prettierignore`; `prettier` 3.8.1 явной dev-зависимостью; npm-скрипты `typecheck`,
+  `format:changed`, `check`. CI: линтер и проверка типов перед тестами.
+- **Линтер:** было 2 ошибки + 1 предупреждение → 0. `window.location.href` → `router.push` в
+  `CourseLearningResults`; `media-has-caption` подавлено адресно с объяснением (субтитров нет — задача в трекере).
+- **Не сделано (нужны права/решение владельца):** удаление `~/projects/ALETHEIA` (пустой остаток: только
+  `node_modules`), `DenisBot1/` (только кеши Python) и `.cursor/` (логи), удаление 6 влитых веток на GitHub —
+  заблокировано авто-режимом как разрушительное.
+
 ## 2026-11-21 (утро) — Сводка ночной автономной смены 23:58–07:57
 
 - 9 часовых проверок прода (server-health с DNS, 5 ящиков почты, aletheia, openconnect-telegram, Telegram через
@@ -658,7 +684,7 @@
 ## 2026-09-23 — Комплексный аудит, план развития, старт разработки (+инцидент деплоя)
 
 - **Аудит:** код добротный (tsc 0, lint чист, 2 any/2 TODO на 118k строк), но **автотестов не было вовсе**; npm audit — 1 critical (Next 14 DoS) + 13 high. Закрыто 23/27 (nodemailer 7→10 — SMTP-инъекция при адресах из форм, node-cron 4, xlsx с CDN SheetJS, 13 транзитивных). Осталась Next-цепочка (миграция на 16 — отдельный этап плана).
-- **План развития** — `docs/Development-Plan-2026-09.md`: P0 устойчивость (алерт ресурсов, тесты, Next 16), P2 воронка (догон холодных), P3 качество кода, и отдельная SEO-программа (глоссарий под НЧ, data-driven темы из Вебмастера, Bing, E-E-A-T, CWV).
+- **План развития** — `docs/archive/Development-Plan-2026-09.md`: P0 устойчивость (алерт ресурсов, тесты, Next 16), P2 воронка (догон холодных), P3 качество кода, и отдельная SEO-программа (глоссарий под НЧ, data-driven темы из Вебмастера, Bing, E-E-A-T, CWV).
 - **Сделано:** (1) cron `server-health` каждые 15 мин — память/swap/диск/OOM с антиспамом; (2) vitest + 25 юнит-тестов чистых модулей, `npm test` в CI блокирует деплой; тесты сразу поймали баг deep-link (id=1e20 ронял запрос к БД) — исправлен.
 - **Инцидент (~05:00–08:10 UTC, ~3 ч простоя):** после обновления зависимостей деплой на сервере упал: `.npmrc` (legacy-peer-deps из-за optional peer next-auth↔nodemailer) не rsync-ился, `npm ci --omit=dev` упал ПОСЛЕ `rm -rf node_modules`, аварийное восстановление вернуло только `.next` → «next: not found», рестарт-луп. Поднят вручную; фикс — `.npmrc` в rsync. **Урок в план:** восстановление должно проверять node_modules; `npm ci` — во временный каталог с атомарной подменой. Ирония: алерт ресурсов задеплоился именно этим инцидентом и первым же замером поймал его след (swap 73 %) — сброшен.
 
@@ -702,7 +728,7 @@
 
 ## 2026-08-31 — Независимый аудит безопасности (код + прод, изнутри и снаружи)
 
-- **Полный отчёт — `docs/Security-Audit-2026-08-31.md`.** Проверены: авторизация API (140 admin-маршрутов с role-check, IDOR нет), PayKeeper webhook (timing-safe подпись, сверка до мутаций), SQL (только Prisma), XSS (sanitize-html/jsonLdString), сброс пароля (одноразовые токены, rate-limit), SSH (keys-only, fail2ban 4 jail), bind app 127.0.0.1, Python-бот (параметризован). Чисто.
+- **Полный отчёт — `docs/archive/Security-Audit-2026-08-31.md`.** Проверены: авторизация API (140 admin-маршрутов с role-check, IDOR нет), PayKeeper webhook (timing-safe подпись, сверка до мутаций), SQL (только Prisma), XSS (sanitize-html/jsonLdString), сброс пароля (одноразовые токены, rate-limit), SSH (keys-only, fail2ban 4 jail), bind app 127.0.0.1, Python-бот (параметризован). Чисто.
 - **Исправлено в коде (`ba1a11b`):** next-auth 4.24.13→4.24.15 — CRITICAL GHSA-7rqj-j65f-68wh (обход входа через омоглиф «@» в нормализации email; прямо касается credentials-входа; `npm audit` critical 1→0); nanoid 5.1.6→5.1.16 (токены платежей/паролей); `poweredByHeader:false` (убран `X-Powered-By`).
 - **Почтовые порты в обход ufw (`af450b1`):** mailcow публиковал порты на 0.0.0.0 перед фильтром ufw (Docker пишет iptables раньше). Снаружи отвечали 4190 (ManageSieve), 143 (IMAP cleartext), 110/995 — их щупал сканер (177.3.214.0). Владелец подтвердил: почта только через вебмейл. Закрыты правилами DROP в `DOCKER-USER` (бэкап + персист + идемпотентно в `security-hardening-prod.sh`); 25/587/465/993 оставлены. Связка почта↔админка проверена — не пострадала (все ящики на IMAPS 993 / SMTP 587; живой inmail-sync 5/0).
 - **TLS-сертификат почты (`29cf798`):** `mail.avaterra.pro` отдавал самоподписанный snakeoil mailcow (`SKIP_LETS_ENCRYPT=y` за хостовым nginx), приложение обходило проверку. На хосте уже был валидный LE (certbot), но не копировался в mailcow. Поставлен deploy-hook `/etc/letsencrypt/renewal-hooks/deploy/mailcow-cert.sh` (копирует LE в `mailcow/data/assets/ssl/` + рестарт dovecot/postfix, авто на обновлениях). Приложение → строгая проверка `MAIL_IMAP_TLS_REJECT_UNAUTHORIZED=true`. Проверено: 993/587/25 отдают LE, Verify return code 0; inmail-sync 5/0.
@@ -1084,7 +1110,7 @@
 
 ## 2026-07-23 — Аудит доработок недели 16–23.07
 
-Восстановлен полный ход работ (78 коммитов + серверные работы по почте/DNS, видимые только в docs) со сверкой прода: [Audit-Week-2026-07-16-23.md](Audit-Week-2026-07-16-23.md). Ключевые процессные находки: прод собирался из незакоммиченного кода (`ab3064a` — сборка 22.07 20:41, коммит 23.07 08:47; содержимое сверено подиффно — идентично), два конкурирующих деплой-пайплайна (rsync vs git-pull; в `git clean -fd` не исключён `.next`), 10 неоформленных `_tmp-*` скриптов. Код недели в порядке: `prod-verify` 0 провалов.
+Восстановлен полный ход работ (78 коммитов + серверные работы по почте/DNS, видимые только в docs) со сверкой прода: [Audit-Week-2026-07-16-23.md](archive/Audit-Week-2026-07-16-23.md). Ключевые процессные находки: прод собирался из незакоммиченного кода (`ab3064a` — сборка 22.07 20:41, коммит 23.07 08:47; содержимое сверено подиффно — идентично), два конкурирующих деплой-пайплайна (rsync vs git-pull; в `git clean -fd` не исключён `.next`), 10 неоформленных `_tmp-*` скриптов. Код недели в порядке: `prod-verify` 0 провалов.
 
 ## 2026-07-23 — Почта @avaterra.pro: доставка подтверждена
 
@@ -1394,7 +1420,7 @@
 
 **Задача:** один понятный вход к доставке (Resend/SMTP), ящикам @avaterra.pro, входящим IMAP, оперативным письмам и рассылкам; переиспользуемый блок доставки вместо дубля только в «Настройках».
 
-**Сделано:** маршрут `/portal/admin/mail` + `MailCenterClient` (вкладки и обзор с ошибками IMAP и журналами); компонент `OutboundMailSettingsBlock`; сайдбар и палитра ⌘K с главным пунктом «Почта» и быстрыми ссылками `?tab=…`; редиректы с `/portal/admin/domain-mailboxes` и `/portal/admin/inmail`; сбор данных на сервере в `lib/mail-center-server.ts`; правки `docs/Support.md`, `docs/Inbound-Mail-Scope.md`.
+**Сделано:** маршрут `/portal/admin/mail` + `MailCenterClient` (вкладки и обзор с ошибками IMAP и журналами); компонент `OutboundMailSettingsBlock`; сайдбар и палитра ⌘K с главным пунктом «Почта» и быстрыми ссылками `?tab=…`; редиректы с `/portal/admin/domain-mailboxes` и `/portal/admin/inmail`; сбор данных на сервере в `lib/mail-center-server.ts`; правки `docs/Support.md`, `docs/archive/Inbound-Mail-Scope.md`.
 
 ## 2026-04-29 — Автономная почта @avaterra.pro
 
@@ -1426,7 +1452,7 @@
 
 **Сделано (код, кратко):** `ChatMarkdown` + `lib/linkify-bare-urls.ts` для кликабельных URL в ответах LLM; шаблоны промптов с `scope` `chatbot` | `course-tutor`, приоритет активного шаблона тьютора в `ai-assist`, учёт usage; удалён неиспользуемый `CourseTutorForm.tsx`; `/portal/student/gamification` без редиректа admin/manager из ЛК студента; убрана кнопка «Админка» со страницы курса студента; `HelpContent` — карточки и якоря `#ai-tutor`, `#ai-tutor-admin`, прокрутка по hash; палитра ⌘K (`portal-nav-commands`); UX подсказок на странице курса, в `CourseAIChat`, ссылки из `CourseAiTutorBlock` и `LlmAndChatbotBlock`.
 
-**Документация и версия:** `package.json` → **3.3.0**; `CHANGELOG.md` — секция **[3.3.0] - 2026-04-05**; обновлены `docs/Project.md` (в. 3.3.0, блок про AI), `docs/Support.md` (помощь и якоря), `docs/Tasktracker.md` (версия продукта), `docs/AI-Assistants-Audit.md` (чат и тьютор).
+**Документация и версия:** `package.json` → **3.3.0**; `CHANGELOG.md` — секция **[3.3.0] - 2026-04-05**; обновлены `docs/Project.md` (в. 3.3.0, блок про AI), `docs/Support.md` (помощь и якоря), `docs/Tasktracker.md` (версия продукта), `docs/archive/AI-Assistants-Audit.md` (чат и тьютор).
 
 ---
 
@@ -1571,23 +1597,23 @@
 3. `student/dashboard.spec.ts` — клик по ссылке курса ведёт на страницу курса.
 4. `cross-role/scorm-seed-content.spec.ts` — студент открывает плеер с контентом из seed (course-seed-1) без загрузки ZIP.
 
-**Файлы:** tests/e2e/guest/auth-login-redirect.spec.ts (новый), tests/e2e/guest/public-pages.spec.ts, tests/e2e/student/dashboard.spec.ts, tests/e2e/cross-role/scorm-seed-content.spec.ts (новый), docs/Testing-Improvement-Plan.md.
+**Файлы:** tests/e2e/guest/auth-login-redirect.spec.ts (новый), tests/e2e/guest/public-pages.spec.ts, tests/e2e/student/dashboard.spec.ts, tests/e2e/cross-role/scorm-seed-content.spec.ts (новый), docs/archive/Testing-Improvement-Plan.md.
 
 ---
 
 ## 2026-03-15 — SCORM-контент для тестовых курсов
 
-**Задача:** docs/Browser-Test-Remediation-Plan.md — добавить минимальный SCORM для демо.
+**Задача:** docs/archive/Browser-Test-Remediation-Plan.md — добавить минимальный SCORM для демо.
 
 **Решение:** В prisma/seed.ts после обновления курсов (scormPath, scormManifest) добавлено создание HTML-файлов для course-seed-1 и course-seed-2: index.html, lesson1.html, lesson2.html, lesson3.html в `public/uploads/scorm/courses-{id}/`. Минимальный контент (заголовок + текст) совместим с scorm-again. После `npx prisma db seed` плеер показывает 3 урока без загрузки ZIP.
 
-**Файлы:** prisma/seed.ts, docs/Support.md, docs/Browser-Test-Remediation-Plan.md.
+**Файлы:** prisma/seed.ts, docs/Support.md, docs/archive/Browser-Test-Remediation-Plan.md.
 
 ---
 
 ## 2026-03-15 — Доработки по плану тестирования (Browser-Test-Remediation-Plan)
 
-**Задача:** реализовать пункты из docs/Browser-Test-Remediation-Plan.md.
+**Задача:** реализовать пункты из docs/archive/Browser-Test-Remediation-Plan.md.
 
 **1. 404 на /portal при первом редиректе:** Исправлено. После signIn вызывается getSession(), по роли определяется дашборд (admin/manager/student), редирект идёт сразу на `/portal/*/dashboard`, минуя `/portal`. Файл: app/(auth)/login/page.tsx.
 
@@ -1597,7 +1623,7 @@
 
 **4. SCORM:** В docs/Support.md добавлен раздел «Проверка SCORM-плеера» — как загрузить контент, какие курсы использовать.
 
-**Файлы:** app/(auth)/login/page.tsx, components/portal/CourseCard.tsx, docs/Support.md, docs/Browser-Test-Remediation-Plan.md.
+**Файлы:** app/(auth)/login/page.tsx, components/portal/CourseCard.tsx, docs/Support.md, docs/archive/Browser-Test-Remediation-Plan.md.
 
 ---
 
@@ -1607,7 +1633,7 @@
 
 **Выполнено:** автоматизированное тестирование через browser MCP. Проверены: публичные страницы, модалка покупки, форма контактов, FAQ, логин, ЛК студента (дашборд, курсы, поддержка, тикеты), кабинет менеджера (тикеты, пользователи, верификация), админка (дашборд, курсы, пользователи, CRM, оплаты, медиа, рассылки, настройки). Сквозной сценарий: студент создал тикет → тикет отображается у менеджера. Защита /portal без авторизации — редирект на логин.
 
-**Результаты:** отчёт `docs/Browser-Test-Report-2025-03-15.md`, план доработки `docs/Browser-Test-Remediation-Plan.md`.
+**Результаты:** отчёт `docs/archive/Browser-Test-Report-2025-03-15.md`, план доработки `docs/archive/Browser-Test-Remediation-Plan.md`.
 
 **Найденные проблемы:** 404 на /portal при первом редиректе студента; редирект signOut на другой порт (проверить callbackUrl); SCORM-плеер без контента для части курсов; клик по карточке курса не всегда срабатывает.
 
@@ -1628,7 +1654,7 @@
 - Задача 9 (админ-настройки): добавлен чек-лист для ручной проверки.
 - Чек-лист релиза: build отмечен выполненным.
 
-**Файлы:** app/api/auth/[...nextauth]/route.ts, docs/Testing-Improvement-Plan.md.
+**Файлы:** app/api/auth/[...nextauth]/route.ts, docs/archive/Testing-Improvement-Plan.md.
 
 ---
 
@@ -1636,7 +1662,7 @@
 
 **Задача:** отметить выполненные пункты плана, актуализировать чек-лист.
 
-**Изменения в docs/Testing-Improvement-Plan.md:**
+**Изменения в docs/archive/Testing-Improvement-Plan.md:**
 - Задачи 2, 3, 4, 6, 7 — статус «выполнено» (чат, toast PayKeeper, валидация, контакты, документация ID публикаций).
 - Чек-лист: отмечены выполненные пункты (модалка, контакты, валидация, E2E).
 - Оставшиеся: чат (настройка ключа), build (MODULE_NOT_FOUND), консоль, data-cursor-ref, NEXTAUTH_URL.
@@ -1644,13 +1670,13 @@
 **Изменения в .env.example:**
 - Добавлен комментарий про DEEPSEEK_API_KEY для чат-бота: где задать ключ и что показывается без него.
 
-**Файлы:** docs/Testing-Improvement-Plan.md, .env.example.
+**Файлы:** docs/archive/Testing-Improvement-Plan.md, .env.example.
 
 ---
 
 ## 2026-03-15 — Исправление ошибки Cookies в PortalLayout
 
-**Задача:** продолжить по docs/Testing-Improvement-Plan.md. Ошибка «Cookies can only be modified in a Server Action or Route Handler» при claim orders в app/portal/layout.tsx.
+**Задача:** продолжить по docs/archive/Testing-Improvement-Plan.md. Ошибка «Cookies can only be modified in a Server Action or Route Handler» при claim orders в app/portal/layout.tsx.
 
 **Решение:** Логика привязки заказов вынесена в Route Handler `GET /api/portal/claim-orders`. Layout больше не вызывает `cookies().set()`. Добавлен клиентский компонент `ClaimOrdersTrigger`, который при входе студента в портал вызывает API; API проверяет cookie, при отсутствии выполняет claim и устанавливает cookie в ответе. Частота ограничена 1 раз в день (cookie avaterra_claim_checked).
 
@@ -1660,7 +1686,7 @@
 
 ## 2026-03-15 — Унификация контактов и документация
 
-**Задача:** продолжить разработку по docs/Testing-Improvement-Plan.md.
+**Задача:** продолжить разработку по docs/archive/Testing-Improvement-Plan.md.
 
 **Унификация контактов (телефон):** Секция Contact на главной использовала хардкод +7 (495) 123-45-67, тогда как Footer и seed — +7 (999) 123-45-67 из SystemSetting.contact_phone. Исправлено: app/page.tsx получает settings через getSystemSettings(), передаёт contactPhone в Contact; Contact принимает проп contactPhone и использует его (fallback +7 (495) 123-45-67). Теперь блок «Оставьте заявку» и футер показывают один номер из настроек.
 
@@ -1676,7 +1702,7 @@
 
 ## 2026-03-15 — Доработки по плану тестирования (авторежим)
 
-**Задача:** реализовать пункты из docs/Testing-Improvement-Plan.md по результатам комплексного browser-тестирования.
+**Задача:** реализовать пункты из docs/archive/Testing-Improvement-Plan.md по результатам комплексного browser-тестирования.
 
 **A.1 Ошибка при неудачном создании платежа:** PaymentModal — заменён alert на toast.error; добавлена обработка ошибок сети и невалидного JSON; сообщения «Не удалось создать платёж. Попробуйте позже или свяжитесь с нами», «Ошибка сети. Проверьте подключение…».
 
@@ -1693,13 +1719,13 @@
 - **Валидация paykeeperTariffId:** в ServicesAdminBlock — предупреждение при courseId без paykeeperTariffId; блокировка submit.
 - **Страница signout (русский):** app/signout/page.tsx с текстом «Выход», «Вы уверены?», кнопками «Выйти»/«Остаться»; lib/auth.ts pages.signOut: '/signout'.
 
-**Файлы:** components/PaymentModal.tsx, app/success/page.tsx, app/(auth)/register/page.tsx, app/(auth)/login/page.tsx, app/portal/student/support/SupportTicketsClient.tsx, prisma/seed.ts, app/portal/admin/payments/ServicesAdminBlock.tsx, app/signout/page.tsx, lib/auth.ts, docs/Testing-Improvement-Plan.md.
+**Файлы:** components/PaymentModal.tsx, app/success/page.tsx, app/(auth)/register/page.tsx, app/(auth)/login/page.tsx, app/portal/student/support/SupportTicketsClient.tsx, prisma/seed.ts, app/portal/admin/payments/ServicesAdminBlock.tsx, app/signout/page.tsx, lib/auth.ts, docs/archive/Testing-Improvement-Plan.md.
 
 ---
 
 ## 2026-03-15 — Устранение замечаний по тестированию UI
 
-**Задача:** устранить замечания из docs/Testing-Improvement-Plan.md по результатам тестирования MCP browser.
+**Задача:** устранить замечания из docs/archive/Testing-Improvement-Plan.md по результатам тестирования MCP browser.
 
 **Редирект при выходе:** signOut вызывался с `callbackUrl: '/login'`, NextAuth использовал NEXTAUTH_URL (часто localhost:3000), из-за чего при работе на порту 3001 редирект уводил на 3000. Исправлено: в PortalHeader, PortalAccountBlock, verify-email-required передаётся `callbackUrl: window.location.origin + '/login'` — выход остаётся на текущем порту.
 
@@ -1709,7 +1735,7 @@
 
 **Файлы:** lib/notification-content.ts, app/portal/student/dashboard/page.tsx, app/portal/student/notifications/NotificationsList.tsx, components/portal/PortalHeader.tsx, components/portal/PortalAccountBlock.tsx, app/verify-email-required/page.tsx, prisma/seed.ts, .env.example (комментарий NEXTAUTH_URL).
 
-**Продолжение:** Обновлена заметка в docs/Testing-Improvement-Plan.md (редирект при выходе исправлен). Выполнен `npx prisma db seed` — БД обновлена с новой темой тикетов «Проблема с прохождением курса». `npm run predeploy` проходит успешно.
+**Продолжение:** Обновлена заметка в docs/archive/Testing-Improvement-Plan.md (редирект при выходе исправлен). Выполнен `npx prisma db seed` — БД обновлена с новой темой тикетов «Проблема с прохождением курса». `npm run predeploy` проходит успешно.
 
 ---
 
@@ -1747,7 +1773,7 @@
 
 **Лог запросов к AI:** на странице Настройки AI блок «Лог запросов к AI» реализован. In-memory хранилище (lib/llm-request-log.ts, до 100 записей), API GET /api/portal/admin/ai-settings/request-log (админ). В лог пишутся вызовы: чат-бот, подсказка ответа в тикете, автоответ при создании тикета, генерация текста (generate-text), генерация промпта (prompt-templates/generate). Компонент LlmRequestLogBlock выводит таблицу (дата, сценарий, модель, символы, время, роль). Лог сбрасывается при перезапуске процесса. Файлы: lib/llm-request-log.ts, app/api/portal/admin/ai-settings/request-log/route.ts, app/portal/admin/ai-settings/LlmRequestLogBlock.tsx, app/portal/admin/ai-settings/page.tsx, app/api/chat/route.ts, app/api/portal/tickets/[id]/suggest-reply/route.ts, lib/ticket-auto-reply.ts, app/api/portal/admin/ai-settings/generate-text/route.ts, app/api/portal/admin/ai-settings/prompt-templates/generate/route.ts.
 
-**Файлы:** app/api/portal/tickets/[id]/messages/route.ts, app/api/portal/admin/ai-settings/knowledge-base/append/route.ts, components/portal/TicketThread.tsx, app/portal/manager/tickets/[id]/page.tsx, app/api/portal/scorm/progress/route.ts, app/api/portal/admin/certificates/generate/route.ts, app/api/portal/verifications/upload/route.ts, app/api/portal/verifications/route.ts, app/api/portal/verifications/[id]/route.ts, app/portal/student/verifications/VerificationsPageClient.tsx, app/portal/student/courses/[courseId]/CourseVerificationBlock.tsx, docs/Verification-Module.md, docs/Support-Tickets-Audit.md; components/ui/TablePagination.tsx, все клиенты таблиц (Media, Courses, UsersTable, Payments, CRM, Audit, Certificates, Communications, Mailings, Monitoring, ManagerTickets и др.), docs/Tasktracker.md.
+**Файлы:** app/api/portal/tickets/[id]/messages/route.ts, app/api/portal/admin/ai-settings/knowledge-base/append/route.ts, components/portal/TicketThread.tsx, app/portal/manager/tickets/[id]/page.tsx, app/api/portal/scorm/progress/route.ts, app/api/portal/admin/certificates/generate/route.ts, app/api/portal/verifications/upload/route.ts, app/api/portal/verifications/route.ts, app/api/portal/verifications/[id]/route.ts, app/portal/student/verifications/VerificationsPageClient.tsx, app/portal/student/courses/[courseId]/CourseVerificationBlock.tsx, docs/Verification-Module.md, docs/archive/Support-Tickets-Audit.md; components/ui/TablePagination.tsx, все клиенты таблиц (Media, Courses, UsersTable, Payments, CRM, Audit, Certificates, Communications, Mailings, Monitoring, ManagerTickets и др.), docs/Tasktracker.md.
 
 ---
 
@@ -1803,7 +1829,7 @@
 
 ## 2026-03-12 — AI-помощники: тикеты, шаблоны, рассылки
 
-**Задача:** добавить кнопки генерации/подсказок текста в тикетах поддержки, шаблонах коммуникаций и уведомлений, форме рассылок (по аудиту docs/AI-Assistants-Audit.md).
+**Задача:** добавить кнопки генерации/подсказок текста в тикетах поддержки, шаблонах коммуникаций и уведомлений, форме рассылок (по аудиту docs/archive/AI-Assistants-Audit.md).
 
 **Что сделано:**
 - **Общий API генерации текста:** POST `/api/portal/admin/ai-settings/generate-text` — тело `{ instruction, context?, systemPrompt?, maxTokens? }`, ключ LlmSetting `chatbot`, ответ `{ content }`. Для черновиков в админке.
@@ -2009,7 +2035,7 @@
 - Реализованы блоки 6 и 7 (приветствие и поддержка): **welcome** — в lib/email-templates добавлен шаблон «Добро пожаловать» (eventType welcome); в POST /api/auth/register после claimPaidOrders вызывается triggerNotification('welcome'). **Тикеты:** при создании обращения (POST /api/portal/tickets) студенту отправляется письмо «Обращение в поддержку принято» (тема, номер тикета); на адрес resend_notify_email — письмо «Новое обращение в поддержку» (от кого, тема, текст, ссылка в портал менеджера). Tasktracker обновлён.
 - Реализованы блок 5 (конвертация лида + установка пароля): модель **PasswordToken** (одноразовый токен, 48 ч), **lib/password-token.ts** (createPasswordToken, getUserIdByPasswordToken, consumePasswordToken), **POST /api/auth/set-password** (установка пароля по токену, удаление токена), страница **/set-password?token=…** (форма пароль/подтверждение, редирект на /login). В **POST /api/portal/admin/leads/convert** после создания пользователя: генерация токена, отправка клиенту письма «Установите пароль» со ссылкой на /set-password?token=…. Миграция 20260313100000_add_password_token.
 - Реализованы задачи из плана User-Journey-Audit: **3.1** привязка оплаченных заказов при регистрации (`claimPaidOrdersForNewUser` в POST `/api/auth/register` — поиск оплаченных Order по email, создание Enrollment, triggerNotification, Order.userId); **2.1** письмо при оплате тарифа без курса (webhook PayKeeper — ветка `else` с письмом «Оплата получена, свяжемся с вами»); **1.1** письмо клиенту «Заявка принята» (POST `/api/contact` — при указании email отправка подтверждения клиенту). В Tasktracker статусы этих задач обновлены на «Завершена».
-- Добавлен документ **docs/User-Journey-Audit.md**: описание текущих потоков (заявка, оплата, webhook, регистрация, конвертация лида, поддержка, уведомления), полный перечень сценариев (A–H), выявленные пробелы и **план доработок** по 8 блокам (заявка, оплата/webhook, авторегистрация и привязка заказа, страница success, конвертация лида и установка пароля, приветствие/онбординг, поддержка, сброс пароля). Критический пункт: привязка оплаченных заказов при регистрации (чтобы купленный курс появлялся в ЛК после регистрации с тем же email). В Tasktracker добавлен раздел «Аудит пользовательского пути» с задачами из плана.
+- Добавлен документ **docs/archive/User-Journey-Audit.md**: описание текущих потоков (заявка, оплата, webhook, регистрация, конвертация лида, поддержка, уведомления), полный перечень сценариев (A–H), выявленные пробелы и **план доработок** по 8 блокам (заявка, оплата/webhook, авторегистрация и привязка заказа, страница success, конвертация лида и установка пароля, приветствие/онбординг, поддержка, сброс пароля). Критический пункт: привязка оплаченных заказов при регистрации (чтобы купленный курс появлялся в ЛК после регистрации с тем же email). В Tasktracker добавлен раздел «Аудит пользовательского пути» с задачами из плана.
 
 ---
 
@@ -2076,7 +2102,7 @@
 - **Медиатека:** API GET/POST/DELETE `/api/portal/admin/media/[id]/groups` (сегмент [id] для совместимости с существующим media/[id]). Страница медиатеки обёрнута в `MediaPageWithGroups`: слева дерево групп (moduleType=media), при выборе группы список ресурсов фильтруется. В диалоге редактирования ресурса добавлен блок «Группы ресурса» (компонент `MediaItemGroupsBlock`): список групп ресурса, добавление в группу, удаление из группы.
 - **Пользователи:** API GET/POST/DELETE `/api/portal/admin/users/[id]/groups` (сегмент [id]). Страница пользователей обёрнута в `UsersPageWithGroups`: дерево групп (moduleType=user), фильтрация таблицы по выбранной группе. В карточке пользователя добавлена вкладка «Группы» (`UserGroupsBlock`): список групп с ролью (участник/модератор), добавление в группу с выбором роли, удаление из группы.
 - **Маршруты:** В Next.js на одном уровне пути не допускаются разные имена динамических сегментов ([id] vs [mediaId]/[userId]). Поэтому маршруты групп для media и users размещены в папках [id] (params.id в коде используется как mediaId/userId).
-- **Документация:** Обновлены docs/Groups-Plan.md (раздел «Интеграция по модулям»), docs/Support.md (описание групп и разделов Медиатека/Пользователи), в Tasktracker добавлен блок «Иерархические группы» с задачами по трём модулям — все завершены.
+- **Документация:** Обновлены docs/archive/Groups-Plan.md (раздел «Интеграция по модулям»), docs/Support.md (описание групп и разделов Медиатека/Пользователи), в Tasktracker добавлен блок «Иерархические группы» с задачами по трём модулям — все завершены.
 
 ### Проблемы
 - Нет.
@@ -2298,7 +2324,7 @@
 - Карточка курса (courses/[courseId]) стала эталоном: табы, таблицы с фильтрами/поиском/пагинацией, dropdown «Добавить» и «Для выбранных», ConfirmDialog, Breadcrumbs, блок действий. Остальные разделы админки (пользователи, оплаты, сертификаты, медиа, CRM, коммуникации, аудит, настройки) используют разные паттерны — нет единой шапки страницы, не везде есть «К списку», пагинация и пустые состояния различаются.
 
 ### Решения
-- **docs/Admin-Redesign-Plan.md:** создан детальный план доработок. Включены: (1) аудит маршрутов и связей сущностей; (2) эталонные паттерны карточки курса; (3) таблица внедрения этих паттернов по каждому разделу (пользователи, оплаты, сертификаты, медиа, CRM, коммуникации, AI, аудит, настройки, наборы уведомлений); (4) принципы редизайна UI/UX и пользовательского пути; (5) недостающий функционал по Spec и по аудиту; (6) поэтапный план (6 фаз) с чек-листом по разделам. Рекомендуется начать с Фазы 1 (компонент PageHeader и единая навигация), затем карточки и табы, таблицы и пагинация, пустые состояния, опциональный функционал.
+- **docs/archive/Admin-Redesign-Plan.md:** создан детальный план доработок. Включены: (1) аудит маршрутов и связей сущностей; (2) эталонные паттерны карточки курса; (3) таблица внедрения этих паттернов по каждому разделу (пользователи, оплаты, сертификаты, медиа, CRM, коммуникации, AI, аудит, настройки, наборы уведомлений); (4) принципы редизайна UI/UX и пользовательского пути; (5) недостающий функционал по Spec и по аудиту; (6) поэтапный план (6 фаз) с чек-листом по разделам. Рекомендуется начать с Фазы 1 (компонент PageHeader и единая навигация), затем карточки и табы, таблицы и пагинация, пустые состояния, опциональный функционал.
 
 ### Проблемы
 - Нет.
@@ -2476,7 +2502,7 @@
 ## 2025-03-10 (настройки в админке и БД)
 
 ### Наблюдения
-- Реализован перенос редактируемых настроек из конфигов в меню «Настройки» админки с хранением в БД (план docs/Plan-Settings-In-Admin.md).
+- Реализован перенос редактируемых настроек из конфигов в меню «Настройки» админки с хранением в БД (план docs/archive/Plan-Settings-In-Admin.md).
 
 ### Решения
 - **Модель SystemSetting:** таблица key, value, category; миграция add_system_setting. Разрешённые ключи: site_url, portal_title, resend_from, resend_notify_email, contact_phone.

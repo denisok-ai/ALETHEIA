@@ -4,13 +4,7 @@
  * Ролики и постеры отдаются с нашего домена (/uploads/clips/), CSP пропускает их через default-src 'self'.
  */
 import { jsonLdString } from '@/lib/json-ld';
-import {
-  buildVideoObject,
-  clipPosterSrc,
-  clipSrc,
-  getClipsForPlacement,
-  type VideoClip,
-} from '@/lib/content/videos';
+import { buildVideoObject, clipPosterSrc, clipSrc, getClipsForPlacement, type VideoClip } from '@/lib/content/videos';
 
 export function VideoClips({
   placement,
@@ -38,6 +32,8 @@ export function VideoClips({
         {items.map((clip) => (
           <li key={clip.slug}>
             <figure className="m-0">
+              {/* Субтитров (VTT) к роликам пока нет — задача в docs/Tasktracker.md («Субтитры к роликам»). */}
+              {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
               <video
                 className="aspect-[9/16] w-full rounded-2xl bg-black object-cover shadow-[var(--shadow-soft)]"
                 controls

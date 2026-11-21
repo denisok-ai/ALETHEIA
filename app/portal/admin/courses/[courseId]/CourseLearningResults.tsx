@@ -6,19 +6,13 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ChevronDown, Search, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { TableSkeleton } from '@/components/ui/TableSkeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { TablePagination, STANDARD_PAGE_SIZES, type ColumnConfigItem } from '@/components/ui/TablePagination';
@@ -62,7 +56,6 @@ const STATUS_LABELS: Record<string, string> = {
   completed: 'Завершено',
 };
 
-
 function formatTime(seconds: number): string {
   if (seconds >= 3600) {
     const h = Math.floor(seconds / 3600);
@@ -73,20 +66,17 @@ function formatTime(seconds: number): string {
   return `${seconds} сек`;
 }
 
-export function CourseLearningResults({
-  courseId,
-  courseTitle,
-}: {
-  courseId: string;
-  courseTitle: string;
-}) {
+export function CourseLearningResults({ courseId, courseTitle }: { courseId: string; courseTitle: string }) {
+  const router = useRouter();
   const [enrollments, setEnrollments] = useState<EnrollmentRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [pageSize, setPageSize] = useState(10);
   const [page, setPage] = useState(0);
-  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() => LEARNING_RESULTS_TABLE_COLUMNS.map((c) => c.id));
+  const [visibleColumnIds, setVisibleColumnIds] = useState<string[]>(() =>
+    LEARNING_RESULTS_TABLE_COLUMNS.map((c) => c.id)
+  );
   const [bulkOpen, setBulkOpen] = useState(false);
   const [certGenerating, setCertGenerating] = useState(false);
   const [sortKey, setSortKey] = useState<string | null>(null);
@@ -94,7 +84,10 @@ export function CourseLearningResults({
   const handleSort = (columnId: string) => {
     setPage(0);
     if (sortKey === columnId) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'));
-    else { setSortKey(columnId); setSortDir('asc'); }
+    else {
+      setSortKey(columnId);
+      setSortDir('asc');
+    }
   };
   const bulkRef = useRef<HTMLDivElement>(null);
 
@@ -144,9 +137,8 @@ export function CourseLearningResults({
     avgScore: (r) => r.progress.avgScore ?? -1,
     status: (r) => r.status,
   };
-  const sorted = sortKey && resultsSortGetters[sortKey]
-    ? sortTableBy(filtered, resultsSortGetters[sortKey], sortDir)
-    : filtered;
+  const sorted =
+    sortKey && resultsSortGetters[sortKey] ? sortTableBy(filtered, resultsSortGetters[sortKey], sortDir) : filtered;
   const total = sorted.length;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages - 1);
@@ -154,15 +146,19 @@ export function CourseLearningResults({
   const pageRows = sorted.slice(start, start + pageSize);
 
   const handleExportExcel = () => {
-    downloadXlsx(sorted, [
-      { key: (r) => r.user.email, header: 'Email' },
-      { key: (r) => r.user.displayName, header: 'Имя' },
-      { key: 'status', header: 'Статус' },
-      { key: (r) => r.progress.percent, header: '%' },
-      { key: (r) => r.progress.completedLessons, header: 'Уроков' },
-      { key: (r) => r.progress.totalLessons, header: 'Всего' },
-      { key: (r) => r.certificate?.certNumber ?? '', header: 'Сертификат' },
-    ], `results-${courseId}-${format(new Date(), 'yyyy-MM-dd')}`);
+    downloadXlsx(
+      sorted,
+      [
+        { key: (r) => r.user.email, header: 'Email' },
+        { key: (r) => r.user.displayName, header: 'Имя' },
+        { key: 'status', header: 'Статус' },
+        { key: (r) => r.progress.percent, header: '%' },
+        { key: (r) => r.progress.completedLessons, header: 'Уроков' },
+        { key: (r) => r.progress.totalLessons, header: 'Всего' },
+        { key: (r) => r.certificate?.certNumber ?? '', header: 'Сертификат' },
+      ],
+      `results-${courseId}-${format(new Date(), 'yyyy-MM-dd')}`
+    );
   };
 
   const toggleSelectAll = () => {
@@ -188,7 +184,7 @@ export function CourseLearningResults({
     }
     const first = enrollments.find((e) => e.id === ids[0]);
     if (first) {
-      window.location.href = `/portal/admin/courses/${courseId}/enrollments/${first.userId}`;
+      router.push(`/portal/admin/courses/${courseId}/enrollments/${first.userId}`);
     }
   };
 
@@ -305,14 +301,86 @@ export function CourseLearningResults({
                       aria-label="Выбрать все на странице"
                     />
                   </TableHead>
-                  {visibleColumnIds.includes('user') && <SortableTableHead sortKey="user" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Участник</SortableTableHead>}
-                  {visibleColumnIds.includes('attempts') && <SortableTableHead sortKey="attempts" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Попыток</SortableTableHead>}
-                  {visibleColumnIds.includes('firstActivityAt') && <SortableTableHead sortKey="firstActivityAt" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Первый запуск</SortableTableHead>}
-                  {visibleColumnIds.includes('lastActivityAt') && <SortableTableHead sortKey="lastActivityAt" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Окончание</SortableTableHead>}
-                  {visibleColumnIds.includes('totalTimeSeconds') && <SortableTableHead sortKey="totalTimeSeconds" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Затрачено времени</SortableTableHead>}
-                  {visibleColumnIds.includes('percent') && <SortableTableHead sortKey="percent" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Пройдено</SortableTableHead>}
-                  {visibleColumnIds.includes('avgScore') && <SortableTableHead sortKey="avgScore" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Баллов</SortableTableHead>}
-                  {visibleColumnIds.includes('status') && <SortableTableHead sortKey="status" currentSortKey={sortKey} currentSortDir={sortDir} onSort={handleSort}>Статус прохождения</SortableTableHead>}
+                  {visibleColumnIds.includes('user') && (
+                    <SortableTableHead
+                      sortKey="user"
+                      currentSortKey={sortKey}
+                      currentSortDir={sortDir}
+                      onSort={handleSort}
+                    >
+                      Участник
+                    </SortableTableHead>
+                  )}
+                  {visibleColumnIds.includes('attempts') && (
+                    <SortableTableHead
+                      sortKey="attempts"
+                      currentSortKey={sortKey}
+                      currentSortDir={sortDir}
+                      onSort={handleSort}
+                    >
+                      Попыток
+                    </SortableTableHead>
+                  )}
+                  {visibleColumnIds.includes('firstActivityAt') && (
+                    <SortableTableHead
+                      sortKey="firstActivityAt"
+                      currentSortKey={sortKey}
+                      currentSortDir={sortDir}
+                      onSort={handleSort}
+                    >
+                      Первый запуск
+                    </SortableTableHead>
+                  )}
+                  {visibleColumnIds.includes('lastActivityAt') && (
+                    <SortableTableHead
+                      sortKey="lastActivityAt"
+                      currentSortKey={sortKey}
+                      currentSortDir={sortDir}
+                      onSort={handleSort}
+                    >
+                      Окончание
+                    </SortableTableHead>
+                  )}
+                  {visibleColumnIds.includes('totalTimeSeconds') && (
+                    <SortableTableHead
+                      sortKey="totalTimeSeconds"
+                      currentSortKey={sortKey}
+                      currentSortDir={sortDir}
+                      onSort={handleSort}
+                    >
+                      Затрачено времени
+                    </SortableTableHead>
+                  )}
+                  {visibleColumnIds.includes('percent') && (
+                    <SortableTableHead
+                      sortKey="percent"
+                      currentSortKey={sortKey}
+                      currentSortDir={sortDir}
+                      onSort={handleSort}
+                    >
+                      Пройдено
+                    </SortableTableHead>
+                  )}
+                  {visibleColumnIds.includes('avgScore') && (
+                    <SortableTableHead
+                      sortKey="avgScore"
+                      currentSortKey={sortKey}
+                      currentSortDir={sortDir}
+                      onSort={handleSort}
+                    >
+                      Баллов
+                    </SortableTableHead>
+                  )}
+                  {visibleColumnIds.includes('status') && (
+                    <SortableTableHead
+                      sortKey="status"
+                      currentSortKey={sortKey}
+                      currentSortDir={sortDir}
+                      onSort={handleSort}
+                    >
+                      Статус прохождения
+                    </SortableTableHead>
+                  )}
                   <TableHead className="w-32">Действия</TableHead>
                 </TableRow>
               </TableHeader>
@@ -358,35 +426,29 @@ export function CourseLearningResults({
                     )}
                     {visibleColumnIds.includes('totalTimeSeconds') && (
                       <TableCell className="text-[var(--portal-text-muted)]">
-                        {row.progress.totalTimeSeconds > 0
-                          ? formatTime(row.progress.totalTimeSeconds)
-                          : '—'}
+                        {row.progress.totalTimeSeconds > 0 ? formatTime(row.progress.totalTimeSeconds) : '—'}
                       </TableCell>
                     )}
                     {visibleColumnIds.includes('percent') && (
-                      <TableCell>
-                        {row.progress.totalLessons > 0 ? `${row.progress.percent}%` : '—'}
-                      </TableCell>
+                      <TableCell>{row.progress.totalLessons > 0 ? `${row.progress.percent}%` : '—'}</TableCell>
                     )}
                     {visibleColumnIds.includes('avgScore') && (
-                      <TableCell>
-                        {row.progress.avgScore != null ? String(row.progress.avgScore) : '—'}
-                      </TableCell>
+                      <TableCell>{row.progress.avgScore != null ? String(row.progress.avgScore) : '—'}</TableCell>
                     )}
                     {visibleColumnIds.includes('status') && (
                       <TableCell>
                         <span
-                        className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-                          row.status === 'completed'
-                            ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
-                            : row.status === 'in_progress'
-                              ? 'border-blue-500/20 bg-blue-500/10 text-blue-700'
-                              : 'border-[#E2E8F0] bg-[#F8FAFC] text-[var(--portal-text-muted)]'
-                        }`}
-                      >
-                        {STATUS_LABELS[row.status] ?? row.status}
-                      </span>
-                    </TableCell>
+                          className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+                            row.status === 'completed'
+                              ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-700'
+                              : row.status === 'in_progress'
+                                ? 'border-blue-500/20 bg-blue-500/10 text-blue-700'
+                                : 'border-[#E2E8F0] bg-[#F8FAFC] text-[var(--portal-text-muted)]'
+                          }`}
+                        >
+                          {STATUS_LABELS[row.status] ?? row.status}
+                        </span>
+                      </TableCell>
                     )}
                     <TableCell>
                       <Link
@@ -410,7 +472,10 @@ export function CourseLearningResults({
               pageSize={pageSize}
               pageSizeOptions={STANDARD_PAGE_SIZES}
               onPageChange={setPage}
-              onPageSizeChange={(s) => { setPageSize(s); setPage(0); }}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                setPage(0);
+              }}
               columnConfig={LEARNING_RESULTS_TABLE_COLUMNS}
               visibleColumnIds={visibleColumnIds}
               onVisibleColumnIdsChange={setVisibleColumnIds}
