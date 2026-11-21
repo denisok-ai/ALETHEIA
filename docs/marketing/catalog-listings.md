@@ -12,8 +12,8 @@
 (`lib/seo/entity.ts`), позиционированием из `content/avaterra.yaml` («мы не лечим») и ценами
 витрины на 31.08.2026.
 
-Стратегический контекст — [External-Links-Plan.md](External-Links-Plan.md) и
-[research/traffic-audit-2026-08-30.md](research/traffic-audit-2026-08-30.md): органика ≈0 и ИКС=0
+Стратегический контекст — [External-Links-Plan.md](../External-Links-Plan.md) и
+[research/traffic-audit-2026-08-30.md](../research/traffic-audit-2026-08-30.md): органика ≈0 и ИКС=0
 при чистой технической базе, поэтому внешние упоминания сейчас дают больше, чем любые правки сайта.
 
 ---

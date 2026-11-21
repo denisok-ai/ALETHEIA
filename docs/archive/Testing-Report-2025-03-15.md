@@ -161,4 +161,4 @@
 - **Консоль** — предупреждения по `data-cursor-ref` и parallel route; рекомендуется устранить до продакшена.
 - **Модалка покупки** — при ошибке PayKeeper нужен явный toast.
 
-**План доработки:** см. `docs/Testing-Improvement-Plan.md`
+**План доработки:** см. `docs/archive/Testing-Improvement-Plan.md`

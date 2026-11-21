@@ -11,7 +11,7 @@
 - `scripts/chatbot-kb-body.md` — база знаний AI-консультанта.
 - `content/knowledge-base-body-never-lies.md` — база знаний курса «Тело знает всё».
 - `content/course-tutor-playbook.md` — правила AI-тьютора курса.
-- `docs/chatbot-knowledge-lynda-synopsis.md` — краткое описание состава базы знаний.
+- `docs/archive/chatbot-knowledge-lynda-synopsis.md` — краткое описание состава базы знаний.
 
 ---
 

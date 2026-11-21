@@ -72,12 +72,12 @@
 ### P2 — регрессия и процесс
 
 6. Прогон **`npm run test:e2e`** (и по ролям из `package.json`) после фикса главной.
-7. Ручной **чек-лист** из `docs/Testing-Improvement-Plan.md` (настройки админки, чат-бот с ключом, консоль на production URL).
+7. Ручной **чек-лист** из `docs/archive/Testing-Improvement-Plan.md` (настройки админки, чат-бот с ключом, консоль на production URL).
 8. По необходимости после миграции данных: **`npm run db:fix-verification-urls`** (`docs/Local-Prisma.md`).
 
 ---
 
 ## Связь с существующими планами
 
-- Дополняет `docs/Browser-Test-Remediation-Plan.md` и `docs/Testing-Improvement-Plan.md`.
+- Дополняет `docs/archive/Browser-Test-Remediation-Plan.md` и `docs/archive/Testing-Improvement-Plan.md`.
 - После исправления п. P0 обновить чек-лист «Консоль / главная страница» в этих документах.

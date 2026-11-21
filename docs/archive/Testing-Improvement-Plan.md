@@ -1,7 +1,7 @@
 # План доработки по результатам тестирования
 
 **Дата:** 15 марта 2025  
-**Основа:** отчёт тестирования `docs/Testing-Report-2025-03-15.md`
+**Основа:** отчёт тестирования `docs/archive/Testing-Report-2025-03-15.md`
 
 ---
 
@@ -132,6 +132,6 @@ No default component was found for a parallel route rendered on this page. Falli
 
 ## Связанные документы
 
-- `docs/Testing-Report-2025-03-15.md` — полный отчёт тестирования
+- `docs/archive/Testing-Report-2025-03-15.md` — полный отчёт тестирования
 - `docs/Support.md` — структура проекта, частые задачи
-- `docs/User-Journey-Roles-Audit.md` — пользовательские пути по ролям
+- `docs/archive/User-Journey-Roles-Audit.md` — пользовательские пути по ролям

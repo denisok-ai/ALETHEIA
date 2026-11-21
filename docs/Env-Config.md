@@ -133,7 +133,7 @@ curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/
 
 **Входящие IMAP:** в схеме БД предусмотрены поля состояния синка у ящика (`lastSyncStatus`, `lastSyncError` и др.). После включения модуля «Входящие» в админке смотрите их в UI и настройте cron на `inmail-sync`, если маршрут есть в деплое.
 
-Подробный чеклист после изменений кода почты: **`docs/Mail-Module-Verification.md`**.
+Подробный чеклист после изменений кода почты: **`docs/archive/Mail-Module-Verification.md`**.
 
 ## Telegram-бот
 

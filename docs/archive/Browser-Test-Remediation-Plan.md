@@ -1,7 +1,7 @@
 # План доработки по результатам браузерного тестирования
 
 **Дата тестирования:** 15 марта 2025  
-**Источник:** `docs/Browser-Test-Report-2025-03-15.md`  
+**Источник:** `docs/archive/Browser-Test-Report-2025-03-15.md`  
 **URL:** http://localhost:3001
 
 ---
@@ -140,6 +140,6 @@
 
 ## Связанные документы
 
-- `docs/Browser-Test-Report-2025-03-15.md` — полный отчёт тестирования
-- `docs/Testing-Improvement-Plan.md` — план по результатам предыдущего тестирования
-- `docs/User-Journey-Roles-Audit.md` — пользовательские пути по ролям
+- `docs/archive/Browser-Test-Report-2025-03-15.md` — полный отчёт тестирования
+- `docs/archive/Testing-Improvement-Plan.md` — план по результатам предыдущего тестирования
+- `docs/archive/User-Journey-Roles-Audit.md` — пользовательские пути по ролям

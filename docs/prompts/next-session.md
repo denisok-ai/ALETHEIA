@@ -14,7 +14,7 @@
 **Сначала прочитай, ничего не меняя:**
 1. `CLAUDE.md` — правила проекта и грабли.
 2. `docs/Plan-2026-Q4.md` — общий план; `docs/seo/google-seo-playbook-2026-10-24.md` — план SEO для Google (факты GSC/GA4, 16 пунктов).
-3. `docs/HANDOFF-2026-10-20.md` — прод, страница согласования, соцсети, запуск скриптов на проде.
+3. `docs/archive/HANDOFF-2026-10-20.md` — прод, страница согласования, соцсети, запуск скриптов на проде.
 4. Записи `docs/Diary.md` за 24–26.10 (новые сверху) и раздел «Открытое» в `docs/Tasktracker.md`.
 5. На моей машине: `private/marketing/tatiana-call-2026-10-26.md` (статус и вопросы к звонку), `private/marketing/tatiana-voice-2026-10-22.md` (её отзыв), `private/seo/gsc-index-queue.md` (очередь индексирования), `private/tools/2026-10-25/README.md` (готовые скрипты).
 

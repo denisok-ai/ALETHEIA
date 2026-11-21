@@ -50,8 +50,8 @@ curl -sS -H "Authorization: Bearer $CRON_SECRET" "https://ваш-домен/api/
 
 ## Автономный почтовый стек (Mailcow на VPS)
 
-1. **DNS:** MX, SPF, DKIM, DMARC по [Mail-DNS-avaterra.pro.md](Mail-DNS-avaterra.pro.md); PTR по [Mail-VPS-Audit-Checklist.md](Mail-VPS-Audit-Checklist.md).
+1. **DNS:** MX, SPF, DKIM, DMARC по [Mail-DNS-avaterra.pro.md](../Mail-DNS-avaterra.pro.md); PTR по [Mail-VPS-Audit-Checklist.md](../Mail-VPS-Audit-Checklist.md).
 2. **Порталы:** раздел **Ящики домена** — создать тестовый ящик; сохранить одноразово показанный пароль.
 3. **Входящие:** `/portal/admin/inmail` — ручная «Синхронизировать» или cron `GET /api/cron/inmail-sync`.
-4. **Транзакционная почта без SMTP в админке:** задайте `MAIL_SMTP_HOST`, `MAIL_SMTP_USER`, `MAIL_SMTP_PASSWORD` на сервере ([Mail-Server.md](Mail-Server.md)); проверьте «Настройки → тест email».
+4. **Транзакционная почта без SMTP в админке:** задайте `MAIL_SMTP_HOST`, `MAIL_SMTP_USER`, `MAIL_SMTP_PASSWORD` на сервере ([Mail-Server.md](../Mail-Server.md)); проверьте «Настройки → тест email».
 5. Письма во внешние ящики (Gmail и др.) — проверьте попадание не в спам после прогрева IP.
