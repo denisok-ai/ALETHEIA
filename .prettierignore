@@ -1,0 +1,12 @@
+# Prettier применяется только к изменённым файлам (npm run format:changed),
+# весь код разом не переформатируем — см. docs/Development-Standards.md.
+node_modules/
+.next/
+private/
+public/
+uploads/
+prisma/migrations/
+package-lock.json
+CHANGELOG.md
+docs/
+*.min.js

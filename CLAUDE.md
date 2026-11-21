@@ -4,6 +4,7 @@ Phygital-школа кинезиологии «Аватэрра» (avaterra.pro)
 
 ## Прежде чем писать код
 
+- **Стандарты разработки — [docs/Development-Standards.md](docs/Development-Standards.md):** структура папок (всё в этой папке; ПДн и платное — только `private/`), проверки, форматирование, скрипты, коммиты. Указатель документов — [docs/README.md](docs/README.md), каталог скриптов — [scripts/README.md](scripts/README.md).
 - **История решений — в [docs/Diary.md](docs/Diary.md)** (новые записи сверху). CHANGELOG.md — раздел [Unreleased]. После любой значимой работы дополняй оба.
 - **Бэклог:** [docs/Tasktracker.md](docs/Tasktracker.md), [docs/Backlog-Optional.md](docs/Backlog-Optional.md). Перед реализацией пункта бэклога проверь код — пункты бывают уже реализованы.
 - Контент-правила школы (запрещённые фразы, дисклеймеры, «мы не лечим») — `content/knowledge/avaterra.yaml`. SEO-статьи блога — `lib/content/kb-seo-articles.ts` (публикация: `scripts/blog-publish-kb-articles.ts` на сервере).
@@ -11,7 +12,7 @@ Phygital-школа кинезиологии «Аватэрра» (avaterra.pro)
 ## Деплой и прод
 
 - **Прод:** VPS 95.181.224.70, каталог `/opt/ALETHEIA`, systemd `aletheia`, БД SQLite `prisma/dev.db` (НЕ трогать деплоем).
-- **Из облачной сессии (телефон, claude.ai/code): SSH к серверу НЕТ.** Путь в прод один — commit + push в `main`: GitHub Actions (`.github/workflows/deploy.yml`) соберёт и задеплоит (`scripts/deploy-pull.sh` на сервере). Не мержи в main непроверенный код: `npm run build` и `npx tsc --noEmit` обязательны перед push.
+- **Из облачной сессии (телефон, claude.ai/code): SSH к серверу НЕТ.** Путь в прод один — commit + push в `main`: GitHub Actions (`.github/workflows/deploy.yml`) соберёт и задеплоит (`scripts/deploy-pull.sh` на сервере). Не мержи в main непроверенный код: `npm run check` (линтер, типы, тесты) и `npm run build` обязательны перед push — смотри код выхода, не хвост лога. Перед коммитом — `npm run format:changed`.
 - **С машины владельца (WSL):** `npm run deploy:rsync` (локальная сборка + rsync; серверные `.env` и БД не трогает).
 - Проверки после деплоя (работают откуда угодно, без SSH):
   - `npx tsx scripts/prod-verify.ts` — 16 проверок прода, эталон «Всё в порядке»;

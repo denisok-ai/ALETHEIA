@@ -68,7 +68,12 @@ npm run start
 - `lib/` — paykeeper, auth, db, utils
 - `prisma/` — схема БД, seed
 - `public/images/` — изображения: `tatiana/`, `thematic/`, `hero/`, `author/`, `icons/`, `pricing/`, `decor/`, `success/`
-- `docs/` — Project.md, Content.md, Media.md, Local-Prisma.md, Tasktracker.md, Diary.md, qa.md
+- `scripts/` — скрипты эксплуатации, каталог — [scripts/README.md](scripts/README.md)
+- `tests/` — `unit/`, `db/`, `e2e/`
+- `docs/` — документация, указатель — [docs/README.md](docs/README.md)
+- `private/` — вне git: платный контент, ПДн, бэкапы (репозиторий публичный)
+
+Правила работы с кодом — [docs/Development-Standards.md](docs/Development-Standards.md). Перед push: `npm run check` и `npm run build`.
 
 ## Платежи (PayKeeper)
 
@@ -77,6 +82,8 @@ npm run start
 3. После оплаты пользователь может быть перенаправлен на `/success` (настраивается в PayKeeper).
 
 ## Документация
+
+Полный указатель — [docs/README.md](docs/README.md).
 
 - **docs/Project.md** — цели, архитектура
 - **docs/Local-Prisma.md** — локальный запуск (Prisma + SQLite)
