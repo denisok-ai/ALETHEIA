@@ -54,7 +54,8 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          # Должна совпадать с Node на сервере (сборка .next из CI запускается там) и с .nvmrc.
+          node-version-file: '.nvmrc'
           cache: npm
 
       - run: npm ci

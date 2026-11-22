@@ -265,6 +265,7 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 | Хост VPS | p941004.kvmvps, Ubuntu 24.04 LTS, IP 95.181.224.70 |
 | Активный корень приложения | /opt/ALETHEIA |
 | Unit systemd | aletheia.service: `EnvironmentFile=-/opt/ALETHEIA/.env`, `DATABASE_URL=file:/opt/ALETHEIA/prisma/dev.db`, `WorkingDirectory=/opt/ALETHEIA` |
+| Node.js | **24** (NodeSource `node_24.x`, с 22.11.2026; было 20 — вне поддержки). Версия обязана совпадать с CI (`.nvmrc`). Откат: `/root/backups/node20-rollback-20261122-1322/` — `nodesource.sources` + `nodejs_20.20.0` .deb + бэкап БД |
 | Порт Node | **127.0.0.1:3000** (`next start -H 127.0.0.1`); nginx → proxy_pass localhost:3000 |
 | ufw | **active:** 22, 80, 443, 25, 587, 993 (Mailcow); **5173 закрыт**; DOCKER-USER блокирует dev-порты Docker снаружи |
 | sshd | Порт **22**, `PasswordAuthentication no`, `PubkeyAuthentication yes` (drop-in + исправлен `50-cloud-init.conf`) |
@@ -275,7 +276,7 @@ bash scripts/prod-diagnostics.sh | tee ~/prod-audit-$(date +%F-%H%M).txt
 | Mailcow | /opt/mailcow-dockerized; UI nginx на **127.0.0.1:8088**; SMTP/IMAP порты публичны |
 | Telegram poll worker | **`aletheia-telegram-poll.service`**; xray proxy `127.0.0.1:10809` |
 | Content jobs worker | **`aletheia-jobs.service`** |
-| PM2 | **Не используется** — только systemd |
+| PM2 | **Удалён** 22.11.2026 (пустой демон без приложений + лог 298 МБ; конфиги — `/root/backups/pm2-leftover-20261122.tar.gz`). Только systemd |
 | Скрипт верификации ИБ | [`scripts/security-verify-prod.sh`](../scripts/security-verify-prod.sh) (read-only) |
 | Предыдущий аудит | 2026-06-15 (деплой 3.5.5) — см. историю в git / Diary |
 

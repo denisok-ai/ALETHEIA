@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed (2026-11-22) — Node.js 24
+
+- Прод и CI на Node 24 (было 20, вне поддержки): версия в `.nvmrc`, CI читает её оттуда; `engines` в package.json.
+- Vitest 5 + vite 8, `@types/node` 24; удалён неиспользуемый `react-email` (CLI). `npm audit`: 1 low (было 31).
+
 ### Security (2026-11-22) — Зависимости
 
 - Next 16.3.6 → 16.4.6 (critical: cache poisoning SSG/ISR при self-hosting), sharp 0.34 → 0.35.5, undici, zod, nodemailer, sanitize-html и др.: `npm audit` 31 → 7 (остались dev-инструменты; Vitest 5 ждёт перехода на Node 22+).
