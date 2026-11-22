@@ -1,6 +1,6 @@
 # AVATERRA / ALETHEIA — путеводитель для Claude
 
-Phygital-школа кинезиологии «Аватэрра» (avaterra.pro): Next.js 14 (App Router) + Prisma/SQLite, лендинг + блог + портал (студент/менеджер/админ) + SCORM-плеер + платежи PayKeeper + почта Mailcow. Владелец: Denis Sosin; бренд-мастер: Татьяна Стрельцова.
+Phygital-школа кинезиологии «Аватэрра» (avaterra.pro): Next.js 16 (App Router, React 19) + Prisma 6/SQLite, лендинг + блог + портал (студент/менеджер/админ) + SCORM-плеер + платежи PayKeeper + почта Mailcow. Владелец: Denis Sosin; бренд-мастер: Татьяна Стрельцова.
 
 ## Прежде чем писать код
 
@@ -23,7 +23,7 @@ Phygital-школа кинезиологии «Аватэрра» (avaterra.pro)
 
 - Title страниц: бренд добавляет шаблон layout (`%s | АВАТЕРРА`) — вручную не дописывать (двойной суффикс).
 - IP клиента — только через `lib/client-ip.ts` (первый элемент XFF подделывается).
-- Prisma 5.22: `tariffId: { not: null }` падает в рантайме — фильтровать null в коде.
+- Prisma (проверено на 6.12): фильтр по `null` для обязательного поля (`Order.tariffId: { not: null }`, `NOT: { tariffId: null }`) проходит typecheck, но падает в рантайме — фильтровать в коде.
 - Правишь статическую страницу — обнови дату в `CONTENT_REVISED` (`lib/seo/sitemap-entries.ts`).
 - `Order.userId` проставляется ТОЛЬКО вместе с созданием Enrollment — на этом держится сверка платежей, не ломать.
 - robots.txt закрывает `/api/`, но OG-карточки `/api/og/` явно разрешены — не потеряй `ALLOW_EXCEPTIONS` при правках.

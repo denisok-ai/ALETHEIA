@@ -54,6 +54,17 @@ CI (`.github/workflows/deploy.yml`) повторяет то же: линтер �
 - **TypeScript:** строгий режим, без `any` там, где тип известен. Типы скриптов проверяет `typecheck:scripts`.
 - **Тесты:** новая логика в `lib/` — с юнит-тестом в `tests/unit/`; логика с БД — в `tests/db/`. Регрессию
   закрепляем тестом с датой инцидента в описании (пример — `tests/unit/server-health.test.ts`).
+- **Общие модули — только через их точку входа** (проверено 21.11.2026):
+  - БД: `import { prisma } from '@/lib/db'`;
+  - оплата: `import { createPayKeeperInvoice } from '@/lib/paykeeper'` (поля `sum`, `orderid`, `clientid`,
+    `service_name`, `client_email`; минимум 10 ₽, подпись webhook проверяется по секрету);
+  - письма: `sendTransactionalEmail` из `@/lib/email-service`, обязателен `context: { module, entityId }` —
+    по нему ведётся журнал доставки;
+  - оповещения админам: `notifyAdminsTelegram` / `notifyAdminsTelegramAsync` из `@/lib/telegram-admin-notify`
+    (в Telegram с сервера — только через прокси, его берёт этот модуль);
+  - IP клиента — `lib/client-ip.ts`.
+- **Новый файл** начинается с короткого комментария: что это и зачем. Компоненты — PascalCase.
+- **Доступность:** семантичный HTML, видимый фокус, `prefers-reduced-motion` для анимаций.
 - **Регулярки с кириллицей:** `\b` не работает — границы через `\p{L}` с флагом `u`.
 - **Даты контента** (lastmod, uploadDate) — по Москве с сервера, не «сегодня» машины разработчика.
 

@@ -1,92 +1,81 @@
-# AVATERRA — Phygital школа мышечного тестирования
+# AVATERRA — Phygital-школа мышечного тестирования
 
-Современный лендинг на Next.js 14 с 3D-эффектами, анимациями и интеграцией PayKeeper.  
-Домен: [avaterra.pro](https://avaterra.pro).
+Сайт школы «Аватэрра» ([avaterra.pro](https://avaterra.pro)): лендинг, блог и глоссарий, портал (студент, менеджер,
+админ), SCORM-плеер курсов, платежи PayKeeper, почта Mailcow, Telegram-бот.
 
 ## Стек
 
-- **Next.js 14** (App Router), TypeScript
-- **Tailwind CSS**, Framer Motion, React Three Fiber (3D-частицы в Hero)
-- **PayKeeper** — приём платежей
-- **Prisma + SQLite** — локальная БД (портал, курсы, заявки)
-- **NextAuth** — аутентификация (Credentials)
-- **Resend**, **Telegram** — уведомления (email + оповещения админов в Telegram; см. [docs/Support.md — Telegram](docs/Support.md#telegram-бот-webhook-токен-блокировки))
-- Деплой: **Vercel** или VPS — [docs/Deploy.md](docs/Deploy.md). Продуктив avaterra.pro: [docs/Production-Server.md](docs/Production-Server.md), диагностика `bash scripts/prod-diagnostics.sh`. [docs/Server-Setup.md](docs/Server-Setup.md) — устаревший сценарий `/var/www` + PM2.
+- **Next.js 16** (App Router, сборка webpack), **React 19**, TypeScript
+- **Tailwind CSS**, Framer Motion
+- **Prisma 6 + SQLite** — БД портала, курсов, заявок, CRM
+- **NextAuth 4** — аутентификация (Credentials)
+- **PayKeeper** — приём платежей; **Mailcow** (свой сервер) и **Resend** — почта; **Telegram** — бот и оповещения
+- Прод — свой VPS (systemd + nginx), деплой — GitHub Actions при push в `main`, см. [docs/Deploy.md](docs/Deploy.md)
 
-## Портал (версия продукта — поле `version` в `package.json`, сейчас 3.7.0)
+## Портал
+
+Версия продукта — поле `version` в `package.json`.
 
 - **Роли:** user (студент), manager, admin
 - **ЛК студента:** дашборд, курсы (SCORM), сертификаты, медиатека, уведомления, поддержка
-- **Админка:** пользователи (добавление, роли), курсы (SCORM), сертификаты, медиа, оплаты, CRM, коммуникации, наборы уведомлений, AI-настройки, аудит, настройки, **персональные товары**, **рассрочки**
+- **Админка:** пользователи, курсы, сертификаты, медиа, оплаты, CRM, коммуникации, уведомления, AI-настройки,
+  аудит, настройки, персональные товары, рассрочки
 - **Менеджер:** тикеты, поиск пользователей, верификация заданий
-- **Персональные товары:** разовые услуги с уникальными ссылками на оплату, email-уведомления, TTL, AI-генерация описаний
-- **Рассрочка:** оплата частями (2-6 платежей), автоматические списания, напоминания, Telegram/email уведомления
 
-Вход: `/login`, регистрация: `/register`. Тестовые аккаунты — см. `docs/Local-Prisma.md`.
+Вход: `/login`, регистрация: `/register`. Тестовые аккаунты — [docs/Local-Prisma.md](docs/Local-Prisma.md).
 
 ## Как запустить
 
-Требуется [Node.js](https://nodejs.org/) 18+.
+Нужен Node.js 20 (как в CI).
 
 ```bash
-cd /home/denisok/projects/AVATERRA
 npm install
+cp .env.example .env.local   # заполните NEXTAUTH_SECRET
 npm run db:migrate
 npm run db:seed
-cp .env.example .env.local   # добавьте NEXTAUTH_SECRET
 npm run dev
 ```
 
-Откройте в браузере: **http://localhost:3000**.
+Сайт: **http://localhost:4000**. Если приложение не стартует — [docs/Local-Prisma.md](docs/Local-Prisma.md).
 
-**Одна команда (seed + dev с отладкой):** `npm run dev:debug:seed`. Если приложение не стартует — см. раздел «Если приложение не стартует» в **docs/Local-Prisma.md**.
-
-## Сборка для продакшена
+## Проверки и сборка
 
 ```bash
+npm run check   # линтер + типы + тесты
 npm run build
-npm run start
 ```
 
-Или загрузите проект на Vercel — сборка настроена автоматически.
+Перед коммитом — `npm run format:changed` (Prettier только для изменённых файлов).
+Правила — [docs/Development-Standards.md](docs/Development-Standards.md).
+
+## Деплой
+
+Push в `main` → GitHub Actions (`.github/workflows/deploy.yml`): линтер, типы, тесты, сборка, выкладка на прод.
+С машины владельца — `npm run deploy:rsync`. Одновременно оба способа не запускать.
+Прод-сервер — [docs/Production-Server.md](docs/Production-Server.md); после выкладки — `npx tsx scripts/prod-verify.ts`.
 
 ## Переменные окружения
 
-Скопируйте `.env.example` в `.env.local` и заполните:
+Полный список — [docs/Env-Config.md](docs/Env-Config.md). Минимум для локального запуска:
 
-- **БД:** `DATABASE_URL="file:./dev.db"` — для SQLite (локально)
-- **NextAuth:** `NEXTAUTH_SECRET`, `NEXTAUTH_URL` — обязательны для портала
-- **PayKeeper:** `PAYKEEPER_SERVER`, `PAYKEEPER_LOGIN`, `PAYKEEPER_PASSWORD`, `PAYKEEPER_SECRET` — для приёма оплаты
-- **App:** `NEXT_PUBLIC_URL` — полный URL сайта (для писем и ссылок)
+- `DATABASE_URL="file:./dev.db"`
+- `NEXTAUTH_SECRET`, `NEXTAUTH_URL`
+- `NEXT_PUBLIC_URL` — полный URL сайта (для писем и ссылок)
+- `PAYKEEPER_*` — только если проверяете оплату
 
-## Структура проекта
+## Структура
 
-- `app/` — страницы (layout, главная, success, oferta, privacy), auth (login, register, reset-password), portal (student, admin, manager), API; sitemap.xml и robots.txt генерируются автоматически
-- `components/sections/` — Hero, About, Program, Author, Testimonials, Pricing, FAQ, Contact, Header, Footer
-- `components/ui/` — кнопки, поля ввода, диалоги
-- `components/3d/` — 3D-фон с частицами в Hero
-- `lib/` — paykeeper, auth, db, utils
-- `prisma/` — схема БД, seed
-- `public/images/` — изображения: `tatiana/`, `thematic/`, `hero/`, `author/`, `icons/`, `pricing/`, `decor/`, `success/`
-- `scripts/` — скрипты эксплуатации, каталог — [scripts/README.md](scripts/README.md)
-- `tests/` — `unit/`, `db/`, `e2e/`
-- `docs/` — документация, указатель — [docs/README.md](docs/README.md)
-- `private/` — вне git: платный контент, ПДн, бэкапы (репозиторий публичный)
+| Папка | Что в ней |
+|---|---|
+| `app/` | Маршруты: сайт, блог, `portal/`, `api/`; `sitemap.xml` и `robots.txt` генерируются |
+| `components/` | React-компоненты; `sections/` — блоки лендинга, `ui/` — примитивы |
+| `lib/` | Бизнес-логика и интеграции |
+| `prisma/` | Схема и миграции |
+| `content/` | Знания школы и бота, правила текстов |
+| `scripts/` | Эксплуатация, каталог — [scripts/README.md](scripts/README.md) |
+| `tests/` | `unit/`, `db/`, `e2e/` |
+| `infra/` | systemd-юниты и шаблоны конфигов сервера |
+| `docs/` | Документация, указатель — [docs/README.md](docs/README.md) |
+| `private/` | Вне git: платный контент, ПДн, бэкапы (репозиторий публичный) |
 
-Правила работы с кодом — [docs/Development-Standards.md](docs/Development-Standards.md). Перед push: `npm run check` и `npm run build`.
-
-## Платежи (PayKeeper)
-
-1. Настройте учётную запись PayKeeper и получите доступ к API.
-2. В личном кабинете PayKeeper укажите URL webhook: `https://ваш-домен/api/webhook/paykeeper`.
-3. После оплаты пользователь может быть перенаправлен на `/success` (настраивается в PayKeeper).
-
-## Документация
-
-Полный указатель — [docs/README.md](docs/README.md).
-
-- **docs/Project.md** — цели, архитектура
-- **docs/Local-Prisma.md** — локальный запуск (Prisma + SQLite)
-- **docs/Production-Server.md** — состояние продуктивного сервера (IP, NGINX, SSL, PM2)
-- **docs/Support.md** — структура, частые задачи
-- **docs/Deploy.md** — Vercel, VPS
+`proxy.ts` — прокси-слой Next 16 (бывший `middleware.ts`): CSP, редиректы, защита маршрутов.

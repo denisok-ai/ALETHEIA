@@ -153,7 +153,7 @@ AVATERRA/
 │   ├── deploy-rsync-from-local.sh
 ├── middleware.ts                  # RBAC для /portal/*
 ├── CHANGELOG.md
-├── docs/, .cursorrules, .env.example
+├── docs/, CLAUDE.md, .env.example
 └── README.md
 ```
 
