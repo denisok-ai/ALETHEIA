@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed (2026-11-22) — Неиспользуемые зависимости
+
+- `@dnd-kit/*` (3), `react-hook-form`, `@hookform/resolvers`, `grammy`, `@react-email/components`, `@fontsource-variable/inter`, `@fontsource-variable/lora` — ни одной ссылки в коде; рабочих зависимостей 49 → 40.
+
 ### Changed (2026-11-22) — Node.js 24
 
 - Прод и CI на Node 24 (было 20, вне поддержки): версия в `.nvmrc`, CI читает её оттуда; `engines` в package.json.
