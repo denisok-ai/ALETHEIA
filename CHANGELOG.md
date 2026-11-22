@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Security (2026-11-22) — Зависимости
+
+- Next 16.3.6 → 16.4.6 (critical: cache poisoning SSG/ISR при self-hosting), sharp 0.34 → 0.35.5, undici, zod, nodemailer, sanitize-html и др.: `npm audit` 31 → 7 (остались dev-инструменты; Vitest 5 ждёт перехода на Node 22+).
+- README и CLAUDE.md приведены к фактическому стеку (Next 16, React 19, Prisma 6); `.cursorrules` удалён, соглашения — в `docs/Development-Standards.md`.
+
 ### Changed (2026-11-21) — Порядок в репозитории и стандарты разработки
 
 - `docs/Development-Standards.md`, указатели `docs/README.md` и `scripts/README.md`; 33 исторических документа → `docs/archive/`; 32 разовых скрипта удалены.
