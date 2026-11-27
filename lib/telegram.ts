@@ -32,6 +32,8 @@ export type SendTelegramMessageOptions = {
   parseMode?: 'HTML' | 'Markdown';
   replyMarkup?: TelegramReplyMarkup;
   disableWebPagePreview?: boolean;
+  /** Токен другого бота (публикация в канал через @AvaterraBot, lib/telegram-channel-bot.ts). */
+  botToken?: string;
 };
 
 async function getBotToken(): Promise<string | null> {
@@ -41,7 +43,8 @@ async function getBotToken(): Promise<string | null> {
 
 async function telegramBotApi<T = unknown>(
   method: string,
-  body: Record<string, unknown>
+  body: Record<string, unknown>,
+  tokenOverride?: string
 ): Promise<{ ok: true; result?: T } | { ok: false; error: string }> {
   // Предохранитель для тестов и сухих прогонов: глушим ЛЮБУЮ реальную отправку.
   // Токен на проде подхватывается и из process.env, поэтому «удалить токен из
@@ -49,7 +52,7 @@ async function telegramBotApi<T = unknown>(
   if (process.env.TELEGRAM_DISABLE_OUTBOUND === '1') {
     return { ok: true, result: undefined as T };
   }
-  const token = await getBotToken();
+  const token = tokenOverride || (await getBotToken());
   if (!token) {
     return { ok: false, error: 'Не настроен токен Telegram-бота' };
   }
@@ -95,7 +98,7 @@ export async function sendTelegramMessageWithResult(
   };
   if (options?.replyMarkup) body.reply_markup = options.replyMarkup;
   if (options?.disableWebPagePreview) body.disable_web_page_preview = true;
-  const r = await telegramBotApi('sendMessage', body);
+  const r = await telegramBotApi('sendMessage', body, options?.botToken);
   return r.ok ? { ok: true } : { ok: false, error: r.error };
 }
 
@@ -103,22 +106,19 @@ export async function sendTelegramMessageWithResult(
 export async function sendTelegramPhotoWithResult(
   chatId: string | number,
   photo: string,
-  options?: { caption?: string; parseMode?: 'HTML' | 'Markdown' }
+  options?: { caption?: string; parseMode?: 'HTML' | 'Markdown'; botToken?: string }
 ): Promise<TelegramSendResult & { messageId?: number }> {
   const body: Record<string, unknown> = { chat_id: chatId, photo };
   if (options?.caption) {
     body.caption = options.caption;
     body.parse_mode = options.parseMode ?? 'HTML';
   }
-  const r = await telegramBotApi<{ message_id?: number }>('sendPhoto', body);
+  const r = await telegramBotApi<{ message_id?: number }>('sendPhoto', body, options?.botToken);
   if (!r.ok) return { ok: false, error: r.error };
   return { ok: true, messageId: r.result?.message_id };
 }
 
-export async function answerCallbackQuery(
-  callbackQueryId: string,
-  text?: string
-): Promise<TelegramSendResult> {
+export async function answerCallbackQuery(callbackQueryId: string, text?: string): Promise<TelegramSendResult> {
   const body: Record<string, unknown> = { callback_query_id: callbackQueryId };
   if (text) body.text = text;
   const r = await telegramBotApi('answerCallbackQuery', body);
@@ -148,12 +148,16 @@ export async function sendChatAction(
   }
 }
 
-export async function sendTelegramBroadcast(chatIds: (string | number)[], text: string): Promise<{ sent: number; failed: number }> {
+export async function sendTelegramBroadcast(
+  chatIds: (string | number)[],
+  text: string
+): Promise<{ sent: number; failed: number }> {
   let sent = 0;
   let failed = 0;
   for (const id of chatIds) {
     const ok = await sendTelegramMessage(id, text);
-    if (ok) sent++; else failed++;
+    if (ok) sent++;
+    else failed++;
   }
   return { sent, failed };
 }

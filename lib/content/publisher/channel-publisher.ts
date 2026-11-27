@@ -4,6 +4,7 @@
 import { prisma } from '@/lib/db';
 import { getTelegramAdminChatIds, notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { sendTelegramMessageWithResult, sendTelegramPhotoWithResult } from '@/lib/telegram';
+import { getChannelBotToken } from '@/lib/telegram-channel-bot';
 import { getContentConfig, isEffectiveDryRun, setContentSetting } from '../config';
 import { normalizePostLexicon, scanPublishBlockers } from '../quality-gates';
 
@@ -87,18 +88,17 @@ export async function publishContentItem(itemId: string, force = false) {
     return { ok: false as const, error };
   };
 
+  const channelBotToken = await getChannelBotToken();
   if (item.imageUrl && !item.publishedPhoto) {
-    const photo = await sendTelegramPhotoWithResult(channelId, item.imageUrl);
+    const photo = await sendTelegramPhotoWithResult(channelId, item.imageUrl, { botToken: channelBotToken });
     if (!photo.ok) return failPartial(photo.error ?? 'photo failed', item.publishedChunks);
-    await prisma.contentItem
-      .update({ where: { id: itemId }, data: { publishedPhoto: true } })
-      .catch(() => undefined);
+    await prisma.contentItem.update({ where: { id: itemId }, data: { publishedPhoto: true } }).catch(() => undefined);
   }
 
   const chunks = splitText(text);
   let sentChunks = item.publishedChunks;
   for (let i = sentChunks; i < chunks.length; i++) {
-    const r = await sendTelegramMessageWithResult(channelId, chunks[i]!);
+    const r = await sendTelegramMessageWithResult(channelId, chunks[i]!, { botToken: channelBotToken });
     if (!r.ok) return failPartial(r.error ?? 'chunk failed', sentChunks);
     sentChunks = i + 1;
   }
@@ -148,7 +148,10 @@ export async function publishDueToday(force = false) {
 
 export async function approveItem(partialId: string) {
   const item = await prisma.contentItem.findFirst({
-    where: { id: { startsWith: partialId }, status: { in: ['pending_review', 'ready', 'quality_failed', 'dedup_blocked'] } },
+    where: {
+      id: { startsWith: partialId },
+      status: { in: ['pending_review', 'ready', 'quality_failed', 'dedup_blocked'] },
+    },
   });
   if (!item) return { ok: false, error: 'not_found' };
   await prisma.contentItem.update({ where: { id: item.id }, data: { status: 'approved' } });

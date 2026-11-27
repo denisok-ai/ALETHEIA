@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added (2026-11-27) — Публикация в Telegram-канал другим ботом
+
+- Настройка `telegram_channel_bot` (`smm` — публиковать в канал через @AvaterraBot, он админ @avaterrapro): автоанонс статей, публикатор контента, коннектор соцсетей. Явное `blog_announce_enabled=true` работает поверх общей паузы контента (LLM-конвейер остаётся на паузе).
+
 ### Removed (2026-11-22) — Неиспользуемые зависимости
 
 - `@dnd-kit/*` (3), `react-hook-form`, `@hookform/resolvers`, `grammy`, `@react-email/components`, `@fontsource-variable/inter`, `@fontsource-variable/lora` — ни одной ссылки в коде; рабочих зависимостей 49 → 40.

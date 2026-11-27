@@ -12,6 +12,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { getEnvOverrides } from '@/lib/settings';
+import { getChannelBotToken } from '@/lib/telegram-channel-bot';
 import { telegramWebFetch } from '@/lib/telegram-fetch';
 import { TELEGRAM_CAPTION_LIMIT } from '../telegram-caption';
 import { SocialPublishError } from './publish-error';
@@ -67,6 +68,9 @@ export type PublishTextParams = {
 type TelegramMessage = { message_id: number; chat?: { username?: string } };
 
 async function resolveBotToken(): Promise<string> {
+  // Публикация в канал может идти другим ботом (настройка telegram_channel_bot).
+  const channelBot = await getChannelBotToken();
+  if (channelBot) return channelBot;
   const fromEnv = process.env.TELEGRAM_BOT_TOKEN?.trim();
   if (fromEnv) return fromEnv;
   const overrides = await getEnvOverrides();
@@ -81,7 +85,7 @@ function assertCaption(caption: string): void {
   if (caption.length > TELEGRAM_CAPTION_LIMIT) {
     throw new TelegramPublishError(
       'caption_too_long',
-      `Подпись ${caption.length} знаков: лимит Telegram для подписи к видео — ${TELEGRAM_CAPTION_LIMIT}. Сократите текст.`,
+      `Подпись ${caption.length} знаков: лимит Telegram для подписи к видео — ${TELEGRAM_CAPTION_LIMIT}. Сократите текст.`
     );
   }
 }
@@ -91,7 +95,7 @@ export function mapTelegramApiError(
   method: string,
   status: number,
   description: string | undefined,
-  retryAfterSec: number | undefined,
+  retryAfterSec: number | undefined
 ): TelegramPublishError {
   const d = (description ?? '').toLowerCase();
   if (status === 401 || d.includes('unauthorized')) {
@@ -115,11 +119,14 @@ export function mapTelegramApiError(
   ) {
     return new TelegramPublishError(
       'not_admin',
-      `Бот не может публиковать в канал: он не администратор канала или у него нет права публикации (${description ?? status}).`,
+      `Бот не может публиковать в канал: он не администратор канала или у него нет права публикации (${description ?? status}).`
     );
   }
   if (status === 413 || d.includes('too big') || d.includes('too large')) {
-    return new TelegramPublishError('file_too_big', `Telegram не принял файл как слишком большой (${TELEGRAM_UPLOAD_LIMIT_BYTES / 1048576} МБ лимит).`);
+    return new TelegramPublishError(
+      'file_too_big',
+      `Telegram не принял файл как слишком большой (${TELEGRAM_UPLOAD_LIMIT_BYTES / 1048576} МБ лимит).`
+    );
   }
   if (d.includes('caption is too long')) {
     return new TelegramPublishError('caption_too_long', 'Telegram: подпись слишком длинная.');
@@ -132,7 +139,7 @@ export function mapTelegramApiError(
 async function callBotApi(
   method: string,
   body: FormData | string,
-  opts: { timeoutMs: number; json: boolean },
+  opts: { timeoutMs: number; json: boolean }
 ): Promise<TelegramMessage> {
   const token = await resolveBotToken();
   if (!token) {
@@ -155,7 +162,7 @@ async function callBotApi(
     throw new TelegramPublishError(
       'network',
       `Нет ответа от Telegram (${reason}): пост мог уйти в канал. Проверьте канал перед повтором.`,
-      { ambiguous: true },
+      { ambiguous: true }
     );
   }
 
@@ -193,13 +200,16 @@ export async function publishVideo(params: PublishVideoParams): Promise<Telegram
   try {
     size = (await fs.stat(params.filePath)).size;
   } catch {
-    throw new TelegramPublishError('file_missing', `Файл ролика не найден на сервере: ${path.basename(params.filePath)}`);
+    throw new TelegramPublishError(
+      'file_missing',
+      `Файл ролика не найден на сервере: ${path.basename(params.filePath)}`
+    );
   }
   if (size > TELEGRAM_UPLOAD_LIMIT_BYTES) {
     const mb = Math.round((size / 1048576) * 10) / 10;
     throw new TelegramPublishError(
       'file_too_big',
-      `Ролик ${mb} МБ: больше лимита Telegram для загрузки ботом (50 МБ). Сожмите файл.`,
+      `Ролик ${mb} МБ: больше лимита Telegram для загрузки ботом (50 МБ). Сожмите файл.`
     );
   }
   if (size === 0) {
@@ -217,7 +227,7 @@ export async function publishVideo(params: PublishVideoParams): Promise<Telegram
   form.append(
     'video',
     new Blob([new Uint8Array(buffer)], { type: videoMimeType(params.filePath) }),
-    path.basename(params.filePath),
+    path.basename(params.filePath)
   );
 
   const message = await callBotApi('sendVideo', form, { timeoutMs: VIDEO_UPLOAD_TIMEOUT_MS, json: false });
@@ -230,7 +240,10 @@ export async function publishText(params: PublishTextParams): Promise<TelegramPu
     throw new TelegramPublishError('api', 'Текст пустой: публиковать нечего.');
   }
   if (params.text.length > MESSAGE_LIMIT) {
-    throw new TelegramPublishError('api', `Текст ${params.text.length} знаков: лимит сообщения Telegram — ${MESSAGE_LIMIT}.`);
+    throw new TelegramPublishError(
+      'api',
+      `Текст ${params.text.length} знаков: лимит сообщения Telegram — ${MESSAGE_LIMIT}.`
+    );
   }
   const message = await callBotApi(
     'sendMessage',
@@ -240,7 +253,7 @@ export async function publishText(params: PublishTextParams): Promise<TelegramPu
       parse_mode: 'HTML',
       disable_web_page_preview: false,
     }),
-    { timeoutMs: MESSAGE_TIMEOUT_MS, json: true },
+    { timeoutMs: MESSAGE_TIMEOUT_MS, json: true }
   );
   return toPublished(message);
 }

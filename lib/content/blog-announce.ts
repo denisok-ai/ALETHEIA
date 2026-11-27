@@ -15,6 +15,7 @@
  */
 import { prisma } from '@/lib/db';
 import { sendTelegramMessageWithResult } from '@/lib/telegram';
+import { getChannelBotToken } from '@/lib/telegram-channel-bot';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { getContentConfig } from './config';
 
@@ -58,7 +59,10 @@ export async function announceNextBlogPost(opts?: { dryRun?: boolean }): Promise
   if (enabledRow?.value === 'false') return { ok: true, skipped: 'disabled' };
 
   const config = await getContentConfig();
-  if (config.paused) return { ok: true, skipped: 'paused' };
+  // Общая пауза content_paused держит и LLM-конвейер постов. Явное «true» у анонсов
+  // (27.11.2026, перезапуск продаж) включает только анонсы уже опубликованных статей —
+  // детерминированный текст без генерации, — не снимая паузу с конвейера.
+  if (config.paused && enabledRow?.value !== 'true') return { ok: true, skipped: 'paused' };
   const channelId = config.contentChannelId;
   if (!channelId) return { ok: true, skipped: 'no_channel' };
 
@@ -84,7 +88,7 @@ export async function announceNextBlogPost(opts?: { dryRun?: boolean }): Promise
 
   if (opts?.dryRun) return { ok: true, slug: post.slug, dryRun: true };
 
-  const r = await sendTelegramMessageWithResult(channelId, text);
+  const r = await sendTelegramMessageWithResult(channelId, text, { botToken: await getChannelBotToken() });
   if (!r.ok) {
     notifyAdminsTelegramAsync('blog_announced', [
       `Не удалось анонсировать статью «${title}» в канал: ${r.error ?? 'ошибка отправки'}`,
