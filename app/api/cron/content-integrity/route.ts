@@ -24,6 +24,7 @@ import { requireCronAuth } from '@/lib/cron-auth';
 import { markCronOk } from '@/lib/cron-heartbeat';
 import { notifyAdminsTelegramAsync } from '@/lib/telegram-admin-notify';
 import { probeTelegramApi } from '@/lib/telegram';
+import { findAccountsWithPublicPassword } from '@/lib/security/public-passwords';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -47,10 +48,7 @@ async function fileExists(absPath: string): Promise<boolean> {
 }
 
 /** Title пакета: из Course.scormManifest, при отсутствии — из imsmanifest.xml на диске. */
-async function resolveManifestTitle(course: {
-  scormPath: string;
-  scormManifest: string | null;
-}): Promise<string> {
+async function resolveManifestTitle(course: { scormPath: string; scormManifest: string | null }): Promise<string> {
   try {
     const parsed = JSON.parse(course.scormManifest ?? '{}') as { title?: unknown };
     if (typeof parsed.title === 'string' && parsed.title.trim()) return parsed.title.trim();
@@ -101,9 +99,7 @@ async function collectProblems(): Promise<string[]> {
         scormManifest: c.scormManifest,
       });
       if (DEMO_TITLE_RE.test(title)) {
-        problems.push(
-          `Платный тариф «${s.name}»: в курсе «${c.title}» установлен демо-пакет («${title}»)`
-        );
+        problems.push(`Платный тариф «${s.name}»: в курсе «${c.title}» установлен демо-пакет («${title}»)`);
       }
     }
   }
@@ -111,6 +107,14 @@ async function collectProblems(): Promise<string[]> {
   // Связность с Telegram: egress умирал молча (03–12.08.2026 — 9 дней без
   // бота и алертов). Алерт об этой проблеме уйдёт почтовым дублёром
   // (notifyAdminsTelegram при полном отказе Telegram шлёт email).
+  // Учётки с паролем из публичного сида (инцидент 28.11.2026: так был открыт admin@test.local).
+  const exposed = await findAccountsWithPublicPassword().catch(() => []);
+  if (exposed.length) {
+    problems.push(
+      `Пароль из публичного репозитория у учёток: ${exposed.join(', ')} — войти может любой; смените пароли немедленно`
+    );
+  }
+
   const tg = await probeTelegramApi();
   if (!tg.ok) {
     problems.push(
@@ -150,8 +154,7 @@ export async function GET(request: NextRequest) {
   if (!dryRun) {
     const prev = await readState();
     const changed =
-      (prev?.status ?? 'ok') !== status ||
-      JSON.stringify(prev?.problems ?? []) !== JSON.stringify(problems);
+      (prev?.status ?? 'ok') !== status || JSON.stringify(prev?.problems ?? []) !== JSON.stringify(problems);
 
     if (changed && status === 'fail') {
       notifyAdminsTelegramAsync('content_integrity', [
@@ -160,9 +163,7 @@ export async function GET(request: NextRequest) {
         'Витрина и оплата при этом выглядят исправными — студенты получают не тот контент.',
       ]);
     } else if (changed && status === 'ok' && prev?.status === 'fail') {
-      notifyAdminsTelegramAsync('content_integrity', [
-        'Проблемы с контентом курсов устранены, все проверки проходят.',
-      ]);
+      notifyAdminsTelegramAsync('content_integrity', ['Проблемы с контентом курсов устранены, все проверки проходят.']);
     }
 
     if (changed || !prev) {

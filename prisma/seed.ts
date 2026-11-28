@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { hash } from 'bcryptjs';
 import { nanoid } from 'nanoid';
+import { SEED_DEV_PASSWORD } from '../lib/security/seed-dev-password';
 import { readFileSync } from 'fs';
 import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
@@ -27,7 +28,9 @@ function orderNumber(prefix: string, i: number) {
 }
 
 async function main() {
-  const pw = await hash('Test123!', 10);
+  // Пароль публичный (репозиторий открыт) — только для локальной разработки. Не запускать сид на проде:
+  // content-integrity ежедневно ищет учётки с этим паролем (lib/security/public-passwords.ts, инцидент 28.11.2026).
+  const pw = await hash(SEED_DEV_PASSWORD, 10);
 
   // ——— Пользователи: 1 admin, 2 manager, 50+ студентов ———
   const admin = await prisma.user.upsert({
@@ -37,7 +40,16 @@ async function main() {
   });
   await prisma.profile.upsert({
     where: { userId: admin.id },
-    create: { id: `p-${admin.id}`, userId: admin.id, role: 'admin', status: 'active', displayName: 'Администратор', email: admin.email, emailVerifiedAt: new Date(), avatarUrl: '/avatars/admin.jpg' },
+    create: {
+      id: `p-${admin.id}`,
+      userId: admin.id,
+      role: 'admin',
+      status: 'active',
+      displayName: 'Администратор',
+      email: admin.email,
+      emailVerifiedAt: new Date(),
+      avatarUrl: '/avatars/admin.jpg',
+    },
     update: { role: 'admin' },
   });
 
@@ -48,7 +60,17 @@ async function main() {
   });
   await prisma.profile.upsert({
     where: { userId: manager1.id },
-    create: { id: `p-${manager1.id}`, userId: manager1.id, role: 'manager', status: 'active', displayName: 'Менеджер', email: manager1.email, emailVerifiedAt: new Date(), avatarUrl: '/avatars/manager1.jpg', telegramId: 100000001 },
+    create: {
+      id: `p-${manager1.id}`,
+      userId: manager1.id,
+      role: 'manager',
+      status: 'active',
+      displayName: 'Менеджер',
+      email: manager1.email,
+      emailVerifiedAt: new Date(),
+      avatarUrl: '/avatars/manager1.jpg',
+      telegramId: 100000001,
+    },
     update: { role: 'manager' },
   });
 
@@ -59,7 +81,16 @@ async function main() {
   });
   await prisma.profile.upsert({
     where: { userId: manager2.id },
-    create: { id: `p-${manager2.id}`, userId: manager2.id, role: 'manager', status: 'active', displayName: 'Менеджер 2', email: manager2.email, emailVerifiedAt: new Date(), telegramId: 100000002 },
+    create: {
+      id: `p-${manager2.id}`,
+      userId: manager2.id,
+      role: 'manager',
+      status: 'active',
+      displayName: 'Менеджер 2',
+      email: manager2.email,
+      emailVerifiedAt: new Date(),
+      telegramId: 100000002,
+    },
     update: { role: 'manager' },
   });
 
@@ -75,7 +106,17 @@ async function main() {
     });
     await prisma.profile.upsert({
       where: { userId: u.id },
-      create: { id: `p-${u.id}`, userId: u.id, role: 'user', status: i < 3 ? 'archived' : 'active', displayName: name, email: u.email, emailVerifiedAt: new Date(), avatarUrl: i % 5 === 0 ? `/avatars/user-${i + 1}.jpg` : null, telegramId: i % 7 === 0 ? 100000000 + i : null },
+      create: {
+        id: `p-${u.id}`,
+        userId: u.id,
+        role: 'user',
+        status: i < 3 ? 'archived' : 'active',
+        displayName: name,
+        email: u.email,
+        emailVerifiedAt: new Date(),
+        avatarUrl: i % 5 === 0 ? `/avatars/user-${i + 1}.jpg` : null,
+        telegramId: i % 7 === 0 ? 100000000 + i : null,
+      },
       update: {},
     });
     students.push({ id: u.id, email: u.email });
@@ -98,7 +139,14 @@ async function main() {
         sortOrder: i + 1,
         startsAt: i % 4 !== 0 ? new Date(Date.now() + (i - 10) * 86400000) : null,
         endsAt: i % 4 !== 0 ? new Date(Date.now() + (i + 90) * 86400000) : null,
-        aiContext: i % 3 === 0 ? JSON.stringify({ 'lesson-1': 'Введение в мышечное тестирование.', 'lesson-2': 'Практические упражнения.', 'lesson-3': 'Итоги и сертификация.' }) : null,
+        aiContext:
+          i % 3 === 0
+            ? JSON.stringify({
+                'lesson-1': 'Введение в мышечное тестирование.',
+                'lesson-2': 'Практические упражнения.',
+                'lesson-3': 'Итоги и сертификация.',
+              })
+            : null,
         aiTutorEnabled: i % 5 !== 0,
         thumbnailUrl: i % 2 === 0 ? `/covers/course-${i + 1}.jpg` : null,
         verificationRequiredLessonIds: i % 4 === 0 ? JSON.stringify(['lesson-1', 'lesson-2']) : null,
@@ -113,7 +161,9 @@ async function main() {
     .findMany({ where: { moduleType: 'course' }, orderBy: { displayOrder: 'asc' } })
     .then((g) => g.map((x) => ({ id: x.id, name: x.name, parentId: x.parentId })));
 
-  let mediaGroups: { id: string; name: string }[] = await prisma.group.findMany({ where: { moduleType: 'media' } }).then((g) => g.map((x) => ({ id: x.id, name: x.name })));
+  let mediaGroups: { id: string; name: string }[] = await prisma.group
+    .findMany({ where: { moduleType: 'media' } })
+    .then((g) => g.map((x) => ({ id: x.id, name: x.name })));
   if (mediaGroups.length < 20) {
     mediaGroups = [];
     for (let i = 0; i < 20; i++) {
@@ -154,23 +204,40 @@ async function main() {
   for (let i = 0; i < publishedCourses.length; i++) {
     const c = publishedCourses[i];
     if (!c) continue;
-    await prisma.course.update({
-      where: { id: c.id },
-      data: {
-        scormPath: `courses-${c.id}/index.html`,
-        scormVersion: '1.2',
-        scormManifest: scormManifestJson,
-      },
-    }).catch(() => {});
+    await prisma.course
+      .update({
+        where: { id: c.id },
+        data: {
+          scormPath: `courses-${c.id}/index.html`,
+          scormVersion: '1.2',
+          scormManifest: scormManifestJson,
+        },
+      })
+      .catch(() => {});
     scormCourseIds.push(c.id);
   }
 
   // Минимальный SCORM-контент для демо — папка и HTML для каждого курса из scormCourseIds
   const scormDir = path.join(process.cwd(), 'public', 'uploads', 'scorm');
   const lessons = [
-    { id: 'lesson-1', title: 'Урок 1. Введение', file: 'lesson1.html', body: 'Добро пожаловать в тестовый курс. Это минимальный SCORM-контент для проверки плеера.' },
-    { id: 'lesson-2', title: 'Урок 2. Практика', file: 'lesson2.html', body: 'Практическая часть курса. Изучите материалы и перейдите к следующему уроку.' },
-    { id: 'lesson-3', title: 'Урок 3. Итоги', file: 'lesson3.html', body: 'Поздравляем с завершением курса! Прогресс будет сохранён автоматически.' },
+    {
+      id: 'lesson-1',
+      title: 'Урок 1. Введение',
+      file: 'lesson1.html',
+      body: 'Добро пожаловать в тестовый курс. Это минимальный SCORM-контент для проверки плеера.',
+    },
+    {
+      id: 'lesson-2',
+      title: 'Урок 2. Практика',
+      file: 'lesson2.html',
+      body: 'Практическая часть курса. Изучите материалы и перейдите к следующему уроку.',
+    },
+    {
+      id: 'lesson-3',
+      title: 'Урок 3. Итоги',
+      file: 'lesson3.html',
+      body: 'Поздравляем с завершением курса! Прогресс будет сохранён автоматически.',
+    },
   ];
   const indexHtml = scormLessonHtml('Тестовый курс', 'Выберите урок в навигации слева или начните с первого урока.');
   for (const courseId of scormCourseIds) {
@@ -207,18 +274,24 @@ async function main() {
       while (used.has(ci)) ci = (ci + 1) % courses.length;
       used.add(ci);
       const course = courses[ci];
-      if (course && courses[ci] && (await prisma.course.findUnique({ where: { id: course.id } }))?.status === 'published') {
-        await prisma.enrollment.upsert({
-          where: { userId_courseId: { userId: students[ui].id, courseId: course.id } },
-          create: {
-            userId: students[ui].id,
-            courseId: course.id,
-            accessClosed: e % 5 === 0,
-            completedAt: e % 4 === 0 ? new Date() : null,
-            expiresAt: e % 6 === 0 ? new Date(Date.now() + 180 * 86400000) : null,
-          },
-          update: {},
-        }).catch(() => {});
+      if (
+        course &&
+        courses[ci] &&
+        (await prisma.course.findUnique({ where: { id: course.id } }))?.status === 'published'
+      ) {
+        await prisma.enrollment
+          .upsert({
+            where: { userId_courseId: { userId: students[ui].id, courseId: course.id } },
+            create: {
+              userId: students[ui].id,
+              courseId: course.id,
+              accessClosed: e % 5 === 0,
+              completedAt: e % 4 === 0 ? new Date() : null,
+              expiresAt: e % 6 === 0 ? new Date(Date.now() + 180 * 86400000) : null,
+            },
+            update: {},
+          })
+          .catch(() => {});
       }
     }
   }
@@ -226,13 +299,18 @@ async function main() {
   // ——— Медиа: 50+, часть привязана к курсам ———
   const mediaCountBefore = await prisma.media.count();
   const mediaCategories = ['video', 'pdf', 'image', 'document', 'audio'] as const;
-  const mediaList: { id: string; title: string; courseId: string | null }[] = await prisma.media.findMany({ select: { id: true, title: true, courseId: true } });
+  const mediaList: { id: string; title: string; courseId: string | null }[] = await prisma.media.findMany({
+    select: { id: true, title: true, courseId: true },
+  });
   for (let i = mediaList.length; i < N; i++) {
-    const courseId = i % 3 === 0 ? courses[i % courses.length]?.id ?? null : null;
+    const courseId = i % 3 === 0 ? (courses[i % courses.length]?.id ?? null) : null;
     const m = await prisma.media.create({
       data: {
         title: `Ресурс «${['Введение', 'Методичка', 'Практика', 'Тест', 'Доп. материал'][i % 5]}» ${i + 1}`,
-        fileUrl: i % 4 === 0 ? `https://example.com/media/${i + 1}` : `/uploads/media/item-${i + 1}.${i % 3 === 0 ? 'mp4' : 'pdf'}`,
+        fileUrl:
+          i % 4 === 0
+            ? `https://example.com/media/${i + 1}`
+            : `/uploads/media/item-${i + 1}.${i % 3 === 0 ? 'mp4' : 'pdf'}`,
         mimeType: i % 3 === 0 ? 'video/mp4' : 'application/pdf',
         category: mediaCategories[i % mediaCategories.length],
         type: i % 4 === 0 ? 'link' : 'file',
@@ -251,52 +329,71 @@ async function main() {
   // Связка медиа с группами медиатеки
   for (let i = 0; i < mediaList.length; i++) {
     const group = mediaGroups[i % mediaGroups.length];
-    await prisma.mediaGroup.create({
-      data: { mediaId: mediaList[i].id, groupId: group.id, sortOrder: i },
-    }).catch(() => {});
+    await prisma.mediaGroup
+      .create({
+        data: { mediaId: mediaList[i].id, groupId: group.id, sortOrder: i },
+      })
+      .catch(() => {});
   }
 
   // Связка пользователей с группами пользователей (только если группы уже есть в БД)
   if (userGroups.length > 0) {
     for (let ui = 0; ui < students.length; ui++) {
       const group = userGroups[ui % userGroups.length];
-      await prisma.userGroup.create({
-        data: { userId: students[ui].id, groupId: group.id, role: ui % 7 === 0 ? 'moderator' : 'member' },
-      }).catch(() => {});
+      await prisma.userGroup
+        .create({
+          data: { userId: students[ui].id, groupId: group.id, role: ui % 7 === 0 ? 'moderator' : 'member' },
+        })
+        .catch(() => {});
     }
   }
 
   // ——— Лиды: 50+; у части — lastOrderNumber (связь с оплаченным заказом) ———
   const leadCount = await prisma.lead.count();
   const firstNames = ['Анна', 'Петр', 'Мария', 'Иван', 'Елена', 'Сергей', 'Ольга', 'Дмитрий', 'Наталья', 'Алексей'];
-  const lastNames = ['Иванова', 'Сидоров', 'Козлова', 'Петров', 'Смирнова', 'Кузнецов', 'Попова', 'Васильева', 'Михайлова', 'Новикова'];
+  const lastNames = [
+    'Иванова',
+    'Сидоров',
+    'Козлова',
+    'Петров',
+    'Смирнова',
+    'Кузнецов',
+    'Попова',
+    'Васильева',
+    'Михайлова',
+    'Новикова',
+  ];
   const leadStatuses = ['new', 'contacted', 'qualified', 'converted', 'lost'];
   const leadSources = ['form', 'landing', 'manual'];
   for (let i = leadCount; i < N; i++) {
-    await prisma.lead.create({
-      data: {
-        name: `${firstNames[i % firstNames.length]} ${lastNames[i % lastNames.length]}`,
-        phone: `+7900${String(1000000 + i).slice(-7)}`,
-        email: `lead${i + 1}@example.com`,
-        message: i % 2 === 0 ? `Заявка на курс ${(i % 5) + 1}` : null,
-        notes: i % 3 === 0 ? `Заметка по лиду ${i + 1}` : null,
-        status: leadStatuses[i % leadStatuses.length],
-        source: leadSources[i % leadSources.length],
-        convertedToUserId: leadStatuses[i % leadStatuses.length] === 'converted' && students[i % students.length] ? students[i % students.length].id : null,
-      },
-    }).catch(() => {});
+    await prisma.lead
+      .create({
+        data: {
+          name: `${firstNames[i % firstNames.length]} ${lastNames[i % lastNames.length]}`,
+          phone: `+7900${String(1000000 + i).slice(-7)}`,
+          email: `lead${i + 1}@example.com`,
+          message: i % 2 === 0 ? `Заявка на курс ${(i % 5) + 1}` : null,
+          notes: i % 3 === 0 ? `Заметка по лиду ${i + 1}` : null,
+          status: leadStatuses[i % leadStatuses.length],
+          source: leadSources[i % leadSources.length],
+          convertedToUserId:
+            leadStatuses[i % leadStatuses.length] === 'converted' && students[i % students.length]
+              ? students[i % students.length].id
+              : null,
+        },
+      })
+      .catch(() => {});
   }
 
   // ——— Услуги (Service): витрина — лид-магнит, Профи, ВИП (старые тарифы отключаем) ———
-  await prisma.service.updateMany({
-    where: {
-      OR: [
-        { slug: { in: ['consult', 'group', 'course', 'online'] } },
-        { slug: { startsWith: 'course-' } },
-      ],
-    },
-    data: { isActive: false },
-  }).catch(() => {});
+  await prisma.service
+    .updateMany({
+      where: {
+        OR: [{ slug: { in: ['consult', 'group', 'course', 'online'] } }, { slug: { startsWith: 'course-' } }],
+      },
+      data: { isActive: false },
+    })
+    .catch(() => {});
 
   const mainTariffs: {
     slug: string;
@@ -352,26 +449,28 @@ async function main() {
   const publishedIds = courses.filter((_, i) => statuses[i % statuses.length] === 'published').map((c) => c.id);
   const defaultCourseId = publishedIds[0] ?? courses[0]?.id;
   for (const t of mainTariffs) {
-    await prisma.service.upsert({
-      where: { slug: t.slug },
-      create: {
-        slug: t.slug,
-        name: t.name,
-        price: t.price,
-        paykeeperTariffId: t.paykeeperTariffId,
-        description: t.description,
-        courseId: defaultCourseId,
-        isActive: true,
-      },
-      update: {
-        name: t.name,
-        price: t.price,
-        paykeeperTariffId: t.paykeeperTariffId,
-        description: t.description,
-        isActive: true,
-        courseId: defaultCourseId,
-      },
-    }).catch(() => {});
+    await prisma.service
+      .upsert({
+        where: { slug: t.slug },
+        create: {
+          slug: t.slug,
+          name: t.name,
+          price: t.price,
+          paykeeperTariffId: t.paykeeperTariffId,
+          description: t.description,
+          courseId: defaultCourseId,
+          isActive: true,
+        },
+        update: {
+          name: t.name,
+          price: t.price,
+          paykeeperTariffId: t.paykeeperTariffId,
+          description: t.description,
+          isActive: true,
+          courseId: defaultCourseId,
+        },
+      })
+      .catch(() => {});
   }
 
   // ——— Заказы: 50+, связка с пользователями и тарифами ———
@@ -383,28 +482,38 @@ async function main() {
     const status = orderStatuses[i % orderStatuses.length];
     const userId = status === 'paid' || status === 'refunded' ? students[i % students.length]?.id : null;
     const svc = services[i % services.length] ?? services[0];
-    await prisma.order.create({
-      data: {
-        orderNumber: orderNumber('SEED', i + 1),
-        tariffId: svc?.slug ?? 'course',
-        amount: svc?.price ?? 10000,
-        clientEmail: userId ? students.find((s) => s.id === userId)?.email ?? `client${i + 1}@test.local` : `client${i + 1}@test.local`,
-        clientPhone: i % 2 === 0 ? `+7900${1000000 + i}` : null,
-        status,
-        paidAt: status === 'paid' || status === 'refunded' ? new Date(Date.now() - i * 86400000) : null,
-        userId: userId ?? null,
-      },
-    }).catch(() => {});
+    await prisma.order
+      .create({
+        data: {
+          orderNumber: orderNumber('SEED', i + 1),
+          tariffId: svc?.slug ?? 'course',
+          amount: svc?.price ?? 10000,
+          clientEmail: userId
+            ? (students.find((s) => s.id === userId)?.email ?? `client${i + 1}@test.local`)
+            : `client${i + 1}@test.local`,
+          clientPhone: i % 2 === 0 ? `+7900${1000000 + i}` : null,
+          status,
+          paidAt: status === 'paid' || status === 'refunded' ? new Date(Date.now() - i * 86400000) : null,
+          userId: userId ?? null,
+        },
+      })
+      .catch(() => {});
   }
 
   // Привязка lastOrderNumber к части лидов (по оплаченным заказам)
-  const paidOrdersForLeads = await prisma.order.findMany({ where: { status: 'paid' }, select: { orderNumber: true }, take: 10 });
+  const paidOrdersForLeads = await prisma.order.findMany({
+    where: { status: 'paid' },
+    select: { orderNumber: true },
+    take: 10,
+  });
   const leadsToLink = await prisma.lead.findMany({ orderBy: { id: 'asc' }, take: 10 });
   for (let i = 0; i < Math.min(paidOrdersForLeads.length, leadsToLink.length); i++) {
-    await prisma.lead.update({
-      where: { id: leadsToLink[i].id },
-      data: { lastOrderNumber: paidOrdersForLeads[i].orderNumber },
-    }).catch(() => {});
+    await prisma.lead
+      .update({
+        where: { id: leadsToLink[i].id },
+        data: { lastOrderNumber: paidOrdersForLeads[i].orderNumber },
+      })
+      .catch(() => {});
   }
 
   // ——— Рассылки и отписавшиеся ———
@@ -422,32 +531,39 @@ async function main() {
         senderName: i % 2 === 0 ? 'AVATERRA' : null,
         senderEmail: i % 2 === 0 ? 'noreply@avaterra.pro' : null,
         scheduledAt: i % 4 === 0 ? new Date(Date.now() + (i + 1) * 86400000) : null,
-        attachments: i % 5 === 0 ? JSON.stringify([{ name: 'attachment.pdf', pathOrKey: '/attachments/1.pdf', size: 102400 }]) : null,
+        attachments:
+          i % 5 === 0
+            ? JSON.stringify([{ name: 'attachment.pdf', pathOrKey: '/attachments/1.pdf', size: 102400 }])
+            : null,
       },
     });
     mailings.push({ id: m.id });
   }
 
   for (let i = 0; i < N; i++) {
-    await prisma.mailingLog.create({
-      data: {
-        mailingId: mailings[i % mailings.length].id,
-        userId: students[i % students.length]?.id ?? null,
-        recipientEmail: `student${(i % N) + 1}@test.local`,
-        recipientName: `Студент ${(i % N) + 1}`,
-        status: i % 10 === 0 ? 'failed' : 'sent',
-        errorMessage: i % 10 === 0 ? 'Timeout' : null,
-        sentAt: new Date(Date.now() - i * 3600000),
-      },
-    }).catch(() => {});
+    await prisma.mailingLog
+      .create({
+        data: {
+          mailingId: mailings[i % mailings.length].id,
+          userId: students[i % students.length]?.id ?? null,
+          recipientEmail: `student${(i % N) + 1}@test.local`,
+          recipientName: `Студент ${(i % N) + 1}`,
+          status: i % 10 === 0 ? 'failed' : 'sent',
+          errorMessage: i % 10 === 0 ? 'Timeout' : null,
+          sentAt: new Date(Date.now() - i * 3600000),
+        },
+      })
+      .catch(() => {});
   }
 
   for (let i = 0; i < N; i++) {
-    await prisma.mailingUnsubscribe.upsert({
-      where: { email: `unsub${i + 1}@example.com` },
-      create: { email: `unsub${i + 1}@example.com` },
-      update: {},
-    }).catch(() => {});
+    await prisma.mailingUnsubscribe
+      .upsert({
+        where: { email: `unsub${i + 1}@example.com` },
+        create: { email: `unsub${i + 1}@example.com` },
+        update: {},
+      })
+      .catch(() => {});
   }
 
   // ——— Публикации: 50+ и комментарии ———
@@ -468,15 +584,17 @@ async function main() {
         keywords: `avaterra, курс, мышечное тестирование, публикация ${i + 1}`,
       },
     });
-    for (let c = 0; c < (i % 4); c++) {
-      await prisma.publicationComment.create({
-        data: {
-          publicationId: pub.id,
-          userId: students[(i + c) % students.length]?.id ?? null,
-          authorName: `Участник ${(i + c) % N + 1}`,
-          content: `Комментарий ${c + 1} к публикации ${i + 1}.`,
-        },
-      }).catch(() => {});
+    for (let c = 0; c < i % 4; c++) {
+      await prisma.publicationComment
+        .create({
+          data: {
+            publicationId: pub.id,
+            userId: students[(i + c) % students.length]?.id ?? null,
+            authorName: `Участник ${((i + c) % N) + 1}`,
+            content: `Комментарий ${c + 1} к публикации ${i + 1}.`,
+          },
+        })
+        .catch(() => {});
     }
   }
 
@@ -493,73 +611,102 @@ async function main() {
     const uid = students[i % students.length]?.id;
     if (!uid) continue;
     const type = notifTypes[i % notifTypes.length];
-    await prisma.notification.create({
-      data: {
-        userId: uid,
-        type,
-        content: JSON.stringify({ title: notifTitles[type] ?? `Уведомление ${i + 1}`, ref: `ref-${i}` }),
-        isRead: i % 3 === 0,
-      },
-    }).catch(() => {});
+    await prisma.notification
+      .create({
+        data: {
+          userId: uid,
+          type,
+          content: JSON.stringify({ title: notifTitles[type] ?? `Уведомление ${i + 1}`, ref: `ref-${i}` }),
+          isRead: i % 3 === 0,
+        },
+      })
+      .catch(() => {});
   }
 
   const eventTypes = ['enrollment', 'certificate_issued', 'access_opened', 'access_closed', 'mailing'];
   for (let i = 0; i < N; i++) {
-    await prisma.notificationLog.create({
-      data: {
-        userId: students[i % students.length]?.id ?? null,
-        eventType: eventTypes[i % eventTypes.length],
-        subject: `Тема уведомления ${i + 1}`,
-        content: `Текст уведомления ${i + 1} для журнала.`,
-        channel: i % 2 === 0 ? 'email' : 'internal',
-      },
-    }).catch(() => {});
+    await prisma.notificationLog
+      .create({
+        data: {
+          userId: students[i % students.length]?.id ?? null,
+          eventType: eventTypes[i % eventTypes.length],
+          subject: `Тема уведомления ${i + 1}`,
+          content: `Текст уведомления ${i + 1} для журнала.`,
+          channel: i % 2 === 0 ? 'email' : 'internal',
+        },
+      })
+      .catch(() => {});
   }
 
   // ——— Тикеты: 50+, связка студент + менеджер; у части — привязка заказа (orderNumber) ———
   const ticketStatuses = ['open', 'in_progress', 'resolved', 'closed'] as const;
-  const ticketSubjects = ['Доступ к уроку', 'Сертификат', 'Оплата', 'Технический вопрос', 'Перенос срока', 'Не приходит доступ', 'Проблема с прохождением курса'];
-  const paidOrderNumbers = await prisma.order.findMany({ where: { status: 'paid' }, select: { orderNumber: true }, take: 15 });
+  const ticketSubjects = [
+    'Доступ к уроку',
+    'Сертификат',
+    'Оплата',
+    'Технический вопрос',
+    'Перенос срока',
+    'Не приходит доступ',
+    'Проблема с прохождением курса',
+  ];
+  const paidOrderNumbers = await prisma.order.findMany({
+    where: { status: 'paid' },
+    select: { orderNumber: true },
+    take: 15,
+  });
   // Дополнительные тикеты для первых 20 студентов (по 2 шт.) — разнообразие тем
   for (let s = 0; s < Math.min(20, students.length); s++) {
     for (let t = 0; t < 2; t++) {
       const i = N + s * 2 + t;
       const managerId = s % 2 === 0 ? manager1.id : manager2.id;
       const subjectIdx = (s + t) % ticketSubjects.length;
-      const subject = subjectIdx === 5 && paidOrderNumbers[s % paidOrderNumbers.length]
-        ? `Не приходит доступ — заказ ${paidOrderNumbers[s % paidOrderNumbers.length].orderNumber}`
-        : `${ticketSubjects[subjectIdx]} — студент ${s + 1}, обращение ${t + 2}`;
-      await prisma.ticket.create({
-        data: {
-          userId: students[s].id,
-          managerId: t === 0 ? managerId : null,
-          subject,
-          status: ticketStatuses[(s + t) % ticketStatuses.length],
-          orderNumber: null,
-          messages: JSON.stringify([{ role: 'user', content: `Доп. обращение ${t + 2}`, at: new Date().toISOString() }]),
-        },
-      }).catch(() => {});
+      const subject =
+        subjectIdx === 5 && paidOrderNumbers[s % paidOrderNumbers.length]
+          ? `Не приходит доступ — заказ ${paidOrderNumbers[s % paidOrderNumbers.length].orderNumber}`
+          : `${ticketSubjects[subjectIdx]} — студент ${s + 1}, обращение ${t + 2}`;
+      await prisma.ticket
+        .create({
+          data: {
+            userId: students[s].id,
+            managerId: t === 0 ? managerId : null,
+            subject,
+            status: ticketStatuses[(s + t) % ticketStatuses.length],
+            orderNumber: null,
+            messages: JSON.stringify([
+              { role: 'user', content: `Доп. обращение ${t + 2}`, at: new Date().toISOString() },
+            ]),
+          },
+        })
+        .catch(() => {});
     }
   }
   for (let i = 0; i < N; i++) {
     const managerId = i % 2 === 0 ? manager1.id : manager2.id;
     const subjectIdx = i % ticketSubjects.length;
-    const subject = subjectIdx === 5 && paidOrderNumbers[i % paidOrderNumbers.length]
-      ? `Не приходит доступ — заказ ${paidOrderNumbers[i % paidOrderNumbers.length].orderNumber}`
-      : `${ticketSubjects[subjectIdx]} — тикет ${i + 1}`;
-    await prisma.ticket.create({
-      data: {
-        userId: students[i % students.length].id,
-        managerId: i % 3 !== 0 ? managerId : null,
-        subject,
-        status: ticketStatuses[i % ticketStatuses.length],
-        orderNumber: i < 15 && paidOrderNumbers[i % paidOrderNumbers.length] ? paidOrderNumbers[i % paidOrderNumbers.length].orderNumber : null,
-        messages: JSON.stringify([
-          { role: 'user', content: `Сообщение пользователя ${i + 1}`, at: new Date().toISOString() },
-          ...(i % 3 !== 0 ? [{ role: 'manager', content: `Ответ поддержки ${i + 1}`, at: new Date().toISOString() }] : []),
-        ]),
-      },
-    }).catch(() => {});
+    const subject =
+      subjectIdx === 5 && paidOrderNumbers[i % paidOrderNumbers.length]
+        ? `Не приходит доступ — заказ ${paidOrderNumbers[i % paidOrderNumbers.length].orderNumber}`
+        : `${ticketSubjects[subjectIdx]} — тикет ${i + 1}`;
+    await prisma.ticket
+      .create({
+        data: {
+          userId: students[i % students.length].id,
+          managerId: i % 3 !== 0 ? managerId : null,
+          subject,
+          status: ticketStatuses[i % ticketStatuses.length],
+          orderNumber:
+            i < 15 && paidOrderNumbers[i % paidOrderNumbers.length]
+              ? paidOrderNumbers[i % paidOrderNumbers.length].orderNumber
+              : null,
+          messages: JSON.stringify([
+            { role: 'user', content: `Сообщение пользователя ${i + 1}`, at: new Date().toISOString() },
+            ...(i % 3 !== 0
+              ? [{ role: 'manager', content: `Ответ поддержки ${i + 1}`, at: new Date().toISOString() }]
+              : []),
+          ]),
+        },
+      })
+      .catch(() => {});
   }
 
   // ——— Шаблоны сертификатов (если нет) ———
@@ -576,7 +723,12 @@ async function main() {
           allowUserDownload: true,
           courseId: courses[i % courses.length]?.id ?? null,
           backgroundImageUrl: `/cert-templates/bg-${i + 1}.png`,
-          textMapping: JSON.stringify({ name: { x: 100, y: 200 }, date: { x: 100, y: 250 }, courseTitle: { x: 100, y: 300 }, certNumber: { x: 100, y: 350 } }),
+          textMapping: JSON.stringify({
+            name: { x: 100, y: 200 },
+            date: { x: 100, y: 250 },
+            courseTitle: { x: 100, y: 300 },
+            certNumber: { x: 100, y: 350 },
+          }),
         },
       });
       certTemplates.push(t);
@@ -593,18 +745,20 @@ async function main() {
       if (certPairs.has(key)) continue;
       certPairs.add(key);
       const template = certTemplates[j % certTemplates.length] ?? certTemplates[0];
-      await prisma.certificate.create({
-        data: {
-          userId: students[i].id,
-          courseId: course.id,
-          templateId: template?.id ?? null,
-          certNumber: `ALT-${nanoid(8).toUpperCase()}`,
-          issuedAt: new Date(Date.now() - (i + j) * 86400 * 1000),
-          expiryDate: j % 4 === 0 ? new Date(Date.now() - 86400000) : new Date(Date.now() + 365 * 86400000),
-          pdfUrl: j % 3 !== 0 ? `/certificates/ALT-${i}-${j}.pdf` : null,
-          revokedAt: j % 7 === 0 ? new Date() : null,
-        },
-      }).catch(() => {});
+      await prisma.certificate
+        .create({
+          data: {
+            userId: students[i].id,
+            courseId: course.id,
+            templateId: template?.id ?? null,
+            certNumber: `ALT-${nanoid(8).toUpperCase()}`,
+            issuedAt: new Date(Date.now() - (i + j) * 86400 * 1000),
+            expiryDate: j % 4 === 0 ? new Date(Date.now() - 86400000) : new Date(Date.now() + 365 * 86400000),
+            pdfUrl: j % 3 !== 0 ? `/certificates/ALT-${i}-${j}.pdf` : null,
+            revokedAt: j % 7 === 0 ? new Date() : null,
+          },
+        })
+        .catch(() => {});
     }
   }
 
@@ -621,21 +775,23 @@ async function main() {
     for (let l = 0; l < scormLessonIds.length; l++) {
       const lessonId = scormLessonIds[l];
       const completed = allCompleted || l < 2 || (e + l) % 3 === 0;
-      await prisma.scormProgress.upsert({
-        where: {
-          userId_courseId_lessonId: { userId: en.userId, courseId: en.courseId, lessonId },
-        },
-        create: {
-          userId: en.userId,
-          courseId: en.courseId,
-          lessonId,
-          cmiData: '{}',
-          completionStatus: completed ? (l % 2 === 0 ? 'completed' : 'passed') : 'incomplete',
-          score: 60 + Math.floor(Math.random() * 40),
-          timeSpent: 120 + l * 300 + Math.floor(Math.random() * 200),
-        },
-        update: {},
-      }).catch(() => {});
+      await prisma.scormProgress
+        .upsert({
+          where: {
+            userId_courseId_lessonId: { userId: en.userId, courseId: en.courseId, lessonId },
+          },
+          create: {
+            userId: en.userId,
+            courseId: en.courseId,
+            lessonId,
+            cmiData: '{}',
+            completionStatus: completed ? (l % 2 === 0 ? 'completed' : 'passed') : 'incomplete',
+            score: 60 + Math.floor(Math.random() * 40),
+            timeSpent: 120 + l * 300 + Math.floor(Math.random() * 200),
+          },
+          update: {},
+        })
+        .catch(() => {});
     }
   }
   // Доп. прогресс для курсов без manifest (main / intro) — чтобы не ломать существующие данные
@@ -645,30 +801,34 @@ async function main() {
     const en = enrollments[e];
     if (publishedCourseIds.has(en.courseId)) continue;
     for (let l = 0; l < 2; l++) {
-      await prisma.scormProgress.upsert({
-        where: {
-          userId_courseId_lessonId: { userId: en.userId, courseId: en.courseId, lessonId: lessonIdsLegacy[l] },
-        },
-        create: {
-          userId: en.userId,
-          courseId: en.courseId,
-          lessonId: lessonIdsLegacy[l],
-          completionStatus: l === 0 ? 'completed' : 'incomplete',
-          score: 75,
-          timeSpent: 600,
-        },
-        update: {},
-      }).catch(() => {});
+      await prisma.scormProgress
+        .upsert({
+          where: {
+            userId_courseId_lessonId: { userId: en.userId, courseId: en.courseId, lessonId: lessonIdsLegacy[l] },
+          },
+          create: {
+            userId: en.userId,
+            courseId: en.courseId,
+            lessonId: lessonIdsLegacy[l],
+            completionStatus: l === 0 ? 'completed' : 'incomplete',
+            score: 75,
+            timeSpent: 600,
+          },
+          update: {},
+        })
+        .catch(() => {});
     }
   }
 
   // ——— Завершённые записи (completedAt) для записей с полным прогрессом ———
   const fullProgressEnrollments = enrollments.slice(0, 35);
   for (const en of fullProgressEnrollments) {
-    await prisma.enrollment.updateMany({
-      where: { userId: en.userId, courseId: en.courseId },
-      data: { completedAt: new Date(Date.now() - 7 * 86400000) },
-    }).catch(() => {});
+    await prisma.enrollment
+      .updateMany({
+        where: { userId: en.userId, courseId: en.courseId },
+        data: { completedAt: new Date(Date.now() - 7 * 86400000) },
+      })
+      .catch(() => {});
   }
 
   // ——— PhygitalVerification: часть пользователей по курсам ———
@@ -683,81 +843,94 @@ async function main() {
   const seedVideoMaterialUrl = '/uploads/verifications/seed-verification-placeholder.mp4';
   for (let i = 0; i < 25; i++) {
     const isText = i % 4 === 0;
-    await prisma.phygitalVerification.create({
-      data: {
-        userId: students[i % students.length].id,
-        courseId: courses[i % courses.length].id,
-        lessonId: `lesson-${(i % 3) + 1}`,
-        assignmentType: isText ? 'text' : 'video',
-        videoUrl: isText
-          ? `Текстовый ответ (seed #${i + 1}): краткое описание выполнения практического задания для проверки менеджером.`
-          : seedVideoMaterialUrl,
-        status: ['pending', 'approved', 'rejected'][i % 3],
-        reviewedBy: i % 3 !== 0 ? manager1.id : null,
-        reviewedAt: i % 3 !== 0 ? new Date() : null,
-        comment: i % 3 === 2 ? 'Требуется доработка' : null,
-      },
-    }).catch(() => {});
+    await prisma.phygitalVerification
+      .create({
+        data: {
+          userId: students[i % students.length].id,
+          courseId: courses[i % courses.length].id,
+          lessonId: `lesson-${(i % 3) + 1}`,
+          assignmentType: isText ? 'text' : 'video',
+          videoUrl: isText
+            ? `Текстовый ответ (seed #${i + 1}): краткое описание выполнения практического задания для проверки менеджером.`
+            : seedVideoMaterialUrl,
+          status: ['pending', 'approved', 'rejected'][i % 3],
+          reviewedBy: i % 3 !== 0 ? manager1.id : null,
+          reviewedAt: i % 3 !== 0 ? new Date() : null,
+          comment: i % 3 === 2 ? 'Требуется доработка' : null,
+        },
+      })
+      .catch(() => {});
   }
 
   // ——— VisitLog: сессии пользователей ———
   for (let i = 0; i < N; i++) {
     const uid = allUsers[i % allUsers.length]?.id;
     if (!uid) continue;
-    await prisma.visitLog.create({
-      data: {
-        userId: uid,
-        loginAt: new Date(Date.now() - (i + 1) * 3600000),
-        lastActivityAt: new Date(Date.now() - i * 60000),
-        logoutAt: i % 4 === 0 ? new Date(Date.now() - (i + 1) * 3600000 + 1800000) : null,
-        ipAddress: `192.168.1.${(i % 250) + 1}`,
-        userAgent: i % 2 === 0 ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0' : 'Mozilla/5.0 (iPhone) Safari/605.1',
-      },
-    }).catch(() => {});
+    await prisma.visitLog
+      .create({
+        data: {
+          userId: uid,
+          loginAt: new Date(Date.now() - (i + 1) * 3600000),
+          lastActivityAt: new Date(Date.now() - i * 60000),
+          logoutAt: i % 4 === 0 ? new Date(Date.now() - (i + 1) * 3600000 + 1800000) : null,
+          ipAddress: `192.168.1.${(i % 250) + 1}`,
+          userAgent:
+            i % 2 === 0
+              ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/120.0'
+              : 'Mozilla/5.0 (iPhone) Safari/605.1',
+        },
+      })
+      .catch(() => {});
   }
 
   // ——— AuditLog: 50+ записей ———
   const actions = ['create', 'update', 'delete', 'login', 'export'];
   const entities = ['User', 'Course', 'Order', 'Enrollment', 'Mailing', 'Lead', 'Certificate'];
   for (let i = 0; i < N; i++) {
-    await prisma.auditLog.create({
-      data: {
-        actorId: [admin.id, manager1.id, manager2.id][i % 3],
-        action: actions[i % actions.length],
-        entity: entities[i % entities.length],
-        entityId: `entity-${i + 1}`,
-        diff: i % 2 === 0 ? JSON.stringify({ field: 'status', old: 'draft', new: 'published' }) : null,
-      },
-    }).catch(() => {});
+    await prisma.auditLog
+      .create({
+        data: {
+          actorId: [admin.id, manager1.id, manager2.id][i % 3],
+          action: actions[i % actions.length],
+          entity: entities[i % entities.length],
+          entityId: `entity-${i + 1}`,
+          diff: i % 2 === 0 ? JSON.stringify({ field: 'status', old: 'draft', new: 'published' }) : null,
+        },
+      })
+      .catch(() => {});
   }
 
   // ——— CommsSend: 50+ ———
   const commsTemplates = await prisma.commsTemplate.findMany({ take: 5 });
   for (let i = 0; i < N; i++) {
-    await prisma.commsSend.create({
-      data: {
-        templateId: commsTemplates[i % commsTemplates.length]?.id ?? null,
-        channel: 'email',
-        recipient: students[i % students.length]?.email ?? `recipient${i + 1}@test.local`,
-        subject: `Сообщение ${i + 1}`,
-        status: 'sent',
-        sentBy: admin.id,
-      },
-    }).catch(() => {});
+    await prisma.commsSend
+      .create({
+        data: {
+          templateId: commsTemplates[i % commsTemplates.length]?.id ?? null,
+          channel: 'email',
+          recipient: students[i % students.length]?.email ?? `recipient${i + 1}@test.local`,
+          subject: `Сообщение ${i + 1}`,
+          status: 'sent',
+          sentBy: admin.id,
+        },
+      })
+      .catch(() => {});
   }
 
   // ——— UserEnergy: на каждого студента ———
   for (let i = 0; i < students.length; i++) {
-    await prisma.userEnergy.upsert({
-      where: { userId: students[i].id },
-      create: {
-        userId: students[i].id,
-        xp: 100 + i * 20 + Math.floor(Math.random() * 200),
-        level: 1 + Math.floor((i * 20) / 500),
-        lastPracticeAt: new Date(Date.now() - i * 86400000),
-      },
-      update: {},
-    }).catch(() => {});
+    await prisma.userEnergy
+      .upsert({
+        where: { userId: students[i].id },
+        create: {
+          userId: students[i].id,
+          xp: 100 + i * 20 + Math.floor(Math.random() * 200),
+          level: 1 + Math.floor((i * 20) / 500),
+          lastPracticeAt: new Date(Date.now() - i * 86400000),
+        },
+        update: {},
+      })
+      .catch(() => {});
   }
 
   // ——— NotificationSet и шаблоны (если пусто) ———
@@ -777,8 +950,18 @@ async function main() {
   if (notifTplCount === 0) {
     await prisma.notificationTemplate.createMany({
       data: [
-        { name: 'Запись на курс', subject: 'Вы записаны', body: 'Здравствуйте, %recfirstname%! Вы записаны на курс.', type: 'both' },
-        { name: 'Сертификат', subject: 'Сертификат выдан', body: 'Поздравляем с получением сертификата.', type: 'both' },
+        {
+          name: 'Запись на курс',
+          subject: 'Вы записаны',
+          body: 'Здравствуйте, %recfirstname%! Вы записаны на курс.',
+          type: 'both',
+        },
+        {
+          name: 'Сертификат',
+          subject: 'Сертификат выдан',
+          body: 'Поздравляем с получением сертификата.',
+          type: 'both',
+        },
       ],
     });
   }
@@ -787,23 +970,39 @@ async function main() {
   if (tplCount === 0) {
     await prisma.commsTemplate.createMany({
       data: [
-        { name: 'Приветствие', channel: 'email', subject: 'Добро пожаловать', htmlBody: '<p>Здравствуйте!</p>', variables: '[]' },
-        { name: 'Запись на курс', channel: 'email', subject: 'Вы записаны', htmlBody: '<p>Вы записаны на курс.</p>', variables: '[]' },
+        {
+          name: 'Приветствие',
+          channel: 'email',
+          subject: 'Добро пожаловать',
+          htmlBody: '<p>Здравствуйте!</p>',
+          variables: '[]',
+        },
+        {
+          name: 'Запись на курс',
+          channel: 'email',
+          subject: 'Вы записаны',
+          htmlBody: '<p>Вы записаны на курс.</p>',
+          variables: '[]',
+        },
       ],
     });
   }
 
   await prisma.llmSetting.upsert({
     where: { key: 'chatbot' },
-    create: { key: 'chatbot', provider: 'deepseek', model: 'deepseek-chat', systemPrompt: 'You are a helpful assistant for AVATERRA.', temperature: 0.7, maxTokens: 2000 },
+    create: {
+      key: 'chatbot',
+      provider: 'deepseek',
+      model: 'deepseek-chat',
+      systemPrompt: 'You are a helpful assistant for AVATERRA.',
+      temperature: 0.7,
+      maxTokens: 2000,
+    },
     update: {},
   });
   let defaultTutorPlaybook = '';
   try {
-    defaultTutorPlaybook = readFileSync(
-      path.join(process.cwd(), 'content', 'course-tutor-playbook.md'),
-      'utf-8'
-    );
+    defaultTutorPlaybook = readFileSync(path.join(process.cwd(), 'content', 'course-tutor-playbook.md'), 'utf-8');
   } catch {
     // файл отсутствует — оставляем пусто
   }
@@ -834,16 +1033,20 @@ async function main() {
   if (student1) {
     const validExpiry = new Date(Date.now() + 48 * 60 * 60 * 1000);
     const expiredExpiry = new Date(Date.now() - 60 * 60 * 1000);
-    await prisma.passwordToken.upsert({
-      where: { token: 'seedvalidtoken1234567890123456789012' },
-      create: { userId: student1.id, token: 'seedvalidtoken1234567890123456789012', expiresAt: validExpiry },
-      update: { expiresAt: validExpiry },
-    }).catch(() => {});
-    await prisma.passwordToken.upsert({
-      where: { token: 'seedexpiredtoken12345678901234567890' },
-      create: { userId: student1.id, token: 'seedexpiredtoken12345678901234567890', expiresAt: expiredExpiry },
-      update: { expiresAt: expiredExpiry },
-    }).catch(() => {});
+    await prisma.passwordToken
+      .upsert({
+        where: { token: 'seedvalidtoken1234567890123456789012' },
+        create: { userId: student1.id, token: 'seedvalidtoken1234567890123456789012', expiresAt: validExpiry },
+        update: { expiresAt: validExpiry },
+      })
+      .catch(() => {});
+    await prisma.passwordToken
+      .upsert({
+        where: { token: 'seedexpiredtoken12345678901234567890' },
+        create: { userId: student1.id, token: 'seedexpiredtoken12345678901234567890', expiresAt: expiredExpiry },
+        update: { expiresAt: expiredExpiry },
+      })
+      .catch(() => {});
   }
 
   // ——— SystemSetting: базовые настройки для локальной разработки ———
@@ -858,11 +1061,13 @@ async function main() {
     { key: 'resend_notify_email', value: 'admin@test.local', category: 'email' },
   ];
   for (const s of systemSettings) {
-    await prisma.systemSetting.upsert({
-      where: { key: s.key },
-      create: s,
-      update: { value: s.value, category: s.category },
-    }).catch(() => {});
+    await prisma.systemSetting
+      .upsert({
+        where: { key: s.key },
+        create: s,
+        update: { value: s.value, category: s.category },
+      })
+      .catch(() => {});
   }
 
   // ——— Исправление опечатки «Тело не врем» → «Тело не врет» в существующих курсах ———
@@ -871,15 +1076,22 @@ async function main() {
     select: { id: true, title: true },
   });
   for (const c of typoCourses) {
-    await prisma.course.update({
-      where: { id: c.id },
-      data: { title: c.title.replace(/Тело не врем/g, 'Тело не врет') },
-    }).catch(() => {});
+    await prisma.course
+      .update({
+        where: { id: c.id },
+        data: { title: c.title.replace(/Тело не врем/g, 'Тело не врет') },
+      })
+      .catch(() => {});
   }
 
-  console.log('Seed done: 50+ users, courses (первые 5 с scormManifest/scormPath), enrollments (часть completedAt), groups, media, leads, orders, mailings, tickets, 50+ certificates (ALT-xxx, шаблоны), scorm progress (lesson-1/2/3, часть полное прохождение), phygital, visit/audit logs, user energy, password tokens, system settings (в т.ч. scorm_max_size_mb).');
+  console.log(
+    'Seed done: 50+ users, courses (первые 5 с scormManifest/scormPath), enrollments (часть completedAt), groups, media, leads, orders, mailings, tickets, 50+ certificates (ALT-xxx, шаблоны), scorm progress (lesson-1/2/3, часть полное прохождение), phygital, visit/audit logs, user energy, password tokens, system settings (в т.ч. scorm_max_size_mb).'
+  );
 }
 
 main()
-  .catch((e) => { console.error(e); process.exit(1); })
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
   .finally(() => prisma.$disconnect());
