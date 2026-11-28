@@ -12,12 +12,9 @@ import { prisma } from './db';
 import { sendTelegramMessageWithResult } from './telegram';
 import { TELEGRAM_BOT_URL } from './social-links';
 import { sendOffer } from './telegram-bot/offer';
-import {
-  sendOfferNudge,
-  NUDGE_AFTER_OFFER_MS,
-  LOST_AFTER_NUDGE_MS,
-} from './telegram-bot/offer-nudge';
+import { sendOfferNudge, NUDGE_AFTER_OFFER_MS, LOST_AFTER_NUDGE_MS } from './telegram-bot/offer-nudge';
 import { markLost } from './telegram-bot/lead-qualify';
+import { notifyStaleTickets } from './ticket-stale';
 import { UNSUBSCRIBE_HINT } from './telegram-bot/unsubscribe';
 
 const STAGE1_AFTER_MS = 2 * 60 * 60 * 1000; // касание 1: 2 часа тишины
@@ -102,7 +99,11 @@ async function notifyStaleLeads(now: Date): Promise<number> {
         OR: [
           // не начали диалог с ботом, либо исчерпали прогрев
           // Холодные (info) после единственного касания сюда не попадают: они и так холодные.
-          { status: 'new', funnelSegment: { not: 'info' }, OR: [{ telegramChatId: null }, { followupStage: { gte: 2 } }] },
+          {
+            status: 'new',
+            funnelSegment: { not: 'info' },
+            OR: [{ telegramChatId: null }, { followupStage: { gte: 2 } }],
+          },
           // написали, но оффера не было и затихли — вовлечённые, которых нельзя терять
           { status: 'contacted', offerSentAt: null, respondedAt: { lt: staleBefore } },
           // Заявки на оплату (касса выключена), по которым за сутки не было оплаты.
@@ -150,6 +151,8 @@ export type FollowupResult = {
   dryRun: boolean;
   /** Сколько залежавшихся лидов попало в напоминание админам (раз в сутки). */
   staleNotified: number;
+  /** Тикетов в напоминании «ждут человека» (lib/ticket-stale.ts). */
+  staleTickets: number;
   nudged: number;
   lostClosed: number;
   details: string[];
@@ -195,7 +198,10 @@ async function runColdTouch(now: Date, dryRun: boolean, result: FollowupResult):
     }
     const sent = await sendTelegramMessageWithResult(chatId, text, { parseMode: 'HTML', disableWebPagePreview: true });
     if (sent.ok) {
-      await prisma.lead.update({ where: { id: lead.id }, data: { followupStage: COLD_TOUCH_STAGE, lastBotMessageAt: now } });
+      await prisma.lead.update({
+        where: { id: lead.id },
+        data: { followupStage: COLD_TOUCH_STAGE, lastBotMessageAt: now },
+      });
       result.sent += 1;
       result.details.push(`лид ${lead.id}: холодное касание отправлено`);
     } else {
@@ -211,16 +217,25 @@ async function runColdTouch(now: Date, dryRun: boolean, result: FollowupResult):
  * Один прогон догонов. `now` инжектируется для тестов.
  * Возвращает сводку — её же видит cron-роут.
  */
-export async function runTelegramLeadFollowup(
-  options: { dryRun?: boolean; now?: Date } = {}
-): Promise<FollowupResult> {
+export async function runTelegramLeadFollowup(options: { dryRun?: boolean; now?: Date } = {}): Promise<FollowupResult> {
   const dryRun = options.dryRun ?? false;
   const now = options.now ?? new Date();
   const result: FollowupResult = {
-    candidates: 0, sent: 0, failed: 0, blocked: 0, dryRun, staleNotified: 0, nudged: 0, lostClosed: 0, details: [],
+    candidates: 0,
+    sent: 0,
+    failed: 0,
+    blocked: 0,
+    dryRun,
+    staleNotified: 0,
+    staleTickets: 0,
+    nudged: 0,
+    lostClosed: 0,
+    details: [],
   };
 
   if (!dryRun) result.staleNotified = await notifyStaleLeads(now);
+  // Тикеты, которые ждут человека (инцидент 26–27.11.2026) — тем же ежечасным cron.
+  if (!dryRun) result.staleTickets = await notifyStaleTickets(now);
 
   const leads = await prisma.lead.findMany({
     where: {
@@ -249,7 +264,9 @@ export async function runTelegramLeadFollowup(
     const chatId = Number(lead.telegramChatId);
 
     if (dryRun) {
-      result.details.push(`лид ${lead.id} (${lead.name}): касание #${stage}${stage === FINAL_STAGE ? ' (оффер)' : ''} готово`);
+      result.details.push(
+        `лид ${lead.id} (${lead.name}): касание #${stage}${stage === FINAL_STAGE ? ' (оффер)' : ''} готово`
+      );
       continue;
     }
 
@@ -257,7 +274,10 @@ export async function runTelegramLeadFollowup(
     if (stage === FINAL_STAGE) {
       const offer = await sendOffer(chatId, {});
       if (offer.sent) {
-        await prisma.lead.update({ where: { id: lead.id }, data: { followupStage: FINAL_STAGE, lastBotMessageAt: now } });
+        await prisma.lead.update({
+          where: { id: lead.id },
+          data: { followupStage: FINAL_STAGE, lastBotMessageAt: now },
+        });
         result.sent += 1;
         result.details.push(`лид ${lead.id}: касание #3 — оффер отправлен`);
       } else if (offer.reason === 'unsubscribed') {

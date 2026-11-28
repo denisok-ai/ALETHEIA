@@ -9,9 +9,7 @@ import { authOptions } from '@/lib/auth';
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { sendTransactionalEmail } from '@/lib/email-service';
-import {
-  buildTicketAutoReplyEmail,
-} from '@/lib/email-templates';
+import { buildTicketAutoReplyEmail } from '@/lib/email-templates';
 import { getSystemSettings } from '@/lib/settings';
 import { claimPaidOrdersForUser } from '@/lib/claim-orders';
 import { generateAutoReply, isConfidentReply } from '@/lib/ticket-auto-reply';
@@ -41,9 +39,7 @@ async function findPaidOrderWithoutAccess(userId: string, emailNorm: string): Pr
     where: { paykeeperTariffId: { in: tariffIds }, isActive: true },
     select: { paykeeperTariffId: true, courseId: true },
   });
-  const courseByTariff = new Map(
-    services.filter((s) => s.courseId).map((s) => [s.paykeeperTariffId!, s.courseId!])
-  );
+  const courseByTariff = new Map(services.filter((s) => s.courseId).map((s) => [s.paykeeperTariffId!, s.courseId!]));
   if (courseByTariff.size === 0) return null;
 
   const enrollments = await prisma.enrollment.findMany({
@@ -93,9 +89,10 @@ export async function POST(request: NextRequest) {
   await claimPaidOrdersForUser(userId, emailNorm);
   const orderWithoutAccess = emailNorm ? await findPaidOrderWithoutAccess(userId, emailNorm) : null;
   if (orderWithoutAccess) {
-    subject = subject === 'Не приходит доступ' || subject.startsWith('Не приходит доступ')
-      ? subject
-      : `Не приходит доступ — ${subject}`;
+    subject =
+      subject === 'Не приходит доступ' || subject.startsWith('Не приходит доступ')
+        ? subject
+        : `Не приходит доступ — ${subject}`;
   }
 
   const messages = message ? [{ role: 'user' as const, content: message, at: new Date().toISOString() }] : [];
@@ -134,7 +131,8 @@ export async function POST(request: NextRequest) {
         if (autoReply && isConfidentReply(autoReply)) {
           const updatedMessages = [
             ...messages,
-            { role: 'manager' as const, content: autoReply, at: new Date().toISOString() },
+            // auto: true — автоответ не считается ответом человека (lib/ticket-stale.ts).
+            { role: 'manager' as const, content: autoReply, at: new Date().toISOString(), auto: true },
           ];
           await prisma.ticket.update({
             where: { id: ticket.id },
